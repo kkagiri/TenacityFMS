@@ -79,6 +79,8 @@ const ImportManagementPage = () => {
         error,
         retryingId,
         onDemandRunning,
+        profileRunningId,
+        activeJobId,
         activeTab,
         search,
         reportType,
@@ -93,6 +95,8 @@ const ImportManagementPage = () => {
         handlePageChange,
         handleRetry,
         handleOnDemandTest,
+        handleProfileImport,
+        handleCancelImport,
         handleSelectFile,
         handleCloseDetail,
         refreshFiles,
@@ -393,7 +397,12 @@ const ImportManagementPage = () => {
                 title="Auto-Import Settings"
                 width={750}
             >
-                <AutoImportSettingsPanel onClose={() => setShowSettings(false)} />
+                <AutoImportSettingsPanel
+                    onClose={() => setShowSettings(false)}
+                    onProfileImport={handleProfileImport}
+                    onCancelImport={handleCancelImport}
+                    profileRunningId={profileRunningId}
+                />
             </SlidePanel>
         </div>
     );

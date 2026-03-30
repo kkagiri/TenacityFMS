@@ -99,8 +99,9 @@ const HelpPane = () => {
 };
 
 /* ─── Single Profile Card ─── */
-const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage }) => {
+const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, onProfileImport, onCancelImport, profileRunningId }) => {
     const [expanded, setExpanded] = useState(true);
+    const isRunning = profileRunningId === profile.id;
 
     const update = (field, value) => updateProfileField(profile.id, field, value);
 
@@ -122,6 +123,26 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage }) 
                     )}
                 </div>
                 <div className="tw-flex tw-items-center tw-gap-2" onClick={(e) => e.stopPropagation()}>
+                    {canManage && profile.enabled && onProfileImport && (
+                        isRunning ? (
+                            <button
+                                className="m365-icon-btn m365-icon-btn--danger"
+                                title="Cancel running import"
+                                onClick={() => onCancelImport && onCancelImport()}
+                            >
+                                <i className="fa-light fa-stop" style={{ color: "#d13438" }} />
+                            </button>
+                        ) : (
+                            <button
+                                className="m365-icon-btn"
+                                title="Run import for this profile now"
+                                onClick={() => onProfileImport(profile.id)}
+                                disabled={!!profileRunningId}
+                            >
+                                <i className="fa-light fa-play" style={{ color: "#107c10" }} />
+                            </button>
+                        )
+                    )}
                     <label className="m365-checkbox" title="Enable/disable this profile">
                         <input
                             type="checkbox"
@@ -282,7 +303,7 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage }) 
 };
 
 /* ─── Main Settings Panel ─── */
-const AutoImportSettingsPanel = ({ onClose }) => {
+const AutoImportSettingsPanel = ({ onClose, onProfileImport, onCancelImport, profileRunningId }) => {
     const {
         settings,
         loading,
@@ -398,6 +419,9 @@ const AutoImportSettingsPanel = ({ onClose }) => {
                                     updateProfileField={updateProfileField}
                                     removeProfile={removeProfile}
                                     canManage={canManage}
+                                    onProfileImport={onProfileImport}
+                                    onCancelImport={onCancelImport}
+                                    profileRunningId={profileRunningId}
                                 />
                             ))
                         )}

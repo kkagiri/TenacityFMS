@@ -3,7 +3,7 @@
  * Purpose: Interface for the auto-import orchestrator that ties together
  *          file scanning, tracking, parsing, and import dispatch.
  * Dependencies: IExcelParsingService, IFileTrackerService, ImportFuelReportCommand
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-30
  *
  * Key Methods:
  * - ScanAndImportAsync: Full pipeline — scan directories → detect changes → parse → import → track results
@@ -11,6 +11,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FMS.Application.Features.FuelImport.Services;
@@ -30,6 +31,8 @@ public class AutoImportResult
     public int FilesSkippedNoSite { get; set; }
     public int TotalRecordsImported { get; set; }
     public int TotalDuplicatesSkipped { get; set; }
+    public string? ProfileId { get; set; }
+    public string? ProfileName { get; set; }
     public List<string> Errors { get; set; } = new();
     public List<string> Warnings { get; set; } = new();
     public TimeSpan Duration { get; set; }
@@ -40,6 +43,11 @@ public class AutoImportResult
 /// </summary>
 public class AutoImportOptions
 {
+    /// <summary>
+    /// Optional profile ID — when set, overrides ScanPaths/BatchSize/IncludeRetries from that profile.
+    /// </summary>
+    public string? ProfileId { get; set; }
+
     /// <summary>
     /// Root directories to scan (defaults to configured paths if empty).
     /// </summary>
@@ -79,10 +87,10 @@ public interface IFuelAutoImportService
     /// <summary>
     /// Run the full scan-and-import pipeline for configured directories.
     /// </summary>
-    Task<AutoImportResult> ScanAndImportAsync(AutoImportOptions? options = null);
+    Task<AutoImportResult> ScanAndImportAsync(AutoImportOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Import a single file by path. Useful for testing or manual retries.
     /// </summary>
-    Task<AutoImportResult> ImportSingleFileAsync(string filePath, string userId = "SYSTEM_AUTO_IMPORT");
+    Task<AutoImportResult> ImportSingleFileAsync(string filePath, string userId = "SYSTEM_AUTO_IMPORT", CancellationToken cancellationToken = default);
 }

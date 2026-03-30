@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.FuelImport.Commands;
 using FMS.Application.Features.FuelImport.DTOs;
 using FMS.Application.Features.FuelImport.Queries;
@@ -10,6 +13,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using FMS.WebClient.Attributes;
@@ -26,11 +31,25 @@ namespace FMS.WebClient.Controllers.Reporting
     {
         private readonly IMediator _mediator;
         private readonly ILogger<FuelImportController> _logger;
+        private readonly IHubContext<FrontEndHub> _hubContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public FuelImportController(IMediator mediator, ILogger<FuelImportController> logger)
+        /// <summary>
+        /// Tracks running import jobs so they can be cancelled.
+        /// Key = jobId, Value = CancellationTokenSource for that job.
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, CancellationTokenSource> _runningJobs = new();
+
+        public FuelImportController(
+            IMediator mediator,
+            ILogger<FuelImportController> logger,
+            IHubContext<FrontEndHub> hubContext,
+            IServiceScopeFactory scopeFactory)
         {
             _mediator = mediator;
             _logger = logger;
+            _hubContext = hubContext;
+            _scopeFactory = scopeFactory;
         }
 
         /// <summary>
@@ -175,6 +194,122 @@ namespace FMS.WebClient.Controllers.Reporting
                 _logger.LogError(ex, "Error triggering auto-import");
                 return StatusCode(500, FMSResponse<object>.Failed($"Auto-import failed: {ex.Message}"));
             }
+        }
+
+        /// <summary>
+        /// Trigger on-demand auto-import for a specific profile.
+        /// Returns 202 Accepted immediately and runs the import in the background.
+        /// Progress and results are broadcast via SignalR (FuelImportJobStarted, FuelImportCompleted, FuelImportError).
+        /// </summary>
+        [HttpPost("auto-import/profile/{profileId}")]
+        public IActionResult AutoImportByProfile(string profileId)
+        {
+            if (string.IsNullOrWhiteSpace(profileId))
+                return BadRequest(FMSResponse<object>.Failed("ProfileId is required."));
+
+            var userId = User.FindFirst("UserId")?.Value
+                ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? "SYSTEM";
+
+            var jobId = Guid.NewGuid().ToString();
+
+            _logger.LogInformation("Per-profile auto-import queued. JobId: {JobId}, ProfileId: {ProfileId}, User: {UserId}",
+                jobId, profileId, userId);
+
+            _ = Task.Run(async () =>
+            {
+                var cts = new CancellationTokenSource();
+                _runningJobs.TryAdd(jobId, cts);
+
+                using var scope = _scopeFactory.CreateScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<FuelImportController>>();
+
+                try
+                {
+                    await _hubContext.Clients.All.SendAsync("FuelImportJobStarted", new
+                    {
+                        jobId,
+                        profileId,
+                        userId,
+                        startedAt = DateTime.UtcNow
+                    });
+
+                    var command = new AutoImportFuelReportsCommand
+                    {
+                        ProfileId = profileId,
+                        UserId = userId
+                    };
+
+                    var result = await mediator.Send(command, cts.Token);
+
+                    await _hubContext.Clients.All.SendAsync("FuelImportCompleted", new
+                    {
+                        jobId,
+                        profileId,
+                        userId,
+                        completedAt = DateTime.UtcNow,
+                        isSuccess = result.IsSuccess,
+                        message = result.IsSuccess ? "Import completed successfully" : "Import completed with errors",
+                        data = result.Data
+                    });
+
+                    logger.LogInformation("Per-profile auto-import completed. JobId: {JobId}, ProfileId: {ProfileId}, Success: {IsSuccess}",
+                        jobId, profileId, result.IsSuccess);
+                }
+                catch (OperationCanceledException)
+                {
+                    logger.LogInformation("Per-profile auto-import cancelled. JobId: {JobId}, ProfileId: {ProfileId}", jobId, profileId);
+
+                    await _hubContext.Clients.All.SendAsync("FuelImportCancelled", new
+                    {
+                        jobId,
+                        profileId,
+                        userId,
+                        cancelledAt = DateTime.UtcNow,
+                        message = "Import was cancelled by user"
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Per-profile auto-import failed. JobId: {JobId}, ProfileId: {ProfileId}", jobId, profileId);
+
+                    await _hubContext.Clients.All.SendAsync("FuelImportError", new
+                    {
+                        jobId,
+                        profileId,
+                        userId,
+                        errorAt = DateTime.UtcNow,
+                        message = ex.Message
+                    });
+                }
+                finally
+                {
+                    _runningJobs.TryRemove(jobId, out _);
+                    cts.Dispose();
+                }
+            });
+
+            return Accepted(FMSResponse<object>.Success(new { jobId, profileId, message = "Import started in background" }));
+        }
+
+        /// <summary>
+        /// Cancel a running background import job.
+        /// </summary>
+        [HttpPost("auto-import/{jobId}/cancel")]
+        [RequirePermission(Permissions.FuelImport.Manage)]
+        public IActionResult CancelImportJob(string jobId)
+        {
+            if (string.IsNullOrWhiteSpace(jobId))
+                return BadRequest(FMSResponse<object>.Failed("JobId is required."));
+
+            if (!_runningJobs.TryGetValue(jobId, out var cts))
+                return NotFound(FMSResponse<object>.Failed($"No running import job found with ID '{jobId}'."));
+
+            _logger.LogInformation("Cancel requested for import job {JobId}", jobId);
+            cts.Cancel();
+
+            return Ok(FMSResponse<object>.Success(new { jobId, message = "Cancellation requested" }));
         }
 
         /// <summary>

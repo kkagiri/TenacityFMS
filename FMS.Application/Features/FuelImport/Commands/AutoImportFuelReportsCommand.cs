@@ -3,9 +3,10 @@
  * Purpose: MediatR command to trigger on-demand fuel report auto-import.
  *          Wraps IFuelAutoImportService for API endpoint access.
  * Dependencies: IFuelAutoImportService, AutoImportOptions, AutoImportResult
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-30
  *
  * Key Fields:
+ * - ProfileId: Optional profile ID to run only that profile's path and settings
  * - ScanPaths: Optional override for directories to scan
  * - ReportTypeFilter: Optional "km/l" or "l/hr" filter
  * - BatchSize: Max files to process (default 50)
@@ -20,6 +21,12 @@ namespace FMS.Application.Features.FuelImport.Commands;
 
 public class AutoImportFuelReportsCommand : IRequest<FMSResponse<AutoImportResult>>
 {
+    /// <summary>
+    /// Optional profile ID to run only that profile's path and settings.
+    /// When set, ScanPaths / BatchSize / IncludeRetries are resolved from the profile.
+    /// </summary>
+    public string? ProfileId { get; set; }
+
     /// <summary>
     /// Optional override for directories to scan. Empty = use configured defaults.
     /// </summary>

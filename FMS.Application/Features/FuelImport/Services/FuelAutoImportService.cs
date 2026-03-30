@@ -3,7 +3,7 @@
  * Purpose: Orchestrates the auto-import pipeline: scan directories → detect changes → parse → import → track results.
  *          Dispatches existing ImportFuelReportCommand for each file's parsed records.
  * Dependencies: IExcelParsingService, IFileTrackerService, IMediator, GpsdataContext, IConfiguration
- * Last Modified: 2026-03-26
+ * Last Modified: 2026-03-30
  *
  * Key Functions:
  * - ScanAndImportAsync: Full pipeline with batch processing
@@ -17,6 +17,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.FuelImport.Commands;
 using FMS.Application.Features.FuelImport.DTOs;
@@ -83,7 +84,7 @@ public class FuelAutoImportService : IFuelAutoImportService
         _logger = logger;
     }
 
-    public async Task<AutoImportResult> ScanAndImportAsync(AutoImportOptions? options = null)
+    public async Task<AutoImportResult> ScanAndImportAsync(AutoImportOptions? options = null, CancellationToken cancellationToken = default)
     {
         options ??= new AutoImportOptions();
         var sw = Stopwatch.StartNew();
@@ -91,7 +92,30 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         try
         {
-            // 1. Determine scan paths
+            // 1. Resolve profile if ProfileId is specified
+            if (!string.IsNullOrWhiteSpace(options.ProfileId))
+            {
+                var profile = ResolveProfile(options.ProfileId);
+                if (profile == null)
+                {
+                    result.Errors.Add($"Profile '{options.ProfileId}' not found or disabled");
+                    result.Duration = sw.Elapsed;
+                    _logger.LogWarning("Auto-import aborted — profile not found: {ProfileId}", options.ProfileId);
+                    return result;
+                }
+
+                // Override options from profile settings
+                options.ScanPaths = new List<string> { NormalizeScanPath(profile.ScanPath) };
+                options.BatchSize = profile.BatchSize;
+                options.IncludeRetries = profile.IncludeRetries;
+                result.ProfileId = profile.Id;
+                result.ProfileName = profile.Name;
+
+                _logger.LogInformation("Resolved profile '{ProfileId}' ({ProfileName}). Path: {Path}, Batch: {Batch}",
+                    profile.Id, profile.Name, profile.ScanPath, profile.BatchSize);
+            }
+
+            // 2. Determine scan paths
             var scanPaths = options.ScanPaths.Any()
                 ? options.ScanPaths
                 : GetConfiguredScanPaths();
@@ -152,6 +176,8 @@ public class FuelAutoImportService : IFuelAutoImportService
             // 7. Process each file
             foreach (var fileMetadata in filesToProcess)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
                     var fileResult = await ProcessFileAsync(fileMetadata, siteLookup, options.UserId);
@@ -201,7 +227,7 @@ public class FuelAutoImportService : IFuelAutoImportService
         return result;
     }
 
-    public async Task<AutoImportResult> ImportSingleFileAsync(string filePath, string userId = "SYSTEM_AUTO_IMPORT")
+    public async Task<AutoImportResult> ImportSingleFileAsync(string filePath, string userId = "SYSTEM_AUTO_IMPORT", CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Manual single-file import requested for {FilePath} by {UserId}", filePath, userId);
 
@@ -254,6 +280,33 @@ public class FuelAutoImportService : IFuelAutoImportService
     }
 
     #region Private Methods
+
+    /// <summary>
+    /// Resolve a single profile by ID from the stored JSON in SystemConfigurations.
+    /// Returns null if not found or disabled.
+    /// </summary>
+    private FuelAutoImportProfileDto? ResolveProfile(string profileId)
+    {
+        try
+        {
+            var dbConfig = _context.SystemConfigurations
+                .AsNoTracking()
+                .FirstOrDefault(c => c.IsActive
+                    && c.ConfigurationKey == Configuration.SystemConfiguration.DB_CONFIG_FUEL_AUTO_IMPORT_PROFILES_KEY);
+
+            if (dbConfig == null || string.IsNullOrWhiteSpace(dbConfig.ConfigurationValue))
+                return null;
+
+            var profiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
+            return profiles?.FirstOrDefault(p =>
+                p.Id.Equals(profileId, StringComparison.OrdinalIgnoreCase) && p.Enabled);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to resolve profile '{ProfileId}' from SystemConfigurations", profileId);
+            return null;
+        }
+    }
 
     /// <summary>
     /// Get scan paths from FuelAutoImport.Profiles JSON in SystemConfigurations.
