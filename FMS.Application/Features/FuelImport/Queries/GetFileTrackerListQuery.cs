@@ -10,6 +10,7 @@
  * - Search: Search by filename
  * - Page/PageSize: Pagination controls
  */
+using System;
 using System.Collections.Generic;
 using FMS.Application.Common;
 using FMS.Application.Features.FuelImport.DTOs;
@@ -27,6 +28,12 @@ public class GetFileTrackerListQuery : IRequest<FMSResponse<FileTrackerListResul
 
     /// <summary>Search by filename (partial match)</summary>
     public string? Search { get; set; }
+
+    /// <summary>Filter by date range — from (inclusive, based on UpdatedAt)</summary>
+    public DateTime? DateFrom { get; set; }
+
+    /// <summary>Filter by date range — to (inclusive, based on UpdatedAt)</summary>
+    public DateTime? DateTo { get; set; }
 
     /// <summary>Page number (1-based)</summary>
     public int Page { get; set; } = 1;

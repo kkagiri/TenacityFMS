@@ -49,6 +49,16 @@ public class GetFileTrackerListQueryHandler
                 (t.DetectedSiteName != null && t.DetectedSiteName.Contains(search)));
         }
 
+        if (request.DateFrom.HasValue)
+            query = query.Where(t => t.UpdatedAt >= request.DateFrom.Value);
+
+        if (request.DateTo.HasValue)
+        {
+            // Include the entire day for DateTo
+            var dateTo = request.DateTo.Value.Date.AddDays(1);
+            query = query.Where(t => t.UpdatedAt < dateTo);
+        }
+
         // ── Summary stats (across all records, ignoring status filter) ──
         var allQuery = _context.FuelImportFileTrackers.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(request.ReportType))
@@ -59,6 +69,15 @@ public class GetFileTrackerListQueryHandler
             allQuery = allQuery.Where(t =>
                 t.FileName.Contains(search) ||
                 (t.DetectedSiteName != null && t.DetectedSiteName.Contains(search)));
+        }
+
+        if (request.DateFrom.HasValue)
+            allQuery = allQuery.Where(t => t.UpdatedAt >= request.DateFrom.Value);
+
+        if (request.DateTo.HasValue)
+        {
+            var dateTo = request.DateTo.Value.Date.AddDays(1);
+            allQuery = allQuery.Where(t => t.UpdatedAt < dateTo);
         }
 
         var stats = await allQuery

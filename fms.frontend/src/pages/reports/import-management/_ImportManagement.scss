@@ -932,3 +932,53 @@ $m365-warning:        #ca5010;
     grid-template-columns: 1fr;
   }
 }
+
+// ──────────────────────────────────────────────
+// Clear Logs Confirmation Dialog
+// ──────────────────────────────────────────────
+
+.import-mgmt__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.import-mgmt__confirm-dialog {
+  background: $m365-bg-card;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  padding: 24px;
+  max-width: 420px;
+  width: 90%;
+}
+
+.import-mgmt__confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: $m365-text;
+    margin: 0;
+  }
+}
+
+.import-mgmt__confirm-text {
+  font-size: 13px;
+  color: $m365-text-secondary;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.import-mgmt__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

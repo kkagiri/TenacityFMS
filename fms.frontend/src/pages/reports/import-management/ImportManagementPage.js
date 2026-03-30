@@ -84,6 +84,8 @@ const ImportManagementPage = () => {
         activeTab,
         search,
         reportType,
+        dateFrom,
+        dateTo,
         page,
         sortBy,
         sortDirection,
@@ -91,6 +93,9 @@ const ImportManagementPage = () => {
         handleTabChange,
         handleSearchChange,
         handleReportTypeChange,
+        handleDateFromChange,
+        handleDateToChange,
+        handleClearLogs,
         handleSortChange,
         handlePageChange,
         handleRetry,
@@ -103,6 +108,7 @@ const ImportManagementPage = () => {
     } = useImportManagement();
 
     const [showSettings, setShowSettings] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
     const { hasPermission } = usePermissions();
     const canManageImport = hasPermission("_Manage_FuelImport");
 
@@ -188,6 +194,17 @@ const ImportManagementPage = () => {
                         <i className={`fa-light ${loading ? "fa-spinner-third fa-spin" : "fa-rotate-right"}`} />
                         Refresh
                     </button>
+                    {canManageImport && (
+                        <button
+                            className="m365-btn m365-btn--danger"
+                            onClick={() => setShowClearConfirm(true)}
+                            disabled={loading}
+                            title="Clear filtered log records"
+                        >
+                            <i className="fa-light fa-trash-can" />
+                            Clear Logs
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -238,6 +255,22 @@ const ImportManagementPage = () => {
                     <option value="km/l">km/l</option>
                     <option value="l/hr">l/hr</option>
                 </select>
+                <input
+                    type="date"
+                    className="m365-date"
+                    value={dateFrom}
+                    onChange={(e) => handleDateFromChange(e.target.value)}
+                    title="From date"
+                    placeholder="From"
+                />
+                <input
+                    type="date"
+                    className="m365-date"
+                    value={dateTo}
+                    onChange={(e) => handleDateToChange(e.target.value)}
+                    title="To date"
+                    placeholder="To"
+                />
             </div>
 
             {/* ── Error Banner ── */}
@@ -389,6 +422,40 @@ const ImportManagementPage = () => {
                     retrying={retryingId === selectedFile?.id}
                 />
             </SlidePanel>
+
+            {/* ── Clear Logs Confirmation ── */}
+            {showClearConfirm && (
+                <div className="import-mgmt__confirm-overlay">
+                    <div className="import-mgmt__confirm-dialog">
+                        <div className="import-mgmt__confirm-header">
+                            <i className="fa-light fa-triangle-exclamation" style={{ color: "#d13438", fontSize: 18 }} />
+                            <h3>Clear Log Records</h3>
+                        </div>
+                        <p className="import-mgmt__confirm-text">
+                            This will permanently delete the currently filtered log records.
+                            Records with "Processing" status are always excluded.
+                        </p>
+                        <div className="import-mgmt__confirm-actions">
+                            <button
+                                className="m365-btn m365-btn--ghost"
+                                onClick={() => setShowClearConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="m365-btn m365-btn--danger"
+                                onClick={async () => {
+                                    setShowClearConfirm(false);
+                                    await handleClearLogs();
+                                }}
+                            >
+                                <i className="fa-light fa-trash-can" />
+                                Clear Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Settings Panel ── */}
             <SlidePanel

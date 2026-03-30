@@ -373,6 +373,8 @@ namespace FMS.WebClient.Controllers.Reporting
             [FromQuery] string? status,
             [FromQuery] string? reportType,
             [FromQuery] string? search,
+            [FromQuery] DateTime? dateFrom,
+            [FromQuery] DateTime? dateTo,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] string sortBy = "UpdatedAt",
@@ -385,6 +387,8 @@ namespace FMS.WebClient.Controllers.Reporting
                     Status = status,
                     ReportType = reportType,
                     Search = search,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo,
                     Page = page,
                     PageSize = pageSize,
                     SortBy = sortBy,
@@ -398,6 +402,35 @@ namespace FMS.WebClient.Controllers.Reporting
             {
                 _logger.LogError(ex, "Error fetching file tracker list");
                 return StatusCode(500, FMSResponse<object>.Failed("Failed to fetch file tracker list."));
+            }
+        }
+
+        /// <summary>
+        /// Clear (delete) file tracker log records. Excludes records with Processing status.
+        /// </summary>
+        [HttpDelete("auto-import/files")]
+        [RequirePermission(Permissions.FuelImport.Manage)]
+        public async Task<IActionResult> ClearFileTrackerLogs(
+            [FromQuery] string? status,
+            [FromQuery] DateTime? dateFrom,
+            [FromQuery] DateTime? dateTo)
+        {
+            try
+            {
+                var command = new ClearFileTrackerLogsCommand
+                {
+                    Status = status,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo,
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing file tracker logs");
+                return StatusCode(500, FMSResponse<object>.Failed("Failed to clear file tracker logs."));
             }
         }
 

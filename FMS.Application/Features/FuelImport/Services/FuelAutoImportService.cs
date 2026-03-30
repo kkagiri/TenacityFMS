@@ -68,6 +68,11 @@ public class FuelAutoImportService : IFuelAutoImportService
         ["OLKARIA KEDONG"] = "OLKARIA-KEDONG"
     };
 
+    private static readonly HashSet<string> ExcludedKmLSites = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "KATANI"
+    };
+
     public FuelAutoImportService(
         IExcelParsingService parsingService,
         IFileTrackerService fileTrackerService,
@@ -462,6 +467,16 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         try
         {
+            if (ShouldSkipKmLFile(metadata))
+            {
+                var reason = $"Skipped auto-import for excluded km/l site '{metadata.DetectedSiteName ?? metadata.FileName}'";
+                await _fileTrackerService.MarkAsSkippedAsync(tracker.Id, reason);
+                processResult.Skipped = true;
+                processResult.ErrorMessage = reason;
+                _logger.LogInformation("Skipping excluded km/l file {FileName}. DetectedSite: {DetectedSite}", metadata.FileName, metadata.DetectedSiteName ?? "unknown");
+                return processResult;
+            }
+
             // 2. Parse based on report type
             ExcelParseResult parseResult;
             if (metadata.ReportType == "l/hr")
@@ -557,6 +572,21 @@ public class FuelAutoImportService : IFuelAutoImportService
         }
 
         return processResult;
+    }
+
+    private static bool ShouldSkipKmLFile(FuelReportFileMetadata metadata)
+    {
+        if (!string.Equals(metadata.ReportType, "km/l", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(metadata.DetectedSiteName) && ExcludedKmLSites.Contains(metadata.DetectedSiteName.Trim()))
+        {
+            return true;
+        }
+
+        return metadata.FileName.Contains("KATANI", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
