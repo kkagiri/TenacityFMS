@@ -42,6 +42,7 @@ namespace FMS.Application.Features.Notification.Services
         private readonly GpsdataContext _context;
         private readonly ILogger<ScheduledReportPayloadBuilder> _logger;
         private readonly OperationalReportPayloadBuilder _operationalReportPayloadBuilder;
+        private readonly FleetExecutiveReportPayloadBuilder _fleetExecutiveReportPayloadBuilder;
 
         /// <summary>
         /// Source IDs (kebab-case) that this builder explicitly handles.
@@ -62,18 +63,22 @@ namespace FMS.Application.Features.Notification.Services
             "tank-level-detail",
             "storage-received-vs-dispensed",
             "alarm-report",
+            "monthly-fleet-report",
+            "weekly-fleet-report",
         };
 
         public ScheduledReportPayloadBuilder(
             IMediator mediator,
             GpsdataContext context,
             ILogger<ScheduledReportPayloadBuilder> logger,
-            OperationalReportPayloadBuilder operationalReportPayloadBuilder)
+            OperationalReportPayloadBuilder operationalReportPayloadBuilder,
+            FleetExecutiveReportPayloadBuilder fleetExecutiveReportPayloadBuilder)
         {
             _mediator = mediator;
             _context = context;
             _logger = logger;
             _operationalReportPayloadBuilder = operationalReportPayloadBuilder;
+            _fleetExecutiveReportPayloadBuilder = fleetExecutiveReportPayloadBuilder;
         }
 
         /// <summary>
@@ -145,6 +150,8 @@ namespace FMS.Application.Features.Notification.Services
                     "tank-level-detail" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "storage-received-vs-dispensed" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "alarm-report" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "monthly-fleet-report" => await _fleetExecutiveReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "weekly-fleet-report" => await _fleetExecutiveReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     _ => null,
                 };
             }

@@ -24,6 +24,8 @@ import consumptionByRefills from './consumptionByRefills';
 import issueTracker from './issueTracker';
 import transactionHistorySummary from './transactionHistorySummary';
 import routeAnalysis from './routeAnalysis';
+import monthlyFleetReport from './monthlyFleetReport';
+import weeklyFleetReport from './weeklyFleetReport';
 import liveTripOperations from './liveTripOperations';
 import tankLevelDetail from './tankLevelDetail';
 import alarmReport from './alarmReport';
@@ -63,6 +65,8 @@ const builtInSources = [
     issueTracker,
     transactionHistorySummary,
     routeAnalysis,
+    monthlyFleetReport,
+    weeklyFleetReport,
     liveTripOperations,
     tankLevelDetail,
     alarmReport,

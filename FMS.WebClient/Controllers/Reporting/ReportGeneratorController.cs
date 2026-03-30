@@ -285,10 +285,11 @@ namespace FMS.WebClient.Controllers.Reporting
                 return Gone(FMSResponse<string>.Failed("Report result has expired. Please regenerate."));
             }
 
-            var ext = job.OutputFormat?.ToLower() switch { "excel" => "xlsx", _ => "pdf" };
+            var ext = job.OutputFormat?.ToLower() switch { "excel" => "xlsx", "html" => "html", _ => "pdf" };
             var contentType = ext switch
             {
                 "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "html" => "text/html",
                 _ => "application/pdf"
             };
             var fileName = $"{SanitizeFileName(job.ReportTitle)}_{job.CreatedAtUtc:yyyyMMdd}.{ext}";

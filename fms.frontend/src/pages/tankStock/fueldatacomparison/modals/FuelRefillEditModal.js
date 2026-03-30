@@ -16,6 +16,40 @@ import { updateFuelRefill } from '../../../../api/fuelRefillClient';
 import SlidePanel from '../../../../components/ui/SlidePanel';
 import './FuelRefillEditModal.scss';
 
+const formatDateTimeInputValue = (value) => {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return '';
+  }
+
+  const localDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const parseDateTimeInputValue = (value, fallbackValue) => {
+  const parsedDate = value ? new Date(value) : null;
+
+  if (!parsedDate || Number.isNaN(parsedDate.getTime())) {
+    return fallbackValue;
+  }
+
+  return parsedDate;
+};
+
+const formatApiDateTime = (value) => {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return null;
+  }
+
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  const hours = String(value.getHours()).padStart(2, '0');
+  const minutes = String(value.getMinutes()).padStart(2, '0');
+  const seconds = String(value.getSeconds()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
 const FuelRefillEditModal = ({ fuelRefill, onClose, onSave, sites = [], vehicles = [] }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -62,7 +96,7 @@ const FuelRefillEditModal = ({ fuelRefill, onClose, onSave, sites = [], vehicles
         id: formData.id,
         vehicleId: formData.vehicleId,
         siteId: formData.siteId,
-        date: formData.date.toISOString(),
+        date: formatApiDateTime(formData.date),
         manualFuelrefillAmount: formData.manualFuelrefillAmount,
         previousMeterReading: formData.previousMeterReading,
         currentMeterReading: formData.currentMeterReading,
@@ -176,9 +210,9 @@ const FuelRefillEditModal = ({ fuelRefill, onClose, onSave, sites = [], vehicles
                 Date <span className="fuel-refill-edit-panel__required">*</span>
               </label>
               <input
-                type="date"
-                value={formData.date.toISOString().split('T')[0]}
-                onChange={(e) => handleInputChange('date', new Date(e.target.value))}
+                type="datetime-local"
+                value={formatDateTimeInputValue(formData.date)}
+                onChange={(e) => handleInputChange('date', parseDateTimeInputValue(e.target.value, formData.date))}
                 className="fuel-refill-edit-panel__input"
               />
             </div>

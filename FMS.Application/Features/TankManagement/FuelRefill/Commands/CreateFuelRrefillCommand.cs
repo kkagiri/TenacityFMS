@@ -79,14 +79,20 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 }
                 var fuelRefilDto = request.FuelRefilDTO;
 
-                // Always use UTC for internal storage
-                var entryDate = request.FuelRefilDTO?.Date ?? DateTime.UtcNow;
+                // The frontend sends local time without timezone indicator (Kind=Unspecified).
+                // Preserve the local DATE for day-level checks (opening/closing stock lookups)
+                // but convert to UTC for all timestamp operations (volume history comparisons, storage).
+                var rawEntryDate = request.FuelRefilDTO?.Date ?? DateTime.UtcNow;
+                var localDate = rawEntryDate.Date;
+                var entryDateUtc = rawEntryDate.Kind == DateTimeKind.Utc
+                    ? rawEntryDate
+                    : DateTime.SpecifyKind(rawEntryDate, DateTimeKind.Local).ToUniversalTime();
 
                 // Validate historical entry against future records policy
-                if (entryDate.Date < DateTime.UtcNow.Date)
+                if (entryDateUtc.Date < DateTime.UtcNow.Date)
                 {
                     var futureRecordsValidation = await _futureRecordsService.ValidateHistoricalEntryAsync(
-                        fuelRefilDto.TankId ?? 0, entryDate, VolumeChangeReasonEnum.Dispensing, cancellationToken);
+                        fuelRefilDto.TankId ?? 0, entryDateUtc, VolumeChangeReasonEnum.Dispensing, cancellationToken);
 
                     if (!futureRecordsValidation.IsAllowed)
                     {
@@ -97,7 +103,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     if (futureRecordsValidation.RequiresUserConfirmation)
                     {
                         _logger.LogWarning("Historical fuel refill entry with future records: Tank {TankId}, Date {EntryDate}, Policy {Policy}, Future Records {Count}",
-                            fuelRefilDto.TankId, entryDate, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
+                            fuelRefilDto.TankId, entryDateUtc, futureRecordsValidation.Policy, futureRecordsValidation.FutureRecordsCount);
                     }
                 }
 
@@ -105,7 +111,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 // CRITICAL: Include IsDeleted filter and secondary sort for deterministic ordering
                 var existingOpeningStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
-                        x.Timestamp.Date == entryDate.Date &&
+                        x.Timestamp.Date == localDate &&
                         x.ChangeReason == VolumeChangeReasonEnum.OpeningStock &&
                         (x.IsDeleted != true))
                     .OrderByDescending(x => x.Timestamp)
@@ -113,13 +119,13 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (existingOpeningStock == null)
-                    return new FMSResponseMessage(false, $"Opening stock for the tank on {entryDate.Date:yyyy-MM-dd} not found. Create a new Opening Stock first.");
+                    return new FMSResponseMessage(false, $"Opening stock for the tank on {localDate:yyyy-MM-dd} not found. Create a new Opening Stock first.");
 
                 // NEW VALIDATION: Fuel refill MUST be after opening stock (chronological order)
-                if (entryDate < existingOpeningStock.Timestamp)
+                if (entryDateUtc < existingOpeningStock.Timestamp)
                 {
                     return new FMSResponseMessage(false,
-                        $"CHRONOLOGICAL ORDER VIOLATION: Fuel refill time ({entryDate:yyyy-MM-dd HH:mm:ss}) is BEFORE opening stock recorded at ({existingOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss}). " +
+                        $"CHRONOLOGICAL ORDER VIOLATION: Fuel refill time ({entryDateUtc:yyyy-MM-dd HH:mm:ss} UTC) is BEFORE opening stock recorded at ({existingOpeningStock.Timestamp:yyyy-MM-dd HH:mm:ss} UTC). " +
                         "Transactions must occur AFTER opening stock is recorded.");
                 }
 
@@ -128,7 +134,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 // CRITICAL: Include IsDeleted filter and secondary sort for deterministic ordering
                 var closingStockForDay = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.FuelRefilDTO.TankId &&
-                        x.Timestamp.Date == entryDate.Date &&
+                        x.Timestamp.Date == localDate &&
                         x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
                         (x.IsDeleted != true))
                     .OrderByDescending(x => x.Timestamp)
@@ -137,20 +143,20 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 // If there's already a closing stock for the day, and fuel refill is after that closing stock,
                 // then we need a new opening stock first
-                if (closingStockForDay != null && fuelRefilDto.Date > closingStockForDay.Timestamp)
+                if (closingStockForDay != null && entryDateUtc > closingStockForDay.Timestamp)
                 {
-                    return new FMSResponseMessage(false, $"Cannot add fuel refill after closing stock for {entryDate.Date:yyyy-MM-dd}. Please create a new opening stock first.");
+                    return new FMSResponseMessage(false, $"Cannot add fuel refill after closing stock for {localDate:yyyy-MM-dd}. Please create a new opening stock first.");
                 }
 
                 var existingRefuel = await _context.FuelRefills
                     .FirstOrDefaultAsync(f =>
                         f.VehicleId == fuelRefilDto.VehicleId &&
-                        f.Date.Value.Date == fuelRefilDto.Date.Value.Date &&
+                        f.Date.Value.Date == entryDateUtc.Date &&
                         f.ManualFuelrefillAmount == fuelRefilDto.ManualFuelrefillAmount &&
                         (f.IsDeleted != true),
                         cancellationToken);
 
-                if (existingRefuel != null) return new FMSResponseMessage(false, $"Duplicate entry: A fuel refill for vehicle already exists on {fuelRefilDto.Date.Value.Date:yyyy-MM-dd} with the same volume ({fuelRefilDto.ManualFuelrefillAmount}L). Please check the existing entry or use a different volume.");
+                if (existingRefuel != null) return new FMSResponseMessage(false, $"Duplicate entry: A fuel refill for vehicle already exists on {localDate:yyyy-MM-dd} with the same volume ({fuelRefilDto.ManualFuelrefillAmount}L). Please check the existing entry or use a different volume.");
 
                 // NEW VALIDATION: Check for existing AUTOMATED pump transaction for the same vehicle
                 // This prevents double-counting when an automated PTS transaction has already recorded this fueling
@@ -161,7 +167,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 var existingPumpTransaction = await _context.Pumptransactions
                     .FirstOrDefaultAsync(pt =>
                         pt.VehicleId == fuelRefilDto.VehicleId &&
-                        pt.DateTime.Date == fuelRefilDto.Date.Value.Date &&
+                        pt.DateTime.Date == entryDateUtc.Date &&
                         pt.Volume.HasValue &&
                         Math.Abs(pt.Volume.Value - requestedVolume) / requestedVolume <= VOLUME_TOLERANCE,
                         cancellationToken);
@@ -172,12 +178,12 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                         "Blocked duplicate manual fuel refill: Automated pump transaction already exists. " +
                         "Vehicle {VehicleId}, Date {Date}, PTS Volume: {PtsVolume}L, Requested Volume: {RequestedVolume}L, " +
                         "Transaction ID: {TransactionId}, PTS: {PtsId}",
-                        fuelRefilDto.VehicleId, fuelRefilDto.Date.Value.Date,
+                        fuelRefilDto.VehicleId, localDate,
                         existingPumpTransaction.Volume, fuelRefilDto.ManualFuelrefillAmount,
                         existingPumpTransaction.Transaction, existingPumpTransaction.PtsId);
 
                     return new FMSResponseMessage(false,
-                        $"⚠️ DUPLICATE PREVENTED: An automated pump transaction already exists for this vehicle on {fuelRefilDto.Date.Value.Date:yyyy-MM-dd} " +
+                        $"⚠️ DUPLICATE PREVENTED: An automated pump transaction already exists for this vehicle on {localDate:yyyy-MM-dd} " +
                         $"with volume {existingPumpTransaction.Volume:F2}L (PTS Transaction ID: {existingPumpTransaction.Transaction}). " +
                         "This fueling was already recorded by the PTS system automatically. Manual entry is not required.");
                 }
@@ -204,7 +210,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     // For current date entries, validate against tank's PHYSICAL stock (actual measured value)
                     // PhysicalStockValue = what we "actually" have (real-time physical measurement)
                     // CurrentStock = what we "should" have (book/ledger value for accounting)
-                    if (entryDate.Date == DateTime.UtcNow.Date)
+                    if (entryDateUtc.Date == DateTime.UtcNow.Date)
                     {
                         if (tank.PhysicalStockValue == null || tank.PhysicalStockValue <= 0)
                             return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
@@ -291,6 +297,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 request.FuelRefilDTO.DateCreated = DateTime.UtcNow.ToString();
                 request.FuelRefilDTO.DateModified = DateTime.UtcNow;
                 var fuelRefil = _mapper.Map<Domain.Entities.FuelRefill>(fuelRefilDto);
+                fuelRefil.Date = entryDateUtc; // Store UTC for consistency with TankVolumeHistory
                 fuelRefil.IsModified = false ? (sbyte)1 : (sbyte)0;
 
                 _context.FuelRefills.Add(fuelRefil);
@@ -301,7 +308,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     // Check if the date of the fuel refill is today
                     var today = DateTime.UtcNow.Date;
 
-                    if (entryDate.Date == today)
+                    if (entryDateUtc.Date == today)
                     {
                         // Final check to prevent negative physical stock (defensive programming)
                         // Use PhysicalStockValue for real-time validation (what we "actually" have)
@@ -327,7 +334,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 // For current day operations, calculate the new physical stock
                 // FIXED: Use DateTime.UtcNow for consistency with other date comparisons
-                if (entryDate.Date == DateTime.UtcNow.Date && tank.PhysicalStockValue.HasValue)
+                if (entryDateUtc.Date == DateTime.UtcNow.Date && tank.PhysicalStockValue.HasValue)
                 {
                     newPhysicalStockValue = tank.PhysicalStockValue.Value - (decimal)fuelRefil.ManualFuelrefillAmount;
 
@@ -348,7 +355,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessFuelRefillChangeAsync(
                     tankId: tank.Id,
-                    timestamp: fuelRefilDto.Date.Value,
+                    timestamp: entryDateUtc,
                     volumeChange: -(decimal)fuelRefil.ManualFuelrefillAmount, // Negative because fuel is taken from the tank
                     refillId: fuelRefil.Id,
                     actionType: ActionType.Create, // This is a new refill
@@ -380,7 +387,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     (decimal?)fuelRefilDto.ManualFuelrefillAmount, fuelByUser?.UserName, cancellationToken);
 
                 // Update GPSGate DriverName custom field if driver is specified and entry is within 5 days
-                await UpdateGpsGateDriverNameAsync(fuelRefilDto.VehicleId, fuelRefilDto.DriverId, entryDate, cancellationToken);
+                await UpdateGpsGateDriverNameAsync(fuelRefilDto.VehicleId, fuelRefilDto.DriverId, entryDateUtc, cancellationToken);
 
                 // Check whether this refill breached the vehicle's configured expected fuel average.
                 await _expectedFuelAverageAlertService.CheckManualFuelRefillAsync(
@@ -388,11 +395,11 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     fuelByUser?.UserName,
                     cancellationToken);
 
-                if (entryDate.Date < DateTime.UtcNow.Date)
+                if (entryDateUtc.Date < DateTime.UtcNow.Date)
                 {
                     await _closingDiscrepancyRefreshService.RefreshClosingDiscrepancyAsync(
                         tank.Id,
-                        fuelRefilDto.Date.Value,
+                        entryDateUtc,
                         fuelRefil.FuelBy ?? fuelByUser?.UserName ?? "System",
                         cancellationToken);
                 }

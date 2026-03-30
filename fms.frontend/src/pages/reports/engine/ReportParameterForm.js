@@ -25,6 +25,21 @@ import { fetchSuppliers } from '../../../redux/actions/SupplierActions';
 import { fetchIssueCategories, fetchIssueStatuses } from '../../../redux/actions/issueTrackerActions';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
 
+const LIGHT_VEHICLE_TYPE_NAMES = new Set([
+    'STAFF BUS',
+    'TIPPER',
+    'PRIME MOVER',
+    'PICK UP',
+    'LORRY',
+    'PRIVATE',
+    'VAN',
+]);
+
+const normalizeVehicleTypeName = (value) => String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
+
 /**
  * Maps lookupSource keys to Redux state selectors and dispatch actions.
  */
@@ -46,10 +61,49 @@ const LOOKUP_CONFIG = {
                 id: v.vehicleId || v.id,
                 name: v.hyoungNo || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`,
                 vehicleTypeId: v.vehicleTypeId,
+                vehicleTypeName: v.vehicleTypeName || v.vehicleType?.name || v.vehicleType?.vehicleTypeName || v.vehicleType || v.typeName || '',
                 workingSiteId: v.workingSiteId,
+                isKmL:
+                    v.averageKmL ??
+                    v.AverageKmL ??
+                    v.isKmL ??
+                    v.IsKmL ??
+                    v.isAverageKm ??
+                    v.IsAverageKm ??
+                    true,
             }));
         },
         fetchAction: fetchVehicleList,
+    },
+    lightVehicleTypes: {
+        selector: (state) => {
+            const vehicleTypes = Array.isArray(state.vehicleType?.vehicleTypes)
+                ? state.vehicleType.vehicleTypes
+                : [];
+            return vehicleTypes
+                .map((vehicleType) => ({
+                    id: vehicleType.vehicleTypeId || vehicleType.id,
+                    name: vehicleType.vehicleTypeName || vehicleType.name || `Type ${vehicleType.vehicleTypeId || vehicleType.id}`,
+                }))
+                .filter((vehicleType) => vehicleType.id && LIGHT_VEHICLE_TYPE_NAMES.has(normalizeVehicleTypeName(vehicleType.name)))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        },
+        fetchAction: fetchVehicleTypes,
+    },
+    heavyEquipmentTypes: {
+        selector: (state) => {
+            const vehicleTypes = Array.isArray(state.vehicleType?.vehicleTypes)
+                ? state.vehicleType.vehicleTypes
+                : [];
+            return vehicleTypes
+                .map((vehicleType) => ({
+                    id: vehicleType.vehicleTypeId || vehicleType.id,
+                    name: vehicleType.vehicleTypeName || vehicleType.name || `Type ${vehicleType.vehicleTypeId || vehicleType.id}`,
+                }))
+                .filter((vehicleType) => vehicleType.id && !LIGHT_VEHICLE_TYPE_NAMES.has(normalizeVehicleTypeName(vehicleType.name)))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        },
+        fetchAction: fetchVehicleTypes,
     },
     tanks: {
         selector: (state) => {
@@ -167,7 +221,13 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
 
         neededLookups.forEach((key) => {
             const config = LOOKUP_CONFIG[key];
-            if (config?.fetchAction) {
+            if (Array.isArray(config?.fetchActions)) {
+                config.fetchActions.forEach((fetchAction) => {
+                    if (typeof fetchAction === 'function') {
+                        dispatch(fetchAction());
+                    }
+                });
+            } else if (config?.fetchAction) {
                 dispatch(config.fetchAction());
             }
         });
@@ -288,7 +348,9 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                             showClearButton={!param.required}
                             searchEnabled={true}
                             showSelectionControls={true}
-                            applyValueMode="useButtons"
+                            applyValueMode="instantly"
+                            hideSelectedItems={false}
+                            multiline={true}
                             maxDisplayedTags={3}
                         />
                     );

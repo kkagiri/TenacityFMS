@@ -98,19 +98,45 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         // Tank volume can never go below zero - this would indicate data corruption or invalid operation
                         if (newVolume < 0)
                         {
-                            _logger.LogError(
-                                "[TankStockChange] ❌ NEGATIVE STOCK PREVENTED: Tank {TankId}, Operation: {ChangeReason}, " +
+                            // For historical entries, check if subsequent transactions (deliveries, transfers)
+                            // would recover the balance. This handles real-world scenarios where recording
+                            // order doesn't match physical order (e.g., fuel dispensed before delivery was
+                            // officially recorded in the system).
+                            bool isHistoricalEntry = request.Timestamp < DateTime.UtcNow.AddMinutes(-5);
+                            bool chainRecovers = false;
+
+                            if (isHistoricalEntry)
+                            {
+                                chainRecovers = await CheckHistoricalChainRecoveryAsync(
+                                    request.TankId, request.Timestamp, newVolume, cancellationToken);
+                            }
+
+                            if (!chainRecovers)
+                            {
+                                _logger.LogError(
+                                    "[TankStockChange] ❌ NEGATIVE STOCK PREVENTED: Tank {TankId}, Operation: {ChangeReason}, " +
+                                    "Previous Volume: {PreviousVolume:F2}L, Volume Change: {VolumeChange:F2}L, " +
+                                    "Would Result In: {NewVolume:F2}L. ReferenceId: {ReferenceId}, ReferenceType: {ReferenceType}. " +
+                                    "This usually means the tank has no opening stock for today or stock levels are not synchronized!",
+                                    request.TankId, request.ChangeReason,
+                                    previousVolume, request.VolumeChange, newVolume,
+                                    request.ReferenceId, request.ReferenceType);
+
+                                return new FMSResponseMessage(false,
+                                    $"Operation would result in negative tank stock ({newVolume:F2}L). " +
+                                    $"Current available volume is insufficient for this {GetOperationDescription(request.ChangeReason)} of {Math.Abs(request.VolumeChange):F2}L. " +
+                                    "Please verify the transaction amount or check tank stock levels.");
+                            }
+
+                            _logger.LogWarning(
+                                "[TankStockChange] ⚠️ HISTORICAL NEGATIVE OVERRIDE: Tank {TankId}, Operation: {ChangeReason}, " +
                                 "Previous Volume: {PreviousVolume:F2}L, Volume Change: {VolumeChange:F2}L, " +
-                                "Would Result In: {NewVolume:F2}L. ReferenceId: {ReferenceId}, ReferenceType: {ReferenceType}. " +
-                                "This usually means the tank has no opening stock for today or stock levels are not synchronized!",
+                                "Point-in-time: {NewVolume:F2}L (temporarily negative). " +
+                                "Chain recovers via subsequent transactions (deliveries/transfers). " +
+                                "ReferenceId: {ReferenceId}, ReferenceType: {ReferenceType}",
                                 request.TankId, request.ChangeReason,
                                 previousVolume, request.VolumeChange, newVolume,
                                 request.ReferenceId, request.ReferenceType);
-
-                            return new FMSResponseMessage(false,
-                                $"Operation would result in negative tank stock ({newVolume:F2}L). " +
-                                $"Current available volume is insufficient for this {GetOperationDescription(request.ChangeReason)} of {Math.Abs(request.VolumeChange):F2}L. " +
-                                "Please verify the transaction amount or check tank stock levels.");
                         }
 
                         // Create new tank volume history record
@@ -399,6 +425,56 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 VolumeChangeReasonEnum.AutomatedDispensing => "PumpTransaction",
                 _ => "System"
             };
+        }
+
+        /// <summary>
+        /// For historical entries that would result in a temporarily negative stock, checks whether
+        /// subsequent transactions (deliveries, transfers, opening stock resets) bring the balance
+        /// back to a non-negative value. This handles real-world scenarios where the recording order
+        /// doesn't match the physical order of events (e.g., fuel dispensed before the delivery was
+        /// officially recorded in the system).
+        /// </summary>
+        private async Task<bool> CheckHistoricalChainRecoveryAsync(
+            int tankId, DateTime afterTimestamp, decimal startingVolume, CancellationToken cancellationToken)
+        {
+            var subsequentRecords = await _context.TankVolumeHistories
+                .Where(h => h.TankId == tankId &&
+                            h.Timestamp >= afterTimestamp &&
+                            h.IsDeleted != true)
+                .OrderBy(h => h.Timestamp)
+                .ThenBy(h => h.Id)
+                .ToListAsync(cancellationToken);
+
+            if (!subsequentRecords.Any())
+            {
+                _logger.LogDebug("[HistoricalChainRecovery] Tank {TankId}: No subsequent records after {Timestamp}. Chain cannot recover.",
+                    tankId, afterTimestamp);
+                return false;
+            }
+
+            decimal runningVolume = startingVolume;
+
+            foreach (var record in subsequentRecords)
+            {
+                // Opening/closing stock are absolute values entered by the user — they reset the baseline.
+                // The UpdateTankVolumeHistoryCommand recalculation preserves these values.
+                if (record.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
+                    record.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                {
+                    runningVolume = record.NewVolume ?? 0m;
+                }
+                else
+                {
+                    runningVolume += record.VolumeChange ?? 0m;
+                }
+            }
+
+            _logger.LogInformation(
+                "[HistoricalChainRecovery] Tank {TankId}: Starting={StartingVolume:F2}L, " +
+                "SubsequentRecords={Count}, FinalVolume={FinalVolume:F2}L, Recovers={Recovers}",
+                tankId, startingVolume, subsequentRecords.Count, runningVolume, runningVolume >= 0);
+
+            return runningVolume >= 0;
         }
 
         /// <summary>

@@ -240,10 +240,11 @@ namespace FMS.WebClient.Services
                 return;
             }
 
-            var ext = job.OutputFormat.ToLower() switch { "excel" => "xlsx", _ => "pdf" };
+            var ext = job.OutputFormat.ToLower() switch { "excel" => "xlsx", "html" => "html", _ => "pdf" };
             var contentType = job.OutputFormat.ToLower() switch
             {
                 "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "html" => "text/html",
                 _ => "application/pdf"
             };
             var fileName = $"{SanitizeFileName(job.ReportTitle)}_{DateTime.Now:yyyyMMdd}.{ext}";
@@ -327,7 +328,7 @@ namespace FMS.WebClient.Services
 
             byte[] fileBytes;
             // Wide reports (many columns) render in landscape orientation
-            var useLandscape = request.SourceId is "tank-volume-history";
+            var useLandscape = request.SourceId is "tank-volume-history" or "monthly-fleet-report" or "weekly-fleet-report";
             try
             {
                 fileBytes = job.OutputFormat.ToLower() switch

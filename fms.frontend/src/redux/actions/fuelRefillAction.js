@@ -1,5 +1,30 @@
 import axiosInstance from './../../api/axiosInstance';
 
+const formatLocalDateTime = (value) => {
+    if (!value) {
+        return value;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
+const serializeFuelRefillPayload = (fuelRefill) => ({
+    ...fuelRefill,
+    date: formatLocalDateTime(fuelRefill?.date),
+});
+
 
 export const FETCH_FUEL_REFILLS_SUCCESS = 'FETCH_FUEL_REFILLS_SUCCESS';
 export const FETCH_FUEL_REFILLS_FAILURE = 'FETCH_FUEL_REFILLS_FAILURE';
@@ -49,9 +74,11 @@ export const fetchFuelRefillsbyDateRange = (startDate, endDate) => async (dispat
 
 export const createFuelRefill = (fuelRefill) => async (dispatch) => {
     try {
+        const payload = serializeFuelRefillPayload(fuelRefill);
+
         // Use extended timeout for this operation as it involves multiple DB operations
         // on the backend (validation, tank history updates, etc.)
-        const response = await axiosInstance.post('/fuelrefill', fuelRefill, {
+        const response = await axiosInstance.post('/fuelrefill', payload, {
             timeout: 60000 // 60 seconds timeout for slow networks
         });
 
@@ -104,8 +131,10 @@ export const createFuelRefill = (fuelRefill) => async (dispatch) => {
 
 export const updateFuelRefill = (id, fuelRefill) => async (dispatch) => {
     try {
+        const payload = serializeFuelRefillPayload(fuelRefill);
+
         // Use extended timeout for this operation as it involves multiple DB operations
-        const response = await axiosInstance.put(`/fuelrefill/${id}`, fuelRefill, {
+        const response = await axiosInstance.put(`/fuelrefill/${id}`, payload, {
             timeout: 60000 // 60 seconds timeout for slow networks
         });
         dispatch({ type: UPDATE_FUEL_REFILL_SUCCESS, payload: { id, fuelRefill } });

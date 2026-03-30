@@ -189,6 +189,8 @@ namespace FMS.WebClient.Services.Reporting
                 ["vehicle-document-compliance-report"] = JsReportHtmlTemplates.VehicleDocumentCompliance,
                 ["vehicle-trip-analysis-report"] = VehicleTripAnalysisHtmlTemplate.Get,
                 ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
+                ["monthly-fleet-report"] = MonthlyFleetReportHtmlTemplate.Get,
+                ["weekly-fleet-report"] = WeeklyFleetReportHtmlTemplate.Get,
             };
 
             foreach (var (name, generator) in templates)

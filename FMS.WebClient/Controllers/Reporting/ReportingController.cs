@@ -10,17 +10,23 @@
  * - SaveReportTemplate(): Saves user-owned report templates.
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Security.Claims;
+using FMS.Application.Common;
 using FMS.Application.Features.Reporting.Commands;
 using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Queries;
+using FMS.Application.Features.Reporting.Services;
+using FMS.WebClient.Services.Reporting;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
@@ -38,11 +44,19 @@ namespace FMS.WebClient.Controllers
     {
         private readonly IMediator _mediator;
         private readonly ILogger<ReportingController> _logger;
+        private readonly FleetExecutiveReportPayloadBuilder _fleetExecutiveReportPayloadBuilder;
+        private readonly IJsReportService _jsReportService;
 
-        public ReportingController(IMediator mediator, ILogger<ReportingController> logger)
+        public ReportingController(
+            IMediator mediator,
+            ILogger<ReportingController> logger,
+            FleetExecutiveReportPayloadBuilder fleetExecutiveReportPayloadBuilder,
+            IJsReportService jsReportService)
         {
             _mediator = mediator;
             _logger = logger;
+            _fleetExecutiveReportPayloadBuilder = fleetExecutiveReportPayloadBuilder;
+            _jsReportService = jsReportService;
         }
 
         private bool TryGetCurrentUserId(out string userId)
@@ -144,6 +158,56 @@ namespace FMS.WebClient.Controllers
                 _logger.LogError(ex, "Error generating report");
                 return StatusCode(500, $"Error generating report: {ex.Message}");
             }
+        }
+
+        [HttpGet("fleet-executive/monthly")]
+        public async Task<IActionResult> GetMonthlyFleetExecutiveReport(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] int? siteId = null,
+            [FromQuery] string? lightVehicleTypeId = null,
+            [FromQuery] string? heavyEquipmentTypeId = null,
+            [FromQuery] string? format = "html",
+            [FromQuery] string? timeZone = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await RenderFleetExecutiveReportAsync(
+                sourceId: "monthly-fleet-report",
+                templateName: "monthly-fleet-report",
+                reportTitle: "Monthly Fleet Report",
+                startDate: startDate,
+                endDate: endDate,
+                siteId: siteId,
+                lightVehicleTypeId: lightVehicleTypeId,
+                heavyEquipmentTypeId: heavyEquipmentTypeId,
+                format: format,
+                timeZone: timeZone,
+                cancellationToken: cancellationToken);
+        }
+
+        [HttpGet("fleet-executive/weekly")]
+        public async Task<IActionResult> GetWeeklyFleetExecutiveReport(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] int? siteId = null,
+            [FromQuery] string? lightVehicleTypeId = null,
+            [FromQuery] string? heavyEquipmentTypeId = null,
+            [FromQuery] string? format = "html",
+            [FromQuery] string? timeZone = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await RenderFleetExecutiveReportAsync(
+                sourceId: "weekly-fleet-report",
+                templateName: "weekly-fleet-report",
+                reportTitle: "Weekly Fleet Report",
+                startDate: startDate,
+                endDate: endDate,
+                siteId: siteId,
+                lightVehicleTypeId: lightVehicleTypeId,
+                heavyEquipmentTypeId: heavyEquipmentTypeId,
+                format: format,
+                timeZone: timeZone,
+                cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -260,6 +324,125 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error getting report categories");
                 return StatusCode(500, "Error retrieving report categories");
+            }
+        }
+
+        private async Task<IActionResult> RenderFleetExecutiveReportAsync(
+            string sourceId,
+            string templateName,
+            string reportTitle,
+            DateTime startDate,
+            DateTime endDate,
+            int? siteId,
+            string? lightVehicleTypeId,
+            string? heavyEquipmentTypeId,
+            string? format,
+            string? timeZone,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (endDate.Date < startDate.Date)
+                {
+                    return BadRequest(FMSResponse<string>.Failed("endDate must be on or after startDate"));
+                }
+
+                var normalizedFormat = string.IsNullOrWhiteSpace(format)
+                    ? "html"
+                    : format.Trim().ToLowerInvariant();
+
+                if (normalizedFormat is not "html" and not "pdf")
+                {
+                    return BadRequest(FMSResponse<string>.Failed("Only html and pdf formats are supported for this endpoint"));
+                }
+
+                var localStart = startDate.Date;
+                var localEnd = endDate.Date;
+                var tz = ResolveTimeZoneInfo(timeZone);
+
+                var utcStart = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localStart, DateTimeKind.Unspecified),
+                    tz);
+
+                var utcEnd = TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localEnd.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified),
+                    tz);
+
+                var metadata = new JObject();
+                if (siteId.HasValue)
+                {
+                    metadata["siteId"] = siteId.Value;
+                }
+                if (!string.IsNullOrWhiteSpace(lightVehicleTypeId))
+                {
+                    metadata["lightVehicleTypeId"] = lightVehicleTypeId;
+                }
+                if (!string.IsNullOrWhiteSpace(heavyEquipmentTypeId))
+                {
+                    metadata["heavyEquipmentTypeId"] = heavyEquipmentTypeId;
+                }
+                if (!string.IsNullOrWhiteSpace(timeZone))
+                {
+                    metadata["timeZone"] = timeZone;
+                }
+
+                var payload = await _fleetExecutiveReportPayloadBuilder.FetchAndBuildAsync(
+                    sourceId,
+                    metadata,
+                    utcStart,
+                    utcEnd,
+                    localStart,
+                    localEnd,
+                    reportTitle,
+                    cancellationToken);
+
+                if (normalizedFormat == "pdf")
+                {
+                    var pdfBytes = await _jsReportService.RenderPdfAsync(templateName, payload, landscape: true);
+                    var fileName = BuildFleetExecutiveFileName(reportTitle, localStart, localEnd, "pdf");
+                    return File(pdfBytes, "application/pdf", fileName);
+                }
+
+                var html = await _jsReportService.RenderHtmlAsync(templateName, payload);
+                return Content(html, "text/html", Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rendering {SourceId} report directly", sourceId);
+                return StatusCode(500, FMSResponse<string>.Failed($"Error rendering report: {ex.Message}"));
+            }
+        }
+
+        private static string BuildFleetExecutiveFileName(string reportTitle, DateTime startDate, DateTime endDate, string extension)
+        {
+            var safeTitle = new string(reportTitle
+                .Select(ch => Path.GetInvalidFileNameChars().Contains(ch) ? '_' : ch)
+                .ToArray());
+
+            return $"{safeTitle}_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.{extension}";
+        }
+
+        private static TimeZoneInfo ResolveTimeZoneInfo(string? timeZoneId)
+        {
+            if (string.IsNullOrWhiteSpace(timeZoneId))
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById("E. Africa Standard Time");
+                }
+                catch
+                {
+                    return TimeZoneInfo.Utc;
+                }
+            }
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch
+            {
+                return TimeZoneInfo.Utc;
             }
         }
 
