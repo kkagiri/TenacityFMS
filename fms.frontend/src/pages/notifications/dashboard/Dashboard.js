@@ -1,8 +1,18 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * File: Dashboard.js
+ * Purpose: Admin notification dashboard that renders live summary metrics, delivery performance, and recent activity.
+ * Dependencies: react, react-router-dom, devextreme-react, notificationsApi
+ * Last Modified: 2026-04-01
+ *
+ * Key Functions:
+ * - loadDashboardData: Loads live admin dashboard data from the notification module.
+ * - mapPerformanceSeries: Converts API performance buckets into chart rows.
+ * - buildSystemAlerts: Derives recent delivery issues from live notification activity.
+ */
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart,
-  PieChart,
   DataGrid,
   LoadIndicator
 } from 'devextreme-react';
@@ -13,19 +23,90 @@ import {
   Legend,
   Tooltip
 } from 'devextreme-react/chart';
-import { Column, Paging, FilterRow } from 'devextreme-react/data-grid';
+import { Column, Paging } from 'devextreme-react/data-grid';
 import notify from 'devextreme/ui/notify';
+import notificationsApi from '../../../dataservice/notificationsApi';
 import { notificationRoutes } from '../utils/navigationHelper';
 import '../layout/NotificationLayout.scss';
 
+const DEFAULT_STATISTICS = {
+  totalNotifications: 0,
+  deliveredNotifications: 0,
+  failedDeliveries: 0,
+  deliveryRate: 0,
+  activePolicies: 0,
+  notificationCount: 0,
+  periodLabel: 'Last 24 hours'
+};
+
+const formatPeriodLabel = (fromDate, toDate) => {
+  if (!fromDate || !toDate) {
+    return 'Last 24 hours';
+  }
+
+  const start = new Date(fromDate);
+  const end = new Date(toDate);
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  return `${formatter.format(start)} - ${formatter.format(end)}`;
+};
+
+const formatChartTime = (value) => {
+  if (!value) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
+};
+
+const mapPerformanceSeries = (items = []) => {
+  return items.map((item) => ({
+    time: formatChartTime(item.bucketStart),
+    sent: item.sent ?? 0,
+    delivered: item.delivered ?? 0,
+    failed: item.failed ?? 0
+  }));
+};
+
+const mapRecentNotifications = (items = []) => {
+  return items.map((item) => ({
+    id: item.id,
+    title: item.title,
+    message: item.message,
+    priority: item.priority,
+    timestamp: new Date(item.createdAt),
+    status: item.status,
+    recipients: item.recipientCount ?? 0,
+    policy: item.policyName || 'Unassigned',
+    failedCount: item.failedCount ?? 0,
+    deliveredCount: item.deliveredCount ?? 0
+  }));
+};
+
+const buildSystemAlerts = (items = []) => {
+  return items
+    .filter((item) => (item.failedCount ?? 0) > 0 || String(item.status || '').toLowerCase() === 'failed')
+    .slice(0, 4)
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      description: `${item.failedCount ?? 0} failed delivery${(item.failedCount ?? 0) === 1 ? '' : 'ies'}${item.policyName ? ` • ${item.policyName}` : ''}`,
+      severity: (item.failedCount ?? 0) > 0 ? 'Warning' : 'Info',
+      timestamp: new Date(item.createdAt)
+    }));
+};
+
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
-  const [statistics, setStatistics] = useState({
-    totalNotifications: 2847,
-    deliveryRate: 99.2,
-    failedDeliveries: 23,
-    activePolicies: 12
-  });
+  const [statistics, setStatistics] = useState(DEFAULT_STATISTICS);
 
   const [recentNotifications, setRecentNotifications] = useState([]);
   const [systemAlerts, setSystemAlerts] = useState([]);
@@ -38,114 +119,35 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Simulate API calls - replace with actual API calls
-      await Promise.all([
-        loadStatistics(),
-        loadRecentNotifications(),
-        loadSystemAlerts(),
-        loadPerformanceData()
-      ]);
+      const response = await notificationsApi.getAdminDashboard({
+        recentCount: 10,
+        bucketHours: 4
+      });
+
+      if (!response.isSuccess) {
+        throw new Error(response.message);
+      }
+
+      const dashboardData = response.data || {};
+      const liveRecentNotifications = mapRecentNotifications(dashboardData.recentNotifications);
+
+      setStatistics({
+        totalNotifications: dashboardData.totalSent ?? 0,
+        deliveredNotifications: dashboardData.totalDelivered ?? 0,
+        failedDeliveries: dashboardData.totalFailed ?? 0,
+        deliveryRate: Number(dashboardData.deliveryRate ?? 0),
+        activePolicies: dashboardData.activePolicies ?? 0,
+        notificationCount: dashboardData.notificationCount ?? 0,
+        periodLabel: formatPeriodLabel(dashboardData.fromDate, dashboardData.toDate)
+      });
+      setPerformanceData(mapPerformanceSeries(dashboardData.performanceSeries));
+      setRecentNotifications(liveRecentNotifications);
+      setSystemAlerts(buildSystemAlerts(dashboardData.recentNotifications));
     } catch (error) {
-      notify('Error loading dashboard data', 'error', 3000);
+      notify(error.message || 'Error loading dashboard data', 'error', 3000);
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadStatistics = async () => {
-    // Mock data - replace with actual API call
-    const mockStats = {
-      totalNotifications: 2847,
-      deliveryRate: 99.2,
-      failedDeliveries: 23,
-      activePolicies: 12,
-      avgResponseTime: 1.2,
-      systemUptime: 99.8
-    };
-    setStatistics(mockStats);
-  };
-
-  const loadRecentNotifications = async () => {
-    // Mock data - replace with actual API call
-    const mockNotifications = [
-      {
-        id: 1,
-        title: 'Tank Level Critical Alert',
-        message: 'Diesel Tank #3 level below 10% threshold',
-        priority: 'Critical',
-        timestamp: new Date(Date.now() - 2 * 60 * 1000),
-        status: 'Delivered',
-        recipients: 5,
-        policy: 'Tank Level Monitoring'
-      },
-      {
-        id: 2,
-        title: 'Pump Maintenance Reminder',
-        message: 'Pump #7 scheduled maintenance due tomorrow',
-        priority: 'Medium',
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        status: 'Delivered',
-        recipients: 3,
-        policy: 'Maintenance Alerts'
-      },
-      {
-        id: 3,
-        title: 'System Health Check',
-        message: 'Daily system health report generated',
-        priority: 'Low',
-        timestamp: new Date(Date.now() - 60 * 60 * 1000),
-        status: 'Delivered',
-        recipients: 8,
-        policy: 'System Reports'
-      },
-      {
-        id: 4,
-        title: 'Device Connection Lost',
-        message: 'Sensor #15 connection timeout detected',
-        priority: 'High',
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-        status: 'Failed',
-        recipients: 4,
-        policy: 'Device Monitoring'
-      }
-    ];
-    setRecentNotifications(mockNotifications);
-  };
-
-  const loadSystemAlerts = async () => {
-    // Mock data
-    const mockAlerts = [
-      {
-        id: 1,
-        title: 'SMTP Server Latency',
-        description: 'Email delivery experiencing delays',
-        severity: 'Warning',
-        timestamp: new Date(Date.now() - 5 * 60 * 1000),
-        action: 'Investigate'
-      },
-      {
-        id: 2,
-        title: 'Policy Trigger Frequency',
-        description: 'Tank Alert policy triggered 15 times in last hour',
-        severity: 'Info',
-        timestamp: new Date(Date.now() - 30 * 60 * 1000),
-        action: 'Monitor'
-      }
-    ];
-    setSystemAlerts(mockAlerts);
-  };
-
-  const loadPerformanceData = async () => {
-    // Mock performance data
-    const mockData = [
-      { time: '00:00', sent: 45, delivered: 44, failed: 1 },
-      { time: '04:00', sent: 23, delivered: 23, failed: 0 },
-      { time: '08:00', sent: 89, delivered: 87, failed: 2 },
-      { time: '12:00', sent: 156, delivered: 154, failed: 2 },
-      { time: '16:00', sent: 234, delivered: 232, failed: 2 },
-      { time: '20:00', sent: 178, delivered: 176, failed: 2 }
-    ];
-    setPerformanceData(mockData);
   };
 
   const formatTimestamp = (timestamp) => {
@@ -156,16 +158,6 @@ const Dashboard = () => {
     if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
     return `${Math.floor(diff / 86400)} days ago`;
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority?.toLowerCase()) {
-      case 'critical': return 'error';
-      case 'high': return 'warning';
-      case 'medium': return 'info';
-      case 'low': return 'success';
-      default: return 'info';
-    }
   };
 
   if (loading) {
@@ -188,7 +180,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-value">{statistics.totalNotifications?.toLocaleString()}</div>
           <div className="stat-label">Notifications Sent</div>
-          <div className="stat-change positive">+12% from yesterday</div>
+          <div className="stat-change neutral">{statistics.periodLabel}</div>
         </div>
 
         <div className="stat-card">
@@ -197,7 +189,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-value">{statistics.deliveryRate}%</div>
           <div className="stat-label">Delivery Success Rate</div>
-          <div className="stat-change positive">+0.3% from yesterday</div>
+          <div className="stat-change neutral">{statistics.deliveredNotifications?.toLocaleString()} delivered</div>
         </div>
 
         <div className="stat-card">
@@ -206,7 +198,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-value">{statistics.failedDeliveries}</div>
           <div className="stat-label">Failed Deliveries</div>
-          <div className="stat-change positive">-8% from yesterday</div>
+          <div className="stat-change neutral">{statistics.notificationCount?.toLocaleString()} notifications created</div>
         </div>
 
         <div className="stat-card">
@@ -215,7 +207,7 @@ const Dashboard = () => {
           </div>
           <div className="stat-value">{statistics.activePolicies}</div>
           <div className="stat-label">Active Policies</div>
-          <div className="stat-change neutral">+2 new policies</div>
+          <div className="stat-change neutral">Currently enabled</div>
         </div>
       </div>
 
@@ -227,7 +219,7 @@ const Dashboard = () => {
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">
               Notification Performance
             </h3>
-            <div className="tw-text-sm tw-text-gray-500">Last 24 hours</div>
+            <div className="tw-text-sm tw-text-gray-500">{statistics.periodLabel}</div>
           </div>
           <Chart
             dataSource={performanceData}
@@ -265,43 +257,52 @@ const Dashboard = () => {
         <div className="tw-bg-white tw-p-6 tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm">
           <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-              System Alerts
+              Delivery Alerts
             </h3>
             <Link
-              to={notificationRoutes.testing}
+              to={notificationRoutes.history}
               className="tw-text-sm tw-text-blue-600 hover:tw-text-blue-800"
             >
-              View All
+              View History
             </Link>
           </div>
           <div className="tw-space-y-4">
-            {systemAlerts.map((alert) => (
-              <div key={alert.id} className="tw-flex tw-items-start tw-space-x-3">
-                <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mt-2 ${
-                  alert.severity === 'Warning' ? 'tw-bg-yellow-400' : 'tw-bg-blue-400'
-                }`}></div>
-                <div className="tw-flex-1">
-                  <div className="tw-font-medium tw-text-sm tw-text-gray-900">
-                    {alert.title}
-                  </div>
-                  <div className="tw-text-sm tw-text-gray-600 tw-mt-1">
-                    {alert.description}
-                  </div>
-                  <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
-                    {formatTimestamp(alert.timestamp)}
-                  </div>
-                </div>
-                <button className="tw-text-sm tw-text-blue-600 hover:tw-text-blue-800">
-                  {alert.action}
-                </button>
+            {systemAlerts.length === 0 ? (
+              <div className="tw-rounded-md tw-border tw-border-gray-200 tw-bg-gray-50 tw-p-4 tw-text-sm tw-text-gray-600">
+                No active delivery issues in recent notifications.
               </div>
-            ))}
+            ) : (
+              systemAlerts.map((alert) => (
+                <div key={alert.id} className="tw-flex tw-items-start tw-space-x-3">
+                  <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mt-2 ${
+                    alert.severity === 'Warning' ? 'tw-bg-yellow-400' : 'tw-bg-blue-400'
+                  }`}></div>
+                  <div className="tw-flex-1">
+                    <div className="tw-font-medium tw-text-sm tw-text-gray-900">
+                      {alert.title}
+                    </div>
+                    <div className="tw-text-sm tw-text-gray-600 tw-mt-1">
+                      {alert.description}
+                    </div>
+                    <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                      {formatTimestamp(alert.timestamp)}
+                    </div>
+                  </div>
+                  <Link
+                    to={notificationRoutes.history}
+                    className="tw-text-sm tw-text-blue-600 hover:tw-text-blue-800"
+                  >
+                    Review
+                  </Link>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
 
       {/* Recent Notifications */}
-      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm">
+      <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm">
         <div className="tw-p-6 tw-border-b tw-border-gray-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">

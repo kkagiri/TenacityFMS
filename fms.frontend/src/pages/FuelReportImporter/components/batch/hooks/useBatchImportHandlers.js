@@ -19,6 +19,10 @@ import {
   formatFileSize,
   detectSiteFromFilename,
   detectMonthFromFilename,
+  findVehicleByName,
+  mapKmLReportRow,
+  mapLHrReportRow,
+  normalizeParsedRowsForFile,
   validateBatchImportData,
 } from "../batchImportUtils";
 import { processFileImport } from "../processFileImport";
@@ -194,13 +198,27 @@ const useBatchImportHandlers = ({
   const validateSingleFile = useCallback(
     async (file) => {
       try {
-        const normalizeHeaderKey = (value) => {
-          if (value === null || value === undefined) return "";
-          return String(value).replace(/\s+/g, " ").trim();
-        };
+        const reportType = file.reportType || "km/l";
 
-        const normalizeMatchKey = (value) =>
-          normalizeHeaderKey(value).toLowerCase();
+        if (Array.isArray(file.parsedData)) {
+          const normalizedData = normalizeParsedRowsForFile(
+            file.parsedData,
+            file
+          );
+          const validationErrors = validateBatchImportData(
+            normalizedData,
+            reportType,
+            vehicles,
+            { returnObjects: false }
+          );
+
+          return {
+            isValid: validationErrors.length === 0,
+            errors: validationErrors,
+            parsedData: normalizedData,
+            recordCount: normalizedData.length,
+          };
+        }
 
         const workbook = XLSX.read(await file.file.arrayBuffer(), {
           type: "array",
@@ -217,117 +235,18 @@ const useBatchImportHandlers = ({
           defval: "",
         });
 
-        const getColumnValue = (row, possibleNames) => {
-          for (const name of possibleNames) {
-            const value = row[name];
-            if (value !== undefined && value !== null && value !== "") {
-              return typeof value === "string" ? value.trim() : value;
-            }
-          }
-
-          const rowKeys = Object.keys(row);
-          for (const name of possibleNames) {
-            const normalizedName = normalizeMatchKey(name);
-            for (const key of rowKeys) {
-              if (normalizeMatchKey(key) === normalizedName) {
-                const value = row[key];
-                if (value !== undefined && value !== null && value !== "") {
-                  return typeof value === "string" ? value.trim() : value;
-                }
-              }
-            }
-          }
-
-          const rowKeysLower = rowKeys.map((k) => normalizeMatchKey(k));
-          for (const name of possibleNames) {
-            const normalizedName = normalizeMatchKey(name);
-            for (let i = 0; i < rowKeys.length; i++) {
-              const nk = rowKeysLower[i];
-              if (nk.includes(normalizedName) || normalizedName.includes(nk)) {
-                const value = row[rowKeys[i]];
-                if (value !== undefined && value !== null && value !== "") {
-                  return typeof value === "string" ? value.trim() : value;
-                }
-              }
-            }
-          }
-
-          return "";
-        };
-
+        const vehicleFinder = (name) => findVehicleByName(name, vehicles);
         const mappedData = (jsonData || [])
-          .map((row, index) => {
-            const normalizedRow = { _rowIndex: index };
-            Object.entries(row || {}).forEach(([key, value]) => {
-              const normalizedKey = normalizeHeaderKey(key);
-              if (normalizedKey) {
-                normalizedRow[normalizedKey] = value;
-              }
-            });
-
-            const vehicleName = getColumnValue(normalizedRow, [
-              "Vehicle",
-              "Truck",
-              "Vehicle Name",
-              "VEHICLE",
-              "TRUCK",
-              "Vehicle No",
-              "Veh",
-              "Vehicle Number",
-              "Vehice Name",
-              "vehice name",
-              "Hyoung No",
-            ]);
-
-            const dateValue = getColumnValue(normalizedRow, [
-              "Date",
-              "Date (dd/mm/yyyy)",
-              "DATE",
-              "Date (DD/MM/YYYY)",
-              "Refuel Date",
-              "Fuelling Date",
-            ]);
-
-            const shiftValue = getColumnValue(normalizedRow, [
-              "Shift",
-              "shift",
-              "SHIFT",
-              "Day/Night",
-              "Day / Night",
-            ]);
-
-            const locationName = getColumnValue(normalizedRow, [
-              "Location",
-              "Site",
-              "location",
-              "site",
-              "Location Name",
-              "Site Name",
-            ]);
-
-            const matchedVehicle = vehicles.find(
-              (v) =>
-                v.hyoungNo?.toLowerCase() === vehicleName?.toLowerCase() ||
-                v.registrationNo?.toLowerCase() ===
-                  vehicleName?.toLowerCase() ||
-                v.name?.toLowerCase() === vehicleName?.toLowerCase()
-            );
-
-            return {
-              _rowIndex: index,
-              vehicleName: vehicleName,
-              vehicleId: matchedVehicle?.vehicleId || null,
-              date: dateValue ? new Date(dateValue) : null,
-              isNightShift: (shiftValue || "").toLowerCase().includes("night"),
-              locationName: locationName,
-              siteId: file.siteId,
-            };
-          })
+          .map((row, index) =>
+            reportType === "km/l"
+              ? mapKmLReportRow(row, index, vehicleFinder, file, sites)
+              : mapLHrReportRow(row, index, vehicleFinder, file, sites)
+          )
           .filter((row) => row.vehicleName || row.date);
 
-        const reportType = file.reportType || "km/l";
+        const normalizedData = normalizeParsedRowsForFile(mappedData, file);
         const validationErrors = validateBatchImportData(
-          mappedData,
+          normalizedData,
           reportType,
           vehicles,
           { returnObjects: false }
@@ -336,8 +255,8 @@ const useBatchImportHandlers = ({
         return {
           isValid: validationErrors.length === 0,
           errors: validationErrors,
-          parsedData: mappedData,
-          recordCount: mappedData.length,
+          parsedData: normalizedData,
+          recordCount: normalizedData.length,
         };
       } catch (error) {
         return {
@@ -754,13 +673,39 @@ const useBatchImportHandlers = ({
             const newValidationErrors = updates.validationErrors || [];
             const newValidationStatus =
               newValidationErrors.length === 0 ? "valid" : "invalid";
+            const isImportedOrProcessing =
+              f.status?.includes("Processing") ||
+              f.status?.includes("Success") ||
+              f.status?.includes("Partial") ||
+              f.status?.includes("Skipped") ||
+              f.status?.includes("Cancelled");
+
+            const nextStatusFields = isImportedOrProcessing
+              ? {}
+              : {
+                  status: newValidationStatus === "valid" ? "Valid" : "Invalid",
+                  statusIcon:
+                    newValidationStatus === "valid"
+                      ? "fa-light fa-check-circle"
+                      : "fa-light fa-exclamation-triangle",
+                  statusColor:
+                    newValidationStatus === "valid"
+                      ? "tw-text-green-600"
+                      : "tw-text-red-600",
+                  error: undefined,
+                  errorDetails: undefined,
+                  info: undefined,
+                };
 
             return {
               ...f,
-              parsedData: updates.parsedData || f.parsedData,
+              parsedData: Array.isArray(updates.parsedData)
+                ? updates.parsedData
+                : f.parsedData,
               validationErrors: newValidationErrors,
-              recordCount: updates.recordCount || f.recordCount,
+              recordCount: updates.recordCount ?? f.recordCount,
               validationStatus: newValidationStatus,
+              ...nextStatusFields,
             };
           }
           return f;

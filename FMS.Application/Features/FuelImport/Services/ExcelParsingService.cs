@@ -3,7 +3,7 @@
  * Purpose: Parses fuel report Excel files using ClosedXML, porting frontend SheetJS logic to C#.
  *          Handles both km/l and l/hr report formats with flexible column matching.
  * Dependencies: ClosedXML, ConsumptionDTO, Vehicle/Site entities via DbContext
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-31
  *
  * Key Functions:
  * - ParseKmLReport: Parse truck/pickup reports (site from filename)
@@ -141,12 +141,12 @@ public class ExcelParsingService : IExcelParsingService
                 var rowData = ReadRow(worksheet, row, headers);
                 result.TotalRowsFound++;
 
-                var vehicleName = GetColumnValue(rowData, "Vehicle Name");
+                var vehicleName = GetColumnValue(rowData, "Vehicle Name", "Vehicle", "VEHICLE", "Hyoung No", "Reg#");
                 if (string.IsNullOrWhiteSpace(vehicleName))
                 {
                     // Check if row has any useful data (distance/fuel)
-                    var distVal = GetNumericValue(rowData, "Total Distance (GPS)", "Total Distance", "Distance");
-                    var fuelVal = GetNumericValue(rowData, "Total Fuel", "Fuel Used", "Fuel Consumption");
+                    var distVal = GetNumericValue(rowData, "Km Covered", "Total Distance (GPS)", "Total Distance", "Distance", "km covered", "total distance");
+                    var fuelVal = GetNumericValue(rowData, "Fuel", "Total Fuel", "Fuel Used", "Fuel Consumption", "fuel", "total fuel");
                     if (distVal == null && fuelVal == null)
                     {
                         result.SkippedRowsCount++;
@@ -178,15 +178,15 @@ public class ExcelParsingService : IExcelParsingService
                     Date = date.Value,
                     IsKmperLiter = true,
                     IsNightShift = false,
-                    DriverName = GetColumnValue(rowData, "Driver"),
-                    TotalDistance = GetNumericValue(rowData, "Total Distance (GPS)", "Total Distance", "Distance"),
+                    DriverName = GetColumnValue(rowData, "Driver", "Driver Name", "driver name"),
+                    TotalDistance = GetNumericValue(rowData, "Km Covered", "Total Distance (GPS)", "Total Distance", "Distance", "km covered", "total distance"),
                     MaxSpeed = GetNumericValue(rowData, "Max Speed", "Maximum Speed"),
                     AvgSpeed = GetNumericValue(rowData, "Average Speed", "Avg Speed", "Avg. Speed"),
-                    ExpectedConsumption = GetNumericValue(rowData, "Expected Fuel Avg (km/l)", "Expected Average", "Expected Avg", "Expected"),
-                    FuelEfficiency = GetNumericValue(rowData, "Fuel Efficiency", "Efficiency"),
-                    TotalFuel = GetNumericValue(rowData, "Total Fuel", "Fuel Used", "Fuel Consumption"),
-                    FuelLost = GetNumericValue(rowData, "Fuel Lost", "Lost Fuel"),
-                    Comments = GetColumnValue(rowData, "Comments", "Comment") ?? "",
+                    ExpectedConsumption = GetNumericValue(rowData, "Expected Fuel Avg (km/l)", "Expected Average", "Expected Avg", "Expected", "expected average"),
+                    FuelEfficiency = GetNumericValue(rowData, "Km/ Litre", "Fuel Efficiency", "Efficiency", "km/l", "Km/L"),
+                    TotalFuel = GetNumericValue(rowData, "Fuel", "Total Fuel", "Fuel Used", "Fuel Consumption", "fuel", "total fuel"),
+                    FuelLost = GetNumericValue(rowData, "Fuel Lost", "Lost Fuel", "fuel lost"),
+                    Comments = GetColumnValue(rowData, "Comments", "Comment", "comments", "comment") ?? "",
                     RowIndex = row
                 };
 
@@ -412,7 +412,24 @@ public class ExcelParsingService : IExcelParsingService
         var strVal = GetColumnValue(row, candidates);
         if (string.IsNullOrWhiteSpace(strVal))
             return null;
-        return decimal.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var num) ? num : null;
+
+        if (decimal.TryParse(strVal, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue))
+            return parsedValue;
+
+        var cleanedValue = Regex.Replace(strVal, @"[^\d.\-]", string.Empty);
+        cleanedValue = Regex.Replace(cleanedValue, @"\.{2,}", ".");
+
+        if (string.IsNullOrWhiteSpace(cleanedValue)
+            || cleanedValue == "-"
+            || cleanedValue == "."
+            || cleanedValue == "-.")
+        {
+            return null;
+        }
+
+        return decimal.TryParse(cleanedValue, NumberStyles.Any, CultureInfo.InvariantCulture, out parsedValue)
+            ? parsedValue
+            : null;
     }
 
     /// <summary>

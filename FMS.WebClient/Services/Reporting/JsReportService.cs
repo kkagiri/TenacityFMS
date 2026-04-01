@@ -929,6 +929,10 @@ namespace FMS.WebClient.Services.Reporting
 
                 await using var page = await browser.NewPageAsync();
 
+                // Render the page in print media before scripts run so Chart.js uses the
+                // final PDF sizing instead of larger screen-only dimensions.
+                await page.EmulateMediaTypeAsync(PuppeteerSharp.Media.MediaType.Print);
+
                 // Set the content and wait for fonts/images to load
                 await page.SetContentAsync(html, new NavigationOptions
                 {
@@ -936,28 +940,81 @@ namespace FMS.WebClient.Services.Reporting
                     Timeout = 30_000
                 });
 
-                var pdfBytes = await page.PdfDataAsync(new PdfOptions
+                // If the HTML already has its own topbar/footer (report templates with built-in
+                // per-page headers), suppress Puppeteer's default header/footer to avoid overlap.
+                var hasBuiltInHeader = html.Contains("class=\"topbar\"", StringComparison.Ordinal)
+                                    || html.Contains("class='topbar'", StringComparison.Ordinal);
+
+                PdfOptions pdfOptions;
+                if (hasBuiltInHeader)
                 {
-                    Format = PaperFormat.A4,
-                    Landscape = landscape,
-                    PrintBackground = true,
-                    DisplayHeaderFooter = true,
-                    HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
+                    pdfOptions = new PdfOptions
+                    {
+                        Format = PaperFormat.A4,
+                        Landscape = landscape,
+                        PrintBackground = true,
+                        DisplayHeaderFooter = false,
+                        MarginOptions = new MarginOptions
+                        {
+                            Top = "1mm",
+                            Bottom = "4mm",
+                            Left = "1mm",
+                            Right = "1mm"
+                        }
+                    };
+                }
+                else
+                {
+                    pdfOptions = new PdfOptions
+                    {
+                        Format = PaperFormat.A4,
+                        Landscape = landscape,
+                        PrintBackground = true,
+                        DisplayHeaderFooter = true,
+                        HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
                     <span style=""font-weight:700; color:#1F2937; font-size:10px;"">Hyoung Fleet Management</span>
                     <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
                 </div>",
-                    FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
+                        FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
                     <span>HYoung EA &mdash; Fleet Management &amp; Fueling Operations</span>
                     <span>Page <span class=""pageNumber""></span> of <span class=""totalPages""></span></span>
                 </div>",
-                    MarginOptions = new MarginOptions
-                    {
-                        Top = "60px",
-                        Bottom = "50px",
-                        Left = "20px",
-                        Right = "20px"
-                    }
-                });
+                        MarginOptions = new MarginOptions
+                        {
+                            Top = "60px",
+                            Bottom = "50px",
+                            Left = "20px",
+                            Right = "20px"
+                        }
+                    };
+                }
+
+                try
+                {
+                    await page.WaitForFunctionAsync(
+                        "() => !document.fonts || document.fonts.status === 'loaded'",
+                        new WaitForFunctionOptions { Timeout = 5_000 });
+                }
+                catch
+                {
+                    // If font loading is still pending or a browser path lacks document.fonts,
+                    // proceed with the currently available fonts.
+                }
+
+                // Wait for Chart.js to finish initialising (animation disabled → synchronous draw).
+                // Falls through silently if Chart.js didn't load (CDN unavailable, etc.).
+                try
+                {
+                    await page.WaitForFunctionAsync(
+                        "() => window.__chartsReady === true",
+                        new WaitForFunctionOptions { Timeout = 5_000 });
+                }
+                catch
+                {
+                    // Chart.js unavailable or timed out — proceed with PDF generation
+                }
+
+                var pdfBytes = await page.PdfDataAsync(pdfOptions);
 
                 return pdfBytes;
             }

@@ -4,7 +4,7 @@
  *          Each profile card has independent schedule, batch, retry, and notification settings.
  *          M365 Admin Center Fluent design with fixed footer and inline help tooltips.
  * Dependencies: react, useAutoImportSettings, usePermissions
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-04-01
  *
  * Key Components:
  * - AutoImportSettingsPanel: Master toggle + profile cards + help pane + fixed footer
@@ -97,6 +97,11 @@ const HelpPane = () => {
         </div>
     );
 };
+
+const DUPLICATE_HANDLING_OPTIONS = [
+    { value: "skip", label: "Skip existing rows" },
+    { value: "replace", label: "Replace existing rows" },
+];
 
 /* ─── Single Profile Card ─── */
 const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, onProfileImport, onCancelImport, profileRunningId }) => {
@@ -244,6 +249,23 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, on
                                     update("batchSize", parseInt(e.target.value, 10) || 0)
                                 }
                             />
+                        </div>
+                        <div className="ais-field">
+                            <label className="ais-field__label">
+                                Duplicates
+                                <M365InfoTip text="Choose whether rows that already exist for the same Vehicle / Date / Shift should be skipped or should replace the stored row. Use Replace to correct previously imported values." />
+                            </label>
+                            <select
+                                className="m365-select tw-w-full"
+                                value={profile.duplicateHandling || "skip"}
+                                onChange={(e) => update("duplicateHandling", e.target.value)}
+                            >
+                                {DUPLICATE_HANDLING_OPTIONS.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div className="ais-field tw-flex tw-flex-col tw-justify-end">
                             <label className="m365-checkbox">

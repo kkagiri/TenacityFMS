@@ -1,3 +1,12 @@
+/**
+ * File: FuelImportController.cs
+ * Purpose: API endpoints for fuel import reporting, auto-import settings, and manual file retries.
+ * Dependencies: MediatR, SignalR, IFileTrackerService, IFuelAutoImportService, JWT auth
+ * Last Modified: 2026-04-01
+ *
+ * Key Endpoints:
+ * - RetryFileImport: Reprocesses a tracked file through the auto-import service.
+ */
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -373,6 +382,8 @@ namespace FMS.WebClient.Controllers.Reporting
             [FromQuery] string? status,
             [FromQuery] string? reportType,
             [FromQuery] string? search,
+            [FromQuery] DateTime? dateFrom,
+            [FromQuery] DateTime? dateTo,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] string sortBy = "UpdatedAt",
@@ -385,6 +396,8 @@ namespace FMS.WebClient.Controllers.Reporting
                     Status = status,
                     ReportType = reportType,
                     Search = search,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo,
                     Page = page,
                     PageSize = pageSize,
                     SortBy = sortBy,
@@ -402,7 +415,36 @@ namespace FMS.WebClient.Controllers.Reporting
         }
 
         /// <summary>
-        /// Retry a failed file import by tracker ID.
+        /// Clear (delete) file tracker log records. Excludes records with Processing status.
+        /// </summary>
+        [HttpDelete("auto-import/files")]
+        [RequirePermission(Permissions.FuelImport.Manage)]
+        public async Task<IActionResult> ClearFileTrackerLogs(
+            [FromQuery] string? status,
+            [FromQuery] DateTime? dateFrom,
+            [FromQuery] DateTime? dateTo)
+        {
+            try
+            {
+                var command = new ClearFileTrackerLogsCommand
+                {
+                    Status = status,
+                    DateFrom = dateFrom,
+                    DateTo = dateTo,
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing file tracker logs");
+                return StatusCode(500, FMSResponse<object>.Failed("Failed to clear file tracker logs."));
+            }
+        }
+
+        /// <summary>
+        /// Retry a tracked file import by tracker ID.
         /// </summary>
         [HttpPost("auto-import/files/{id}/retry")]
         [RequirePermission(Permissions.FuelImport.Manage)]
@@ -418,8 +460,20 @@ namespace FMS.WebClient.Controllers.Reporting
                 if (tracker == null)
                     return NotFound(FMSResponse<object>.Failed($"File tracker record {id} not found."));
 
-                if (tracker.Status != "Failed" && tracker.Status != "Skipped")
-                    return BadRequest(FMSResponse<object>.Failed($"Only Failed or Skipped files can be retried. Current status: {tracker.Status}"));
+                if (tracker.RetryCount >= tracker.MaxRetries)
+                    return BadRequest(FMSResponse<object>.Failed($"Retry limit reached for file {tracker.FileName}."));
+
+                if (!FileTrackerListDto.IsRetryEligible(
+                    tracker.Status,
+                    tracker.RetryCount,
+                    tracker.MaxRetries,
+                    tracker.FailedCount,
+                    tracker.SkippedCount,
+                    tracker.DuplicateCount))
+                {
+                    return BadRequest(FMSResponse<object>.Failed(
+                        $"Only Failed, Skipped, or Completed files with skipped / duplicate / failed records can be retried. Current status: {tracker.Status}"));
+                }
 
                 var userId = User.FindFirst("UserId")?.Value
                     ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value

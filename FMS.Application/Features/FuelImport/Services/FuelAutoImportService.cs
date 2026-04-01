@@ -3,7 +3,7 @@
  * Purpose: Orchestrates the auto-import pipeline: scan directories → detect changes → parse → import → track results.
  *          Dispatches existing ImportFuelReportCommand for each file's parsed records.
  * Dependencies: IExcelParsingService, IFileTrackerService, IMediator, GpsdataContext, IConfiguration
- * Last Modified: 2026-03-30
+ * Last Modified: 2026-04-01
  *
  * Key Functions:
  * - ScanAndImportAsync: Full pipeline with batch processing
@@ -68,6 +68,11 @@ public class FuelAutoImportService : IFuelAutoImportService
         ["OLKARIA KEDONG"] = "OLKARIA-KEDONG"
     };
 
+    private static readonly HashSet<string> ExcludedKmLSites = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "KATANI"
+    };
+
     public FuelAutoImportService(
         IExcelParsingService parsingService,
         IFileTrackerService fileTrackerService,
@@ -92,11 +97,14 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         try
         {
+            FuelAutoImportProfileDto? selectedProfile = null;
+            var configuredProfiles = GetConfiguredProfiles();
+
             // 1. Resolve profile if ProfileId is specified
             if (!string.IsNullOrWhiteSpace(options.ProfileId))
             {
-                var profile = ResolveProfile(options.ProfileId);
-                if (profile == null)
+                selectedProfile = ResolveProfile(options.ProfileId);
+                if (selectedProfile == null)
                 {
                     result.Errors.Add($"Profile '{options.ProfileId}' not found or disabled");
                     result.Duration = sw.Elapsed;
@@ -105,20 +113,28 @@ public class FuelAutoImportService : IFuelAutoImportService
                 }
 
                 // Override options from profile settings
-                options.ScanPaths = new List<string> { NormalizeScanPath(profile.ScanPath) };
-                options.BatchSize = profile.BatchSize;
-                options.IncludeRetries = profile.IncludeRetries;
-                result.ProfileId = profile.Id;
-                result.ProfileName = profile.Name;
+                options.ScanPaths = new List<string> { NormalizeScanPath(selectedProfile.ScanPath) };
+                options.BatchSize = selectedProfile.BatchSize;
+                options.IncludeRetries = selectedProfile.IncludeRetries;
+                result.ProfileId = selectedProfile.Id;
+                result.ProfileName = selectedProfile.Name;
+                configuredProfiles = new List<FuelAutoImportProfileDto> { selectedProfile };
 
                 _logger.LogInformation("Resolved profile '{ProfileId}' ({ProfileName}). Path: {Path}, Batch: {Batch}",
-                    profile.Id, profile.Name, profile.ScanPath, profile.BatchSize);
+                    selectedProfile.Id, selectedProfile.Name, selectedProfile.ScanPath, selectedProfile.BatchSize);
             }
 
             // 2. Determine scan paths
             var scanPaths = options.ScanPaths.Any()
-                ? options.ScanPaths
-                : GetConfiguredScanPaths();
+                ? options.ScanPaths.Select(NormalizeScanPath).ToList()
+                : configuredProfiles.Select(p => NormalizeScanPath(p.ScanPath)).ToList();
+
+            if (scanPaths.Count == 0)
+            {
+                _logger.LogInformation("Auto-import scan skipped — no enabled profiles or scan paths are configured");
+                result.Duration = sw.Elapsed;
+                return result;
+            }
 
             _logger.LogInformation("Auto-import scan starting. Paths: {Paths}, BatchSize: {Batch}, ReportType: {Type}",
                 string.Join(", ", scanPaths), options.BatchSize, options.ReportTypeFilter ?? "all");
@@ -180,7 +196,8 @@ public class FuelAutoImportService : IFuelAutoImportService
 
                 try
                 {
-                    var fileResult = await ProcessFileAsync(fileMetadata, siteLookup, options.UserId);
+                    var matchedProfile = selectedProfile ?? ResolveProfileForFilePath(fileMetadata.FilePath, configuredProfiles);
+                    var fileResult = await ProcessFileAsync(fileMetadata, siteLookup, options.UserId, matchedProfile);
                     result.FilesProcessed++;
 
                     if (fileResult.Success)
@@ -242,13 +259,21 @@ public class FuelAutoImportService : IFuelAutoImportService
         // Override scan to just this one file
         var metadata = _parsingService.DetectReportMetadata(filePath);
         var siteLookup = await BuildSiteLookupAsync();
+        var configuredProfiles = GetConfiguredProfiles(includeDisabled: true);
+        var matchedProfile = ResolveProfileForFilePath(filePath, configuredProfiles);
 
         var result = new AutoImportResult { FilesScanned = 1 };
         var sw = Stopwatch.StartNew();
 
+        if (matchedProfile != null)
+        {
+            result.ProfileId = matchedProfile.Id;
+            result.ProfileName = matchedProfile.Name;
+        }
+
         try
         {
-            var fileResult = await ProcessFileAsync(metadata, siteLookup, userId);
+            var fileResult = await ProcessFileAsync(metadata, siteLookup, userId, matchedProfile);
             result.FilesProcessed = 1;
 
             if (fileResult.Success)
@@ -289,23 +314,82 @@ public class FuelAutoImportService : IFuelAutoImportService
     {
         try
         {
-            var dbConfig = _context.SystemConfigurations
-                .AsNoTracking()
-                .FirstOrDefault(c => c.IsActive
-                    && c.ConfigurationKey == Configuration.SystemConfiguration.DB_CONFIG_FUEL_AUTO_IMPORT_PROFILES_KEY);
-
-            if (dbConfig == null || string.IsNullOrWhiteSpace(dbConfig.ConfigurationValue))
-                return null;
-
-            var profiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
-            return profiles?.FirstOrDefault(p =>
-                p.Id.Equals(profileId, StringComparison.OrdinalIgnoreCase) && p.Enabled);
+            return GetConfiguredProfiles(includeDisabled: true)
+                .FirstOrDefault(p => p.Enabled && p.Id.Equals(profileId, StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to resolve profile '{ProfileId}' from SystemConfigurations", profileId);
             return null;
         }
+    }
+
+    private bool TryLoadStoredProfiles(out List<FuelAutoImportProfileDto> profiles)
+    {
+        profiles = new List<FuelAutoImportProfileDto>();
+
+        try
+        {
+            var dbConfig = _context.SystemConfigurations
+                .AsNoTracking()
+                .FirstOrDefault(c => c.IsActive
+                    && c.ConfigurationKey == Configuration.SystemConfiguration.DB_CONFIG_FUEL_AUTO_IMPORT_PROFILES_KEY);
+
+            if (dbConfig == null || string.IsNullOrWhiteSpace(dbConfig.ConfigurationValue))
+                return false;
+
+            var parsedProfiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
+            profiles = (parsedProfiles ?? new List<FuelAutoImportProfileDto>())
+                .Select(NormalizeProfile)
+                .Where(p => !string.IsNullOrWhiteSpace(p.ScanPath))
+                .ToList();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not read profiles from SystemConfigurations, falling back to appsettings");
+            return false;
+        }
+    }
+
+    private List<FuelAutoImportProfileDto> GetConfiguredProfiles(bool includeDisabled = false)
+    {
+        if (TryLoadStoredProfiles(out var storedProfiles))
+        {
+            return includeDisabled
+                ? storedProfiles
+                : storedProfiles.Where(p => p.Enabled).ToList();
+        }
+
+        var configPaths = _configuration.GetSection("FuelAutoImport:ScanPaths").Get<string[]>();
+        var fallbackPaths = (configPaths?.Length > 0 ? configPaths : DefaultScanPaths)
+            .Select(NormalizeScanPath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        _logger.LogInformation(
+            configPaths?.Length > 0
+                ? "Resolved auto-import scan paths from appsettings: {Paths}"
+                : "Resolved auto-import scan paths from compiled defaults: {Paths}",
+            string.Join(", ", fallbackPaths));
+
+        return fallbackPaths.Select((path, index) => new FuelAutoImportProfileDto
+        {
+            Id = $"fallback-profile-{index + 1}",
+            Name = Path.GetFileName(path) ?? $"Profile {index + 1}",
+            ScanPath = path,
+            Enabled = true,
+            IntervalMinutes = 0,
+            ScheduleTime = string.Empty,
+            BatchSize = 50,
+            IncludeRetries = true,
+            DuplicateHandling = FuelAutoImportProfileDto.DuplicateHandlingSkip,
+            NotificationsEnabled = false,
+            NotifyOnSuccess = false,
+            NotifyOnFailure = true,
+        }).ToList();
     }
 
     /// <summary>
@@ -315,51 +399,16 @@ public class FuelAutoImportService : IFuelAutoImportService
     /// </summary>
     private List<string> GetConfiguredScanPaths()
     {
-        // 1. Try SystemConfigurations table — read profiles JSON
-        try
+        var enabledProfiles = GetConfiguredProfiles();
+        if (enabledProfiles.Count == 0)
         {
-            var dbConfig = _context.SystemConfigurations
-                .AsNoTracking()
-                .FirstOrDefault(c => c.IsActive
-                    && c.ConfigurationKey == Configuration.SystemConfiguration.DB_CONFIG_FUEL_AUTO_IMPORT_PROFILES_KEY);
-
-            if (dbConfig != null && !string.IsNullOrWhiteSpace(dbConfig.ConfigurationValue))
-            {
-                var profiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
-                if (profiles != null && profiles.Count > 0)
-                {
-                    var enabledPaths = profiles
-                        .Where(p => p.Enabled && !string.IsNullOrWhiteSpace(p.ScanPath))
-                        .Select(p => NormalizeScanPath(p.ScanPath!))
-                        .ToList();
-
-                    if (enabledPaths.Count > 0)
-                    {
-                        _logger.LogInformation("Resolved auto-import scan paths from SystemConfigurations profiles: {Paths}",
-                            string.Join(", ", enabledPaths));
-                        return enabledPaths;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not read profiles from SystemConfigurations, falling back to appsettings");
+            _logger.LogInformation("No enabled auto-import profiles resolved from configuration.");
+            return new List<string>();
         }
 
-        // 2. Try appsettings.json
-        var configPaths = _configuration.GetSection("FuelAutoImport:ScanPaths").Get<string[]>();
-        var resolvedPaths = (configPaths?.Length > 0 ? configPaths : DefaultScanPaths)
-            .Select(NormalizeScanPath)
+        return enabledProfiles
+            .Select(p => NormalizeScanPath(p.ScanPath))
             .ToList();
-
-        _logger.LogInformation(
-            configPaths?.Length > 0
-                ? "Resolved auto-import scan paths from appsettings: {Paths}"
-                : "Resolved auto-import scan paths from compiled defaults: {Paths}",
-            string.Join(", ", resolvedPaths));
-
-        return resolvedPaths;
     }
 
     /// <summary>
@@ -442,7 +491,8 @@ public class FuelAutoImportService : IFuelAutoImportService
     private async Task<FileProcessResult> ProcessFileAsync(
         FuelReportFileMetadata metadata,
         Dictionary<string, int> siteLookup,
-        string userId)
+        string userId,
+        FuelAutoImportProfileDto? profile = null)
     {
         var processResult = new FileProcessResult();
 
@@ -462,6 +512,16 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         try
         {
+            if (ShouldSkipKmLFile(metadata))
+            {
+                var reason = $"Skipped auto-import for excluded km/l site '{metadata.DetectedSiteName ?? metadata.FileName}'";
+                await _fileTrackerService.MarkAsSkippedAsync(tracker.Id, reason);
+                processResult.Skipped = true;
+                processResult.ErrorMessage = reason;
+                _logger.LogInformation("Skipping excluded km/l file {FileName}. DetectedSite: {DetectedSite}", metadata.FileName, metadata.DetectedSiteName ?? "unknown");
+                return processResult;
+            }
+
             // 2. Parse based on report type
             ExcelParseResult parseResult;
             if (metadata.ReportType == "l/hr")
@@ -503,12 +563,21 @@ public class FuelAutoImportService : IFuelAutoImportService
                 return processResult;
             }
 
-            // 3. Dispatch to existing ImportFuelReportCommand with SkipDuplicates=true
+            var duplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile?.DuplicateHandling);
+            var shouldReplaceDuplicates = duplicateHandling == FuelAutoImportProfileDto.DuplicateHandlingReplace;
+
+            _logger.LogInformation(
+                "Using duplicate handling policy {DuplicateHandling} for file {FileName}. ProfileId: {ProfileId}",
+                duplicateHandling,
+                metadata.FileName,
+                profile?.Id ?? "default");
+
+            // 3. Dispatch to existing ImportFuelReportCommand using the resolved duplicate policy
             var command = new ImportFuelReportCommand
             {
                 Models = parseResult.Records,
-                SkipDuplicates = true,
-                OverwriteExisting = false,
+                SkipDuplicates = !shouldReplaceDuplicates,
+                OverwriteExisting = shouldReplaceDuplicates,
                 UserId = userId,
                 JobId = $"auto-import-{tracker.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}",
                 SourceFileName = metadata.FileName,
@@ -559,6 +628,21 @@ public class FuelAutoImportService : IFuelAutoImportService
         return processResult;
     }
 
+    private static bool ShouldSkipKmLFile(FuelReportFileMetadata metadata)
+    {
+        if (!string.Equals(metadata.ReportType, "km/l", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(metadata.DetectedSiteName) && ExcludedKmLSites.Contains(metadata.DetectedSiteName.Trim()))
+        {
+            return true;
+        }
+
+        return metadata.FileName.Contains("KATANI", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Resolve a site name (from filename) to a siteId using the lookup.
     /// </summary>
@@ -578,13 +662,47 @@ public class FuelAutoImportService : IFuelAutoImportService
         return siteLookup.TryGetValue(NormalizeSiteKey(trimmedSiteName), out id) ? id : 0;
     }
 
+    private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
+    {
+        profile.ScanPath = NormalizeScanPath(profile.ScanPath);
+        profile.DuplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile.DuplicateHandling);
+        return profile;
+    }
+
+    private static FuelAutoImportProfileDto? ResolveProfileForFilePath(string filePath, IReadOnlyCollection<FuelAutoImportProfileDto> profiles)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || profiles.Count == 0)
+            return null;
+
+        var normalizedFilePath = NormalizePathValue(filePath);
+
+        return profiles
+            .Where(profile => !string.IsNullOrWhiteSpace(profile.ScanPath))
+            .OrderByDescending(profile => NormalizeScanPath(profile.ScanPath).Length)
+            .FirstOrDefault(profile => IsPathWithinScanPath(normalizedFilePath, NormalizeScanPath(profile.ScanPath)));
+    }
+
     private static string NormalizeScanPath(string scanPath)
     {
         if (string.IsNullOrWhiteSpace(scanPath))
             return scanPath;
 
-        var normalized = scanPath.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalized = NormalizePathValue(scanPath);
         return LegacyScanPathMappings.TryGetValue(normalized, out var mappedPath) ? mappedPath : normalized;
+    }
+
+    private static string NormalizePathValue(string path)
+    {
+        return path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    private static bool IsPathWithinScanPath(string filePath, string scanPath)
+    {
+        if (filePath.Equals(scanPath, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return filePath.StartsWith(scanPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || filePath.StartsWith(scanPath + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddLookupValue(Dictionary<string, int> lookup, string siteName, int siteId)

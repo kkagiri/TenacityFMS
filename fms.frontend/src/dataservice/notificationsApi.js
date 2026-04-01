@@ -1,3 +1,14 @@
+/**
+ * File: notificationsApi.js
+ * Purpose: Notification module API client for user and admin notification workflows.
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-04-01
+ *
+ * Key Functions:
+ * - getAdminDashboard: Loads live admin notification dashboard metrics.
+ * - getAdminNotificationHistory: Loads paged admin notification history.
+ * - getStatistics: Loads user-scoped notification statistics.
+ */
 import axiosInstance from "../api/axiosInstance";
 
 class NotificationsApi {
@@ -82,6 +93,28 @@ class NotificationsApi {
     } catch (error) {
       console.error("Error fetching statistics:", error);
       return { isSuccess: false, data: [], message: error.response?.data?.message || "Failed to fetch statistics" };
+    }
+  }
+
+  async getAdminDashboard({ dateFrom, dateTo, recentCount, bucketHours } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.append("fromDate", new Date(dateFrom).toISOString());
+      if (dateTo) params.append("toDate", new Date(dateTo).toISOString());
+      if (recentCount != null) params.append("recentCount", String(recentCount));
+      if (bucketHours != null) params.append("bucketHours", String(bucketHours));
+
+      const qs = params.toString();
+      const url = qs ? `${this.basePath}/admin-dashboard?${qs}` : `${this.basePath}/admin-dashboard`;
+      const response = await axiosInstance.get(url);
+      return {
+        isSuccess: true,
+        data: response.data?.data || response.data || {},
+        message: response.data?.message || "Admin dashboard retrieved successfully",
+      };
+    } catch (error) {
+      console.error("Error fetching admin dashboard:", error);
+      return { isSuccess: false, data: {}, message: error.response?.data?.message || "Failed to fetch admin dashboard" };
     }
   }
 

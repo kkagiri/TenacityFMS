@@ -2,7 +2,7 @@
  * File: useImportManagement.js
  * Purpose: Custom hook managing state and data-fetching for the Import Management page
  * Dependencies: react, importManagementApi
- * Last Modified: 2026-02-25
+ * Last Modified: 2026-04-01
  *
  * Key Exports:
  * - useImportManagement(): Returns files, loading, filters, pagination, actions
@@ -15,6 +15,7 @@ import {
     triggerOnDemandImport,
     triggerProfileImport,
     cancelImportJob,
+    clearImportLogs,
 } from "../../../../api/importManagementApi";
 import businessSignalRService from "../../../../signalR/businessSignalRService";
 import notify from "devextreme/ui/notify";
@@ -50,6 +51,8 @@ const useImportManagement = () => {
     const [pageSize] = useState(DEFAULT_PAGE_SIZE);
     const [sortBy, setSortBy] = useState("UpdatedAt");
     const [sortDirection, setSortDirection] = useState("desc");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
 
     // ── Selected file for detail panel ──
     const [selectedFile, setSelectedFile] = useState(null);
@@ -71,6 +74,8 @@ const useImportManagement = () => {
             if (activeTab !== "all") params.status = activeTab;
             if (search.trim()) params.search = search.trim();
             if (reportType) params.reportType = reportType;
+            if (dateFrom) params.dateFrom = dateFrom;
+            if (dateTo) params.dateTo = dateTo;
 
             const response = await getFileTrackerList(params);
 
@@ -95,12 +100,23 @@ const useImportManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, [page, pageSize, sortBy, sortDirection, activeTab, search, reportType]);
+    }, [page, pageSize, sortBy, sortDirection, activeTab, search, reportType, dateFrom, dateTo]);
 
     // Auto-fetch when dependencies change
     useEffect(() => {
         fetchFiles();
     }, [fetchFiles]);
+
+    useEffect(() => {
+        if (!selectedFile) {
+            return;
+        }
+
+        const refreshedFile = files.find((file) => file.id === selectedFile.id);
+        if (refreshedFile && refreshedFile !== selectedFile) {
+            setSelectedFile(refreshedFile);
+        }
+    }, [files, selectedFile]);
 
     // ── SignalR: listen for background import completion / error / cancel ──
     useEffect(() => {
@@ -166,6 +182,16 @@ const useImportManagement = () => {
 
     const handleReportTypeChange = useCallback((value) => {
         setReportType(value);
+        setPage(1);
+    }, []);
+
+    const handleDateFromChange = useCallback((value) => {
+        setDateFrom(value);
+        setPage(1);
+    }, []);
+
+    const handleDateToChange = useCallback((value) => {
+        setDateTo(value);
         setPage(1);
     }, []);
 
@@ -275,6 +301,25 @@ const useImportManagement = () => {
         setSelectedFile(null);
     }, []);
 
+    const handleClearLogs = useCallback(async () => {
+        try {
+            const params = {};
+            if (activeTab !== "all") params.status = activeTab;
+            if (dateFrom) params.dateFrom = dateFrom;
+            if (dateTo) params.dateTo = dateTo;
+            const response = await clearImportLogs(params);
+            if (response?.isSuccess) {
+                notify(`Cleared ${response.data?.deletedCount ?? 0} log records`, "success", 3000);
+                await fetchFiles();
+            } else {
+                notify(response?.message || "Failed to clear logs", "error", 4000);
+            }
+        } catch (err) {
+            console.error("Error clearing logs:", err);
+            notify("Failed to clear logs", "error", 4000);
+        }
+    }, [activeTab, dateFrom, dateTo, fetchFiles]);
+
     const totalAll =
         summary.pendingCount +
         summary.processingCount +
@@ -302,6 +347,8 @@ const useImportManagement = () => {
         activeTab,
         search,
         reportType,
+        dateFrom,
+        dateTo,
         page,
         pageSize,
         sortBy,
@@ -314,6 +361,9 @@ const useImportManagement = () => {
         handleTabChange,
         handleSearchChange,
         handleReportTypeChange,
+        handleDateFromChange,
+        handleDateToChange,
+        handleClearLogs,
         handleSortChange,
         handlePageChange,
         handleRetry,

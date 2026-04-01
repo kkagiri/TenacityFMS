@@ -3,7 +3,7 @@
  * Purpose: Slim API controller for notification management. Delegates to INotificationService,
  *          IMediator (CQRS handlers), INotificationGroupService and IEmailService.
  * Dependencies: INotificationService, IMediator, AutoMapper, INotificationGroupService, IEmailService
- * Last Modified: 2026-03-05
+ * Last Modified: 2026-04-01
  *
  * Key Endpoints:
  * - CRUD for notifications, policies, preferences, categories
@@ -365,6 +365,44 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving notification statistics via POST");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get admin dashboard notification summary, performance graph, and recent activity.
+        /// </summary>
+        [HttpGet("admin-dashboard")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetAdminDashboard(
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] int recentCount = 10,
+            [FromQuery] int bucketHours = 4,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new GetAdminNotificationDashboardQuery
+                {
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    RecentCount = recentCount,
+                    BucketHours = bucketHours
+                };
+
+                var result = await _mediator.Send(query, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving admin notification dashboard data");
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
