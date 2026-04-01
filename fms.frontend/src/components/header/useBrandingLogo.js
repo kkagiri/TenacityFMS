@@ -2,7 +2,7 @@
  * File: useBrandingLogo.js
  * Purpose: Resolves the shared header logo from SystemConfiguration with a bundled fallback asset.
  * Dependencies: react, axiosInstance, logoHyoung
- * Last Modified: 2026-03-13
+ * Last Modified: 2026-03-30
  *
  * Key Functions:
  * - useBrandingLogo(): Loads the first configured branding logo and normalizes file-storage paths.
@@ -93,14 +93,48 @@ const resolveBrandingLogoUrl = (rawValue) => {
     return buildFileApiUrl(value);
 };
 
-const getConfigurationValue = (response) => {
-    return (
-        response?.data?.data?.configurationValue ||
-        response?.data?.data?.ConfigurationValue ||
-        response?.data?.Data?.ConfigurationValue ||
-        response?.data?.Data?.configurationValue ||
-        null
-    );
+const getConfigurations = (response) => {
+    if (Array.isArray(response?.data?.data)) {
+        return response.data.data;
+    }
+
+    if (Array.isArray(response?.data?.Data)) {
+        return response.data.Data;
+    }
+
+    if (Array.isArray(response?.data)) {
+        return response.data;
+    }
+
+    return [];
+};
+
+const getConfigurationKey = (configuration) => {
+    return configuration?.configurationKey || configuration?.ConfigurationKey || null;
+};
+
+const getConfigurationEntryValue = (configuration) => {
+    return configuration?.configurationValue || configuration?.ConfigurationValue || null;
+};
+
+const resolveConfiguredBrandingLogo = (configurations) => {
+    const valueByKey = new Map();
+
+    configurations.forEach((configuration) => {
+        const configurationKey = getConfigurationKey(configuration);
+        if (configurationKey) {
+            valueByKey.set(configurationKey, getConfigurationEntryValue(configuration));
+        }
+    });
+
+    for (const key of BRANDING_LOGO_KEYS) {
+        const resolvedUrl = resolveBrandingLogoUrl(valueByKey.get(key));
+        if (resolvedUrl) {
+            return resolvedUrl;
+        }
+    }
+
+    return null;
 };
 
 export default function useBrandingLogo() {
@@ -110,25 +144,28 @@ export default function useBrandingLogo() {
         let isMounted = true;
 
         const loadBrandingLogo = async () => {
-            for (const key of BRANDING_LOGO_KEYS) {
-                try {
-                    const response = await axiosInstance.get(
-                        `/SystemConfiguration/by-key/${encodeURIComponent(key)}`
-                    );
+            try {
+                const queryParams = new URLSearchParams({
+                    page: "1",
+                    pageSize: "50",
+                    searchTerm: "Logo",
+                    isActive: "true",
+                });
 
-                    const configurationValue = getConfigurationValue(response);
-                    const resolvedUrl = resolveBrandingLogoUrl(configurationValue);
+                const response = await axiosInstance.get(
+                    `/SystemConfiguration?${queryParams.toString()}`
+                );
 
-                    if (resolvedUrl) {
-                        if (isMounted) {
-                            setLogoSrc(resolvedUrl);
-                        }
-                        return;
+                const resolvedUrl = resolveConfiguredBrandingLogo(getConfigurations(response));
+                if (resolvedUrl) {
+                    if (isMounted) {
+                        setLogoSrc(resolvedUrl);
                     }
-                } catch (error) {
-                    if (error?.response?.status !== 404 && process.env.NODE_ENV === "development") {
-                        console.warn(`[Branding] Failed to load logo key ${key}`, error);
-                    }
+                    return;
+                }
+            } catch (error) {
+                if (process.env.NODE_ENV === "development") {
+                    console.warn("[Branding] Failed to load branding logo configuration", error);
                 }
             }
 
