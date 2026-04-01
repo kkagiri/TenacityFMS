@@ -33,6 +33,11 @@ namespace FMS.Application.Communication.Connection
     {
         private readonly ConcurrentDictionary<string, PTSDeviceConnection> _deviceConnections;
         private readonly ILogger<PTSConnectionManager> _logger;
+        private static readonly HashSet<string> ExpectedTransientCommandTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "PumpCloseTransaction",
+            "PumpGetTransactionInformation"
+        };
 
         public PTSConnectionManager(ILogger<PTSConnectionManager> logger)
         {
@@ -86,6 +91,7 @@ namespace FMS.Application.Communication.Connection
         public async Task<PTSMessage> SendMessageAsync(string deviceId, string message)
         {
             PTSDeviceConnection connection = null;
+            PTSMessage ptsMessage = null;
             try
             {
                 //Get the connection of the device
@@ -102,7 +108,7 @@ namespace FMS.Application.Communication.Connection
                 //Cursor: Add logging to debug JSON serialization
                 _logger.LogDebug("Deserializing message for device {DeviceId}: {Message}", deviceId, message);
 
-                var ptsMessage = JsonConvert.DeserializeObject<PTSMessage>(message);
+                ptsMessage = JsonConvert.DeserializeObject<PTSMessage>(message);
                 if (ptsMessage == null)
                 {
                     throw new InvalidOperationException("Failed to deserialize PTSMessage - result was null");
@@ -134,9 +140,34 @@ namespace FMS.Application.Communication.Connection
                     }
                 }
 
-                _logger.LogError(ex, "Error sending message to device {DeviceId}", deviceId);
+                var commandType = ptsMessage?.Packets?.FirstOrDefault()?.Type;
+                if (IsExpectedTransientSendFailure(ex, commandType))
+                {
+                    _logger.LogWarning(ex,
+                        "Transient send failure for device {DeviceId} on command {CommandType}",
+                        deviceId,
+                        commandType ?? "Unknown");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Error sending message to device {DeviceId}", deviceId);
+                }
+
                 throw new Exception($"Error sending message to device {deviceId}", ex);
             }
+        }
+
+        private static bool IsExpectedTransientSendFailure(Exception ex, string commandType)
+        {
+            if (string.IsNullOrWhiteSpace(commandType) || !ExpectedTransientCommandTypes.Contains(commandType))
+            {
+                return false;
+            }
+
+            return ex is TimeoutException
+                || ex is OperationCanceledException
+                || ex is ObjectDisposedException
+                || ex is InvalidOperationException;
         }
 
         public void AddConnection(string deviceId, PTSDeviceConnection connection)

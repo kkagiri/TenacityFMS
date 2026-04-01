@@ -21,6 +21,11 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandli
 {
     public class RedisPTSCommandProcessor
     {
+        private static readonly HashSet<string> ExpectedTransientCommandTypes = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "PumpCloseTransaction",
+            "PumpGetTransactionInformation"
+        };
 
         private readonly IConnectionMultiplexer _redis;
         private readonly IPTSConnectionManager _connectionManager;
@@ -122,7 +127,20 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandli
                     ptsMessage.Packets.FirstOrDefault()?.Id, deviceId);
 
                 //send the message to the device
-                var responseMessage = await _connectionManager.SendMessageAsync(deviceId, JsonConvert.SerializeObject(ptsMessage));
+                PTSMessage responseMessage;
+                try
+                {
+                    responseMessage = await _connectionManager.SendMessageAsync(deviceId, JsonConvert.SerializeObject(ptsMessage));
+                }
+                catch (Exception ex) when (IsExpectedTransientConnectionFailure(command.CommandType, ex))
+                {
+                    _logger.LogWarning(ex,
+                        "Transient command dispatch failure for {CommandType} on device {DeviceId}",
+                        command.CommandType,
+                        deviceId);
+                    await PublishErrorResponse(command, "Device not connected", GetConnectionFailureMessage(ex));
+                    return;
+                }
 
                 if (responseMessage == null)
                 {
@@ -143,12 +161,23 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandli
             }
             catch (Exception ex)
             {
+                var command = TryDeserializeCommand(message);
+                if (command != null && IsExpectedTransientConnectionFailure(command.CommandType, ex))
+                {
+                    _logger.LogWarning(ex,
+                        "Transient processing failure for command {CommandType}: {Message}",
+                        command.CommandType,
+                        message);
+                    await PublishErrorResponse(command, "Device not connected", GetConnectionFailureMessage(ex));
+                    return;
+                }
+
                 _logger.LogError(ex, "Error processing command: {Message}", message);
 
                 // Try to deserialize the command again to get correlation ID for error response
                 try
                 {
-                    var command = JsonConvert.DeserializeObject<RedisPTSCommand>(message);
+                    command ??= JsonConvert.DeserializeObject<RedisPTSCommand>(message);
                     if (command != null)
                     {
                         await PublishErrorResponse(command, "Processing error", ex.Message);
@@ -303,6 +332,58 @@ namespace FMS.PTS.WindowsService.Infrastructure.Communication.RedisMessageHandli
                 ResponsePayload = null
             };
             await PublishResponse(response);
+        }
+
+        private static RedisPTSCommand? TryDeserializeCommand(RedisValue message)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<RedisPTSCommand>(message);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static bool IsExpectedTransientConnectionFailure(string? commandType, Exception ex)
+        {
+            if (string.IsNullOrWhiteSpace(commandType) || !ExpectedTransientCommandTypes.Contains(commandType))
+            {
+                return false;
+            }
+
+            var root = ex;
+            while (root.InnerException != null)
+            {
+                root = root.InnerException;
+            }
+
+            return root is TimeoutException
+                || root is OperationCanceledException
+                || root is ObjectDisposedException
+                || root is InvalidOperationException
+                || root.Message.Contains("stale or inactive", StringComparison.OrdinalIgnoreCase)
+                || root.Message.Contains("Connection closing", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetConnectionFailureMessage(Exception ex)
+        {
+            var root = ex;
+            while (root.InnerException != null)
+            {
+                root = root.InnerException;
+            }
+
+            if (root.Message.Contains("stale or inactive", StringComparison.OrdinalIgnoreCase)
+                || root.Message.Contains("Connection closing", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Device connection is stale or inactive";
+            }
+
+            return root is TimeoutException
+                ? "Device did not respond before timeout"
+                : root.Message;
         }
 
     }

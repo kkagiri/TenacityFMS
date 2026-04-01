@@ -43,6 +43,7 @@ namespace FMS.Application.Services
         private readonly ITransactionCompletionService _transactionCompletionService;
         private readonly ITransactionMonitoringService _transactionMonitoringService;
         private readonly IDirectHttpTransactionService _directHttpService;
+        private readonly IPumpService _pumpService;
         private readonly DeviceConnectionTracker _connectionTracker;
         private readonly IDatabase _redisDb;
         private readonly IServiceScopeFactory _scopeFactory;
@@ -54,6 +55,7 @@ namespace FMS.Application.Services
             ITransactionCompletionService transactionCompletionService,
             ITransactionMonitoringService transactionMonitoringService,
             IDirectHttpTransactionService directHttpService,
+            IPumpService pumpService,
             DeviceConnectionTracker connectionTracker,
             IConnectionMultiplexer redisConnection,
             IServiceScopeFactory scopeFactory,
@@ -62,6 +64,7 @@ namespace FMS.Application.Services
             _transactionCompletionService = transactionCompletionService;
             _transactionMonitoringService = transactionMonitoringService;
             _directHttpService = directHttpService;
+            _pumpService = pumpService;
             _connectionTracker = connectionTracker;
             _redisDb = redisConnection.GetDatabase();
             _scopeFactory = scopeFactory;
@@ -968,7 +971,12 @@ namespace FMS.Application.Services
                 {
                     _logger.LogDebug("[AutoComplete] Sending PumpCloseTransaction via Redis for WebSocket device {DeviceId}",
                         deviceId);
-                    // This would integrate with existing Redis command system
+                    var closeResult = await _pumpService.ClosePumpTransactionAsync(deviceId, pump, transaction);
+                    if (!closeResult.Success)
+                    {
+                        _logger.LogWarning("[AutoComplete] Failed to send close command to WebSocket device {DeviceId}: {Message}",
+                            deviceId, closeResult.Message);
+                    }
                 }
                 else if (httpConnection != null)
                 {

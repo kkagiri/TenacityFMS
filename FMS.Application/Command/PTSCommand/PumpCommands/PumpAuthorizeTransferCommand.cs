@@ -21,6 +21,7 @@ using FMS.Application.Features.PTS.Services;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
@@ -56,12 +57,16 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IMediator _mediator;
         private readonly IPumpService _pumpService;
         private readonly IDatabase _redisDb;
+        private readonly IDeviceConnectionTypeService _connectionTypeService;
+        private readonly ISystemConfigurationService _systemConfigService;
 
         public PumpAuthorizeTransferCommandHandler(
             IAuthorizationStateTracker authstatetracker,
             IMediator mediator,
             GpsdataContext context,
             IPumpService pumpService,
+            IDeviceConnectionTypeService connectionTypeService,
+            ISystemConfigurationService systemConfigService,
             IConnectionMultiplexer redisConnection,
             ILogger<PumpAuthorizeTransferCommandHandler> logger)
         {
@@ -69,6 +74,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _mediator = mediator;
             _context = context;
             _pumpService = pumpService;
+            _connectionTypeService = connectionTypeService;
+            _systemConfigService = systemConfigService;
             _redisDb = redisConnection.GetDatabase();
             _logger = logger;
         }
@@ -307,6 +314,13 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         .FirstOrDefaultAsync(cancellationToken);
                 }
 
+                var connectionType = await _connectionTypeService.GetConnectionTypeAsync(request.DeviceId);
+                var autoCreateLedgerEntries = await _systemConfigService.GetPtsAutoCreateLedgerEntriesAsync(cancellationToken);
+
+                // Keep device authorization behavior unchanged while allowing server-side completion
+                // to persist transfer transactions in real time once EOT/idle status arrives.
+                var configuredAutoClose = autoCreateLedgerEntries && connectionType != "HTTPPolling";
+
                 var transferContext = new TransactionContext
                 {
                     DeviceId = request.DeviceId,
@@ -328,8 +342,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     IsTransferMode = true, // **CRITICAL FLAG** - Tells EOT processing this is a transfer
                     AuthorizedAt = DateTime.UtcNow,
                     StartTime = DateTime.UtcNow,
-                    ConnectionType = string.Empty,
-                    AutoCloseTransaction = false,
+                    ConnectionType = connectionType,
+                    AutoCloseTransaction = configuredAutoClose,
                     VehicleId = (int?)null, // Explicitly NULL for transfers
                     Tag = (string?)null     // Explicitly NULL for transfers
                 };
@@ -358,6 +372,14 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 {
                     _logger.LogWarning(
                         "[TankTransferAuth] Transfer context may require manual completion downstream - Tx {TransactionId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}'",
+                        confirmation.Transaction,
+                        transferContext.AutoCloseTransaction,
+                        transferContext.ConnectionType);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "[TankTransferAuth] Transfer context configured for automatic completion - Tx {TransactionId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}'",
                         confirmation.Transaction,
                         transferContext.AutoCloseTransaction,
                         transferContext.ConnectionType);
