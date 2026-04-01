@@ -503,6 +503,23 @@ namespace FMS.Application.Services
                         deviceId, transaction);
                 }
 
+                // Step 3b: Always clean up the Redis transaction context key so the device no longer
+                // appears in GetActiveTransactionsAsync scans (prevents MISSING EOT spam).
+                // This is safe here because the transaction was already persisted to DB in Step 2.
+                try
+                {
+                    var transactionKey = $"device:{deviceId}:transaction:{transaction}";
+                    var monitoringKey = $"monitoring:{deviceId}:transaction:{transaction}";
+                    await _redisDb.KeyDeleteAsync(transactionKey);
+                    await _redisDb.KeyDeleteAsync(monitoringKey);
+                    _logger.LogDebug("[AutoComplete] Cleaned up Redis context keys for {DeviceId}:{Transaction}", deviceId, transaction);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[AutoComplete] Error cleaning up Redis context keys for {DeviceId}:{Transaction} - transaction was already saved successfully",
+                        deviceId, transaction);
+                }
+
                 // Step 4: Send close command to device (best effort - don't fail if this fails)
                 try
                 {
