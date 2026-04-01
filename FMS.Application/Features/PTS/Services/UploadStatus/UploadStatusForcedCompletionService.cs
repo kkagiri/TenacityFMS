@@ -112,6 +112,19 @@ namespace FMS.Application.Features.PTS.Services
                     return;
                 }
 
+                // Do not force-complete while pump is actively dispensing — IdleStatus.LastVolumes
+                // reflects the PREVIOUS completed transaction (0) when pump is filling, which would
+                // save Volume=0 and then block the real EOT save via the alreadySaved marker.
+                if (await IsPumpActivelyFillingAsync(deviceId, pumpId))
+                {
+                    _logger.LogDebug(
+                        "[UploadStatus] FILLING ACTIVE - Pump {PumpId} on device {DeviceId} is still dispensing transaction {TransactionId} - deferring forced completion",
+                        pumpId,
+                        deviceId,
+                        transactionId);
+                    return;
+                }
+
                 var timeoutMinutes = transactionContext.IsTransferMode ? 10.0 : 2.0;
                 var elapsed = DateTime.UtcNow - transactionContext.StartTime;
 
@@ -236,6 +249,37 @@ namespace FMS.Application.Features.PTS.Services
             }
 
             return (lastVolume, lastAmount, nozzleId, fuelGradeId, fuelGradeName);
+        }
+
+        private async Task<bool> IsPumpActivelyFillingAsync(string deviceId, int pumpId)
+        {
+            var statusJson = await _redisDb.StringGetAsync($"device:{deviceId}:status");
+            if (statusJson.IsNullOrEmpty)
+                return false;
+
+            try
+            {
+                var lastStatus = JsonSerializer.Deserialize<JsonElement>(statusJson!);
+                if (!lastStatus.TryGetProperty("Pumps", out var pumpsElement))
+                    return false;
+                if (!pumpsElement.TryGetProperty("FillingStatus", out var fillingElement))
+                    return false;
+                if (!fillingElement.TryGetProperty("Ids", out var idsElement)
+                    || idsElement.ValueKind != JsonValueKind.Array)
+                    return false;
+
+                foreach (var id in idsElement.EnumerateArray())
+                {
+                    if (id.ValueKind == JsonValueKind.Number && id.GetInt32() == pumpId)
+                        return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[UploadStatus] FILLING CHECK ERROR - Error reading FillingStatus for {DeviceId}:{PumpId}", deviceId, pumpId);
+            }
+
+            return false;
         }
 
         private static decimal? ReadPumpDecimalArrayValue(JsonElement parent, string propertyName, int pumpId)
