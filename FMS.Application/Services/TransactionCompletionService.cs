@@ -12,6 +12,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.PumpCommands;
+using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.Communication;
 using FMS.Application.Features.ExpectedFuelAverage.Services;
 using FMS.Application.Infrastructure.DistCacheTracker;
@@ -511,6 +512,19 @@ namespace FMS.Application.Services
                         };
                     }
                 }
+            }
+            catch (PTSDeviceException ex) when (ex.ErrorType == FMS.Application.Common.ErrorType.SystemError
+                || ex.Message.Contains("stale", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("[Completion] Device {DeviceId} is stale or inactive during polling completion for Pump {PumpId}, Transaction {TransactionId}: {Message}",
+                    deviceId, pumpId, transactionId, ex.Message);
+
+                return new CompletionResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message
+                };
             }
             catch (Exception ex)
             {

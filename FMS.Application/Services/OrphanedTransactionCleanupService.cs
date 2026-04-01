@@ -405,6 +405,11 @@ namespace FMS.Application.Services
                 _logger.LogInformation("[{DeviceId}] Successfully saved {Count} incomplete transaction(s) to database",
                     deviceId, savedTransactionIds.Count);
             }
+            catch (ObjectDisposedException ex)
+            {
+                _logger.LogWarning("[{DeviceId}] Scope disposed while saving incomplete transactions — application may be shutting down. Error: {Message}",
+                    deviceId, ex.ObjectName);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[{DeviceId}] Error saving incomplete transactions to database", deviceId);

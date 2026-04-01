@@ -545,6 +545,17 @@ namespace FMS.Application.Communication.webSocket
 
                 } while (!result.EndOfMessage && !(_cancellationTokenSource?.IsCancellationRequested ?? true));
 
+                // Guard: only process if we received the full message.
+                // If the loop exited because cancellation was requested before EndOfMessage,
+                // the accumulated data is a partial frame — deserializing it would throw.
+                if (!result.EndOfMessage)
+                {
+                    _logger.LogWarning(
+                        "Discarding partial WebSocket message for device {DeviceId} — {Length} bytes accumulated before cancellation",
+                        _deviceId, messageBuilder.Length);
+                    continue;
+                }
+
                 // Now we have the full message in messageBuilder
                 var completeMessage = messageBuilder.ToString();
                 // _logger.LogInformation("Complete message received: {Message}", completeMessage);
