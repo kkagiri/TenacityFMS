@@ -44,6 +44,7 @@ class TransactionDeleteService {
         : params.entryDate;
 
       const requestPayload = {
+        transactionId: params.transactionId,
         tankId: params.tankId,
         entryDate: entryDate,
         entryType: params.entryType
@@ -68,7 +69,7 @@ class TransactionDeleteService {
         return {
           success: false,
           error: error.response.data.message || error.response.data,
-          details: error.response.data
+          details: error.response.data.data || error.response.data
         };
       }
 
@@ -117,7 +118,7 @@ class TransactionDeleteService {
         return {
           success: false,
           error: error.response.data.message || error.response.data,
-          details: error.response.data
+          details: error.response.data.data || error.response.data
         };
       }
 

@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Application.Features.TankManagement.TankVolumeHistory.Commands;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
 using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
@@ -167,6 +168,17 @@ namespace FMS.WebClient.Controllers
         [RequirePermission(Permissions.TankVolumeHistory.Delete)]
         public async Task<IActionResult> ValidateDelete([FromBody] ValidateDeleteRequest request)
         {
+            if (request.TransactionId.HasValue && request.TransactionId.Value > 0)
+            {
+                var coordinatorValidation = await _mediator.Send(
+                    new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { request.TransactionId.Value }, userConfirmed: false));
+
+                if (!coordinatorValidation.IsSuccess)
+                    return BadRequest(coordinatorValidation);
+
+                return Ok(coordinatorValidation.Data);
+            }
+
             // Input validation
             if (request.TankId <= 0)
                 return BadRequest("Invalid tank ID");
@@ -210,6 +222,15 @@ namespace FMS.WebClient.Controllers
 
             try
             {
+                if (!userConfirmed)
+                {
+                    var validationResult = await _mediator.Send(
+                        new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { id }, userConfirmed: false));
+
+                    if (!validationResult.IsSuccess)
+                        return BadRequest(validationResult);
+                }
+
                 // Get the current user identifier
                 string? deletedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
@@ -464,6 +485,7 @@ namespace FMS.WebClient.Controllers
     /// </summary>
     public class ValidateDeleteRequest
     {
+        public int? TransactionId { get; set; }
         public int TankId { get; set; }
         public DateTime EntryDate { get; set; }
         public VolumeChangeReasonEnum EntryType { get; set; }

@@ -226,12 +226,21 @@ export const useDeleteTransaction = (handleRefresh) => {
     setTimeout(async () => {
       try {
         const validation = await transactionDeleteService.validateDelete({
+          transactionId: transaction.id,
           tankId: transaction.tankId,
           entryDate: transaction.timestamp,
           entryType: transaction.changeReason
         });
 
         console.log('Delete validation result:', validation);
+
+        if (validation?.details) {
+          setDeleteConfirmation(prev => ({
+            ...prev,
+            validationResult: validation.details
+          }));
+          return;
+        }
 
         if (!validation?.success) {
           throw new Error(validation?.error || 'Validation failed');
@@ -288,7 +297,25 @@ export const useDeleteTransaction = (handleRefresh) => {
           }, 100);
         }, 100);
 
-      } else {
+      }
+
+      if (result?.details) {
+        setDeleteConfirmation(prev => ({
+          ...prev,
+          isDeleting: false,
+          validationResult: result.details
+        }));
+
+        notify({
+          message: result.error || result.details?.summaryMessage || 'Delete could not be completed.',
+          type: 'warning',
+          displayTime: 4000,
+          position: 'top center'
+        });
+        return;
+      }
+
+      {
         throw new Error(result?.error || 'Failed to delete transaction');
       }
 
