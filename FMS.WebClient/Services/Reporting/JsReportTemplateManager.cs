@@ -172,6 +172,7 @@ namespace FMS.WebClient.Services.Reporting
 
         public async Task EnsureSampleTemplatesAsync()
         {
+            var logoBase64 = LoadLogoBase64();
             var templates = new Dictionary<string, Func<string>>
             {
                 ["pump-transaction-report"] = JsReportHtmlTemplates.PumpTransaction,
@@ -189,7 +190,7 @@ namespace FMS.WebClient.Services.Reporting
                 ["vehicle-document-compliance-report"] = JsReportHtmlTemplates.VehicleDocumentCompliance,
                 ["vehicle-trip-analysis-report"] = VehicleTripAnalysisHtmlTemplate.Get,
                 ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
-                ["monthly-fleet-report"] = MonthlyFleetReportHtmlTemplate.Get,
+                ["monthly-fleet-report"] = () => MonthlyFleetReportHtmlTemplate.Get(logoBase64),
                 ["weekly-fleet-report"] = WeeklyFleetReportHtmlTemplate.Get,
             };
 
@@ -245,5 +246,25 @@ namespace FMS.WebClient.Services.Reporting
         }
 
         private bool TryCreateDirectory(string path) => TryCreateDirectoryStatic(path);
+
+        private static string? LoadLogoBase64()
+        {
+            var candidates = new[]
+            {
+                @"C:\FMSData\assets\logo.png",
+                Path.Combine(AppContext.BaseDirectory, "assets", "logo.png")
+            };
+            foreach (var path in candidates)
+            {
+                if (!File.Exists(path)) continue;
+                try
+                {
+                    var bytes = File.ReadAllBytes(path);
+                    return "data:image/png;base64," + Convert.ToBase64String(bytes);
+                }
+                catch { }
+            }
+            return null;
+        }
     }
 }

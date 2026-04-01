@@ -10,6 +10,7 @@ import {
   mapKmLReportRow,
   mapLHrReportRow,
   findVehicleByName,
+  normalizeParsedRowsForFile,
 } from "./batchImportUtils";
 
 const toIsoDateOrToday = (value) => {
@@ -84,6 +85,144 @@ export const processFileImport = async ({
   setPendingJobsMap,
   importResolversRef,
 }) => {
+  const importMappedData = async (mappedData) => {
+    const validRecords = mappedData.filter((row) => row.date && row.vehicleId);
+
+    if (validRecords.length === 0) {
+      const recordsWithoutDate = mappedData.filter((row) => !row.date).length;
+      const recordsWithoutVehicleId = mappedData.filter(
+        (row) => !row.vehicleId
+      ).length;
+
+      let errorDetails = [];
+      if (recordsWithoutDate > 0) {
+        errorDetails.push(`${recordsWithoutDate} rows missing dates`);
+      }
+      if (recordsWithoutVehicleId > 0) {
+        errorDetails.push(
+          `${recordsWithoutVehicleId} rows with unmatched vehicle names`
+        );
+      }
+
+      throw new Error(
+        `No valid consumption records found. ${errorDetails.join(
+          ", "
+        )}. Total rows: ${mappedData.length}`
+      );
+    }
+
+    const dtoRecords = validRecords.map((row, idx) =>
+      toConsumptionDto(
+        {
+          ...row,
+          siteId: fileData.siteId ?? row.siteId ?? 0,
+          siteName:
+            fileData.siteName || row.siteName || row.locationName || "",
+          locationName:
+            row.locationName || row.siteName || fileData.siteName || "",
+          isKmperLiter: fileData.reportType === "km/l",
+          isKmPerLiter: fileData.reportType === "km/l",
+          skipDuplicates: fileData.duplicateHandling === "skip",
+        },
+        idx
+      )
+    );
+
+    const overwriteExisting = fileData.duplicateHandling === "overwrite";
+    const asyncResult = await dispatch(
+      uploadFuelReportAsync(dtoRecords, overwriteExisting, {
+        skipSignalRSetup: true,
+      })
+    );
+    console.log("[BatchImport] Async result from dispatch:", asyncResult);
+
+    if (!asyncResult || !asyncResult.success) {
+      const errorMsg = asyncResult?.message || "Failed to start import";
+      const site = sites.find((s) => s.id === fileData.siteId);
+      const siteName = site?.name || fileData.siteName || "Unknown Site";
+      const error = new Error(errorMsg);
+      error.siteName = siteName;
+
+      if (
+        asyncResult?.validationErrors &&
+        asyncResult.validationErrors.length > 0
+      ) {
+        error.validationErrors = asyncResult.validationErrors;
+      }
+
+      throw error;
+    }
+
+    if (asyncResult.isAsync && asyncResult.jobId) {
+      const jobId = asyncResult.jobId;
+      console.log(
+        "[BatchImport] Async job started with jobId:",
+        jobId,
+        "for fileId:",
+        fileId
+      );
+      setActiveJobId(jobId);
+      activeJobIdRef.current = jobId;
+
+      if (fileId !== undefined && fileId !== null) {
+        pendingJobsMapRef.current.set(jobId, fileId);
+        setPendingJobsMap(new Map(pendingJobsMapRef.current));
+        console.log(
+          "[BatchImport] Stored jobId -> fileId mapping:",
+          jobId,
+          "->",
+          fileId
+        );
+      }
+
+      const importPromise = new Promise((resolveImport, rejectImport) => {
+        const resolverObj = {
+          resolve: resolveImport,
+          reject: rejectImport,
+          jobId: jobId,
+          fileId: fileId,
+        };
+        importResolversRef.current.set(jobId, resolverObj);
+        console.log("[BatchImport] Stored resolver for jobId:", jobId);
+
+        const timeoutId = setTimeout(() => {
+          console.warn("[BatchImport] Timeout reached for jobId:", jobId);
+          if (importResolversRef.current.has(jobId)) {
+            importResolversRef.current.delete(jobId);
+            rejectImport(new Error("Import timed out - no response from server"));
+          }
+        }, 300000);
+
+        resolverObj.timeoutId = timeoutId;
+      });
+
+      const finalResult = await importPromise;
+      console.log(
+        "[BatchImport] ImportPromise resolved for jobId:",
+        jobId,
+        "result:",
+        finalResult
+      );
+
+      const storedResolver = importResolversRef.current.get(jobId);
+      if (storedResolver?.timeoutId) {
+        clearTimeout(storedResolver.timeoutId);
+      }
+
+      return finalResult;
+    }
+
+    return resolveSyncResult(asyncResult, fileData, sites, validRecords);
+  };
+
+  if (Array.isArray(fileData.parsedData)) {
+    const normalizedData = normalizeParsedRowsForFile(
+      fileData.parsedData,
+      fileData
+    );
+    return importMappedData(normalizedData);
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -116,146 +255,9 @@ export const processFileImport = async ({
           );
         }
 
-        // Filter to get only valid records (has date and vehicleId)
-        const validRecords = mappedData.filter(
-          (row) => row.date && row.vehicleId
-        );
-
-        if (validRecords.length === 0) {
-          const recordsWithoutDate = mappedData.filter(
-            (row) => !row.date
-          ).length;
-          const recordsWithoutVehicleId = mappedData.filter(
-            (row) => !row.vehicleId
-          ).length;
-
-          let errorDetails = [];
-          if (recordsWithoutDate > 0) {
-            errorDetails.push(`${recordsWithoutDate} rows missing dates`);
-          }
-          if (recordsWithoutVehicleId > 0) {
-            errorDetails.push(
-              `${recordsWithoutVehicleId} rows with unmatched vehicle names`
-            );
-          }
-
-          const errorMsg = `No valid consumption records found. ${errorDetails.join(
-            ", "
-          )}. Total rows: ${mappedData.length}`;
-          reject(new Error(errorMsg));
-          return;
-        }
-
-        // Build PascalCase DTOs to avoid extra formatting work in uploadFuelReportAsync
-        const dtoRecords = validRecords.map((row, idx) =>
-          toConsumptionDto(row, idx)
-        );
-
-        // Dispatch the upload action with duplicate handling (using ASYNC import)
-        const overwriteExisting = fileData.duplicateHandling === "overwrite";
-        const asyncResult = await dispatch(
-          uploadFuelReportAsync(dtoRecords, overwriteExisting, {
-            // Batch page already sets up listeners once via useBatchImportSignalR
-            skipSignalRSetup: true,
-          })
-        );
-        console.log("[BatchImport] Async result from dispatch:", asyncResult);
-
-        // Check if async job started successfully
-        if (!asyncResult || !asyncResult.success) {
-          const errorMsg = asyncResult?.message || "Failed to start import";
-          const site = sites.find((s) => s.id === fileData.siteId);
-          const siteName = site?.name || fileData.siteName || "Unknown Site";
-          const error = new Error(errorMsg);
-          error.siteName = siteName;
-
-          if (
-            asyncResult?.validationErrors &&
-            asyncResult.validationErrors.length > 0
-          ) {
-            error.validationErrors = asyncResult.validationErrors;
-          }
-
-          reject(error);
-          return;
-        }
-
-        // Async job started - now we wait for SignalR callback
-        if (asyncResult.isAsync && asyncResult.jobId) {
-          const jobId = asyncResult.jobId;
-          console.log(
-            "[BatchImport] Async job started with jobId:",
-            jobId,
-            "for fileId:",
-            fileId
-          );
-          setActiveJobId(jobId);
-          activeJobIdRef.current = jobId;
-
-          // Store mapping of jobId -> fileId for progress tracking
-          if (fileId !== undefined && fileId !== null) {
-            pendingJobsMapRef.current.set(jobId, fileId);
-            setPendingJobsMap(new Map(pendingJobsMapRef.current));
-            console.log(
-              "[BatchImport] Stored jobId -> fileId mapping:",
-              jobId,
-              "->",
-              fileId
-            );
-          }
-
-          // Create a promise that will be resolved when SignalR callback fires
-          const importPromise = new Promise((resolveImport, rejectImport) => {
-            const resolverObj = {
-              resolve: resolveImport,
-              reject: rejectImport,
-              jobId: jobId,
-              fileId: fileId,
-            };
-            importResolversRef.current.set(jobId, resolverObj);
-            console.log("[BatchImport] Stored resolver for jobId:", jobId);
-
-            // Set a timeout in case SignalR callback never fires (5 minutes)
-            const timeoutId = setTimeout(() => {
-              console.warn("[BatchImport] Timeout reached for jobId:", jobId);
-              if (importResolversRef.current.has(jobId)) {
-                importResolversRef.current.delete(jobId);
-                rejectImport(
-                  new Error("Import timed out - no response from server")
-                );
-              }
-            }, 300000);
-
-            resolverObj.timeoutId = timeoutId;
-          });
-
-          // Wait for the actual import result from SignalR
-          const finalResult = await importPromise;
-          console.log(
-            "[BatchImport] ImportPromise resolved for jobId:",
-            jobId,
-            "result:",
-            finalResult
-          );
-
-          // Clear timeout if it was set
-          const storedResolver = importResolversRef.current.get(jobId);
-          if (storedResolver?.timeoutId) {
-            clearTimeout(storedResolver.timeoutId);
-          }
-
-          resolve(finalResult);
-        } else {
-          // Fallback for non-async response
-          handleSyncResult(
-            asyncResult,
-            fileData,
-            sites,
-            validRecords,
-            resolve,
-            reject
-          );
-        }
+        const normalizedData = normalizeParsedRowsForFile(mappedData, fileData);
+        const result = await importMappedData(normalizedData);
+        resolve(result);
       } catch (error) {
         console.error("Error processing file:", error);
         reject(error);
@@ -273,14 +275,7 @@ export const processFileImport = async ({
 /**
  * Handle synchronous import result (fallback)
  */
-const handleSyncResult = (
-  result,
-  fileData,
-  sites,
-  validRecords,
-  resolve,
-  reject
-) => {
+const resolveSyncResult = (result, fileData, sites, validRecords) => {
   if (!result || (!result.isSuccess && !result.success)) {
     const errorMsg = result?.message || "Import failed";
     const site = sites.find((s) => s.id === fileData.siteId);
@@ -294,20 +289,19 @@ const handleSyncResult = (
       error.duplicates = result.data.duplicateRecords;
       error.siteName = siteName;
       error.skippedCount = result.data.skippedCount;
-      reject(error);
+      throw error;
     } else {
       const error = new Error(errorMsg);
       error.siteName = siteName;
-      reject(error);
+      throw error;
     }
-    return;
   }
 
   const successCount = result?.data?.successCount || 0;
   const skippedCount = result?.data?.skippedCount || 0;
 
   if (skippedCount > 0 && successCount === 0) {
-    resolve({
+    return {
       success: true,
       recordCount: 0,
       skippedCount: skippedCount,
@@ -315,17 +309,15 @@ const handleSyncResult = (
       message:
         result?.message ||
         `All ${skippedCount} records were duplicates and skipped.`,
-    });
-    return;
+    };
   }
 
   if (skippedCount > 0) {
-    resolve({ success: true, recordCount: successCount, skippedCount });
-    return;
+    return { success: true, recordCount: successCount, skippedCount };
   }
 
   const finalSuccessCount = successCount || validRecords.length;
-  resolve({ success: true, recordCount: finalSuccessCount });
+  return { success: true, recordCount: finalSuccessCount };
 };
 
 export default processFileImport;

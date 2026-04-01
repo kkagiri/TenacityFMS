@@ -19,6 +19,7 @@ const ROUTE_PATTERNS = {
   PTS: [
     /^\/pts/,
     /\/pts$/,
+    /^\/admin\/ptsdevice(?:\/|$)/,
     /^\/pump/,
     /^\/device/,
     /^\/fuel/,

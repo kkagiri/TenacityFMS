@@ -2,7 +2,7 @@
  * File: UpdateAutoImportSettingsCommandHandler.cs
  * Purpose: Upserts fuel auto-import settings (master toggle + profiles JSON) into SystemConfigurations table
  * Dependencies: GpsdataContext, MediatR, FMSResponse, SystemConfiguration constants
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-04-01
  *
  * Key Functions:
  * - Handle: Upserts FuelAutoImport.Enabled and FuelAutoImport.Profiles rows
@@ -131,6 +131,8 @@ public class UpdateAutoImportSettingsCommandHandler
 
     private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
     {
+        profile.DuplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile.DuplicateHandling);
+
         if (string.IsNullOrWhiteSpace(profile.ScanPath))
             return profile;
 

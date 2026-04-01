@@ -4,7 +4,7 @@
  *          with retry action, file info, import results, and error details.
  *          Follows M365 Admin Center Fluent design language.
  * Dependencies: react, SlidePanel
- * Last Modified: 2026-02-25
+ * Last Modified: 2026-04-01
  *
  * Key Components:
  * - ImportFileDetailPanel: Full detail view inside SlidePanel
@@ -43,13 +43,27 @@ const formatDate = (dateStr) => {
     }
 };
 
+const formatNumber = (value) => {
+    if (value === null || value === undefined || value === "") return "—";
+
+    const numericValue = Number(value);
+    if (Number.isNaN(numericValue)) return String(value);
+
+    return numericValue.toLocaleString("en-GB", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
+};
+
 const ImportFileDetailPanel = ({ file, onRetry, retrying }) => {
     if (!file) return null;
 
     const cfg = STATUS_CONFIG[file.status] || STATUS_CONFIG.Pending;
+    const latestPersistedRecord = file.latestPersistedRecord;
+    const showLatestPersistedSection = file.status === "Completed";
 
     return (
-        <div style={{ padding: "20px 24px" }}>
+        <div className="import-mgmt-detail-panel" style={{ padding: "20px 24px" }}>
             {/* ── Header ── */}
             <div className="m365-detail-header">
                 <div
@@ -141,15 +155,15 @@ const ImportFileDetailPanel = ({ file, onRetry, retrying }) => {
                         <span className="m365-info-cell__value tw-font-semibold">{file.totalRecords ?? 0}</span>
                     </div>
                     <div className="m365-info-cell">
-                        <span className="m365-info-cell__label">Successful</span>
+                        <span className="m365-info-cell__label">Added</span>
                         <span className="m365-info-cell__value" style={{ color: "#107c10" }}>
                             {file.successCount ?? 0}
                         </span>
                     </div>
                     <div className="m365-info-cell">
                         <span className="m365-info-cell__label">Failed</span>
-                        <span className="m365-info-cell__value" style={{ color: file.failedRecordCount > 0 ? "#d13438" : undefined }}>
-                            {file.failedRecordCount ?? 0}
+                        <span className="m365-info-cell__value" style={{ color: (file.failedCount ?? 0) > 0 ? "#d13438" : undefined }}>
+                            {file.failedCount ?? 0}
                         </span>
                     </div>
                     <div className="m365-info-cell">
@@ -170,6 +184,68 @@ const ImportFileDetailPanel = ({ file, onRetry, retrying }) => {
                     )}
                 </div>
             </div>
+
+            {showLatestPersistedSection && (
+                <div className="m365-flat-section">
+                    <div className="m365-flat-section__title-row">
+                        <h3 className="m365-flat-section__title">
+                            <i className="fa-light fa-database" /> Latest Database Record
+                        </h3>
+                        {latestPersistedRecord ? (
+                            <span className="m365-badge m365-badge--success">From vehicleconsumption</span>
+                        ) : (
+                            <span className="m365-badge m365-badge--neutral">No row added</span>
+                        )}
+                    </div>
+
+                    {latestPersistedRecord ? (
+                        <div className="m365-info-grid">
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Record Date</span>
+                                <span className="m365-info-cell__value">{formatDate(latestPersistedRecord.recordDate)}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Shift</span>
+                                <span className="m365-info-cell__value">
+                                    <span className="m365-badge m365-badge--neutral">{latestPersistedRecord.shiftLabel || "—"}</span>
+                                </span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Vehicle</span>
+                                <span className="m365-info-cell__value">{latestPersistedRecord.vehicleLabel || "—"}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Site</span>
+                                <span className="m365-info-cell__value">{latestPersistedRecord.siteLabel || "—"}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Employee</span>
+                                <span className="m365-info-cell__value">{latestPersistedRecord.employeeName || "—"}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Fuel Efficiency</span>
+                                <span className="m365-info-cell__value">{formatNumber(latestPersistedRecord.fuelEfficiency)}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Total Fuel (L)</span>
+                                <span className="m365-info-cell__value">{formatNumber(latestPersistedRecord.totalFuel)}</span>
+                            </div>
+                            <div className="m365-info-cell">
+                                <span className="m365-info-cell__label">Total Distance (km)</span>
+                                <span className="m365-info-cell__value">{formatNumber(latestPersistedRecord.totalDistance)}</span>
+                            </div>
+                            <div className="m365-info-cell m365-info-cell--full">
+                                <span className="m365-info-cell__label">Engine Hours</span>
+                                <span className="m365-info-cell__value">{formatNumber(latestPersistedRecord.engineHours)}</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ padding: "12px 16px", fontSize: 13, color: "#605e5c" }}>
+                            No new <strong>vehicleconsumption</strong> row was added for the latest run. This usually means the file was fully skipped as duplicates.
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ── Retry Information ── */}
             <div className="m365-flat-section">

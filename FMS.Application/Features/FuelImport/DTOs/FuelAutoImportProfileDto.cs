@@ -2,14 +2,16 @@
  * File: FuelAutoImportProfileDto.cs
  * Purpose: DTO representing a single scan-path profile with independent import settings
  * Dependencies: None
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-04-01
  *
  * Key Properties:
  * - Id: Unique profile identifier (e.g., "heavy_report")
  * - Name: Display name (e.g., "Heavy Report")
  * - ScanPath: Single directory path to scan
- * - Per-profile schedule, batch, retry, and notification settings
+ * - Per-profile schedule, batch, retry, duplicate-handling, and notification settings
  */
+using System;
+
 namespace FMS.Application.Features.FuelImport.DTOs;
 
 /// <summary>
@@ -18,6 +20,9 @@ namespace FMS.Application.Features.FuelImport.DTOs;
 /// </summary>
 public class FuelAutoImportProfileDto
 {
+    public const string DuplicateHandlingSkip = "skip";
+    public const string DuplicateHandlingReplace = "replace";
+
     /// <summary>Unique identifier for this profile (e.g., "heavy_report")</summary>
     public string Id { get; set; } = string.Empty;
 
@@ -42,6 +47,9 @@ public class FuelAutoImportProfileDto
     /// <summary>Whether to auto-include failed/skipped files for retry</summary>
     public bool IncludeRetries { get; set; } = true;
 
+    /// <summary>How duplicates should be handled during auto-import: "skip" or "replace"</summary>
+    public string DuplicateHandling { get; set; } = DuplicateHandlingSkip;
+
     /// <summary>Whether notifications are enabled for this profile</summary>
     public bool NotificationsEnabled { get; set; }
 
@@ -50,4 +58,11 @@ public class FuelAutoImportProfileDto
 
     /// <summary>Notify on import failure</summary>
     public bool NotifyOnFailure { get; set; } = true;
+
+    public static string NormalizeDuplicateHandling(string? duplicateHandling)
+    {
+        return string.Equals(duplicateHandling, DuplicateHandlingReplace, StringComparison.OrdinalIgnoreCase)
+            ? DuplicateHandlingReplace
+            : DuplicateHandlingSkip;
+    }
 }

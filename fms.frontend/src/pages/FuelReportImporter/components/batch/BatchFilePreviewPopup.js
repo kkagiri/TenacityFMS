@@ -24,7 +24,10 @@ import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
 import * as XLSX from "xlsx";
 import DataPreview from "../DataPreview";
-import { validateBatchImportData } from "./batchImportUtils";
+import {
+  normalizeParsedRowsForFile,
+  validateBatchImportData,
+} from "./batchImportUtils";
 
 const BatchFilePreviewPopup = ({
   visible,
@@ -52,10 +55,36 @@ const BatchFilePreviewPopup = ({
 
   // Parse file when popup opens
   useEffect(() => {
-    if (visible && fileData?.file) {
+    if (!visible || !fileData) {
+      return;
+    }
+
+    if (Array.isArray(fileData.parsedData)) {
+      initializePreviewData(fileData.parsedData);
+      return;
+    }
+
+    if (fileData.file) {
       parseFile(fileData.file, fileData.skipRows || 8);
     }
-  }, [visible, fileData]);
+  }, [visible, fileData, vehicles]);
+
+  const initializePreviewData = (rows) => {
+    const normalizedData = normalizeParsedRowsForFile(rows, fileData);
+    const errors = validateBatchImportData(
+      normalizedData,
+      fileData?.reportType || "km/l",
+      vehicles,
+      { returnObjects: true }
+    );
+
+    setParsedData(normalizedData);
+    setFilteredData(normalizedData);
+    setSelectedRowKeys(normalizedData.map((row) => row._rowIndex));
+    setSelectedRows(normalizedData);
+    setValidationErrors(errors);
+    setFixedRows(new Set());
+  };
 
   // Parse file and run validation
   const parseFile = async (file, skipRows) => {
@@ -72,19 +101,10 @@ const BatchFilePreviewPopup = ({
 
       const reportType = fileData?.reportType || "km/l";
       const mappedData = mapExcelData(jsonData, reportType);
-
-      setParsedData(mappedData);
-      setFilteredData(mappedData);
-      setSelectedRowKeys(mappedData.map((row) => row._rowIndex));
-      setSelectedRows(mappedData);
-
-      // Run validation
-      const errors = validateData(mappedData, reportType);
-      setValidationErrors(errors);
-
-      setLoading(false);
+      initializePreviewData(mappedData);
     } catch (error) {
       console.error("Failed to parse file:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -460,7 +480,10 @@ const BatchFilePreviewPopup = ({
   // Delete selected rows
   const handleDeleteSelectedRows = () => {
     const selectedSet = new Set(selectedRowKeys);
-    const newData = parsedData.filter((row) => !selectedSet.has(row._rowIndex));
+    const newData = normalizeParsedRowsForFile(
+      parsedData.filter((row) => !selectedSet.has(row._rowIndex)),
+      fileData
+    );
     setParsedData(newData);
     setFilteredData(newData);
     setSelectedRowKeys([]);
@@ -480,16 +503,19 @@ const BatchFilePreviewPopup = ({
       updatedData[rowIndex] = { ...updatedData[rowIndex], ...e.data };
 
       // Re-match vehicle if vehicleName changed
-      if (e.data.vehicleName) {
+      if (Object.prototype.hasOwnProperty.call(e.data, "vehicleName")) {
         const matchedVehicle = vehicles.find(
           (v) => v.hyoungNo?.toLowerCase() === e.data.vehicleName?.toLowerCase()
         );
-        if (matchedVehicle) {
-          updatedData[rowIndex].vehicleId = matchedVehicle.vehicleId;
-        }
+        updatedData[rowIndex].vehicleId = matchedVehicle
+          ? matchedVehicle.vehicleId
+          : null;
       }
 
       setParsedData(updatedData);
+      setSelectedRows(
+        updatedData.filter((row) => selectedRowKeys.includes(row._rowIndex))
+      );
       setFixedRows((prev) => new Set([...prev, e.data._rowIndex]));
 
       // Re-validate
@@ -501,11 +527,11 @@ const BatchFilePreviewPopup = ({
   // Save changes and close
   const handleSaveAndClose = () => {
     if (onUpdateFileData && fileData) {
+      const normalizedData = normalizeParsedRowsForFile(parsedData, fileData);
       onUpdateFileData(fileData.id, {
-        parsedData: selectedRows.length > 0 ? selectedRows : parsedData,
+        parsedData: normalizedData,
         validationErrors: validationErrors,
-        recordCount:
-          selectedRows.length > 0 ? selectedRows.length : parsedData.length,
+        recordCount: normalizedData.length,
       });
     }
     onHiding();

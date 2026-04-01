@@ -1,3 +1,12 @@
+/**
+ * File: FuelImportController.cs
+ * Purpose: API endpoints for fuel import reporting, auto-import settings, and manual file retries.
+ * Dependencies: MediatR, SignalR, IFileTrackerService, IFuelAutoImportService, JWT auth
+ * Last Modified: 2026-04-01
+ *
+ * Key Endpoints:
+ * - RetryFileImport: Reprocesses a tracked file through the auto-import service.
+ */
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -435,7 +444,7 @@ namespace FMS.WebClient.Controllers.Reporting
         }
 
         /// <summary>
-        /// Retry a failed file import by tracker ID.
+        /// Retry a tracked file import by tracker ID.
         /// </summary>
         [HttpPost("auto-import/files/{id}/retry")]
         [RequirePermission(Permissions.FuelImport.Manage)]
@@ -451,8 +460,20 @@ namespace FMS.WebClient.Controllers.Reporting
                 if (tracker == null)
                     return NotFound(FMSResponse<object>.Failed($"File tracker record {id} not found."));
 
-                if (tracker.Status != "Failed" && tracker.Status != "Skipped")
-                    return BadRequest(FMSResponse<object>.Failed($"Only Failed or Skipped files can be retried. Current status: {tracker.Status}"));
+                if (tracker.RetryCount >= tracker.MaxRetries)
+                    return BadRequest(FMSResponse<object>.Failed($"Retry limit reached for file {tracker.FileName}."));
+
+                if (!FileTrackerListDto.IsRetryEligible(
+                    tracker.Status,
+                    tracker.RetryCount,
+                    tracker.MaxRetries,
+                    tracker.FailedCount,
+                    tracker.SkippedCount,
+                    tracker.DuplicateCount))
+                {
+                    return BadRequest(FMSResponse<object>.Failed(
+                        $"Only Failed, Skipped, or Completed files with skipped / duplicate / failed records can be retried. Current status: {tracker.Status}"));
+                }
 
                 var userId = User.FindFirst("UserId")?.Value
                     ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value

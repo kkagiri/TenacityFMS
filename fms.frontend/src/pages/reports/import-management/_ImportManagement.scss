@@ -531,6 +531,30 @@ $m365-warning:        #ca5010;
   }
 }
 
+.import-mgmt-detail-panel {
+  .m365-flat-section {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .m365-info-grid,
+  .m365-info-cell {
+    border: none !important;
+    box-shadow: none;
+  }
+
+  .m365-flat-section__title,
+  .m365-flat-section__title-row {
+    border-bottom: 1px solid $m365-bg-hover !important;
+    box-shadow: none;
+  }
+
+  .m365-info-cell {
+    border-bottom: none;
+  }
+}
+
 .m365-flat-section {
   background: $m365-bg-card;
   border: 1px solid $m365-border-light;
@@ -726,7 +750,8 @@ $m365-warning:        #ca5010;
 .ais-field {
   margin-bottom: 14px;
 
-  .m365-input {
+  .m365-input,
+  .m365-select {
     max-width: none;
   }
 }

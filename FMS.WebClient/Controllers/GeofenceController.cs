@@ -10,6 +10,7 @@
  * - EnableTemporaryBypass(): Enables temporary location validation bypass.
  */
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Geofence.Commands;
@@ -36,6 +37,11 @@ namespace FMS.WebClient.Controllers;
 [RequirePermission(Permissions.Geofence.Read)]
 public class GeofenceController : ControllerBase
 {
+    private static readonly JsonSerializerOptions TemporaryBypassRequestSerializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly IMediator _mediator;
     private readonly ILogger<GeofenceController> _logger;
 
@@ -62,6 +68,39 @@ public class GeofenceController : ControllerBase
     private string GetCurrentUserName()
     {
         return User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("name") ?? GetCurrentUserId();
+    }
+
+    private static EnableTemporaryBypassRequestDTO? ParseTemporaryBypassRequest(JsonElement requestBody)
+    {
+        if (requestBody.ValueKind == JsonValueKind.Null || requestBody.ValueKind == JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        if (requestBody.ValueKind == JsonValueKind.String)
+        {
+            var rawJson = requestBody.GetString();
+            if (string.IsNullOrWhiteSpace(rawJson))
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<EnableTemporaryBypassRequestDTO>(
+                rawJson,
+                TemporaryBypassRequestSerializerOptions);
+        }
+
+        if (requestBody.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (requestBody.TryGetProperty("request", out var nestedRequest))
+        {
+            return ParseTemporaryBypassRequest(nestedRequest);
+        }
+
+        return requestBody.Deserialize<EnableTemporaryBypassRequestDTO>(TemporaryBypassRequestSerializerOptions);
     }
 
     #region Geofences
@@ -378,8 +417,27 @@ public class GeofenceController : ControllerBase
     /// <returns>The bypass status including active bypasses</returns>
     [RequirePermission(Permissions.Geofence.ManageBypass)]
     [HttpPost("validation/temporary-bypass")]
-    public async Task<IActionResult> EnableTemporaryBypass([FromBody] EnableTemporaryBypassRequestDTO request)
+    public async Task<IActionResult> EnableTemporaryBypass([FromBody] JsonElement requestBody)
     {
+        EnableTemporaryBypassRequestDTO? request;
+
+        try
+        {
+            request = ParseTemporaryBypassRequest(requestBody);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Invalid temporary bypass payload received");
+            return BadRequest(FMSResponse<object>.Failed(
+                "Invalid temporary bypass payload. Send a JSON object with durationMinutes, reason, bypassType, vehicleIds, and userIds."));
+        }
+
+        if (request == null)
+        {
+            return BadRequest(FMSResponse<object>.Failed(
+                "Invalid temporary bypass payload. Send a JSON object with durationMinutes, reason, bypassType, vehicleIds, and userIds."));
+        }
+
         var command = new EnableTemporaryBypassCommand
         {
             DurationMinutes = request.DurationMinutes,

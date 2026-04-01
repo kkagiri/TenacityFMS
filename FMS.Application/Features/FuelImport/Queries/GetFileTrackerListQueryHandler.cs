@@ -2,7 +2,7 @@
  * File: GetFileTrackerListQueryHandler.cs
  * Purpose: Handles the GetFileTrackerListQuery — returns paginated, filtered file tracker records.
  * Dependencies: GpsdataContext, FileTrackerListDto, MediatR
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-04-01
  *
  * Key Functions:
  * - Handle: Builds query with filters, applies pagination, returns FileTrackerListResult
@@ -140,6 +140,72 @@ public class GetFileTrackerListQueryHandler
                 UpdatedAt = t.UpdatedAt,
             })
             .ToListAsync(cancellationToken);
+
+        var importReportIds = items
+            .Where(item => !string.IsNullOrWhiteSpace(item.ImportReportId))
+            .Select(item => item.ImportReportId!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (importReportIds.Count > 0)
+        {
+            var latestPersistedRows = await _context.Vehicleconsumptions
+                .AsNoTracking()
+                .Where(record => record.ReportId != null && importReportIds.Contains(record.ReportId))
+                .OrderByDescending(record => record.Date)
+                .ThenByDescending(record => record.Id)
+                .Select(record => new
+                {
+                    ReportId = record.ReportId!,
+                    RecordDate = record.Date,
+                    record.VehicleId,
+                    VehicleHyoungNo = record.Vehicle.HyoungNo,
+                    VehicleNumberPlate = record.Vehicle.NumberPlate,
+                    record.SiteId,
+                    SiteName = record.Site.Name,
+                    record.IsNightShift,
+                    record.EmployeeName,
+                    record.TotalFuel,
+                    record.TotalDistance,
+                    EngineHours = record.EngHours,
+                    record.FuelEfficiency,
+                })
+                .ToListAsync(cancellationToken);
+
+            var latestPersistedLookup = latestPersistedRows
+                .GroupBy(row => row.ReportId, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var item in items)
+            {
+                if (string.IsNullOrWhiteSpace(item.ImportReportId)
+                    || !latestPersistedLookup.TryGetValue(item.ImportReportId, out var latestRow))
+                {
+                    continue;
+                }
+
+                item.LatestPersistedRecord = new FileTrackerLatestRecordDto
+                {
+                    RecordDate = latestRow.RecordDate,
+                    VehicleId = latestRow.VehicleId,
+                    VehicleLabel = !string.IsNullOrWhiteSpace(latestRow.VehicleHyoungNo)
+                        ? latestRow.VehicleHyoungNo
+                        : !string.IsNullOrWhiteSpace(latestRow.VehicleNumberPlate)
+                            ? latestRow.VehicleNumberPlate
+                            : $"Vehicle #{latestRow.VehicleId}",
+                    SiteId = latestRow.SiteId,
+                    SiteLabel = !string.IsNullOrWhiteSpace(latestRow.SiteName)
+                        ? latestRow.SiteName
+                        : $"Site #{latestRow.SiteId}",
+                    ShiftLabel = latestRow.IsNightShift == 1 ? "Night Shift" : "Day Shift",
+                    EmployeeName = latestRow.EmployeeName,
+                    TotalFuel = latestRow.TotalFuel,
+                    TotalDistance = latestRow.TotalDistance,
+                    EngineHours = latestRow.EngineHours,
+                    FuelEfficiency = latestRow.FuelEfficiency,
+                };
+            }
+        }
 
         var result = new FileTrackerListResult
         {

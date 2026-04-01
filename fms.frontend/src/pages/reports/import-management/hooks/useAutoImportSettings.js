@@ -3,7 +3,7 @@
  * Purpose: Custom hook for managing fuel auto-import settings with per-profile configuration.
  *          Each scan path (profile) has independent schedule, batch, retry, and notification settings.
  * Dependencies: react, importManagementApi
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-04-01
  *
  * Key Exports:
  * - useAutoImportSettings(): Returns settings, loading, saving, error, profile actions
@@ -15,6 +15,9 @@ import {
     updateAutoImportSettings,
 } from "../../../../api/importManagementApi";
 
+const normalizeDuplicateHandling = (value) =>
+    value === "replace" ? "replace" : "skip";
+
 /** Factory to create a blank profile with sensible defaults */
 const createEmptyProfile = (id = null) => ({
     id: id || `profile-${Date.now()}`,
@@ -25,6 +28,7 @@ const createEmptyProfile = (id = null) => ({
     scheduleTime: "",
     batchSize: 50,
     includeRetries: true,
+    duplicateHandling: "skip",
     notificationsEnabled: false,
     notifyOnSuccess: false,
     notifyOnFailure: true,
@@ -34,6 +38,17 @@ const EMPTY_SETTINGS = {
     enabled: true,
     profiles: [],
 };
+
+const normalizeProfile = (profile = {}) => ({
+    ...createEmptyProfile(profile.id),
+    ...profile,
+    duplicateHandling: normalizeDuplicateHandling(profile.duplicateHandling),
+});
+
+const normalizeSettings = (data = EMPTY_SETTINGS) => ({
+    enabled: data?.enabled ?? true,
+    profiles: (data?.profiles ?? []).map(normalizeProfile),
+});
 
 const useAutoImportSettings = () => {
     const [settings, setSettings] = useState(EMPTY_SETTINGS);
@@ -51,10 +66,7 @@ const useAutoImportSettings = () => {
         try {
             const response = await getAutoImportSettings();
             if (response?.isSuccess && response.data) {
-                const data = {
-                    enabled: response.data.enabled ?? true,
-                    profiles: response.data.profiles ?? [],
-                };
+                const data = normalizeSettings(response.data);
                 setSettings(data);
                 setDraft(data);
                 setIsDirty(false);
@@ -120,10 +132,12 @@ const useAutoImportSettings = () => {
         setError(null);
         setSaveMessage(null);
         try {
+            const normalizedDraft = normalizeSettings(draft);
+
             // Filter out profiles with empty scan paths
             const payload = {
-                ...draft,
-                profiles: draft.profiles.filter(
+                ...normalizedDraft,
+                profiles: normalizedDraft.profiles.filter(
                     (p) => p.scanPath && p.scanPath.trim() !== ""
                 ),
             };
@@ -148,7 +162,7 @@ const useAutoImportSettings = () => {
 
     // ── Discard changes ──
     const discardChanges = useCallback(() => {
-        setDraft(settings);
+        setDraft(normalizeSettings(settings));
         setIsDirty(false);
         setSaveMessage(null);
         setError(null);

@@ -271,6 +271,33 @@ export const mapLHrReportRow = (row, index, findVehicle, fileData, sites) => {
 };
 
 /**
+ * Normalize saved parsed rows so preview, validation, and import all use a
+ * consistent row shape after inline edits or deletions.
+ * @param {Array} rows - Parsed rows to normalize
+ * @param {Object} fileData - File metadata and current import settings
+ * @returns {Array} Normalized rows with stable sequential row indexes
+ */
+export const normalizeParsedRowsForFile = (rows, fileData = {}) => {
+  if (!Array.isArray(rows)) return [];
+
+  const reportType = fileData?.reportType || "km/l";
+  const fileSiteId = fileData?.siteId ?? null;
+  const fileSiteName = fileData?.siteName || "";
+  const isKmPerLiter = reportType === "km/l";
+
+  return rows.map((row, index) => ({
+    ...row,
+    _rowIndex: index,
+    siteId: fileSiteId ?? row?.siteId ?? null,
+    siteName: fileSiteName || row?.siteName || row?.locationName || "",
+    locationName: row?.locationName || fileSiteName || row?.siteName || "",
+    isKmperLiter: isKmPerLiter,
+    isKmPerLiter: isKmPerLiter,
+    skipDuplicates: fileData?.duplicateHandling === "skip",
+  }));
+};
+
+/**
  * Normalize a date value to a consistent string format for comparison
  * @param {*} dateValue - Date value (Date object, string, etc.)
  * @returns {string} Normalized date string (YYYY-MM-DD) or empty string

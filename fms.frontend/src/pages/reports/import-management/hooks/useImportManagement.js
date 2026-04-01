@@ -2,7 +2,7 @@
  * File: useImportManagement.js
  * Purpose: Custom hook managing state and data-fetching for the Import Management page
  * Dependencies: react, importManagementApi
- * Last Modified: 2026-02-25
+ * Last Modified: 2026-04-01
  *
  * Key Exports:
  * - useImportManagement(): Returns files, loading, filters, pagination, actions
@@ -106,6 +106,17 @@ const useImportManagement = () => {
     useEffect(() => {
         fetchFiles();
     }, [fetchFiles]);
+
+    useEffect(() => {
+        if (!selectedFile) {
+            return;
+        }
+
+        const refreshedFile = files.find((file) => file.id === selectedFile.id);
+        if (refreshedFile && refreshedFile !== selectedFile) {
+            setSelectedFile(refreshedFile);
+        }
+    }, [files, selectedFile]);
 
     // ── SignalR: listen for background import completion / error / cancel ──
     useEffect(() => {

@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace FMS.Application.Features.Reporting.Services
@@ -139,6 +140,7 @@ namespace FMS.Application.Features.Reporting.Services
             var lvTypeNames = SelectVehicleTypes(currentMonthConsumption, data.VehicleLookup, isKmL: true, MaxLvTypesPerMatrix, filters);
             var heTypeNames = SelectVehicleTypes(currentMonthConsumption, data.VehicleLookup, isKmL: false, MaxHeTypesPerMatrix, filters);
             var monthlyTrend = BuildMonthlyTrend(data);
+            var monthlySummaries = BuildRawMonthlySummaries(data);
             var stockSitePairs = BuildStockSitePairs(siteNames, currentMonthTankRows, data.TankSiteLookup);
             var currentMonthSummary = BuildMonthSummary(data.MonthAnchor, currentMonthConsumption, currentMonthTankRows, data.VehicleLookup);
             var siteHighlights = BuildSiteHighlights(siteNames, currentMonthConsumption, currentMonthTankRows, data.SiteLookup, data.VehicleLookup, data.TankSiteLookup);
@@ -170,24 +172,26 @@ namespace FMS.Application.Features.Reporting.Services
                 },
                 coverKpis = new[]
                 {
-                    Kpi(FormatNumber(currentMonthSummary.TotalFuelUsed, "L"), "Total Fuel Used"),
+                    Kpi(FormatNumber(currentMonthSummary.TotalFuelUsed, "L"), "Total Fuel Used GPS"),
                     Kpi(FormatNumber(currentMonthSummary.TotalDistance, "km"), "Total Distance"),
                     Kpi(FormatNumber(currentMonthSummary.TotalEngineHours, "hrs"), "Engine Hours"),
                     Kpi($"{FormatNumber(currentMonthSummary.TotalFuelLost, "L")} / {FormatPercent(currentMonthSummary.FuelLostPercent)}", "Fuel Lost")
                 },
                 executiveKpis = new[]
                 {
-                    Kpi(FormatNumber(currentMonthSummary.TotalFuelUsed, "L"), "Total Fuel Used", "Vehicle consumption ledger"),
+                    Kpi(FormatNumber(currentMonthSummary.TotalFuelUsed, "L"), "Total Fuel Used GPS", "Vehicle consumption ledger"),
                     Kpi(FormatNumber(currentMonthSummary.TotalDistance, "km"), "Total GPS Distance", "km/L fleet subset"),
                     Kpi(FormatNumber(currentMonthSummary.TotalEngineHours, "hrs"), "Total Engine Hours", "L/hr equipment subset"),
                     Kpi(FormatNumber(currentMonthSummary.TotalFuelLost, "L"), "Total Fuel Lost", "Persisted fuel-loss rows"),
                     Kpi(FormatRate(currentMonthSummary.KmPerLiter, "km/L"), "Fleet Avg Efficiency"),
                     Kpi(FormatRate(currentMonthSummary.LitersPerHour, "L/hr"), "Avg Fuel / Engine Hr"),
                     Kpi(FormatNumber(currentMonthSummary.TotalFuelReceived, "L"), "Total Fuel Received"),
-                    Kpi(FormatNumber(currentMonthSummary.TotalFuelIssued, "L"), "Total Fuel Issued")
+                    Kpi(FormatNumber(currentMonthSummary.TotalFuelIssued, "L"), "Total Fuel Dispensed")
                 },
                 executiveNarrative = BuildMonthlyNarrative(currentMonthSummary, siteHighlights, lvHighlights, heHighlights, data.MonthAnchor),
                 monthlyMatrix = monthlyTrend,
+                monthlyMatrixTotals = BuildMonthlyMatrixTotals(monthlySummaries),
+                chartDataJson = BuildChartDataJson(monthlySummaries, siteNames, currentMonthConsumption, currentMonthTankRows, data, lvTypeNames, heTypeNames),
                 stockSitePairs,
                 stockHighlights = siteHighlights,
                 lvFuelMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvFuel),
@@ -205,7 +209,7 @@ namespace FMS.Application.Features.Reporting.Services
                 },
                 chartNotes = new[]
                 {
-                    "Fuel issued/delivered comes from tankvolumehistory with transfer rows excluded.",
+                    "Fuel dispensed/delivered data comes from tankvolumehistory with transfer rows excluded.",
                     "Light/heavy segmentation follows vehicle.Average_km_l / vehicleconsumption.IsKmPerLiter.",
                     "Expected averages come from expectedaverage via vehicle.DefaultExptdAVGId.",
                     "Type and site ordering is based on current-month persisted totals."
@@ -259,7 +263,7 @@ namespace FMS.Application.Features.Reporting.Services
                 },
                 coverKpis = new[]
                 {
-                    Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalFuelUsed), "L"), "Fuel Used"),
+                    Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalFuelUsed), "L"), "Fuel Used GPS"),
                     Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalDistance), "km"), "Distance"),
                     Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalEngineHours), "hrs"), "Engine Hours"),
                     Kpi(FormatPercent(SafePercent(weeklySummaries.Sum(week => week.Summary.TotalFuelLost), weeklySummaries.Sum(week => week.Summary.TotalFuelUsed))), "Fuel Lost")
@@ -267,7 +271,7 @@ namespace FMS.Application.Features.Reporting.Services
                 executiveKpis = new[]
                 {
                     Kpi(weeklySummaries.Count.ToString(CultureInfo.InvariantCulture), "Weeks In Scope"),
-                    Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalFuelUsed), "L"), "Total Fuel Used"),
+                    Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalFuelUsed), "L"), "Total Fuel Used GPS"),
                     Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalDistance), "km"), "Total Distance"),
                     Kpi(FormatNumber(weeklySummaries.Sum(week => week.Summary.TotalEngineHours), "hrs"), "Total Engine Hours"),
                     Kpi(FormatRate(AverageWeeklyRate(weeklySummaries, true), "km/L"), "LV Avg Efficiency"),
@@ -326,12 +330,12 @@ namespace FMS.Application.Features.Reporting.Services
                     return new
                     {
                         month = month.ToString("MMM yyyy", CultureInfo.InvariantCulture),
-                        fuelUsed = FormatCompact(summary.TotalFuelUsed),
-                        gpsDistance = FormatCompact(summary.TotalDistance),
-                        fuelIssued = FormatCompact(summary.TotalFuelIssued),
-                        fuelReceived = FormatCompact(summary.TotalFuelReceived),
-                        engineHours = FormatCompact(summary.TotalEngineHours),
-                        fuelLost = FormatCompact(summary.TotalFuelLost),
+                        fuelUsed = FormatWholeNumber(summary.TotalFuelUsed),
+                        gpsDistance = FormatWholeNumber(summary.TotalDistance),
+                        fuelIssued = FormatWholeNumber(summary.TotalFuelIssued),
+                        fuelReceived = FormatWholeNumber(summary.TotalFuelReceived),
+                        engineHours = FormatWholeNumber(summary.TotalEngineHours),
+                        fuelLost = FormatWholeNumber(summary.TotalFuelLost),
                         fuelLostPercent = FormatPercent(summary.FuelLostPercent),
                         kmPerLiter = FormatDecimal(summary.KmPerLiter),
                         expectedKmPerLiter = FormatDecimal(summary.ExpectedKmPerLiter),
@@ -425,8 +429,14 @@ namespace FMS.Application.Features.Reporting.Services
             var totalHours = rows.Sum(row => row.EngineHours);
             var totalFuelLost = rows.Sum(row => row.FuelLost);
             var expectedAverage = ComputeExpectedAverage(rows, vehicleLookup);
-            var actualKmPerLiter = SafeDivide(totalDistance, totalFuel);
-            var actualLitersPerHour = SafeDivide(totalFuel, totalHours);
+
+            // km/L: only rows with meaningful distance (>10 km) and non-zero fuel
+            var lvEfficRows = rows.Where(r => r.TotalDistance > 10m && r.TotalFuel > 0m).ToList();
+            var actualKmPerLiter = SafeDivide(lvEfficRows.Sum(r => r.TotalDistance), lvEfficRows.Sum(r => r.TotalFuel));
+
+            // L/hr: only rows with meaningful engine hours (>0.5 hr) and non-zero fuel
+            var heEfficRows = rows.Where(r => r.EngineHours > 0.5m && r.TotalFuel > 0m).ToList();
+            var actualLitersPerHour = SafeDivide(heEfficRows.Sum(r => r.TotalFuel), heEfficRows.Sum(r => r.EngineHours));
 
             return mode switch
             {
@@ -645,6 +655,9 @@ namespace FMS.Application.Features.Reporting.Services
             var totalFuelUsed = rows.Sum(row => row.TotalFuel);
             var totalFuelLost = rows.Sum(row => row.FuelLost);
 
+            var lvEfficRows = lvRows.Where(r => r.TotalDistance > 10m && r.TotalFuel > 0m).ToList();
+            var heEfficRows = heRows.Where(r => r.EngineHours > 0.5m && r.TotalFuel > 0m).ToList();
+
             return new MonthSummary(
                 month,
                 totalFuelUsed,
@@ -654,9 +667,9 @@ namespace FMS.Application.Features.Reporting.Services
                 tankRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange)),
                 totalFuelLost,
                 SafePercent(totalFuelLost, totalFuelUsed),
-                SafeDivide(lvRows.Sum(row => row.TotalDistance), lvRows.Sum(row => row.TotalFuel)),
+                SafeDivide(lvEfficRows.Sum(row => row.TotalDistance), lvEfficRows.Sum(row => row.TotalFuel)),
                 expectedKmPerLiter,
-                SafeDivide(heRows.Sum(row => row.TotalFuel), heRows.Sum(row => row.EngineHours)),
+                SafeDivide(heEfficRows.Sum(row => row.TotalFuel), heEfficRows.Sum(row => row.EngineHours)),
                 expectedLitersPerHour);
         }
 
@@ -780,7 +793,7 @@ namespace FMS.Application.Features.Reporting.Services
             var leadingLvType = lvHighlights.FirstOrDefault();
             var leadingHeType = heHighlights.FirstOrDefault();
 
-            return $"For {monthAnchor:MMMM yyyy}, persisted fleet data shows {FormatNumber(summary.TotalFuelUsed, "L")} consumed, {FormatNumber(summary.TotalFuelReceived, "L")} received into tanks, and {FormatNumber(summary.TotalFuelIssued, "L")} issued from tanks. Average light-vehicle efficiency closed at {FormatRate(summary.KmPerLiter, "km/L")}, heavy-equipment efficiency closed at {FormatRate(summary.LitersPerHour, "L/hr")}, and recorded fuel loss remained at {FormatPercent(summary.FuelLostPercent)} of total usage. Leading site, light-vehicle type, and heavy-equipment type are surfaced in the highlight panels for fast executive review.";
+            return $"For {monthAnchor:MMMM yyyy}, persisted fleet data shows {FormatNumber(summary.TotalFuelUsed, "L")} of fuel used GPS, {FormatNumber(summary.TotalFuelReceived, "L")} received into tanks, and {FormatNumber(summary.TotalFuelIssued, "L")} dispensed from tanks. Average light-vehicle efficiency closed at {FormatRate(summary.KmPerLiter, "km/L")}, heavy-equipment efficiency closed at {FormatRate(summary.LitersPerHour, "L/hr")}, and recorded fuel loss remained at {FormatPercent(summary.FuelLostPercent)} of total usage. Leading site, light-vehicle type, and heavy-equipment type are surfaced in the highlight panels for fast executive review.";
         }
 
         private string BuildWeeklyNarrative(IEnumerable<WeeklySummary> weeklySummaries, DateTime monthAnchor)
@@ -791,7 +804,7 @@ namespace FMS.Application.Features.Reporting.Services
                 return $"Weekly persisted fleet summaries for {monthAnchor:MMMM yyyy} are available once vehicle consumption and tank ledger rows are recorded.";
             }
 
-            return $"This weekly view splits {monthAnchor:MMMM yyyy} into {weeklySummaries.Count()} persisted reporting buckets. {busiestWeek.WeekLabel} carried the heaviest fuel demand at {FormatNumber(busiestWeek.Summary.TotalFuelUsed, "L")}, with {FormatNumber(busiestWeek.Summary.TotalFuelReceived, "L")} received into stock and {FormatNumber(busiestWeek.Summary.TotalFuelIssued, "L")} issued out to the fleet.";
+            return $"This weekly view splits {monthAnchor:MMMM yyyy} into {weeklySummaries.Count()} persisted reporting buckets. {busiestWeek.WeekLabel} carried the heaviest fuel demand at {FormatNumber(busiestWeek.Summary.TotalFuelUsed, "L")}, with {FormatNumber(busiestWeek.Summary.TotalFuelReceived, "L")} received into stock and {FormatNumber(busiestWeek.Summary.TotalFuelIssued, "L")} dispensed to the fleet.";
         }
 
         private ReportFilters ResolveFilters(JObject metadata, ReportDataBundle data)
@@ -1097,6 +1110,11 @@ namespace FMS.Application.Features.Reporting.Services
             return value.ToString("N1", CultureInfo.InvariantCulture);
         }
 
+        private static string FormatWholeNumber(decimal value)
+        {
+            return Math.Round(value, 0, MidpointRounding.AwayFromZero).ToString("N0", CultureInfo.InvariantCulture);
+        }
+
         private static string FormatDecimal(decimal value)
         {
             return value.ToString("N2", CultureInfo.InvariantCulture);
@@ -1114,6 +1132,317 @@ namespace FMS.Application.Features.Reporting.Services
             return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed)
                 ? parsed
                 : 0m;
+        }
+
+        private List<MonthSummary> BuildRawMonthlySummaries(ReportDataBundle data)
+        {
+            return Enumerable.Range(0, MonthlyTrendWindow)
+                .Select(offset => data.MonthAnchor.AddMonths(offset - (MonthlyTrendWindow - 1)))
+                .Select(month => BuildMonthSummary(month, FilterMonth(data.ConsumptionRows, month), FilterMonth(data.TankRows, month), data.VehicleLookup))
+                .ToList();
+        }
+
+        private static object BuildMonthlyMatrixTotals(List<MonthSummary> summaries)
+        {
+            var totalFuel = summaries.Sum(s => s.TotalFuelUsed);
+            return new
+            {
+                fuelUsed = FormatWholeNumber(totalFuel),
+                gpsDistance = FormatWholeNumber(summaries.Sum(s => s.TotalDistance)),
+                fuelIssued = FormatWholeNumber(summaries.Sum(s => s.TotalFuelIssued)),
+                fuelReceived = FormatWholeNumber(summaries.Sum(s => s.TotalFuelReceived)),
+                engineHours = FormatWholeNumber(summaries.Sum(s => s.TotalEngineHours)),
+                fuelLost = FormatWholeNumber(summaries.Sum(s => s.TotalFuelLost)),
+                fuelLostPercent = FormatPercent(SafePercent(summaries.Sum(s => s.TotalFuelLost), totalFuel)),
+                kmPerLiter = FormatDecimal(summaries.Where(s => s.KmPerLiter > 0).Select(s => s.KmPerLiter).DefaultIfEmpty(0m).Average()),
+                expectedKmPerLiter = FormatDecimal(summaries.Where(s => s.ExpectedKmPerLiter > 0).Select(s => s.ExpectedKmPerLiter).DefaultIfEmpty(0m).Average()),
+                litersPerHour = FormatDecimal(summaries.Where(s => s.LitersPerHour > 0).Select(s => s.LitersPerHour).DefaultIfEmpty(0m).Average()),
+                expectedLitersPerHour = FormatDecimal(summaries.Where(s => s.ExpectedLitersPerHour > 0).Select(s => s.ExpectedLitersPerHour).DefaultIfEmpty(0m).Average())
+            };
+        }
+
+        private string BuildChartDataJson(
+            List<MonthSummary> monthlySummaries,
+            List<string> siteNames,
+            List<ConsumptionRow> currentMonthConsumption,
+            List<TankMovementRow> currentMonthTankRows,
+            ReportDataBundle data,
+            List<string> lvTypeNames,
+            List<string> heTypeNames)
+        {
+            var monthLabels = monthlySummaries.Select(s => s.Month.ToString("MMM yy", CultureInfo.InvariantCulture)).ToList();
+            var fuelUsedSeries = monthlySummaries.Select(s => Math.Round(s.TotalFuelUsed, 0)).ToList();
+            var fuelReceivedSeries = monthlySummaries.Select(s => Math.Round(s.TotalFuelReceived, 0)).ToList();
+            var fuelIssuedSeries = monthlySummaries.Select(s => Math.Round(s.TotalFuelIssued, 0)).ToList();
+            var distanceSeries = monthlySummaries.Select(s => Math.Round(s.TotalDistance, 0)).ToList();
+            var engineHoursSeries = monthlySummaries.Select(s => Math.Round(s.TotalEngineHours, 0)).ToList();
+            var fuelLostSeries = monthlySummaries.Select(s => Math.Round(s.TotalFuelLost, 0)).ToList();
+            var kmPerLiterSeries = monthlySummaries.Select(s => Math.Round(s.KmPerLiter, 2)).ToList();
+            var expectedKmPerLiterSeries = monthlySummaries.Select(s => Math.Round(s.ExpectedKmPerLiter, 2)).ToList();
+            var litersPerHourSeries = monthlySummaries.Select(s => Math.Round(s.LitersPerHour, 2)).ToList();
+            var expectedLitersPerHourSeries = monthlySummaries.Select(s => Math.Round(s.ExpectedLitersPerHour, 2)).ToList();
+
+            var runningAvg = ComputeRunningAverage(fuelUsedSeries);
+
+            var siteFuelUsed = new List<decimal>();
+            var siteFuelLost = new List<decimal>();
+            var siteDelivered = new List<decimal>();
+            var siteIssued = new List<decimal>();
+            var siteLvActual = new List<decimal>();
+            var siteLvExpected = new List<decimal>();
+            var siteHeActual = new List<decimal>();
+            var siteHeExpected = new List<decimal>();
+            var siteHeFuel = new List<decimal>();
+            var siteHeLost = new List<decimal>();
+            var siteDistance = new List<decimal>();
+
+            foreach (var siteName in siteNames)
+            {
+                var siteRows = currentMonthConsumption.Where(r => ResolveConsumptionSiteName(data, r) == siteName).ToList();
+                siteFuelUsed.Add(Math.Round(siteRows.Sum(r => r.TotalFuel), 0));
+                siteFuelLost.Add(Math.Round(siteRows.Sum(r => r.FuelLost), 0));
+                siteDistance.Add(Math.Round(siteRows.Sum(r => r.TotalDistance), 0));
+
+                var lvRows = siteRows.Where(r => r.IsKmL).ToList();
+                var lvFuel = lvRows.Sum(r => r.TotalFuel);
+                var lvDist = lvRows.Sum(r => r.TotalDistance);
+                siteLvActual.Add(SafeDivide(lvDist, lvFuel));
+                siteLvExpected.Add(ComputeExpectedAverage(lvRows, data.VehicleLookup));
+
+                var heRows = siteRows.Where(r => !r.IsKmL).ToList();
+                var heFuel = heRows.Sum(r => r.TotalFuel);
+                var heHours = heRows.Sum(r => r.EngineHours);
+                siteHeActual.Add(SafeDivide(heFuel, heHours));
+                siteHeExpected.Add(ComputeExpectedAverage(heRows, data.VehicleLookup));
+                siteHeFuel.Add(Math.Round(heFuel, 0));
+                siteHeLost.Add(Math.Round(heRows.Sum(r => r.FuelLost), 0));
+
+                var siteTanks = currentMonthTankRows.Where(r => ResolveTankSiteName(data.TankSiteLookup, r.TankId) == siteName).ToList();
+                siteDelivered.Add(Math.Round(siteTanks.Where(IsReceiptReason).Sum(r => PositiveValue(r.VolumeChange)), 0));
+                siteIssued.Add(Math.Round(siteTanks.Where(IsIssueReason).Sum(r => Math.Abs(r.VolumeChange)), 0));
+            }
+
+            var lvTypeFuel = new List<decimal>();
+            var lvTypeActual = new List<decimal>();
+            var lvTypeExpected = new List<decimal>();
+            foreach (var typeName in lvTypeNames)
+            {
+                var rows = currentMonthConsumption.Where(r => r.IsKmL && ResolveVehicleType(data.VehicleLookup, r.VehicleId) == typeName).ToList();
+                lvTypeFuel.Add(Math.Round(rows.Sum(r => r.TotalFuel), 0));
+                lvTypeActual.Add(SafeDivide(rows.Sum(r => r.TotalDistance), rows.Sum(r => r.TotalFuel)));
+                lvTypeExpected.Add(ComputeExpectedAverage(rows, data.VehicleLookup));
+            }
+
+            var heTypeFuel = new List<decimal>();
+            var heTypeActual = new List<decimal>();
+            var heTypeExpected = new List<decimal>();
+            var heTypeAvgHrs = new List<decimal>();
+            foreach (var typeName in heTypeNames)
+            {
+                var rows = currentMonthConsumption.Where(r => !r.IsKmL && ResolveVehicleType(data.VehicleLookup, r.VehicleId) == typeName).ToList();
+                heTypeFuel.Add(Math.Round(rows.Sum(r => r.TotalFuel), 0));
+                heTypeActual.Add(SafeDivide(rows.Sum(r => r.TotalFuel), rows.Sum(r => r.EngineHours)));
+                heTypeExpected.Add(ComputeExpectedAverage(rows, data.VehicleLookup));
+                var unitCount = rows.Select(r => r.VehicleId).Distinct().Count();
+                heTypeAvgHrs.Add(SafeDivide(rows.Sum(r => r.EngineHours), unitCount));
+            }
+
+            var heFuelLostMonthlySeries = monthlySummaries.Select(s =>
+            {
+                var heRows = FilterMonth(data.ConsumptionRows, s.Month).Where(r => !r.IsKmL).ToList();
+                return Math.Round(heRows.Sum(r => r.FuelLost), 0);
+            }).ToList();
+            var heEngineHoursMonthlySeries = monthlySummaries.Select(s =>
+            {
+                var heRows = FilterMonth(data.ConsumptionRows, s.Month).Where(r => !r.IsKmL).ToList();
+                return Math.Round(heRows.Sum(r => r.EngineHours), 0);
+            }).ToList();
+
+            var charts = new Dictionary<string, object>
+            {
+                ["c_execFuel"] = BarLineChart(monthLabels, "Fuel Used GPS", fuelUsedSeries, "#0078D4", "Average", runningAvg, "#107C10"),
+                ["c_issDeliv"] = GroupedBarChart(monthLabels, "Delivered", fuelReceivedSeries, "#0078D4", "Fuel Dispensed", fuelIssuedSeries, "#D13438"),
+                ["c_stockTrend"] = GroupedBarChart(monthLabels, "Delivered", fuelReceivedSeries, "#0078D4", "Fuel Dispensed", fuelIssuedSeries, "#D13438"),
+                ["c_lvFuSite"] = GroupedBarChart(siteNames, "Fuel Used GPS", siteFuelUsed, "#0078D4", "Fuel Lost", siteFuelLost, "#D13438"),
+                ["c_lvFuPct"] = SimpleBarChart(siteNames, "% Lost", siteFuelUsed.Zip(siteFuelLost, (used, lost) => SafePercent(lost, used)).ToList(), "#D13438"),
+                ["c_lvEffLine"] = DualLineChart(monthLabels, "Actual km/L", kmPerLiterSeries, "#0078D4", "Expected km/L", expectedKmPerLiterSeries, "#107C10", true),
+                ["c_lvEffType"] = GroupedBarChart(lvTypeNames, "Actual", lvTypeActual, "#0078D4", "Expected", lvTypeExpected, "#C8C6C4"),
+                ["c_lvDistSite"] = SimpleBarChart(siteNames, "Distance", siteDistance, "#0078D4"),
+                ["c_lvDistTrend"] = SimpleBarChart(monthLabels, "Distance", distanceSeries, "#0078D4"),
+                ["c_heDashType"] = DoughnutChart(heTypeNames, heTypeFuel),
+                ["c_heDashSite"] = SimpleBarChart(siteNames, "Fuel Used GPS", siteHeFuel, "#D97706"),
+                ["c_heFuSite"] = SimpleBarChart(siteNames, "Fuel Lost", siteHeLost, "#D13438"),
+                ["c_heFuTrend"] = SimpleBarChart(monthLabels, "Fuel Lost", heFuelLostMonthlySeries, "#D13438"),
+                ["c_heEngTrend"] = SimpleBarChart(monthLabels, "Engine Hrs", heEngineHoursMonthlySeries, "#D97706"),
+                ["c_heEngAvg"] = SimpleBarChart(heTypeNames, "Avg Hrs", heTypeAvgHrs, "#D97706"),
+                ["c_heEffSite"] = GroupedBarChart(siteNames, "Actual", siteHeActual, "#D97706", "Expected", siteHeExpected, "#C8C6C4"),
+                ["c_heEffTrend"] = DualLineChart(monthLabels, "Actual L/hr", litersPerHourSeries, "#D97706", "Expected L/hr", expectedLitersPerHourSeries, "#C8C6C4", true),
+                ["c_siteFuelTrend"] = BuildSiteMultiLineChart(monthlySummaries, siteNames, data, isDistance: false),
+                ["c_siteLostTrend"] = BuildSiteMultiLineChart(monthlySummaries, siteNames, data, isDistance: true)
+            };
+
+            return JsonConvert.SerializeObject(charts, new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                Formatting = Formatting.None
+            });
+        }
+
+        private static List<decimal> ComputeRunningAverage(List<decimal> series)
+        {
+            var result = new List<decimal>();
+            for (var i = 0; i < series.Count; i++)
+            {
+                var window = series.Take(i + 1);
+                result.Add(Math.Round(window.Average(), 0));
+            }
+            return result;
+        }
+
+        private object BuildSiteMultiLineChart(List<MonthSummary> monthlySummaries, List<string> siteNames, ReportDataBundle data, bool isDistance)
+        {
+            var palette = new[] { "#0078D4", "#107C10", "#D97706", "#D13438", "#8764B8", "#038387", "#605E5C", "#C19C00" };
+            var labels = monthlySummaries.Select(s => s.Month.ToString("MMM yy", CultureInfo.InvariantCulture)).ToList();
+            var datasets = siteNames.Select((site, index) =>
+            {
+                var color = palette[index % palette.Length];
+                var values = monthlySummaries.Select(s =>
+                {
+                    var monthRows = FilterMonth(data.ConsumptionRows, s.Month)
+                        .Where(r => ResolveConsumptionSiteName(data, r) == site)
+                        .ToList();
+                    return isDistance
+                        ? Math.Round(monthRows.Sum(r => r.FuelLost), 0)
+                        : Math.Round(monthRows.Sum(r => r.TotalFuel), 0);
+                }).ToList();
+                return (object)new
+                {
+                    label = site,
+                    data = values,
+                    borderColor = color,
+                    borderWidth = 2,
+                    pointRadius = 3,
+                    tension = 0.3,
+                    fill = false
+                };
+            }).ToArray();
+
+            return new
+            {
+                type = "line",
+                data = new { labels, datasets },
+                options = ChartOptions()
+            };
+        }
+
+        private static object BarLineChart(IEnumerable<string> labels, string barLabel, IEnumerable<decimal> barData, string barColor, string lineLabel, IEnumerable<decimal> lineData, string lineColor)
+        {
+            return new
+            {
+                type = "bar",
+                data = new
+                {
+                    labels,
+                    datasets = new object[]
+                    {
+                        new { label = barLabel, data = barData.Select(v => Math.Round(v, 1)), backgroundColor = barColor, borderRadius = 4, order = 2 },
+                        new { label = lineLabel, data = lineData.Select(v => Math.Round(v, 1)), type = "line", borderColor = lineColor, borderWidth = 2, pointRadius = 3, tension = 0.3, fill = false, order = 1 }
+                    }
+                },
+                options = ChartOptions()
+            };
+        }
+
+        private static object GroupedBarChart(IEnumerable<string> labels, string label1, IEnumerable<decimal> data1, string color1, string label2, IEnumerable<decimal> data2, string color2)
+        {
+            return new
+            {
+                type = "bar",
+                data = new
+                {
+                    labels,
+                    datasets = new object[]
+                    {
+                        new { label = label1, data = data1.Select(v => Math.Round(v, 1)), backgroundColor = color1, borderRadius = 4 },
+                        new { label = label2, data = data2.Select(v => Math.Round(v, 1)), backgroundColor = color2, borderRadius = 4 }
+                    }
+                },
+                options = ChartOptions()
+            };
+        }
+
+        private static object SimpleBarChart(IEnumerable<string> labels, string label, IEnumerable<decimal> data, string color)
+        {
+            return new
+            {
+                type = "bar",
+                data = new
+                {
+                    labels,
+                    datasets = new object[]
+                    {
+                        new { label, data = data.Select(v => Math.Round(v, 1)), backgroundColor = color, borderRadius = 4 }
+                    }
+                },
+                options = ChartOptions()
+            };
+        }
+
+        private static object DualLineChart(IEnumerable<string> labels, string line1Label, IEnumerable<decimal> line1Data, string color1, string line2Label, IEnumerable<decimal> line2Data, string color2, bool dashedLine2 = false)
+        {
+            return new
+            {
+                type = "line",
+                data = new
+                {
+                    labels,
+                    datasets = new object[]
+                    {
+                        new { label = line1Label, data = line1Data.Select(v => Math.Round(v, 2)), borderColor = color1, borderWidth = 2, pointRadius = 3, tension = 0.3, fill = false },
+                        new { label = line2Label, data = line2Data.Select(v => Math.Round(v, 2)), borderColor = color2, borderWidth = 2, borderDash = dashedLine2 ? new[] { 5, 5 } : Array.Empty<int>(), pointRadius = 3, tension = 0.3, fill = false }
+                    }
+                },
+                options = ChartOptions()
+            };
+        }
+
+        private static object DoughnutChart(IEnumerable<string> labels, IEnumerable<decimal> data)
+        {
+            var palette = new[] { "#0078D4", "#107C10", "#D97706", "#D13438", "#8764B8", "#038387", "#605E5C", "#C19C00" };
+            return new
+            {
+                type = "doughnut",
+                data = new
+                {
+                    labels,
+                    datasets = new object[]
+                    {
+                        new { data = data.Select(v => Math.Round(v, 1)), backgroundColor = palette.Take(data.Count()) }
+                    }
+                },
+                options = new
+                {
+                    responsive = true,
+                    maintainAspectRatio = false,
+                    plugins = new { legend = new { display = true, position = "right", labels = new { font = new { size = 9 } } } }
+                }
+            };
+        }
+
+        private static object ChartOptions()
+        {
+            return new
+            {
+                responsive = true,
+                maintainAspectRatio = false,
+                plugins = new { legend = new { display = false } },
+                layout = new { padding = new { bottom = 4 } },
+                scales = new
+                {
+                    x = new { ticks = new { font = new { size = 9 }, padding = 2 }, grid = new { display = false } },
+                    y = new { beginAtZero = true, grace = 0, ticks = new { font = new { size = 9 }, padding = 2 }, grid = new { color = "rgba(0,0,0,0.04)" } }
+                }
+            };
         }
 
         private sealed record SiteLookup(int SiteId, string SiteName);

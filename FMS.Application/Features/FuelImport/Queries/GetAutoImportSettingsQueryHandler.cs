@@ -2,7 +2,7 @@
  * File: GetAutoImportSettingsQueryHandler.cs
  * Purpose: Reads fuel auto-import settings (master toggle + profiles JSON) from SystemConfigurations table
  * Dependencies: GpsdataContext, MediatR, FMSResponse, SystemConfiguration constants
- * Last Modified: 2026-03-26
+ * Last Modified: 2026-04-01
  */
 using System;
 using System.Collections.Generic;
@@ -52,13 +52,15 @@ public class GetAutoImportSettingsQueryHandler
         {
             Id = "heavy_report", Name = "Heavy Report", ScanPath = @"\\10.0.10.150\reports\Heavy Report",
             Enabled = true, IntervalMinutes = 0, ScheduleTime = "", BatchSize = 50,
-            IncludeRetries = true, NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
+            IncludeRetries = true, DuplicateHandling = FuelAutoImportProfileDto.DuplicateHandlingSkip,
+            NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
         },
         new FuelAutoImportProfileDto
         {
             Id = "truck_report", Name = "Truck Report", ScanPath = @"\\10.0.10.150\reports\Truck Report",
             Enabled = true, IntervalMinutes = 0, ScheduleTime = "", BatchSize = 50,
-            IncludeRetries = true, NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
+            IncludeRetries = true, DuplicateHandling = FuelAutoImportProfileDto.DuplicateHandlingSkip,
+            NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
         }
     };
 
@@ -125,6 +127,8 @@ public class GetAutoImportSettingsQueryHandler
 
     private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
     {
+        profile.DuplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile.DuplicateHandling);
+
         if (string.IsNullOrWhiteSpace(profile.ScanPath))
             return profile;
 
