@@ -106,6 +106,8 @@ const DUPLICATE_HANDLING_OPTIONS = [
 /* ─── Single Profile Card ─── */
 const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, onProfileImport, onCancelImport, profileRunningId }) => {
     const [expanded, setExpanded] = useState(true);
+    const [showImportConfirm, setShowImportConfirm] = useState(false);
+    const [forceReprocess, setForceReprocess] = useState(false);
     const isRunning = profileRunningId === profile.id;
 
     const update = (field, value) => updateProfileField(profile.id, field, value);
@@ -141,7 +143,7 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, on
                             <button
                                 className="m365-icon-btn"
                                 title="Run import for this profile now"
-                                onClick={() => onProfileImport(profile.id)}
+                                onClick={() => { setForceReprocess(false); setShowImportConfirm(true); }}
                                 disabled={!!profileRunningId}
                             >
                                 <i className="fa-light fa-play" style={{ color: "#107c10" }} />
@@ -318,6 +320,56 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, on
                             </label>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ── Profile Import Confirmation Dialog ── */}
+            {showImportConfirm && (
+                <div className="import-mgmt__confirm-overlay" onClick={() => setShowImportConfirm(false)}>
+                    <div className="import-mgmt__confirm-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="import-mgmt__confirm-header">
+                            <i className="fa-light fa-play" style={{ color: "#107c10" }} />
+                            <span>Run Profile Import</span>
+                        </div>
+                        <div className="import-mgmt__confirm-body">
+                            <p style={{ margin: "0 0 12px", fontSize: 13, color: "#323130" }}>
+                                Run import for <strong>{profile.name || "Untitled Profile"}</strong>?
+                            </p>
+                            <label className="import-mgmt__checkbox-label">
+                                <input
+                                    type="checkbox"
+                                    checked={forceReprocess}
+                                    onChange={(e) => setForceReprocess(e.target.checked)}
+                                />
+                                <span>Reprocess all files (ignore file tracker)</span>
+                            </label>
+                            {forceReprocess && (
+                                <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 8 }}>
+                                    <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+                                    <span className="m365-info-banner__text">
+                                        All files will be reprocessed regardless of whether they have changed. This may take longer.
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="import-mgmt__confirm-actions">
+                            <button
+                                className="m365-btn m365-btn--ghost"
+                                onClick={() => setShowImportConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="m365-btn m365-btn--primary"
+                                onClick={() => {
+                                    setShowImportConfirm(false);
+                                    onProfileImport(profile.id, { forceReprocess });
+                                }}
+                            >
+                                <i className="fa-light fa-play" /> Run Import
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

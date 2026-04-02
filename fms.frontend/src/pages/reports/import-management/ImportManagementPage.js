@@ -109,6 +109,8 @@ const ImportManagementPage = () => {
 
     const [showSettings, setShowSettings] = useState(false);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [showOnDemandConfirm, setShowOnDemandConfirm] = useState(false);
+    const [forceReprocess, setForceReprocess] = useState(false);
     const { hasPermission } = usePermissions();
     const canManageImport = hasPermission("_Manage_FuelImport");
 
@@ -125,12 +127,18 @@ const ImportManagementPage = () => {
         [handleRetry]
     );
 
-    const onOnDemandTestClick = useCallback(async () => {
-        const result = await handleOnDemandTest();
+    const onOnDemandTestClick = useCallback(() => {
+        setForceReprocess(false);
+        setShowOnDemandConfirm(true);
+    }, []);
+
+    const onOnDemandConfirm = useCallback(async () => {
+        setShowOnDemandConfirm(false);
+        const result = await handleOnDemandTest({ forceReprocess });
         if (!result.success) {
             console.warn("On-demand test failed:", result.message);
         }
-    }, [handleOnDemandTest]);
+    }, [handleOnDemandTest, forceReprocess]);
 
     // ── Tab count helper ──
     const getTabCount = (tabId) => {
@@ -422,6 +430,53 @@ const ImportManagementPage = () => {
                     retrying={retryingId === selectedFile?.id}
                 />
             </SlidePanel>
+
+            {/* ── On-Demand Import Confirmation ── */}
+            {showOnDemandConfirm && (
+                <div className="import-mgmt__confirm-overlay">
+                    <div className="import-mgmt__confirm-dialog">
+                        <div className="import-mgmt__confirm-header">
+                            <i className="fa-light fa-vial" style={{ color: "#0078d4", fontSize: 18 }} />
+                            <h3>On-Demand Import</h3>
+                        </div>
+                        <p className="import-mgmt__confirm-text">
+                            This will scan configured directories and import new or changed files.
+                        </p>
+                        <label className="import-mgmt__checkbox-label">
+                            <input
+                                type="checkbox"
+                                checked={forceReprocess}
+                                onChange={(e) => setForceReprocess(e.target.checked)}
+                            />
+                            <span>Reprocess all files</span>
+                        </label>
+                        {forceReprocess && (
+                            <div className="m365-info-banner m365-info-banner--warning tw-mt-2">
+                                <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+                                <span className="m365-info-banner__text">
+                                    All files will be re-imported, including previously completed ones.
+                                    Duplicate handling per profile will determine whether existing records are skipped or replaced.
+                                </span>
+                            </div>
+                        )}
+                        <div className="import-mgmt__confirm-actions">
+                            <button
+                                className="m365-btn m365-btn--ghost"
+                                onClick={() => setShowOnDemandConfirm(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="m365-btn m365-btn--primary"
+                                onClick={onOnDemandConfirm}
+                            >
+                                <i className="fa-light fa-play" />
+                                Run Import
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Clear Logs Confirmation ── */}
             {showClearConfirm && (

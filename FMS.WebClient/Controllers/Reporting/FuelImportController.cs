@@ -211,7 +211,7 @@ namespace FMS.WebClient.Controllers.Reporting
         /// Progress and results are broadcast via SignalR (FuelImportJobStarted, FuelImportCompleted, FuelImportError).
         /// </summary>
         [HttpPost("auto-import/profile/{profileId}")]
-        public IActionResult AutoImportByProfile(string profileId)
+        public IActionResult AutoImportByProfile(string profileId, [FromQuery] bool forceReprocess = false)
         {
             if (string.IsNullOrWhiteSpace(profileId))
                 return BadRequest(FMSResponse<object>.Failed("ProfileId is required."));
@@ -247,7 +247,8 @@ namespace FMS.WebClient.Controllers.Reporting
                     var command = new AutoImportFuelReportsCommand
                     {
                         ProfileId = profileId,
-                        UserId = userId
+                        UserId = userId,
+                        ForceReprocess = forceReprocess
                     };
 
                     var result = await mediator.Send(command, cts.Token);

@@ -101,7 +101,7 @@ public class GetAutoImportSettingsQueryHandler
             {
                 try
                 {
-                    var parsed = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(profilesJson, JsonOptions);
+                    var parsed = DeserializeProfiles(profilesJson);
                     if (parsed?.Count > 0) profiles = parsed.Select(NormalizeProfile).ToList();
                 }
                 catch (JsonException ex)
@@ -138,5 +138,24 @@ public class GetAutoImportSettingsQueryHandler
 
         profile.ScanPath = mappedPath;
         return profile;
+    }
+
+    /// <summary>
+    /// Attempts to deserialize the profiles JSON as-is first (handles values saved via
+    /// UpdateAutoImportSettings which are properly escaped). Falls back to doubling all
+    /// backslashes for legacy values that were manually inserted without JSON escaping.
+    /// </summary>
+    private static List<FuelAutoImportProfileDto>? DeserializeProfiles(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(json, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            // Legacy DB value with unescaped Windows paths — double all backslashes
+            var sanitized = json.Replace("\\", "\\\\");
+            return JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(sanitized, JsonOptions);
+        }
     }
 }

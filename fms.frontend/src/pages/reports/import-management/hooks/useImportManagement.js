@@ -2,7 +2,7 @@
  * File: useImportManagement.js
  * Purpose: Custom hook managing state and data-fetching for the Import Management page
  * Dependencies: react, importManagementApi
- * Last Modified: 2026-04-01
+ * Last Modified: 2026-04-02
  *
  * Key Exports:
  * - useImportManagement(): Returns files, loading, filters, pagination, actions
@@ -21,6 +21,7 @@ import businessSignalRService from "../../../../signalR/businessSignalRService";
 import notify from "devextreme/ui/notify";
 
 const DEFAULT_PAGE_SIZE = 50;
+const RUNNING_JOB_STALE_AFTER_MS = 15000;
 
 const useImportManagement = () => {
     // ── Data state ──
@@ -42,6 +43,7 @@ const useImportManagement = () => {
     const [onDemandRunning, setOnDemandRunning] = useState(false);
     const [profileRunningId, setProfileRunningId] = useState(null);
     const [activeJobId, setActiveJobId] = useState(null);
+    const [activeJobStartedAt, setActiveJobStartedAt] = useState(null);
 
     // ── Filters / pagination ──
     const [activeTab, setActiveTab] = useState("all"); // all | Completed | Failed | Pending | Skipped | Processing
@@ -59,6 +61,12 @@ const useImportManagement = () => {
 
     // Debounce ref for search
     const searchTimerRef = useRef(null);
+
+    const resetActiveImportState = useCallback(() => {
+        setProfileRunningId(null);
+        setActiveJobId(null);
+        setActiveJobStartedAt(null);
+    }, []);
 
     // ── Fetch logic ──
     const fetchFiles = useCallback(async () => {
@@ -118,15 +126,28 @@ const useImportManagement = () => {
         }
     }, [files, selectedFile]);
 
+    useEffect(() => {
+        if (!activeJobId || !activeJobStartedAt) {
+            return;
+        }
+
+        if (summary.processingCount > 0) {
+            return;
+        }
+
+        const elapsed = Date.now() - activeJobStartedAt;
+        if (elapsed < RUNNING_JOB_STALE_AFTER_MS) {
+            return;
+        }
+
+        resetActiveImportState();
+        notify("Cleared stale import state because no active processing job remains.", "warning", 4000);
+    }, [activeJobId, activeJobStartedAt, summary.processingCount, resetActiveImportState]);
+
     // ── SignalR: listen for background import completion / error / cancel ──
     useEffect(() => {
         const unsubCompleted = businessSignalRService.on("fuelImportCompleted", (data) => {
-            // Clear running state if this profile finished
-            setProfileRunningId((current) => {
-                if (current && data?.profileId === current) return null;
-                return current;
-            });
-            setActiveJobId(null);
+            resetActiveImportState();
             fetchFiles();
 
             const msg = data?.isSuccess
@@ -136,11 +157,7 @@ const useImportManagement = () => {
         });
 
         const unsubError = businessSignalRService.on("fuelImportError", (data) => {
-            setProfileRunningId((current) => {
-                if (current && data?.profileId === current) return null;
-                return current;
-            });
-            setActiveJobId(null);
+            resetActiveImportState();
             if (data?.message) {
                 setError(data.message);
             }
@@ -148,11 +165,7 @@ const useImportManagement = () => {
         });
 
         const unsubCancelled = businessSignalRService.on("fuelImportCancelled", (data) => {
-            setProfileRunningId((current) => {
-                if (current && data?.profileId === current) return null;
-                return current;
-            });
-            setActiveJobId(null);
+            resetActiveImportState();
             fetchFiles();
             notify("Import was cancelled", "warning", 3000);
         });
@@ -162,7 +175,7 @@ const useImportManagement = () => {
             if (unsubError) unsubError();
             if (unsubCancelled) unsubCancelled();
         };
-    }, [fetchFiles]);
+    }, [fetchFiles, resetActiveImportState]);
 
     // ── Handlers ──
 
@@ -237,13 +250,14 @@ const useImportManagement = () => {
         [fetchFiles, selectedFile, files]
     );
 
-    const handleOnDemandTest = useCallback(async () => {
+    const handleOnDemandTest = useCallback(async (options = {}) => {
         setOnDemandRunning(true);
         setError(null);
         try {
             const response = await triggerOnDemandImport({
                 batchSize: pageSize,
                 includeRetries: true,
+                forceReprocess: options.forceReprocess || false,
             });
 
             if (response?.isSuccess) {
@@ -260,27 +274,31 @@ const useImportManagement = () => {
         }
     }, [fetchFiles, pageSize]);
 
-    const handleProfileImport = useCallback(async (profileId) => {
+    const handleProfileImport = useCallback(async (profileId, options = {}) => {
         setProfileRunningId(profileId);
         setActiveJobId(null);
+        setActiveJobStartedAt(null);
         setError(null);
         try {
-            const response = await triggerProfileImport(profileId);
+            const response = await triggerProfileImport(profileId, options);
             if (!response?.isSuccess) {
-                setProfileRunningId(null);
+                resetActiveImportState();
                 return { success: false, message: response?.message || "Failed to start profile import" };
             }
             // Store the jobId so we can cancel this job later
             const jobId = response?.data?.jobId;
-            if (jobId) setActiveJobId(jobId);
+            if (jobId) {
+                setActiveJobId(jobId);
+                setActiveJobStartedAt(Date.now());
+            }
             // Import is now running in the background — SignalR will notify when done
             return { success: true, message: "Import started", jobId };
         } catch (err) {
             console.error("Error triggering profile import:", err);
-            setProfileRunningId(null);
+            resetActiveImportState();
             return { success: false, message: err.message || "Network error" };
         }
-    }, []);
+    }, [resetActiveImportState]);
 
     const handleCancelImport = useCallback(async () => {
         if (!activeJobId) return;
@@ -289,9 +307,20 @@ const useImportManagement = () => {
             // The actual state cleanup happens via the fuelImportCancelled SignalR event
         } catch (err) {
             console.error("Error cancelling import:", err);
+            const status = err?.response?.status;
+            const responseMessage = err?.response?.data?.message || err?.response?.data?.Message;
+            const errorMessage = responseMessage || err.message || "Failed to cancel import";
+
+            if (status === 404 && /No running import job found/i.test(errorMessage)) {
+                resetActiveImportState();
+                await fetchFiles();
+                notify("The import job is no longer running. Cleared stale import state.", "warning", 4000);
+                return;
+            }
+
             notify("Failed to cancel import", "error", 3000);
         }
-    }, [activeJobId]);
+    }, [activeJobId, fetchFiles, resetActiveImportState]);
 
     const handleSelectFile = useCallback((file) => {
         setSelectedFile(file);

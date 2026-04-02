@@ -2,7 +2,7 @@
  * File: ImportFuelReportCommand.cs
  * Purpose: Imports fuel consumption rows, tracks import history, and creates user-facing notifications.
  * Dependencies: GpsdataContext, INotificationService, FrontEndHub, AutoMapper
- * Last Modified: 2026-03-26
+ * Last Modified: 2026-04-02
  *
  * Key Types:
  * - ImportFuelReportCommand: Import request including optional source file metadata
@@ -210,7 +210,65 @@ namespace FMS.Application.Features.FuelImport.Commands
                 };
             }
 
-            // Check for duplicates
+            // Check for duplicates within the import payload before any database work.
+            // These otherwise surface later as database unique-key errors, which is noisy
+            // and makes tracker/reporting state harder to reason about.
+            var intraBatchDuplicates = await FindIntraBatchDuplicatesAsync(request.Models, cancellationToken);
+            if (intraBatchDuplicates.Any())
+            {
+                if (request.SkipDuplicates)
+                {
+                    _logger.LogInformation("Found {Count} intra-batch duplicates (same vehicle/date/shift within import file)", intraBatchDuplicates.Count);
+                    skippedDuplicates.AddRange(intraBatchDuplicates.Cast<ImportDuplicateError>());
+
+                    var intraBatchIndicesToSkip = intraBatchDuplicates.Select(d => d.RowIndex).ToHashSet();
+                    var beforeCount = request.Models.Count;
+                    request.Models = request.Models.Where(c => !intraBatchIndicesToSkip.Contains(c.RowIndex ?? -1)).ToList();
+
+                    _logger.LogDebug("After intra-batch filtering: {BeforeCount} -> {AfterCount} records remaining", beforeCount, request.Models.Count);
+                }
+                else
+                {
+                    _progressInfo.DuplicateCount = intraBatchDuplicates.Count;
+                    _progressInfo.SkippedCount = intraBatchDuplicates.Count;
+                    _progressInfo.Status = "Failed: Duplicate Records In File";
+                    await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
+
+                    if (!request.SuppressNotification)
+                    {
+                        await CreateImportNotificationAsync(
+                            request,
+                            reportId,
+                            isSuccess: false,
+                            successCount: 0,
+                            failedCount: 0,
+                            skippedCount: intraBatchDuplicates.Count,
+                            duplicateCount: intraBatchDuplicates.Count,
+                            sourceModels: sourceModels,
+                            errorMessage: $"{intraBatchDuplicates.Count} duplicate record(s) detected within the import file - import stopped.",
+                            cancellationToken: cancellationToken);
+                    }
+
+                    return new FMSResponse<ImportFuelReportResult>
+                    {
+                        IsSuccess = false,
+                        Message = "Duplicate entry detected within the import file – one or more Vehicle / Date / Shift combinations are repeated.",
+                        Data = new ImportFuelReportResult
+                        {
+                            DuplicateRecords = intraBatchDuplicates.Cast<ImportDuplicateError>().ToList(),
+                            TotalRecords = request.Models.Count,
+                            TotalProcessed = 0,
+                            SuccessCount = 0,
+                            FailureCount = 0,
+                            SkippedCount = intraBatchDuplicates.Count,
+                            ReportId = reportId,
+                            DuplicateCount = intraBatchDuplicates.Count
+                        }
+                    };
+                }
+            }
+
+            // Check for duplicates already persisted in the database.
             List<DuplicateRecordInfo> duplicateCheck = new List<DuplicateRecordInfo>();
 
             // Only fail the import if we're NOT skipping duplicates AND NOT overwriting
@@ -284,19 +342,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                     }
                 }
 
-                // First, check for duplicates WITHIN the import file itself (intra-batch duplicates)
-                var intraBatchDuplicates = await FindIntraBatchDuplicatesAsync(request.Models, cancellationToken);
-                if (intraBatchDuplicates.Any())
-                {
-                    _logger.LogInformation($"Found {intraBatchDuplicates.Count} intra-batch duplicates (same vehicle/date/shift within import file)");
-                    skippedDuplicates.AddRange(intraBatchDuplicates.Cast<ImportDuplicateError>());
-                    var intraBatchIndicesToSkip = intraBatchDuplicates.Select(d => d.RowIndex).ToHashSet();
-                    var beforeCount = request.Models.Count;
-                    request.Models = request.Models.Where(c => !intraBatchIndicesToSkip.Contains(c.RowIndex ?? -1)).ToList();
-                    _logger.LogDebug($"After intra-batch filtering: {beforeCount} -> {request.Models.Count} records remaining");
-                }
-
-                // Then check for duplicates against existing database records
+                // Check for duplicates against existing database records after intra-batch cleanup.
                 var duplicateRecords = await CheckForExistingDuplicates(request.Models, cancellationToken);
                 if (duplicateRecords.Any())
                 {
@@ -458,16 +504,18 @@ namespace FMS.Application.Features.FuelImport.Commands
                 bool isUniqueConstraint = IsUniqueConstraintViolation(ex);
                 bool isForeignKeyViolation = IsForeignKeyViolation(ex);
 
+                // Always detach failed entities to prevent DbContext poisoning.
+                // Without this, failed Added entities remain tracked and cascade errors
+                // to every subsequent SaveChangesAsync call on this DbContext instance.
+                foreach (var entity in vehicleConsumptions)
+                {
+                    _context.Entry(entity).State = EntityState.Detached;
+                }
+
                 // If SkipDuplicates is true and we got a unique constraint error, retry one-by-one
                 if (request.SkipDuplicates && isUniqueConstraint)
                 {
                     _logger.LogWarning("Batch insert failed with duplicate error. SkipDuplicates=true, retrying records one-by-one...");
-
-                    // Clear the change tracker to remove the failed batch
-                    foreach (var entity in vehicleConsumptions)
-                    {
-                        _context.Entry(entity).State = EntityState.Detached;
-                    }
 
                     var savedCount = 0;
                     var failedDuplicates = new List<ImportDuplicateError>();

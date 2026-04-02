@@ -351,7 +351,17 @@ public class FuelAutoImportService : IFuelAutoImportService
             if (dbConfig == null || string.IsNullOrWhiteSpace(dbConfig.ConfigurationValue))
                 return false;
 
-            var parsedProfiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
+            List<FuelAutoImportProfileDto>? parsedProfiles;
+            try
+            {
+                parsedProfiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(dbConfig.ConfigurationValue, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                // Legacy DB value with unescaped Windows paths — double all backslashes
+                var sanitized = dbConfig.ConfigurationValue.Replace("\\", "\\\\");
+                parsedProfiles = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(sanitized, JsonOptions);
+            }
             profiles = (parsedProfiles ?? new List<FuelAutoImportProfileDto>())
                 .Select(NormalizeProfile)
                 .Where(p => !string.IsNullOrWhiteSpace(p.ScanPath))
@@ -638,7 +648,14 @@ public class FuelAutoImportService : IFuelAutoImportService
             await _fileTrackerService.MarkAsFailedAsync(tracker.Id, ex.Message);
             processResult.ErrorMessage = ex.Message;
             _logger.LogError(ex, "Unhandled auto-import failure for {FileName}. TrackerId: {TrackerId}", metadata.FileName, tracker.Id);
-            throw; // Let caller handle logging
+            // Do NOT re-throw — let the caller continue processing remaining files
+        }
+        finally
+        {
+            // Safety net: clear the change tracker between files to prevent poisoned DbContext.
+            // If a previous file's SaveChangesAsync failed, any Added entities still tracked
+            // would cascade duplicate key errors to every subsequent file.
+            _context.ChangeTracker.Clear();
         }
 
         return processResult;
