@@ -22,6 +22,10 @@ using System.Threading.Tasks;
 using FMS.Application.Features.FuelImport.Commands;
 using FMS.Application.Features.FuelImport.DTOs;
 using FMS.Application.Common;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+using FMS.Application.Features.Notification.Enums;
+using FMS.Application.Features.Notification.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +42,7 @@ public class FuelAutoImportService : IFuelAutoImportService
     private readonly GpsdataContext _context;
     private readonly IConfiguration _configuration;
     private readonly ILogger<FuelAutoImportService> _logger;
+    private readonly INotificationService _notificationService;
 
     // Default scan paths (overridable via SystemConfigurations DB or appsettings "FuelAutoImport:ScanPaths")
     private static readonly string[] DefaultScanPaths = new[]
@@ -79,7 +84,8 @@ public class FuelAutoImportService : IFuelAutoImportService
         IMediator mediator,
         GpsdataContext context,
         IConfiguration configuration,
-        ILogger<FuelAutoImportService> logger)
+        ILogger<FuelAutoImportService> logger,
+        INotificationService notificationService)
     {
         _parsingService = parsingService;
         _fileTrackerService = fileTrackerService;
@@ -87,6 +93,7 @@ public class FuelAutoImportService : IFuelAutoImportService
         _context = context;
         _configuration = configuration;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<AutoImportResult> ScanAndImportAsync(AutoImportOptions? options = null, CancellationToken cancellationToken = default)
@@ -197,7 +204,7 @@ public class FuelAutoImportService : IFuelAutoImportService
                 try
                 {
                     var matchedProfile = selectedProfile ?? ResolveProfileForFilePath(fileMetadata.FilePath, configuredProfiles);
-                    var fileResult = await ProcessFileAsync(fileMetadata, siteLookup, options.UserId, matchedProfile);
+                    var fileResult = await ProcessFileAsync(fileMetadata, siteLookup, options.UserId, matchedProfile, suppressNotification: true);
                     result.FilesProcessed++;
 
                     if (fileResult.Success)
@@ -234,6 +241,12 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         sw.Stop();
         result.Duration = sw.Elapsed;
+
+        // Send a single batch summary notification instead of one per file
+        if (result.FilesProcessed > 0)
+        {
+            await CreateBatchSummaryNotificationAsync(result, options?.UserId, CancellationToken.None);
+        }
 
         _logger.LogInformation(
             "Auto-import scan completed in {Duration}ms. Scanned: {Scanned}, Processed: {Processed}, " +
@@ -487,12 +500,14 @@ public class FuelAutoImportService : IFuelAutoImportService
 
     /// <summary>
     /// Process a single file through the full pipeline: register → parse → import → update tracker.
+    /// Set suppressNotification=true when called from a batch scan so a summary is sent instead.
     /// </summary>
     private async Task<FileProcessResult> ProcessFileAsync(
         FuelReportFileMetadata metadata,
         Dictionary<string, int> siteLookup,
         string userId,
-        FuelAutoImportProfileDto? profile = null)
+        FuelAutoImportProfileDto? profile = null,
+        bool suppressNotification = false)
     {
         var processResult = new FileProcessResult();
 
@@ -584,7 +599,8 @@ public class FuelAutoImportService : IFuelAutoImportService
                 SourceFilePath = metadata.FilePath,
                 SourceReportType = metadata.ReportType,
                 SourceDetectedSiteName = metadata.DetectedSiteName,
-                ImportMode = "Auto Import"
+                ImportMode = "Auto Import",
+                SuppressNotification = suppressNotification
             };
 
             var importResult = await _mediator.Send(command);
@@ -717,6 +733,145 @@ public class FuelAutoImportService : IFuelAutoImportService
             value.Trim().ToUpperInvariant(),
             @"[^A-Z0-9]+",
             string.Empty);
+    }
+
+    /// <summary>
+    /// Sends a single summary notification for a completed batch scan cycle.
+    /// Called once after ScanAndImportAsync processes all files.
+    /// </summary>
+    private async Task CreateBatchSummaryNotificationAsync(AutoImportResult result, string? userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var hasFailures = result.FilesFailed > 0;
+            var hasSkips = result.FilesSkippedNoSite > 0;
+
+            NotificationType notificationType;
+            NotificationPriority priority;
+            string title;
+
+            if (hasFailures && result.FilesSucceeded == 0)
+            {
+                notificationType = NotificationType.Error;
+                priority = NotificationPriority.High;
+                title = "Batch File Import Failed";
+            }
+            else if (hasFailures || hasSkips)
+            {
+                notificationType = NotificationType.Warning;
+                priority = NotificationPriority.Medium;
+                title = "Batch File Import Completed with Errors";
+            }
+            else
+            {
+                notificationType = NotificationType.Info;
+                priority = NotificationPriority.Medium;
+                title = "Batch File Import Completed";
+            }
+
+            var profileLabel = !string.IsNullOrWhiteSpace(result.ProfileName)
+                ? $" ({result.ProfileName})"
+                : string.Empty;
+
+            var message = $"Batch import{profileLabel}: {result.FilesProcessed} file(s) processed — "
+                + $"{result.FilesSucceeded} succeeded, {result.FilesFailed} failed, {result.FilesSkippedNoSite} skipped. "
+                + $"{result.TotalRecordsImported} record(s) imported, {result.TotalDuplicatesSkipped} duplicate(s) skipped. "
+                + $"Duration: {result.Duration.TotalSeconds:F1}s.";
+
+            var errorsHtml = result.Errors.Any()
+                ? "<ul style=\"margin:8px 0 0;padding-left:20px;\">" + string.Join("", result.Errors.Select(e => $"<li style=\"margin:2px 0;font-size:13px;\">{System.Net.WebUtility.HtmlEncode(e)}</li>")) + "</ul>"
+                : "<p style=\"margin:0;color:#6b7280;font-size:13px;\">No errors.</p>";
+
+            var emailBody = $@"<!DOCTYPE html>
+<html>
+<body style=""font-family:Segoe UI, Arial, sans-serif;background:#f8fafc;color:#0f172a;margin:0;padding:24px;"">
+    <div style=""max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;"">
+        <h2 style=""margin:0 0 12px;font-size:22px;"">Batch File Import Summary</h2>
+        <p style=""margin:0 0 20px;color:#475569;line-height:1.6;"">{System.Net.WebUtility.HtmlEncode(message)}</p>
+
+        <div style=""margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:12px;"">File Counts</div>
+            <table style=""width:100%;border-collapse:collapse;font-size:13px;"">
+                <tr><td style=""padding:6px 0;font-weight:600;width:180px;"">Files Scanned</td><td style=""padding:6px 0;"">{result.FilesScanned}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Files Processed</td><td style=""padding:6px 0;"">{result.FilesProcessed}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Succeeded</td><td style=""padding:6px 0;"">{result.FilesSucceeded}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Failed</td><td style=""padding:6px 0;"">{result.FilesFailed}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Skipped (no site)</td><td style=""padding:6px 0;"">{result.FilesSkippedNoSite}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Unchanged (skipped)</td><td style=""padding:6px 0;"">{result.FilesSkippedUnchanged}</td></tr>
+            </table>
+        </div>
+
+        <div style=""margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:12px;"">Record Counts</div>
+            <table style=""width:100%;border-collapse:collapse;font-size:13px;"">
+                <tr><td style=""padding:6px 0;font-weight:600;width:180px;"">Records Imported</td><td style=""padding:6px 0;"">{result.TotalRecordsImported}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Duplicates Skipped</td><td style=""padding:6px 0;"">{result.TotalDuplicatesSkipped}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Duration</td><td style=""padding:6px 0;"">{result.Duration.TotalSeconds:F1}s</td></tr>
+            </table>
+        </div>
+
+        <div style=""padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:8px;"">Errors</div>
+            {errorsHtml}
+        </div>
+    </div>
+</body>
+</html>";
+
+            var eventData = new
+            {
+                ProfileId = result.ProfileId,
+                ProfileName = result.ProfileName,
+                FilesScanned = result.FilesScanned,
+                FilesProcessed = result.FilesProcessed,
+                FilesSucceeded = result.FilesSucceeded,
+                FilesFailed = result.FilesFailed,
+                FilesSkippedNoSite = result.FilesSkippedNoSite,
+                FilesSkippedUnchanged = result.FilesSkippedUnchanged,
+                TotalRecordsImported = result.TotalRecordsImported,
+                TotalDuplicatesSkipped = result.TotalDuplicatesSkipped,
+                DurationSeconds = result.Duration.TotalSeconds,
+                Errors = result.Errors,
+                ImportManagementLink = "/reports/import-management",
+                EmailBodyHtml = emailBody
+            };
+
+            var notificationRequest = new CreateNotificationRequest
+            {
+                Type = notificationType,
+                CategoryId = (int)WellKnownCategories.Generic,
+                CategoryName = "File Importation Notification Details",
+                Priority = priority,
+                Title = title,
+                Message = message,
+                TriggerSource = "FuelImport",
+                TriggeredBy = userId ?? "System",
+                Data = eventData,
+                DisableFallbackAllUsers = true,
+                Recipients = !string.IsNullOrEmpty(userId)
+                    ? new List<NotificationRecipientDto>
+                    {
+                        new NotificationRecipientDto
+                        {
+                            UserId = userId,
+                            DeliveryMethods = new List<string> { DeliveryMethod.System.ToString(), DeliveryMethod.Email.ToString() },
+                            ResolvedFrom = "FuelImport"
+                        }
+                    }
+                    : null
+            };
+
+            var notifResult = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
+
+            if (notifResult.IsSuccess)
+                _logger.LogInformation("Sent batch import summary notification: {Title}", title);
+            else
+                _logger.LogWarning("Failed to send batch import summary notification: {Error}", notifResult.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create batch import summary notification");
+        }
     }
 
     #endregion
