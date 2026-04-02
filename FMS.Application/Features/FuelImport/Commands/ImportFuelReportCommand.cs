@@ -45,6 +45,11 @@ namespace FMS.Application.Features.FuelImport.Commands
         public string? SourceReportType { get; set; }
         public string? SourceDetectedSiteName { get; set; }
         public string ImportMode { get; set; } = "Manual Import";
+        /// <summary>
+        /// When true, skips creating a per-file persistent notification.
+        /// Used by batch auto-import so a single summary notification is sent instead.
+        /// </summary>
+        public bool SuppressNotification { get; set; } = false;
     }
 
     public class ImportFuelReportResult
@@ -224,17 +229,20 @@ namespace FMS.Application.Features.FuelImport.Commands
                     await _hubContext.Clients.All.SendAsync("FuelImportProgress", _progressInfo, cancellationToken);
 
                     // Create persistent notification for duplicate detection
-                    await CreateImportNotificationAsync(
-                        request,
-                        reportId,
-                        isSuccess: false,
-                        successCount: 0,
-                        failedCount: 0,
-                        skippedCount: duplicateCheck.Count(),
-                        duplicateCount: duplicateCheck.Count(),
-                        sourceModels: sourceModels,
-                        errorMessage: $"{duplicateCheck.Count()} duplicate record(s) detected - import stopped.",
-                        cancellationToken: cancellationToken);
+                    if (!request.SuppressNotification)
+                    {
+                        await CreateImportNotificationAsync(
+                            request,
+                            reportId,
+                            isSuccess: false,
+                            successCount: 0,
+                            failedCount: 0,
+                            skippedCount: duplicateCheck.Count(),
+                            duplicateCount: duplicateCheck.Count(),
+                            sourceModels: sourceModels,
+                            errorMessage: $"{duplicateCheck.Count()} duplicate record(s) detected - import stopped.",
+                            cancellationToken: cancellationToken);
+                    }
 
                     return new FMSResponse<ImportFuelReportResult>
                     {
@@ -305,17 +313,20 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                 if (!request.Models.Any())
                 {
-                    await CreateImportNotificationAsync(
-                        request,
-                        reportId,
-                        isSuccess: true,
-                        successCount: 0,
-                        failedCount: 0,
-                        skippedCount: skippedDuplicates.Count,
-                        duplicateCount: skippedDuplicates.Count,
-                        sourceModels: sourceModels,
-                        errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
-                        cancellationToken: cancellationToken);
+                    if (!request.SuppressNotification)
+                    {
+                        await CreateImportNotificationAsync(
+                            request,
+                            reportId,
+                            isSuccess: true,
+                            successCount: 0,
+                            failedCount: 0,
+                            skippedCount: skippedDuplicates.Count,
+                            duplicateCount: skippedDuplicates.Count,
+                            sourceModels: sourceModels,
+                            errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                            cancellationToken: cancellationToken);
+                    }
 
                     return new FMSResponse<ImportFuelReportResult>
                     {
@@ -426,16 +437,19 @@ namespace FMS.Application.Features.FuelImport.Commands
                 }
 
                 // Create persistent notification for successful import
-                await CreateImportNotificationAsync(
-                    request,
-                    reportId,
-                    isSuccess: true,
-                    successCount: successResponse.Data.SuccessCount,
-                    failedCount: successResponse.Data.FailureCount,
-                    skippedCount: successResponse.Data.SkippedCount,
-                    duplicateCount: successResponse.Data.DuplicateCount,
-                    sourceModels: sourceModels,
-                    cancellationToken: cancellationToken);
+                if (!request.SuppressNotification)
+                {
+                    await CreateImportNotificationAsync(
+                        request,
+                        reportId,
+                        isSuccess: true,
+                        successCount: successResponse.Data.SuccessCount,
+                        failedCount: successResponse.Data.FailureCount,
+                        skippedCount: successResponse.Data.SkippedCount,
+                        duplicateCount: successResponse.Data.DuplicateCount,
+                        sourceModels: sourceModels,
+                        cancellationToken: cancellationToken);
+                }
 
                 return successResponse;
             }
@@ -515,32 +529,38 @@ namespace FMS.Application.Features.FuelImport.Commands
                             }
                         };
 
-                        await CreateImportNotificationAsync(
-                            request,
-                            reportId,
-                            isSuccess: true,
-                            successCount: savedCount,
-                            failedCount: processedWithErrors,
-                            skippedCount: skippedDuplicates.Count,
-                            duplicateCount: skippedDuplicates.Count,
-                            sourceModels: sourceModels,
-                            cancellationToken: cancellationToken);
+                        if (!request.SuppressNotification)
+                        {
+                            await CreateImportNotificationAsync(
+                                request,
+                                reportId,
+                                isSuccess: true,
+                                successCount: savedCount,
+                                failedCount: processedWithErrors,
+                                skippedCount: skippedDuplicates.Count,
+                                duplicateCount: skippedDuplicates.Count,
+                                sourceModels: sourceModels,
+                                cancellationToken: cancellationToken);
+                        }
 
                         return partialResponse;
                     }
                     else
                     {
-                        await CreateImportNotificationAsync(
-                            request,
-                            reportId,
-                            isSuccess: true,
-                            successCount: 0,
-                            failedCount: 0,
-                            skippedCount: skippedDuplicates.Count,
-                            duplicateCount: skippedDuplicates.Count,
-                            sourceModels: sourceModels,
-                            errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
-                            cancellationToken: cancellationToken);
+                        if (!request.SuppressNotification)
+                        {
+                            await CreateImportNotificationAsync(
+                                request,
+                                reportId,
+                                isSuccess: true,
+                                successCount: 0,
+                                failedCount: 0,
+                                skippedCount: skippedDuplicates.Count,
+                                duplicateCount: skippedDuplicates.Count,
+                                sourceModels: sourceModels,
+                                errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                                cancellationToken: cancellationToken);
+                        }
 
                         // All records were duplicates
                         return new FMSResponse<ImportFuelReportResult>
@@ -599,17 +619,20 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                 // Create persistent notification for failed import
                 var failedData = errorResponse.Data ?? new ImportFuelReportResult();
-                await CreateImportNotificationAsync(
-                    request,
-                    reportId,
-                    isSuccess: false,
-                    successCount: failedData.SuccessCount,
-                    failedCount: failedData.FailureCount > 0 ? failedData.FailureCount : 1,
-                    skippedCount: failedData.SkippedCount,
-                    duplicateCount: failedData.DuplicateCount,
-                    sourceModels: sourceModels,
-                    errorMessage: errorResponse.Message,
-                    cancellationToken: cancellationToken);
+                if (!request.SuppressNotification)
+                {
+                    await CreateImportNotificationAsync(
+                        request,
+                        reportId,
+                        isSuccess: false,
+                        successCount: failedData.SuccessCount,
+                        failedCount: failedData.FailureCount > 0 ? failedData.FailureCount : 1,
+                        skippedCount: failedData.SkippedCount,
+                        duplicateCount: failedData.DuplicateCount,
+                        sourceModels: sourceModels,
+                        errorMessage: errorResponse.Message,
+                        cancellationToken: cancellationToken);
+                }
 
                 return errorResponse;
             }
