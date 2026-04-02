@@ -308,9 +308,22 @@ public class Program
                     var parts = line.Split(new char[0], StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length >= 5 && int.TryParse(parts[^1], out int pid))
                     {
+                        if (pid <= 4)
+                        {
+                            Log.Warning("Skipping kill attempt for system-owned PID {PID} on port {Port}", pid, port);
+                            continue;
+                        }
+
                         Log.Warning("Attempting to kill process {PID} listening on port {Port}", pid, port);
 
                         var killProcess = System.Diagnostics.Process.GetProcessById(pid);
+
+                        if (killProcess.ProcessName.Equals("System", StringComparison.OrdinalIgnoreCase))
+                        {
+                            Log.Warning("Skipping kill attempt for system process {ProcessName} ({PID}) on port {Port}", killProcess.ProcessName, pid, port);
+                            continue;
+                        }
+
                         killProcess.Kill();
                         killProcess.WaitForExit(5000);
 
@@ -333,12 +346,17 @@ public class Program
     {
         try
         {
-            // Environment variables set by the AspNetCoreModule when in-process
+            // Environment variables commonly set by IIS / ANCM for both in-process and out-of-process hosting.
             string[] iisIndicators =
             [
                 "ASPNETCORE_IIS_HTTPAUTH",
                 "ASPNETCORE_IIS_PHYSICAL_PATH",
-                "ASPNETCORE_PORTS"
+                "ASPNETCORE_APPL_PATH",
+                "ASPNETCORE_PORT",
+                "ASPNETCORE_PORTS",
+                "ASPNETCORE_TOKEN",
+                "APP_POOL_ID",
+                "IIS_SITE_NAME"
             ];
 
             if (iisIndicators.Any(v => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(v))))
