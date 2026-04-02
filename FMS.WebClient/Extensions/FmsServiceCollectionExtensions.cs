@@ -591,6 +591,11 @@ public static class FmsServiceCollectionExtensions
         // Fires SystemEvents through EventExpressionEngine for NoTankStockEntry expressions
         services.AddHostedService<FMS.BackgroundServices.TankStock.TankVolumeEntryCheckService>();
 
+        // Automated Closing Stock — auto-creates closing stock at 23:45 for tanks that haven't been closed
+        // Uses sensor data first, then PhysicalStockValue, then calculation. Skips if variance exceeds threshold.
+        // Config: AutoClosingStock_Enabled (default false), AutoClosingStock_ScheduleTime, AutoClosingStock_MaxVarianceLiters
+        services.AddHostedService<FMS.BackgroundServices.TankStock.AutomatedClosingStockService>();
+
         // Unified Notification Processing Service - combines:
         // - NotificationBackgroundService (scheduled notifications every 1 min, alarm checks every 5 min)
         // - ActiveAlarmProcessingService (auto-resolution and escalation every 5 min)
