@@ -40,6 +40,7 @@ namespace FMS.BackgroundServices.TankStock
         private readonly ILogger<AutomatedClosingStockService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IConfiguration _configuration;
+        private readonly IHostEnvironment _hostEnvironment;
 
         private readonly TimeSpan _baseInterval = TimeSpan.FromMinutes(1);
         private readonly TimeSpan _defaultScheduleTime = new TimeSpan(23, 45, 0);
@@ -52,15 +53,23 @@ namespace FMS.BackgroundServices.TankStock
         public AutomatedClosingStockService(
             ILogger<AutomatedClosingStockService> logger,
             IServiceScopeFactory serviceScopeFactory,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHostEnvironment hostEnvironment)
         {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
             _configuration = configuration;
+            _hostEnvironment = hostEnvironment;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            if (!_hostEnvironment.IsProduction())
+            {
+                _logger.LogWarning("AutomatedClosingStockService is DISABLED in {Environment} environment. Only runs in Production.", _hostEnvironment.EnvironmentName);
+                return;
+            }
+
             _logger.LogInformation("AutomatedClosingStockService starting — auto-creates closing stock daily");
 
             while (!stoppingToken.IsCancellationRequested)
