@@ -38,6 +38,7 @@ namespace FMS.BackgroundServices.TankStock
         private readonly ILogger<AutomatedOpeningStockService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IConfiguration _configuration;
+        private readonly IHostEnvironment _hostEnvironment;
 
         private readonly TimeSpan _baseInterval = TimeSpan.FromMinutes(1);
         private readonly TimeSpan _defaultScheduleTime = new TimeSpan(11, 45, 0);
@@ -50,15 +51,23 @@ namespace FMS.BackgroundServices.TankStock
         public AutomatedOpeningStockService(
             ILogger<AutomatedOpeningStockService> logger,
             IServiceScopeFactory serviceScopeFactory,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHostEnvironment hostEnvironment)
         {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
             _configuration = configuration;
+            _hostEnvironment = hostEnvironment;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            if (!_hostEnvironment.IsProduction())
+            {
+                _logger.LogWarning("AutomatedOpeningStockService is DISABLED in {Environment} environment. Only runs in Production.", _hostEnvironment.EnvironmentName);
+                return;
+            }
+
             _logger.LogInformation("AutomatedOpeningStockService starting — auto-creates opening stock daily at configured time");
 
             while (!stoppingToken.IsCancellationRequested)
