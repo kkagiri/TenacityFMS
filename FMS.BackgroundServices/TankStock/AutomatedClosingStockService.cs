@@ -24,6 +24,7 @@ using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -256,7 +257,7 @@ namespace FMS.BackgroundServices.TankStock
 
             var response = await mediator.Send(command, ct);
 
-            if (response.Status)
+            if (response.Success)
             {
                 _logger.LogInformation(
                     "Auto-closed Tank {TankId} ({TankName}): {Value:F2}L from {Source}",

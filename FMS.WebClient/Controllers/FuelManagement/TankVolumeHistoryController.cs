@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.Features.TankManagement.TankVolumeHistory.Commands;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
 using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
@@ -171,7 +170,7 @@ namespace FMS.WebClient.Controllers
             if (request.TransactionId.HasValue && request.TransactionId.Value > 0)
             {
                 var coordinatorValidation = await _mediator.Send(
-                    new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { request.TransactionId.Value }, userConfirmed: false));
+                    new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { request.TransactionId.Value }, UserConfirmed: false));
 
                 if (!coordinatorValidation.IsSuccess)
                     return BadRequest(coordinatorValidation);
@@ -225,7 +224,7 @@ namespace FMS.WebClient.Controllers
                 if (!userConfirmed)
                 {
                     var validationResult = await _mediator.Send(
-                        new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { id }, userConfirmed: false));
+                        new ValidateBulkDeleteTankVolumeHistoryCommand(new List<int> { id }, UserConfirmed: false));
 
                     if (!validationResult.IsSuccess)
                         return BadRequest(validationResult);
