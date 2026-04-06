@@ -62,6 +62,7 @@ using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Features.WarningLetter.Services;
 using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
 
 using FMS.Application.Command.PTSCommand.Common;
@@ -475,6 +476,8 @@ public static class FmsServiceCollectionExtensions
 
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
+        services.AddScoped<IWarningLetterPdfRenderer, WarningLetterPdfRenderer>();
+        services.AddScoped<IWarningLetterService, WarningLetterService>();
         services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
         services.AddScoped<FMS.Application.Features.Reporting.Services.OperationalReportPayloadBuilder>();
         services.AddScoped<FMS.Application.Features.Reporting.Services.FleetExecutiveReportPayloadBuilder>();

@@ -256,6 +256,21 @@ namespace FMS.Application.Common.Constants
         }
 
         // ============================================================
+        // WARNING LETTER PERMISSIONS ([NEW] - database seed required)
+        // ============================================================
+
+        public static class WarningLetter
+        {
+            public const string Read = "_Read_WarningLetter";
+            public const string Create = "_Create_WarningLetter";
+            public const string Update = "_Update_WarningLetter";
+            public const string Delete = "_Delete_WarningLetter";
+            public const string Finalize = "_Finalize_WarningLetter";
+            public const string Send = "_Send_WarningLetter";
+            public const string GeneratePdf = "_Generate_WarningLetter_PDF";
+        }
+
+        // ============================================================
         // TANK PERMISSIONS (existing in DB - Ids: 7-9)
         // Parent: TankManagement (Id: 6, under ATG)
         // ============================================================

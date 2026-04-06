@@ -27,6 +27,7 @@ using FMS.Domain.Entities.Features.Reporting;
 using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Domain.Entities.Features.UserManagement;
 using FMS.Domain.Entities.Features.VehicleDocumentManagement;
+using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Domain.Entities.GPSGate;
 using FMS.Domain.Entities.FuelAudit;
 using FMS.Domain.Entities.VehicleTracking;
@@ -112,6 +113,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<EventExpressionExecution> EventExpressionExecutions { get; set; }
     public virtual DbSet<ActiveEvent> ActiveEvents { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
+    public virtual DbSet<WarningLetter> WarningLetters { get; set; }
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
     public virtual DbSet<TankTransfer> TankTransfers { get; set; }
@@ -356,6 +358,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             Console.WriteLine("EmployeeConfiguration applied");
         }
         catch (Exception ex) { Console.WriteLine($"Error configuring EmployeeConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new WarningLetterConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring WarningLetterConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new NotificationCategoryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring NotificationCategoryConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new BusinessFunctionNotificationGroupConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring BusinessFunctionNotificationGroupConfiguration: {ex.Message}"); }

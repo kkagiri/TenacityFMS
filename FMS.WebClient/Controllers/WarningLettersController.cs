@@ -1,0 +1,299 @@
+/**
+ * File: WarningLettersController.cs
+ * Purpose: Exposes warning letter CRUD and filtered list endpoints.
+ * Dependencies: MediatR, BaseApiController, warning letter commands/queries, permission attributes
+ * Last Modified: 2026-04-06
+ */
+using System;
+using FMS.Application.Common.Constants;
+using FMS.Application.Features.WarningLetter.Commands;
+using FMS.Application.Features.WarningLetter.DTOs;
+using FMS.Application.Features.WarningLetter.Queries;
+using FMS.Application.Features.WarningLetter.Services;
+using FMS.Domain.Entities.Features.WarningLetterManagement;
+using FMS.WebClient.Attributes;
+using FMS.WebClient.Controllers.Base;
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace FMS.WebClient.Controllers;
+
+[ApiController]
+[Route("api/v1/warning-letters")]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.WarningLetter.Read)]
+public class WarningLettersController : BaseApiController
+{
+    private readonly IMediator _mediator;
+    private readonly IWarningLetterService _warningLetterService;
+
+    public WarningLettersController(IMediator mediator, IWarningLetterService warningLetterService)
+    {
+        _mediator = mediator;
+        _warningLetterService = warningLetterService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetWarningLetters(
+        [FromQuery] int? siteId,
+        [FromQuery] int? employeeId,
+        [FromQuery] int? vehicleId,
+        [FromQuery] WarningLetterType? letterType,
+        [FromQuery] WarningLetterStatus? status,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var result = await _mediator.Send(new GetWarningLettersQuery
+        {
+            SiteId = siteId,
+            EmployeeId = employeeId,
+            VehicleId = vehicleId,
+            LetterType = letterType,
+            Status = status,
+            StartDate = startDate,
+            EndDate = endDate
+        });
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetWarningLetter(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _mediator.Send(new GetWarningLetterByIdQuery(id));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("employee/{employeeId:int}")]
+    public async Task<IActionResult> GetWarningLettersByEmployee(int employeeId)
+    {
+        if (employeeId <= 0)
+        {
+            return BadRequest("Invalid employee ID");
+        }
+
+        var result = await _mediator.Send(new GetWarningLettersQuery { EmployeeId = employeeId });
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("vehicle/{vehicleId:int}")]
+    public async Task<IActionResult> GetWarningLettersByVehicle(int vehicleId)
+    {
+        if (vehicleId <= 0)
+        {
+            return BadRequest("Invalid vehicle ID");
+        }
+
+        var result = await _mediator.Send(new GetWarningLettersQuery { VehicleId = vehicleId });
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost]
+    [RequirePermission(Permissions.WarningLetter.Create)]
+    public async Task<IActionResult> CreateWarningLetter([FromBody] CreateWarningLetterDto warningLetterDto)
+    {
+        var validationResult = ValidateModelState();
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new CreateWarningLetterCommand
+        {
+            WarningLetter = warningLetterDto,
+            CreatedBy = userId
+        });
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{id:int}")]
+    [RequirePermission(Permissions.WarningLetter.Update)]
+    public async Task<IActionResult> UpdateWarningLetter(int id, [FromBody] UpdateWarningLetterDto warningLetterDto)
+    {
+        var validationResult = ValidateModelState();
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        if (id <= 0 || id != warningLetterDto.Id)
+        {
+            return BadRequest("Warning letter ID mismatch.");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new UpdateWarningLetterCommand
+        {
+            WarningLetter = warningLetterDto,
+            ModifiedBy = userId
+        });
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{id:int}")]
+    [RequirePermission(Permissions.WarningLetter.Delete)]
+    public async Task<IActionResult> DeleteWarningLetter(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _mediator.Send(new DeleteWarningLetterCommand(id));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{id:int}/finalize")]
+    [RequirePermission(Permissions.WarningLetter.Finalize)]
+    public async Task<IActionResult> FinalizeWarningLetter(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new FinalizeWarningLetterCommand(id, userId));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{id:int}/acknowledge")]
+    [RequirePermission(Permissions.WarningLetter.Update)]
+    public async Task<IActionResult> AcknowledgeWarningLetter(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new AcknowledgeWarningLetterCommand(id, userId));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("consumption-candidates")]
+    public async Task<IActionResult> GetConsumptionCandidates(
+        [FromQuery] WarningLetterType letterType,
+        [FromQuery] int? siteId,
+        [FromQuery] int? employeeId,
+        [FromQuery] int? vehicleId,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var result = await _mediator.Send(new GetWarningLetterConsumptionCandidatesQuery
+        {
+            LetterType = letterType,
+            SiteId = siteId,
+            EmployeeId = employeeId,
+            VehicleId = vehicleId,
+            StartDate = startDate,
+            EndDate = endDate
+        });
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("preview")]
+    [RequirePermission(Permissions.WarningLetter.Create)]
+    public async Task<IActionResult> PreviewWarningLetter([FromBody] CreateWarningLetterDto warningLetterDto)
+    {
+        var validationResult = ValidateModelState();
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        var result = await _warningLetterService.PreviewHtmlAsync(warningLetterDto);
+        if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.Data))
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return Content(result.Data, "text/html");
+    }
+
+    [HttpPost("{id:int}/generate-pdf")]
+    [RequirePermission(Permissions.WarningLetter.GeneratePdf)]
+    public async Task<IActionResult> GenerateWarningLetterPdf(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _warningLetterService.GeneratePdfAsync(id, userId);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
+    }
+
+    [HttpGet("{id:int}/pdf")]
+    [RequirePermission(Permissions.WarningLetter.GeneratePdf)]
+    public async Task<IActionResult> DownloadWarningLetterPdf(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _warningLetterService.GetPdfAsync(id);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
+    }
+
+    [HttpPost("{id:int}/send-email")]
+    [RequirePermission(Permissions.WarningLetter.Send)]
+    public async Task<IActionResult> SendWarningLetterEmail(int id, [FromBody] SendWarningLetterEmailRequestDto? request)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new SendWarningLetterEmailCommand(id, userId, request?.EmailRecipient));
+        return StatusCode(result.StatusCode, result);
+    }
+}

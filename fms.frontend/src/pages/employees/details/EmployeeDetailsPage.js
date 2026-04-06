@@ -173,7 +173,7 @@ const EmployeeDetailsPage = () => {
       setAllTransactions([]);
       notify(
         error?.response?.data?.message ||
-          "Failed to load employee transaction history.",
+        "Failed to load employee transaction history.",
         "error",
         3500
       );
@@ -413,6 +413,7 @@ const EmployeeDetailsPage = () => {
 
   const canEditEmployee = permissions.includes("_Edit_Employee");
   const canDeleteEmployee = permissions.includes("_Delete_Employee");
+  const canReadWarningLetters = permissions.includes("_Read_WarningLetter");
 
   const handleEditEmployee = useCallback(() => {
     if (!canEditEmployee) {
@@ -527,7 +528,7 @@ const EmployeeDetailsPage = () => {
         <div className="edp-header-card__top">
           <div className="edp-header-card__profile">
             <div className="m365-detail-header__icon-circle"
-                 style={{ background: '#fff4ce', color: '#ca5010' }}>
+              style={{ background: '#fff4ce', color: '#ca5010' }}>
               <i className="fa-light fa-user-hard-hat" />
             </div>
             <div>
@@ -545,26 +546,33 @@ const EmployeeDetailsPage = () => {
 
           <div className="edp-header-card__actions">
             <button className="m365-btn m365-btn--ghost"
-                    onClick={() => navigate("/employees/list")}>
+              onClick={() => navigate("/employees/list")}>
               <i className="fa-light fa-arrow-left" /> Back
             </button>
             <button className="m365-btn m365-btn--ghost"
-                    onClick={loadTransactions}
-                    disabled={deletingEmployee}>
+              onClick={loadTransactions}
+              disabled={deletingEmployee}>
               <i className="fa-light fa-rotate" /> Refresh
             </button>
+            {canReadWarningLetters && (
+              <button className="m365-btn m365-btn--ghost"
+                onClick={() => navigate(`/reports/warning-letters?employeeId=${employeeId}`)}
+                disabled={deletingEmployee || savingEmployeeChanges}>
+                <i className="fa-light fa-triangle-exclamation" /> Warning Letters
+              </button>
+            )}
             {canEditEmployee && (
               <button className="m365-btn m365-btn--ghost"
-                      onClick={handleEditEmployee}
-                      disabled={savingEmployeeChanges || deletingEmployee}>
+                onClick={handleEditEmployee}
+                disabled={savingEmployeeChanges || deletingEmployee}>
                 <i className="fa-light fa-pen-to-square" /> Edit
               </button>
             )}
             {canDeleteEmployee && (
               <button className="m365-btn m365-btn--ghost"
-                      onClick={handleDeleteEmployee}
-                      disabled={deletingEmployee || savingEmployeeChanges}
-                      style={{ color: 'var(--m365-error)' }}>
+                onClick={handleDeleteEmployee}
+                disabled={deletingEmployee || savingEmployeeChanges}
+                style={{ color: 'var(--m365-error)' }}>
                 <i className="fa-light fa-trash-can" /> Delete
               </button>
             )}
@@ -576,14 +584,14 @@ const EmployeeDetailsPage = () => {
           <div className="m365-field" style={{ marginBottom: 0 }}>
             <label className="m365-field__label">From</label>
             <input type="date" className="m365-input"
-                   value={fromDate}
-                   onChange={(e) => setFromDate(e.target.value)} />
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)} />
           </div>
           <div className="m365-field" style={{ marginBottom: 0 }}>
             <label className="m365-field__label">To</label>
             <input type="date" className="m365-input"
-                   value={toDate}
-                   onChange={(e) => setToDate(e.target.value)} />
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)} />
           </div>
         </div>
       </div>
@@ -846,13 +854,13 @@ const EmployeeDetailsPage = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid var(--m365-border-light)' }}>
             <button className="m365-btn m365-btn--ghost"
-                    onClick={() => setShowEditPopup(false)}
-                    disabled={savingEmployeeChanges}>
+              onClick={() => setShowEditPopup(false)}
+              disabled={savingEmployeeChanges}>
               Cancel
             </button>
             <button className="m365-btn m365-btn--primary"
-                    onClick={handleSaveEmployeeChanges}
-                    disabled={savingEmployeeChanges}>
+              onClick={handleSaveEmployeeChanges}
+              disabled={savingEmployeeChanges}>
               <i className="fa-light fa-floppy-disk" />
               {savingEmployeeChanges ? "Saving..." : "Save Changes"}
             </button>

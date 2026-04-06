@@ -14,6 +14,7 @@ export const employeeRoutes = {
   dashboard: "/employees/dashboard",
   list: "/employees/list",
   consumptionHistory: "/employees/consumption-history",
+  warningLetters: "/employees/warning-letters",
 };
 
 export const getEmployeeDetailsRoute = (employeeId) =>
@@ -52,6 +53,12 @@ export const navigationGroups = {
       title: "Consumption History",
       icon: "fa-light fa-gas-pump",
       path: employeeRoutes.consumptionHistory,
+    },
+    {
+      id: "warning-letters",
+      title: "Warning Letters",
+      icon: "fa-light fa-triangle-exclamation",
+      path: employeeRoutes.warningLetters,
     },
   ],
 };

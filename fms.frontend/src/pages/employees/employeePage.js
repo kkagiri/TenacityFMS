@@ -375,6 +375,14 @@ const EmployeePage = () => {
           <button
             type="button"
             className="m365-btn m365-btn--ghost"
+            onClick={() => navigate("/reports/warning-letters")}
+          >
+            <i className="fa-light fa-triangle-exclamation"></i>
+            Open Warning Letters
+          </button>
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
             onClick={() => navigate("/employees/consumption-history")}
           >
             <i className="fa-light fa-chart-column"></i>

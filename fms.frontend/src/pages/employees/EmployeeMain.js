@@ -29,6 +29,7 @@ const EmployeeMain = () => {
           path="consumption-history"
           element={<EmployeeConsumptionHistoryPage />}
         />
+        <Route path="warning-letters" element={<Navigate to="/reports/warning-letters" replace />} />
         <Route path=":id/details" element={<EmployeeDetailsPage />} />
         <Route
           path="*"

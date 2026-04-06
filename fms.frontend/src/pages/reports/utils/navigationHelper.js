@@ -38,6 +38,12 @@ export const reportsRoutes = {
   // Report List (grid view of all sources)
   list: '/reports/list',
 
+  // Compliance / operational follow-up
+  warningLetters: '/reports/warning-letters',
+  warningLetterNew: '/reports/warning-letters/new',
+  warningLetterEdit: (id) => `/reports/warning-letters/${id}/edit`,
+  warningLetterPreview: (id) => `/reports/warning-letters/${id}/preview`,
+
   // Legacy — kept for backward compatibility
   gallery: '/reports/gallery',
   tankVolumeHistory: '/reports/tank-volume-history',

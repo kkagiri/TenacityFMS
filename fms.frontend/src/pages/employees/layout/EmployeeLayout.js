@@ -84,6 +84,13 @@ const EmployeeLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       };
     }
 
+    if (pathname.includes("/warning-letters")) {
+      return {
+        title: "Employee Warning Letters",
+        subtitle: "Open employee warning letter queries in the reports workspace.",
+      };
+    }
+
     if (pathname.includes("/details")) {
       return {
         title: "Employee Details",

@@ -60,6 +60,14 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(45)
                     .HasDefaultValueSql("'Employee Name'");
 
+                builder.Property(e => e.Trade)
+                    .HasMaxLength(100)
+                    .HasColumnName("Trade");
+
+                builder.Property(e => e.Email)
+                    .HasMaxLength(255)
+                    .HasColumnName("Email");
+
                 builder.Property(e => e.IsModified)
                     .HasDefaultValueSql("'0'")
                     .HasColumnType("tinyint(4)");
