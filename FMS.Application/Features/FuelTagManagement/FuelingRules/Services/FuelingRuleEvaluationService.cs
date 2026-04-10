@@ -82,6 +82,16 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
 
             try
             {
+                // Load assignments up front so blocked responses can still report whether
+                // rules exist for the vehicle.
+                var assignments = await GetApplicableAssignmentsAsync(context, cancellationToken);
+                MergedRuleSet? mergedRules = null;
+
+                if (assignments.Any())
+                {
+                    mergedRules = MergeRules(assignments, result);
+                }
+
                 // ========================================
                 // STEP 1: Calculate HARD LIMIT (Physics)
                 // ========================================
@@ -122,33 +132,33 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                         _logger.LogWarning(
                             "Vehicle {VehicleId}: Tank capacity not configured (FuelTankCapacity = 0 or null). Cannot calculate fuel allowance.",
                             context.VehicleId);
-                        return FuelAllowanceResult.Blocked(
+                        return BlockResult(
+                            result,
                             "Tank capacity not configured. Please set FuelTankCapacity for this vehicle in Vehicle Management.");
                     }
 
                     // Tank capacity is set but GPS shows tank is full
-                    return FuelAllowanceResult.Blocked("Tank is full - no fuel needed");
+                    return BlockResult(result, "Tank is full - no fuel needed");
                 }
 
                 // ========================================
                 // STEP 2: Get all applicable rule sets (MERGE)
                 // ========================================
-                var assignments = await GetApplicableAssignmentsAsync(context, cancellationToken);
-
                 if (!assignments.Any())
                 {
                     _logger.LogWarning(
                         "Vehicle {VehicleId}: No rule assignments found. Fueling blocked - rules must be configured.",
                         context.VehicleId);
 
-                    return FuelAllowanceResult.Blocked(
+                    return BlockResult(
+                        result,
                         "No fueling rules configured for this vehicle. Please contact administrator to assign fuel rules.");
                 }
 
                 // ========================================
                 // STEP 3: Merge rules and calculate soft limits
                 // ========================================
-                var mergedRules = MergeRules(assignments, result);
+                mergedRules ??= MergeRules(assignments, result);
 
                 // Time window check
                 if (mergedRules.TimeWindowStart.HasValue && mergedRules.TimeWindowEnd.HasValue)
@@ -251,6 +261,15 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                 _logger.LogError(ex, "Error calculating fuel allowance for vehicle {VehicleId}", context.VehicleId);
                 throw;
             }
+        }
+
+        private static FuelAllowanceResult BlockResult(FuelAllowanceResult result, string reason)
+        {
+            result.IsAllowed = false;
+            result.MaxFuelAllowed = 0;
+            result.BlockedReason = reason;
+            result.Message = $"Fueling blocked: {reason}";
+            return result;
         }
 
         /// <summary>
