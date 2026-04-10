@@ -18,8 +18,10 @@ import React from 'react';
  * @param {boolean}  props.canManage
  */
 const DepartmentCard = ({ department, userCount = 0, onEdit, onDelete, canManage = false }) => {
+  const isActive = department?.isActive !== false;
+
   return (
-    <div className="m365-dept-card">
+    <div className={`m365-dept-card${isActive ? '' : ' m365-dept-card--inactive'}`}>
       {/* Icon */}
       <div className="m365-dept-card__icon">
         <i className="fa-light fa-building" />
@@ -27,7 +29,16 @@ const DepartmentCard = ({ department, userCount = 0, onEdit, onDelete, canManage
 
       {/* Body */}
       <div className="m365-dept-card__body">
-        <p className="m365-dept-card__name">{department.name}</p>
+        <div className="m365-dept-card__heading">
+          <p className="m365-dept-card__name">{department.name}</p>
+          <span className={`m365-badge ${isActive ? 'm365-badge--success' : 'm365-badge--neutral'}`}>
+            <i className={`fa-light ${isActive ? 'fa-circle-check' : 'fa-circle-minus'}`} />
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        {department.code && (
+          <p className="m365-dept-card__meta">Code: {department.code}</p>
+        )}
         {department.description && (
           <p className="m365-dept-card__desc">{department.description}</p>
         )}

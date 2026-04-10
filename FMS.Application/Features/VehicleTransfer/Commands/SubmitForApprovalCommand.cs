@@ -25,7 +25,7 @@ namespace FMS.Application.Features.VehicleTransfer.Commands;
 public record SubmitForApprovalCommand(
     int TransferId,
     string? UserId,
-    string WorkshopManagerEmail,
+    string? WorkshopManagerEmail,
     string? WorkshopManagerName,
     string? ApprovalBaseUrl
 ) : IRequest<FMSResponse<VehicleTransferDTO>>;
@@ -56,11 +56,6 @@ public class SubmitForApprovalCommandHandler : IRequestHandler<SubmitForApproval
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(request.WorkshopManagerEmail))
-            {
-                return FMSResponse<VehicleTransferDTO>.Failed("Workshop manager email is required", "VALIDATION_ERROR");
-            }
-
             var transfer = await _context.Set<Domain.Entities.Features.VehicleManagement.VehicleTransfer>()
                 .Include(t => t.Vehicle)
                 .Include(t => t.FromSite)
@@ -78,30 +73,39 @@ public class SubmitForApprovalCommandHandler : IRequestHandler<SubmitForApproval
             }
 
             transfer.Status = "PendingApproval";
-            transfer.WorkshopManagerSign = !string.IsNullOrWhiteSpace(request.WorkshopManagerName)
-                ? request.WorkshopManagerName
-                : request.WorkshopManagerEmail;
+            if (!string.IsNullOrWhiteSpace(request.WorkshopManagerName))
+            {
+                transfer.WorkshopManagerSign = request.WorkshopManagerName;
+            }
+            else if (!string.IsNullOrWhiteSpace(request.WorkshopManagerEmail))
+            {
+                transfer.WorkshopManagerSign = request.WorkshopManagerEmail;
+            }
+
             transfer.ModifiedBy = request.UserId;
             transfer.DateModified = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            var approvalLink = BuildApprovalLink(request.ApprovalBaseUrl, transfer.TransferId);
-            var subject = $"Approval Required: Vehicle Transfer #{transfer.DeliveryNoteNumber ?? transfer.TransferId.ToString()}";
-            var body = BuildApprovalEmailBody(transfer, approvalLink);
+            if (!string.IsNullOrWhiteSpace(request.WorkshopManagerEmail))
+            {
+                var approvalLink = BuildApprovalLink(request.ApprovalBaseUrl, transfer.TransferId);
+                var subject = $"Approval Required: Vehicle Transfer #{transfer.DeliveryNoteNumber ?? transfer.TransferId.ToString()}";
+                var body = BuildApprovalEmailBody(transfer, approvalLink);
 
-            try
-            {
-                await _emailService.SendEmailAsync(
-                    request.WorkshopManagerEmail,
-                    subject,
-                    body,
-                    isHtml: true,
-                    cancellationToken: cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Transfer {TransferId} moved to PendingApproval but approval email failed", transfer.TransferId);
+                try
+                {
+                    await _emailService.SendEmailAsync(
+                        request.WorkshopManagerEmail,
+                        subject,
+                        body,
+                        isHtml: true,
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Transfer {TransferId} moved to PendingApproval but approval email failed", transfer.TransferId);
+                }
             }
 
             // Send in-app/SignalR notifications to approvers

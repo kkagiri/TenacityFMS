@@ -10,6 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.WarningLetter.DTOs;
+using FMS.Application.Features.WarningLetter.Queries;
+using FMS.Application.Features.WarningLetter.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -26,19 +29,40 @@ public class UpdateWarningLetterCommand : IRequest<FMSResponse<WarningLetterDto>
 public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLetterCommand, FMSResponse<WarningLetterDto>>
 {
     private readonly GpsdataContext _context;
+    private readonly ISystemConfigurationService _systemConfigurationService;
 
-    public UpdateWarningLetterCommandHandler(GpsdataContext context)
+    public UpdateWarningLetterCommandHandler(GpsdataContext context, ISystemConfigurationService systemConfigurationService)
     {
         _context = context;
+        _systemConfigurationService = systemConfigurationService;
     }
 
     public async Task<FMSResponse<WarningLetterDto>> Handle(UpdateWarningLetterCommand request, CancellationToken cancellationToken)
     {
-        var validationErrors = ValidateRequest(request.WarningLetter, request.ModifiedBy);
+        var configuredIssuerName = await _systemConfigurationService.GetConfigurationValueAsync(
+            GetWarningLetterSettingsQueryHandler.IssuerNameConfigKey,
+            cancellationToken);
+        var configuredIssuerTitle = await _systemConfigurationService.GetConfigurationValueAsync(
+            GetWarningLetterSettingsQueryHandler.IssuerTitleConfigKey,
+            cancellationToken);
+
+        var resolvedIssuedByName = ResolveIssuerName(configuredIssuerName, request.WarningLetter.IssuedByName);
+        var resolvedIssuedByTitle = ResolveIssuerTitle(configuredIssuerTitle, request.WarningLetter.IssuedByTitle);
+
+        var validationErrors = ValidateRequest(request.WarningLetter, request.ModifiedBy, resolvedIssuedByName);
         if (validationErrors.Count > 0)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(validationErrors);
         }
+
+        var resolvedViolationSummary = WarningLetterSummaryBuilder.Resolve(
+            request.WarningLetter.ViolationSummary,
+            request.WarningLetter.LetterType,
+            request.WarningLetter.PeriodStart,
+            request.WarningLetter.PeriodEnd,
+            request.WarningLetter.ExpectedValue,
+            request.WarningLetter.ActualValue,
+            request.WarningLetter.ExcessValue);
 
         var warningLetter = await _context.WarningLetters.FirstOrDefaultAsync(w => w.Id == request.WarningLetter.Id, cancellationToken);
         if (warningLetter == null)
@@ -55,6 +79,11 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         if (employee == null)
         {
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_EMPLOYEE_NOT_FOUND", "Employee not found");
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.Position))
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee position is required before updating a warning letter." });
         }
 
         var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.VehicleId == request.WarningLetter.VehicleId, cancellationToken);
@@ -79,7 +108,15 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        if (employee.SiteId.HasValue && employee.SiteId.Value != request.WarningLetter.SiteId)
+        var employeeAllowedForVehicle = await IsEmployeeAllowedForWarningLetterAsync(
+            employee.Id,
+            employee.SiteId,
+            vehicle.VehicleId,
+            vehicle.DefaultEmployeeId,
+            request.WarningLetter.SiteId,
+            cancellationToken);
+
+        if (!employeeAllowedForVehicle)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee does not belong to the selected site." });
         }
@@ -96,15 +133,21 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         warningLetter.LetterDate = request.WarningLetter.LetterDate;
         warningLetter.PeriodStart = request.WarningLetter.PeriodStart;
         warningLetter.PeriodEnd = request.WarningLetter.PeriodEnd;
-        warningLetter.ViolationSummary = request.WarningLetter.ViolationSummary.Trim();
+        warningLetter.ViolationSummary = resolvedViolationSummary;
         warningLetter.ExpectedValue = request.WarningLetter.ExpectedValue;
         warningLetter.ActualValue = request.WarningLetter.ActualValue;
         warningLetter.ExcessValue = request.WarningLetter.ExcessValue;
-        warningLetter.FuelPrice = request.WarningLetter.FuelPrice;
-        warningLetter.ExcessCost = CreateWarningLetterCommandHandler.ResolveExcessCost(request.WarningLetter.ExcessCost, request.WarningLetter.ExcessValue, request.WarningLetter.FuelPrice);
+        var fuelPrice = request.WarningLetter.FuelPrice;
+        if (request.WarningLetter.LetterType == WarningLetterType.ExcessFuelConsumption)
+        {
+            fuelPrice = await _systemConfigurationService.GetDecimalAsync(
+                GetWarningLetterSettingsQueryHandler.FuelPricePerLitreConfigKey, 0m, cancellationToken);
+        }
+        warningLetter.FuelPrice = fuelPrice;
+        warningLetter.ExcessCost = CreateWarningLetterCommandHandler.ResolveExcessCost(request.WarningLetter.ExcessCost, request.WarningLetter.ExcessValue, fuelPrice);
         warningLetter.IssuedByUserId = userId;
-        warningLetter.IssuedByName = request.WarningLetter.IssuedByName.Trim();
-        warningLetter.IssuedByTitle = string.IsNullOrWhiteSpace(request.WarningLetter.IssuedByTitle) ? null : request.WarningLetter.IssuedByTitle.Trim();
+        warningLetter.IssuedByName = resolvedIssuedByName;
+        warningLetter.IssuedByTitle = resolvedIssuedByTitle;
         warningLetter.EmailRecipient = string.IsNullOrWhiteSpace(request.WarningLetter.EmailRecipient) ? employee.Email : request.WarningLetter.EmailRecipient.Trim();
         warningLetter.Notes = string.IsNullOrWhiteSpace(request.WarningLetter.Notes) ? null : request.WarningLetter.Notes.Trim();
         warningLetter.DateModified = DateTime.UtcNow;
@@ -115,7 +158,7 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         return FMSResponse<WarningLetterDto>.Success(CreateWarningLetterCommandHandler.MapToDto(warningLetter, employee, vehicle, site), "Warning letter updated successfully");
     }
 
-    private static List<string> ValidateRequest(UpdateWarningLetterDto dto, string modifiedBy)
+    private static List<string> ValidateRequest(UpdateWarningLetterDto dto, string modifiedBy, string resolvedIssuedByName)
     {
         var errors = new List<string>();
 
@@ -123,8 +166,7 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         if (dto.EmployeeId <= 0) errors.Add("EmployeeId is required.");
         if (dto.VehicleId <= 0) errors.Add("VehicleId is required.");
         if (dto.SiteId <= 0) errors.Add("SiteId is required.");
-        if (string.IsNullOrWhiteSpace(dto.ViolationSummary)) errors.Add("ViolationSummary is required.");
-        if (string.IsNullOrWhiteSpace(dto.IssuedByName)) errors.Add("IssuedByName is required.");
+        if (string.IsNullOrWhiteSpace(resolvedIssuedByName)) errors.Add("IssuedByName is required.");
         if (string.IsNullOrWhiteSpace(modifiedBy)) errors.Add("ModifiedBy is required.");
         if (dto.PeriodEnd < dto.PeriodStart) errors.Add("PeriodEnd cannot be earlier than PeriodStart.");
         if (dto.ExpectedValue < 0) errors.Add("ExpectedValue cannot be negative.");
@@ -134,5 +176,50 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         if (dto.ExcessCost < 0) errors.Add("ExcessCost cannot be negative.");
 
         return errors;
+    }
+
+    private static string ResolveIssuerName(string? configuredIssuerName, string? requestedIssuerName)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredIssuerName))
+        {
+            return configuredIssuerName.Trim();
+        }
+
+        return requestedIssuerName?.Trim() ?? string.Empty;
+    }
+
+    private static string? ResolveIssuerTitle(string? configuredIssuerTitle, string? requestedIssuerTitle)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredIssuerTitle))
+        {
+            return configuredIssuerTitle.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(requestedIssuerTitle) ? null : requestedIssuerTitle.Trim();
+    }
+
+    private async Task<bool> IsEmployeeAllowedForWarningLetterAsync(
+        int employeeId,
+        int? employeeSiteId,
+        int vehicleId,
+        int? vehicleDefaultEmployeeId,
+        int warningLetterSiteId,
+        CancellationToken cancellationToken)
+    {
+        if (!employeeSiteId.HasValue || employeeSiteId.Value == warningLetterSiteId)
+        {
+            return true;
+        }
+
+        if (vehicleDefaultEmployeeId.HasValue && vehicleDefaultEmployeeId.Value == employeeId)
+        {
+            return true;
+        }
+
+        return await _context.EmployeeVehicle
+            .AsNoTracking()
+            .AnyAsync(
+                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicleId,
+                cancellationToken);
     }
 }

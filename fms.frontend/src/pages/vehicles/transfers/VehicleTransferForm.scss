@@ -30,7 +30,8 @@ $step-dot-size: 32px;
   .dx-textbox,
   .dx-numberbox,
   .dx-selectbox,
-  .dx-datebox {
+  .dx-datebox,
+  .dx-textarea {
     @apply tw-w-full;
     .dx-texteditor-input {
       height: 34px;
@@ -66,6 +67,23 @@ $step-dot-size: 32px;
   .dx-switch {
     .dx-switch-on .dx-switch-handle::before {
       background-color: $success;
+    }
+  }
+}
+
+.vtf-readonly-description {
+  .dx-texteditor-input {
+    min-height: 120px !important;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    resize: none;
+    background: #faf9f8;
+    color: $text-primary;
+  }
+
+  &.dx-state-readonly {
+    .dx-texteditor-input {
+      border-color: $border;
     }
   }
 }

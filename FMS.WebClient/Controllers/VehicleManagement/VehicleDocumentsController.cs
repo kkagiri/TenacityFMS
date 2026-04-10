@@ -131,6 +131,13 @@ public class VehicleDocumentsController : ControllerBase
         return CreateResponse(result);
     }
 
+    [HttpPost("settings/issuing-authorities")]
+    public async Task<ActionResult<FMSResponse<bool>>> CreateIssuingAuthority([FromBody] CreateVehicleDocumentIssuingAuthorityDto request)
+    {
+        var result = await _mediator.Send(new CreateVehicleDocumentIssuingAuthorityCommand(request));
+        return CreateResponse(result);
+    }
+
     [HttpGet("settings/reminder-defaults/current-user")]
     public async Task<ActionResult<FMSResponse<List<VehicleDocumentUserPreferenceDto>>>> GetCurrentUserReminderDefaults()
     {

@@ -84,6 +84,55 @@ namespace FMS.WebClient.Controllers
             return Ok(employees);
         }
 
+        [HttpGet("positions")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
+        public async Task<IActionResult> GetEmployeePositions([FromQuery] bool? active = true)
+        {
+            var positions = await _mediator.Send(new GetEmployeePositionsQuery(active ?? true));
+            return Ok(positions);
+        }
+
+        [HttpPost("positions")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Create)]
+        public async Task<IActionResult> CreateEmployeePosition([FromBody] EmployeePositionDto positionDto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var result = await _mediator.Send(new CreateEmployeePositionCommand(positionDto));
+            if (!result.Success) return BadRequest(result.Message);
+
+            return Ok(result);
+        }
+
+        [HttpPut("positions/{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Edit)]
+        public async Task<IActionResult> UpdateEmployeePosition(int id, [FromBody] EmployeePositionDto positionDto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var result = await _mediator.Send(new UpdateEmployeePositionCommand(id, positionDto));
+            if (!result.Success) return BadRequest(result.Message);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("positions/{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Delete)]
+        public async Task<IActionResult> DeleteEmployeePosition(int id)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var result = await _mediator.Send(new DeleteEmployeePositionCommand(id));
+            if (!result.Success) return BadRequest(result.Message);
+
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission(Permissions.Employee.Read)]
@@ -336,6 +385,27 @@ namespace FMS.WebClient.Controllers
             {
                 return StatusCode(500, new { message = "Error in quick employee search", error = ex.Message });
             }
+        }
+
+        [HttpGet("duplicate-check")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
+        public async Task<IActionResult> CheckEmployeeDuplicates([FromQuery] int? employeeId, [FromQuery] int? siteId, [FromQuery] string? fullName, [FromQuery] string? employeeWorkNo)
+        {
+            var result = await _mediator.Send(new CheckEmployeeDuplicateQuery
+            {
+                EmployeeId = employeeId,
+                SiteId = siteId,
+                FullName = fullName,
+                EmployeeWorkNo = employeeWorkNo
+            });
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
         }
 
         [HttpGet("debug-search")]

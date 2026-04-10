@@ -45,3 +45,18 @@ public class UpdateDepartmentDto
     public string? Description { get; set; }
     public bool IsActive { get; set; }
 }
+
+/// <summary>
+/// Lightweight user DTO for department user listings
+/// </summary>
+public class DepartmentUserDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string DisplayName => string.IsNullOrWhiteSpace(FirstName) && string.IsNullOrWhiteSpace(LastName)
+        ? UserName
+        : $"{FirstName} {LastName}".Trim();
+}

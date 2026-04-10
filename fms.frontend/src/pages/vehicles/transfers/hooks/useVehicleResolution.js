@@ -33,11 +33,92 @@ import {
  * @param {Function} setFormData - State setter for the parent form data
  * @returns {{ vehicle, hasGps, gpsMapping, checkupItems, setCheckupItems, loadCheckupTemplate }}
  */
-const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
+const useVehicleResolution = (selectedVehicleId, vehicles, setFormData, preserveLoadedCheckupItemsRef) => {
     const [vehicle, setVehicle] = useState(null);
     const [hasGps, setHasGps] = useState(false);
     const [gpsMapping, setGpsMapping] = useState(null);
+    const [gpsInfo, setGpsInfo] = useState(null);
     const [checkupItems, setCheckupItems] = useState([]);
+
+    const resolveGpsIdentifier = useCallback((mapping, info, fallbackValue = "") => {
+        const preferredIdentifier = mapping?.deviceIMEI || info?.deviceIMEI || "";
+        if (preferredIdentifier) {
+            return preferredIdentifier;
+        }
+
+        const fallbackIdentifier = typeof fallbackValue === "string" ? fallbackValue.trim() : "";
+        if (fallbackIdentifier) {
+            return fallbackIdentifier;
+        }
+
+        return mapping?.externalDeviceId || "";
+    }, []);
+
+    const buildGpsRemarks = useCallback((mapping, info) => {
+        const parts = [];
+
+        if (mapping?.deviceName) {
+            parts.push(`Mapped device: ${mapping.deviceName}`);
+        }
+
+        if (mapping?.deviceIMEI || info?.deviceIMEI) {
+            parts.push(`IMEI: ${mapping?.deviceIMEI || info?.deviceIMEI}`);
+        }
+
+        if (info?.sensorHealth?.overallHealth) {
+            parts.push(`Health: ${info.sensorHealth.overallHealth}`);
+        }
+
+        if (typeof info?.isOnline === "boolean") {
+            parts.push(`Online: ${info.isOnline ? "Yes" : "No"}`);
+        }
+
+        if (info?.lastUpdated) {
+            parts.push(`Last update: ${new Date(info.lastUpdated).toLocaleString()}`);
+        }
+
+        return parts.join("\n");
+    }, []);
+
+    const formatTelemetryVariables = useCallback((telemetryVariables = []) => {
+        if (!Array.isArray(telemetryVariables) || telemetryVariables.length === 0) {
+            return "No live telemetry variables available.";
+        }
+
+        return telemetryVariables
+            .filter((variable) => variable?.name)
+            .map((variable) => `${variable.name}: ${variable.value ?? "N/A"}`)
+            .join("\n");
+    }, []);
+
+    const buildFuelSensorRemarks = useCallback((mapping, info) => {
+        const parts = [];
+
+        if (mapping?.deviceType) {
+            parts.push(`Device type: ${mapping.deviceType}`);
+        }
+
+        if (info?.customFuelCalibration) {
+            parts.push(`Custom fuel calibration: ${info.customFuelCalibration}`);
+        }
+
+        if (info?.sensorHealth?.fuelLevel != null) {
+            parts.push(`Fuel level: ${info.sensorHealth.fuelLevel} ${info.sensorHealth.fuelLevelUnit || "Liters"}`);
+        }
+
+        if (info?.sensorHealth?.batteryVoltage != null) {
+            parts.push(`Battery: ${info.sensorHealth.batteryVoltage}V`);
+        }
+
+        if (typeof info?.sensorHealth?.ignitionStatus === "boolean") {
+            parts.push(`Ignition: ${info.sensorHealth.ignitionStatus ? "On" : "Off"}`);
+        }
+
+        parts.push("All telemetry variables:");
+        parts.push(formatTelemetryVariables(info?.telemetryVariables));
+
+        return parts.join("\n");
+    }, [formatTelemetryVariables]);
 
     // ── Checkup Template ──────────────────────────────────
     const loadCheckupTemplate = useCallback(async (criteria = null) => {
@@ -80,8 +161,7 @@ const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
                 setGpsMapping(active);
                 setFormData((prev) => ({
                     ...prev,
-                    gpsDeviceId: active.externalDeviceId || active.deviceIMEI || "",
-                    fuelSensorId: active.hasFuelSensor ? (active.fuelSensorType || "Installed") : "",
+                    gpsDeviceId: resolveGpsIdentifier(active, null, prev.gpsDeviceId),
                 }));
             } else {
                 setGpsMapping(null);
@@ -90,7 +170,18 @@ const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
             console.warn("Could not fetch GPS mapping:", error);
             setGpsMapping(null);
         }
-    }, [setFormData]);
+    }, [resolveGpsIdentifier, setFormData]);
+
+    const fetchGpsInfo = useCallback(async (targetVehicleId) => {
+        try {
+            const response = await axiosInstance.get(`/vehicletracking/${targetVehicleId}/gps-information`);
+            const info = response.data?.data || response.data?.Data || response.data || null;
+            setGpsInfo(info);
+        } catch (error) {
+            console.warn("Could not fetch GPS information:", error);
+            setGpsInfo(null);
+        }
+    }, []);
 
     // ── Apply Vehicle Context ─────────────────────────────
     const applyVehicleContext = useCallback((vehicleData) => {
@@ -131,18 +222,24 @@ const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
 
         const gpsInstalled = !!vehicleData.hasGPSInstalled;
         setHasGps(gpsInstalled);
-        loadCheckupTemplate({
-            vehicleTypeId: resolvedVehicleTypeId,
-            vehicleModelId: resolvedVehicleModelId,
-            hasGps: gpsInstalled,
-        });
+        if (preserveLoadedCheckupItemsRef?.current) {
+            preserveLoadedCheckupItemsRef.current = false;
+        } else {
+            loadCheckupTemplate({
+                vehicleTypeId: resolvedVehicleTypeId,
+                vehicleModelId: resolvedVehicleModelId,
+                hasGps: gpsInstalled,
+            });
+        }
 
         if (gpsInstalled) {
             fetchGpsMapping(vehicleData.vehicleId);
+            fetchGpsInfo(vehicleData.vehicleId);
         } else {
             setGpsMapping(null);
+            setGpsInfo(null);
         }
-    }, [fetchGpsMapping, loadCheckupTemplate, setFormData]);
+    }, [fetchGpsInfo, fetchGpsMapping, loadCheckupTemplate, preserveLoadedCheckupItemsRef, setFormData]);
 
     // ── Resolve Vehicle (store lookup → API fallback) ─────
     useEffect(() => {
@@ -157,6 +254,7 @@ const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
                 setVehicle(null);
                 setHasGps(false);
                 setGpsMapping(null);
+                setGpsInfo(null);
                 setFormData((prev) => ({
                     ...prev,
                     vehicleId: null,
@@ -204,10 +302,35 @@ const useVehicleResolution = (selectedVehicleId, vehicles, setFormData) => {
         };
     }, [selectedVehicleId, vehicles, applyVehicleContext, loadCheckupTemplate, setFormData]);
 
+    useEffect(() => {
+        if (!hasGps) {
+            return;
+        }
+
+        setFormData((prev) => {
+            const next = { ...prev };
+
+            if (gpsMapping?.externalDeviceId || gpsMapping?.deviceIMEI) {
+                next.gpsDeviceId = resolveGpsIdentifier(gpsMapping, gpsInfo, prev.gpsDeviceId);
+            }
+
+            if (!prev.fuelSensorId && gpsInfo?.sensorHealth?.fuelLevel != null) {
+                next.fuelSensorId = "Detected from live telemetry";
+            }
+
+            next.gpsDeviceRemarks = buildGpsRemarks(gpsMapping, gpsInfo);
+
+            next.fuelSensorRemarks = buildFuelSensorRemarks(gpsMapping, gpsInfo);
+
+            return next;
+        });
+    }, [buildFuelSensorRemarks, buildGpsRemarks, gpsInfo, gpsMapping, hasGps, resolveGpsIdentifier, setFormData]);
+
     return {
         vehicle,
         hasGps,
         gpsMapping,
+        gpsInfo,
         checkupItems,
         setCheckupItems,
         loadCheckupTemplate,

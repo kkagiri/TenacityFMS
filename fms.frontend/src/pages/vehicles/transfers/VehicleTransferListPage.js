@@ -2,7 +2,7 @@
  * File: VehicleTransferListPage.js
  * Purpose: M365 Admin Center style vehicle transfer list page with SlidePanel detail view.
  * Dependencies: DataGrid, SlidePanel, VehicleTransferDetails, axiosInstance, Redux
- * Last Modified: 2026-02-28
+ * Last Modified: 2026-04-09
  *
  * Key Functions:
  * - loadTransfers(): Fetches all transfers with optional filters
@@ -67,7 +67,7 @@ const VehicleTransferListPage = () => {
 
   useEffect(() => {
     dispatch(fetchSiteList());
-    dispatch(fetchUsers()).catch(() => {});
+    dispatch(fetchUsers()).catch(() => { });
     loadTransfers();
   }, [dispatch]);
 
@@ -105,7 +105,7 @@ const VehicleTransferListPage = () => {
     try {
       const res = await axiosInstance.get(`/vehicletransfers/${transfer.transferId}`);
       if (res.data?.isSuccess) {
-        setSelectedTransfer(res.data.data);
+        setSelectedTransfer(res.data.data || res.data.Data || transfer);
       } else {
         setSelectedTransfer(transfer);
       }
@@ -119,6 +119,12 @@ const VehicleTransferListPage = () => {
   const handleClosePanel = () => {
     setShowDetailPanel(false);
     setSelectedTransfer(null);
+  };
+
+  const handleCloseApprovalPanel = () => {
+    setShowApprovalDialog(false);
+    setApprovalTransfer(null);
+    setApprovalUserId("");
   };
 
   const handlePanelRefresh = () => {
@@ -178,8 +184,7 @@ const VehicleTransferListPage = () => {
       });
       if (response.data?.isSuccess) {
         notify("Transfer submitted for approval", "success", 3000);
-        setShowApprovalDialog(false);
-        setApprovalTransfer(null);
+        handleCloseApprovalPanel();
         loadTransfers();
       } else {
         notify(response.data?.message || "Failed to submit for approval", "error", 3000);
@@ -274,10 +279,33 @@ const VehicleTransferListPage = () => {
     }
   };
 
+  const handleDeleteTransfer = async (transfer) => {
+    if (!window.confirm(`Delete transfer #${transfer.transferId} for ${transfer.vehicleHyoungNo || transfer.deliveryNoteNumber || "this vehicle"}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.delete(`/vehicletransfers/${transfer.transferId}`);
+      if (response.data?.isSuccess) {
+        notify("Transfer deleted", "success", 3000);
+        if (selectedTransfer?.transferId === transfer.transferId) {
+          handleClosePanel();
+        }
+        loadTransfers();
+      } else {
+        notify(response.data?.message || "Failed to delete transfer", "error", 3000);
+      }
+    } catch (error) {
+      notify(error.response?.data?.message || "Failed to delete transfer", "error", 3000);
+    }
+  };
+
   // ── Cell renders ──
 
   const actionsCellRender = (cellData) => {
     const status = cellData.data.status?.toLowerCase();
+    const canDelete = status === "draft" || status === "pending";
+
     return (
       <div className="transfer-actions">
         <button
@@ -311,6 +339,15 @@ const VehicleTransferListPage = () => {
               <i className="fa-light fa-ban" />
             </button>
           </>
+        )}
+        {canDelete && (
+          <button
+            className="m365-icon-btn m365-icon-btn--danger"
+            title="Delete Transfer"
+            onClick={() => handleDeleteTransfer(cellData.data)}
+          >
+            <i className="fa-light fa-trash" />
+          </button>
         )}
         {status === "pendingapproval" && (
           <>
@@ -438,8 +475,11 @@ const VehicleTransferListPage = () => {
           ref={dataGridRef}
           dataSource={transfers}
           keyExpr="transferId"
+          width="100%"
           showBorders={false}
           showRowLines={true}
+          allowColumnResizing={true}
+          columnResizingMode="widget"
           columnAutoWidth={true}
           wordWrapEnabled={true}
           height="100%"
@@ -464,7 +504,13 @@ const VehicleTransferListPage = () => {
           <Export enabled={true} allowExportSelectedData={false} />
 
           <Column dataField="transferId" caption="ID" width={60} alignment="center" />
-          <Column dataField="vehicleHyoungNo" caption="Vehicle No" width={110} />
+          <Column
+            dataField="vehicleHyoungNo"
+            caption="Vehicle No"
+            minWidth={100}
+            fixed={true}
+            fixedPosition="left"
+          />
           <Column dataField="vehicleNumberPlate" caption="Reg. No" width={110} />
           <Column dataField="fromSiteName" caption="From Site" width={140} />
           <Column dataField="toSiteName" caption="To Site" width={140} />
@@ -485,7 +531,7 @@ const VehicleTransferListPage = () => {
           <Column dataField="deliveryNoteNumber" caption="Del. Note" width={100} />
           <Column
             caption="Actions"
-            width={140}
+            width={190}
             fixed={true}
             fixedPosition="right"
             cellRender={actionsCellRender}
@@ -500,7 +546,7 @@ const VehicleTransferListPage = () => {
         open={showDetailPanel}
         onClose={handleClosePanel}
         title={`Transfer #${selectedTransfer?.deliveryNoteNumber || selectedTransfer?.transferId || ""}`}
-        width={1200}
+        width="min(1440px, calc(100vw - 32px))"
       >
         {detailLoading ? (
           <div className="tw-flex tw-items-center tw-justify-center tw-py-16">
@@ -516,47 +562,86 @@ const VehicleTransferListPage = () => {
       </SlidePanel>
 
       {/* ── Approval Manager Selector Dialog ── */}
-      {showApprovalDialog && (
-        <div className="transfer-list__dialog-overlay" onClick={() => setShowApprovalDialog(false)}>
-          <div className="transfer-list__dialog" onClick={(e) => e.stopPropagation()}>
-            <div className="transfer-list__dialog-header">
-              <h3>Submit for Approval</h3>
-              <button className="m365-btn m365-btn--ghost" onClick={() => setShowApprovalDialog(false)}>
-                <i className="fa-light fa-xmark" />
-              </button>
+      <SlidePanel
+        open={showApprovalDialog}
+        onClose={handleCloseApprovalPanel}
+        title="Submit for Approval"
+        width={520}
+        panelClassName="transfer-approval-panel"
+      >
+        <div className="transfer-approval-panel__content">
+          <div className="transfer-approval-panel__hero">
+            <div className="transfer-approval-panel__hero-icon">
+              <i className="fa-light fa-paper-plane-top" />
             </div>
-            <div className="transfer-list__dialog-body">
-              <p className="transfer-list__dialog-desc">
-                Select the workshop manager to review transfer{" "}
-                <strong>#{approvalTransfer?.deliveryNoteNumber || approvalTransfer?.transferId}</strong>
+            <div className="transfer-approval-panel__hero-copy">
+              <h4>Route Transfer for Review</h4>
+              <p>
+                Send transfer <strong>#{approvalTransfer?.deliveryNoteNumber || approvalTransfer?.transferId || "-"}</strong>
+                {" "}to a workshop manager for approval.
               </p>
-              <label className="transfer-list__dialog-label">Workshop Manager</label>
-              <select
-                className="m365-select"
-                value={approvalUserId}
-                onChange={(e) => setApprovalUserId(e.target.value)}
-              >
-                <option value="">Select Workshop Manager…</option>
-                {workshopUsers.map((u) => (
-                  <option key={u._id} value={u._id}>{u._name} ({u._email})</option>
-                ))}
-              </select>
-            </div>
-            <div className="transfer-list__dialog-footer">
-              <button className="m365-btn m365-btn--ghost" onClick={() => setShowApprovalDialog(false)}>
-                Cancel
-              </button>
-              <button
-                className="m365-btn m365-btn--primary"
-                disabled={!approvalUserId}
-                onClick={handleConfirmSubmitForApproval}
-              >
-                <i className="fa-light fa-paper-plane" /> Submit
-              </button>
             </div>
           </div>
+
+          <div className="transfer-approval-panel__summary">
+            <div className="transfer-approval-panel__summary-item">
+              <span className="transfer-approval-panel__summary-label">Vehicle</span>
+              <span className="transfer-approval-panel__summary-value">{approvalTransfer?.vehicleHyoungNo || "-"}</span>
+            </div>
+            <div className="transfer-approval-panel__summary-item">
+              <span className="transfer-approval-panel__summary-label">Route</span>
+              <span className="transfer-approval-panel__summary-value">
+                {approvalTransfer?.fromSiteName || "-"} to {approvalTransfer?.toSiteName || "-"}
+              </span>
+            </div>
+            <div className="transfer-approval-panel__summary-item">
+              <span className="transfer-approval-panel__summary-label">Transfer Date</span>
+              <span className="transfer-approval-panel__summary-value">
+                {approvalTransfer?.transferDate
+                  ? new Date(approvalTransfer.transferDate).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                  : "-"}
+              </span>
+            </div>
+          </div>
+
+          <div className="transfer-approval-panel__form">
+            <label className="transfer-approval-panel__label" htmlFor="approvalUserId">
+              Workshop Manager
+            </label>
+            <select
+              id="approvalUserId"
+              className="m365-select transfer-approval-panel__select"
+              value={approvalUserId}
+              onChange={(e) => setApprovalUserId(e.target.value)}
+            >
+              <option value="">Select Workshop Manager…</option>
+              {workshopUsers.map((u) => (
+                <option key={u._id} value={u._id}>{u._name} ({u._email})</option>
+              ))}
+            </select>
+            <p className="transfer-approval-panel__hint">
+              The selected manager receives the approval email link for this transfer.
+            </p>
+          </div>
+
+          <div className="transfer-approval-panel__footer">
+            <button className="m365-btn m365-btn--ghost" onClick={handleCloseApprovalPanel}>
+              Cancel
+            </button>
+            <button
+              className="m365-btn m365-btn--primary"
+              disabled={!approvalUserId}
+              onClick={handleConfirmSubmitForApproval}
+            >
+              <i className="fa-light fa-paper-plane" /> Submit
+            </button>
+          </div>
         </div>
-      )}
+      </SlidePanel>
     </div>
   );
 };

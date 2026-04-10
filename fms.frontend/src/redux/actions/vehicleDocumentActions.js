@@ -173,6 +173,18 @@ export const getVehicleDocumentIssuingAuthorities = () => async () => {
     }
 };
 
+export const createVehicleDocumentIssuingAuthority = (payload) => async () => {
+    try {
+        const response = await axiosInstance.post("/vehicledocuments/settings/issuing-authorities", payload);
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to save issuing authority"),
+        };
+    }
+};
+
 export const getVehicleDocumentUserPreferences = () => async () => {
     try {
         const response = await axiosInstance.get("/vehicledocuments/settings/reminder-defaults/current-user");

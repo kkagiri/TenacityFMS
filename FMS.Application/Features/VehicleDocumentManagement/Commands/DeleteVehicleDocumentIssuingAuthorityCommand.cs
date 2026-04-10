@@ -2,7 +2,7 @@
  * File: DeleteVehicleDocumentIssuingAuthorityCommand.cs
  * Purpose: Clears an issuing authority from persisted vehicle documents and compliance requirements.
  * Dependencies: GpsdataContext, vehicle document DTOs.
- * Last Modified: 2026-03-25
+ * Last Modified: 2026-04-09
  */
 using System;
 using System.Linq;
@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
+using FMS.Application.Features.VehicleDocumentManagement.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,15 @@ public class DeleteVehicleDocumentIssuingAuthorityCommandHandler : IRequestHandl
                 .Where(requirement => requirement.DefaultIssuingAuthority != null && requirement.DefaultIssuingAuthority.Trim().ToLower() == normalizedAuthorityName)
                 .ExecuteUpdateAsync(setters => setters.SetProperty(requirement => requirement.DefaultIssuingAuthority, string.Empty), cancellationToken);
 
-            if (updatedDocumentCount + updatedRequirementCount == 0)
+            var authorityMappings = await VehicleDocumentIssuingAuthoritySettings.LoadMappingsAsync(_context, cancellationToken);
+            var removedMappingCount = VehicleDocumentIssuingAuthoritySettings.RemoveAuthority(authorityMappings, authorityName);
+
+            if (removedMappingCount > 0)
+            {
+                await VehicleDocumentIssuingAuthoritySettings.SaveMappingsAsync(_context, authorityMappings, updatedBy: "System", cancellationToken);
+            }
+
+            if (updatedDocumentCount + updatedRequirementCount + removedMappingCount == 0)
             {
                 return FMSResponse<bool>.Failed("Issuing authority not found.");
             }
@@ -66,8 +75,6 @@ public class DeleteVehicleDocumentIssuingAuthorityCommandHandler : IRequestHandl
 
     private static string NormalizeAuthorityName(string? value)
     {
-        return string.IsNullOrWhiteSpace(value)
-            ? string.Empty
-            : string.Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim();
+        return VehicleDocumentIssuingAuthoritySettings.NormalizeAuthorityName(value);
     }
 }

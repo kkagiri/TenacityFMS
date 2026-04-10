@@ -30,6 +30,17 @@ public class WarningLetter
     public string? PdfFilePath { get; set; }
     public DateTime? EmailSentAt { get; set; }
     public string? EmailRecipient { get; set; }
+    public string? SignatureRequestRecipientUserId { get; set; }
+    public string? SignatureRequestRecipient { get; set; }
+    public DateTime? SignatureRequestedAt { get; set; }
+    public string? SignatureRequestedBy { get; set; }
+    public string? SignedCopyFileName { get; set; }
+    public string? SignedCopyStoredFileName { get; set; }
+    public string? SignedCopyFilePath { get; set; }
+    public string? SignedCopyContentType { get; set; }
+    public long? SignedCopyFileSize { get; set; }
+    public DateTime? SignedCopyUploadedAt { get; set; }
+    public string? SignedCopyUploadedBy { get; set; }
     public WarningLetterStatus Status { get; set; } = WarningLetterStatus.Draft;
     public DateTime? EmployeeAcknowledgedAt { get; set; }
     public string? Notes { get; set; }

@@ -591,6 +591,7 @@
 
   &__input,
   &__select,
+  &__datebox,
   &__file,
   &__textarea {
     width: 100%;
@@ -603,9 +604,32 @@
 
   &__input,
   &__select,
+  &__datebox,
   &__file {
     height: 34px;
     padding: 0 10px;
+  }
+
+  &__datebox {
+    padding: 0;
+
+    .dx-texteditor-input {
+      height: 34px;
+      padding: 0 10px;
+      color: #1f1f1f;
+      font: inherit;
+    }
+
+    .dx-texteditor-container,
+    .dx-texteditor-input-container {
+      min-height: 34px;
+    }
+
+    &.dx-editor-outlined {
+      border: 1px solid #d2d0ce;
+      border-radius: 4px;
+      background: #fff;
+    }
   }
 
   &__textarea {
@@ -621,6 +645,13 @@
   &__control--invalid {
     border-color: #d13438;
     box-shadow: 0 0 0 1px rgba(209, 52, 56, 0.12);
+  }
+
+  &__datebox--invalid {
+    &.dx-editor-outlined {
+      border-color: #d13438;
+      box-shadow: 0 0 0 1px rgba(209, 52, 56, 0.12);
+    }
   }
 
   &__hint {

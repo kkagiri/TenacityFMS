@@ -118,6 +118,23 @@ const JsReportViewer = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!previewHtml || !iframeRef.current) {
+      return;
+    }
+
+    const iframe = iframeRef.current;
+    const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+
+    if (!iframeDocument) {
+      return;
+    }
+
+    iframeDocument.open();
+    iframeDocument.write(previewHtml);
+    iframeDocument.close();
+  }, [previewHtml]);
+
   const loadTemplates = async () => {
     try {
       const result = await reportingService.getJsReportTemplates();
@@ -209,12 +226,6 @@ const JsReportViewer = () => {
         if (outputFormat === 'html') {
           // Show preview in iframe
           setPreviewHtml(result.html);
-          if (iframeRef.current) {
-            const doc = iframeRef.current.contentDocument;
-            doc.open();
-            doc.write(result.html);
-            doc.close();
-          }
         } else {
           // Download file
           reportingService.downloadReportFile(result.blob, result.fileName);
@@ -233,9 +244,15 @@ const JsReportViewer = () => {
   }, [selectedTemplate, outputFormat, filters]);
 
   const handlePrint = () => {
-    if (iframeRef.current) {
-      iframeRef.current.contentWindow.print();
+    const printWindow = iframeRef.current?.contentWindow;
+
+    if (!previewHtml || !printWindow) {
+      notify({ message: 'Generate the HTML preview before printing', type: 'warning' });
+      return;
     }
+
+    printWindow.focus();
+    printWindow.print();
   };
 
   const handleRefresh = () => {
@@ -457,9 +474,12 @@ const JsReportViewer = () => {
               />
               <Button
                 icon="fa-light fa-print"
-                hint="Print"
+                text="Print PDF"
+                hint="Print PDF"
                 onClick={handlePrint}
-                stylingMode="text"
+                stylingMode="contained"
+                type="default"
+                elementAttr={{ class: 'preview-print-button' }}
                 disabled={!previewHtml}
               />
               <Button

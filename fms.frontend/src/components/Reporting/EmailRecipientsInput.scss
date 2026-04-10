@@ -1,0 +1,209 @@
+/**
+ * File: EmailRecipientsInput.scss
+ * Purpose: Styles for the reusable EmailRecipientsInput component (chip-based recipient picker).
+ *          Mirrors the M365 Admin Center Fluent tokens used by RequestReportEmailPanel.
+ * Last Modified: 2026-04-07
+ */
+
+$m365-primary: #0078d4;
+$m365-text: #201f1e;
+$m365-text-secondary: #605e5c;
+$m365-text-tertiary: #a19f9d;
+$m365-border: #c8c6c4;
+$m365-border-light: #edebe9;
+$m365-bg-surface: #ffffff;
+$m365-bg-hover: #f3f2f1;
+$m365-error: #a4262c;
+$m365-radius: 4px;
+$m365-radius-lg: 8px;
+
+.email-recipients-input {
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+  width: 100%;
+
+  &__box {
+    border: 1px solid $m365-border;
+    border-radius: $m365-radius;
+    padding: 8px;
+    min-height: 40px;
+    background: $m365-bg-surface;
+    transition: border-color 0.15s;
+
+    &:focus-within {
+      border-color: $m365-primary;
+      box-shadow: 0 0 0 1px $m365-primary;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 6px 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    background: #deecf9;
+    color: $m365-primary;
+    max-width: 100%;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      strong {
+        font-weight: 600;
+        color: $m365-text;
+      }
+    }
+  }
+
+  &__chip-email {
+    color: $m365-text-secondary;
+    font-weight: 400;
+    font-size: 10px;
+  }
+
+  &__chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 9px;
+    color: $m365-text-secondary;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    padding: 0;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: $m365-text;
+    }
+  }
+
+  &__wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  &__input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    font-family: inherit;
+    color: $m365-text;
+    padding: 4px 2px;
+    background: transparent;
+
+    &::placeholder {
+      color: $m365-text-tertiary;
+    }
+  }
+
+  &__suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: -9px;
+    right: -9px;
+    background: $m365-bg-surface;
+    border: 1px solid $m365-border-light;
+    border-radius: $m365-radius-lg;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 10;
+    padding: 4px 0;
+  }
+
+  &__suggestion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+  }
+
+  &__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: $m365-primary;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__suggestion-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__suggestion-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: $m365-text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__suggestion-email {
+    font-size: 11px;
+    color: $m365-text-secondary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #deecf9;
+    color: $m365-primary;
+    flex-shrink: 0;
+  }
+
+  &__validation {
+    font-size: 11px;
+    color: $m365-error;
+    margin: 4px 0 0;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: $m365-text-tertiary;
+    margin: 4px 0 0;
+  }
+}

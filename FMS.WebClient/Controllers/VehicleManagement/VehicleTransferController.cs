@@ -1,8 +1,8 @@
 /**
  * File: VehicleTransferController.cs
- * Purpose: Manages vehicle transfer workflows, status updates, reports, and email notifications.
+ * Purpose: Manages vehicle transfer workflows, reports, lifecycle actions, and notification-triggering endpoints.
  * Dependencies: MediatR, transfer commands/queries, jsReport, email service, JWT claims.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-04-09
  *
  * Key Actions:
  * - CreateTransfer(): Creates transfer records with authenticated user metadata.
@@ -39,6 +39,8 @@ namespace FMS.WebClient.Controllers.VehicleManagement;
 [RequirePermission(Permissions.Vehicle.Read)]
 public class VehicleTransferController : ControllerBase
 {
+    private const string LetterheadLogoPath = @"C:\FMSData\reports\branding\letterhead-logo.png";
+
     private readonly IMediator _mediator;
     private readonly ILogger<VehicleTransferController> _logger;
     private readonly IJsReportService _jsReportService;
@@ -62,6 +64,93 @@ public class VehicleTransferController : ControllerBase
             ?? User.FindFirstValue("sub");
 
         return string.IsNullOrWhiteSpace(userId) ? null : userId;
+    }
+
+    private static string ResolveEquipmentIdentifier(string? storedIdentifier, string? remarks)
+    {
+        var imei = ExtractRemarkValue(remarks, "IMEI");
+        if (!string.IsNullOrWhiteSpace(imei))
+        {
+            return imei;
+        }
+
+        return string.IsNullOrWhiteSpace(storedIdentifier) ? "-" : storedIdentifier;
+    }
+
+    private static string? ExtractRemarkValue(string? remarks, string label)
+    {
+        if (string.IsNullOrWhiteSpace(remarks) || string.IsNullOrWhiteSpace(label))
+        {
+            return null;
+        }
+
+        var matchedLine = remarks
+            .Split(new[] { "\r\n", "\n" }, System.StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .FirstOrDefault(line => line.StartsWith(label + ":", System.StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrWhiteSpace(matchedLine))
+        {
+            return null;
+        }
+
+        var separatorIndex = matchedLine.IndexOf(':');
+        if (separatorIndex < 0 || separatorIndex == matchedLine.Length - 1)
+        {
+            return null;
+        }
+
+        var value = matchedLine[(separatorIndex + 1)..].Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static string? LoadLetterheadLogoDataUri()
+    {
+        var logoPath = ResolveLetterheadLogoPath();
+        if (string.IsNullOrWhiteSpace(logoPath) || !System.IO.File.Exists(logoPath))
+        {
+            return null;
+        }
+
+        var bytes = System.IO.File.ReadAllBytes(logoPath);
+        if (bytes.Length == 0)
+        {
+            return null;
+        }
+
+        var mimeType = ResolveImageMimeType(System.IO.Path.GetExtension(logoPath));
+        return $"data:{mimeType};base64,{System.Convert.ToBase64String(bytes)}";
+    }
+
+    private static string? ResolveLetterheadLogoPath()
+    {
+        if (System.IO.File.Exists(LetterheadLogoPath))
+        {
+            return LetterheadLogoPath;
+        }
+
+        var directory = System.IO.Path.GetDirectoryName(LetterheadLogoPath);
+        var fileNameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension(LetterheadLogoPath);
+
+        if (string.IsNullOrWhiteSpace(directory) || !System.IO.Directory.Exists(directory))
+        {
+            return null;
+        }
+
+        var matchingFiles = System.IO.Directory.GetFiles(directory, $"{fileNameWithoutExtension}*", System.IO.SearchOption.TopDirectoryOnly);
+        return matchingFiles.Length > 0 ? matchingFiles[0] : null;
+    }
+
+    private static string ResolveImageMimeType(string extension)
+    {
+        return extension.ToLowerInvariant() switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".svg" => "image/svg+xml",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "image/png"
+        };
     }
 
     /// <summary>
@@ -114,6 +203,8 @@ public class VehicleTransferController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> CreateTransfer([FromForm] CreateVehicleTransferDTO createTransferDto)
     {
+        createTransferDto.EnsureJsonCollectionsParsed();
+
         // Set user ID from claims
         var userId = GetCurrentUserId();
         createTransferDto.UserId = userId;
@@ -142,6 +233,8 @@ public class VehicleTransferController : ControllerBase
     [HttpPost("draft")]
     public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> SaveTransferDraft([FromForm] SaveTransferDraftDTO draftDto)
     {
+        draftDto.EnsureJsonCollectionsParsed();
+
         draftDto.UserId = GetCurrentUserId();
         var result = await _mediator.Send(new SaveTransferDraftCommand(draftDto));
 
@@ -396,6 +489,32 @@ public class VehicleTransferController : ControllerBase
             sb.AppendLine("</table>");
         }
 
+        if (!string.IsNullOrWhiteSpace(transfer.GpsDeviceId) ||
+            !string.IsNullOrWhiteSpace(transfer.GpsDeviceRemarks) ||
+            !string.IsNullOrWhiteSpace(transfer.FuelSensorId) ||
+            !string.IsNullOrWhiteSpace(transfer.FuelSensorRemarks))
+        {
+            var gpsEquipmentIdentifier = ResolveEquipmentIdentifier(transfer.GpsDeviceId, transfer.GpsDeviceRemarks);
+            sb.AppendLine("<h3>GPS Equipment Checkup</h3>");
+            sb.AppendLine("<table style='border-collapse: collapse; width: 100%; border: 1px solid #ddd;'>");
+            sb.AppendLine("<tr style='background-color: #f2f2f2;'><th style='padding: 8px; border: 1px solid #ddd;'>Equipment</th><th style='padding: 8px; border: 1px solid #ddd;'>Identifier</th><th style='padding: 8px; border: 1px solid #ddd;'>Condition</th><th style='padding: 8px; border: 1px solid #ddd;'>Working</th><th style='padding: 8px; border: 1px solid #ddd;'>Remarks</th></tr>");
+            sb.AppendLine($"<tr><td style='padding: 8px; border: 1px solid #ddd;'>GPS Device</td><td style='padding: 8px; border: 1px solid #ddd;'>{gpsEquipmentIdentifier}</td><td style='padding: 8px; border: 1px solid #ddd;'>{transfer.GpsDeviceCondition ?? "-"}</td><td style='padding: 8px; border: 1px solid #ddd;'>{(transfer.GpsDeviceWorking ? "Yes" : "No")}</td><td style='padding: 8px; border: 1px solid #ddd;'>{transfer.GpsDeviceRemarks ?? ""}</td></tr>");
+            sb.AppendLine($"<tr><td style='padding: 8px; border: 1px solid #ddd;'>Sensor Variables</td><td style='padding: 8px; border: 1px solid #ddd;'>{transfer.FuelSensorId ?? "-"}</td><td style='padding: 8px; border: 1px solid #ddd;'>{transfer.FuelSensorCondition ?? "-"}</td><td style='padding: 8px; border: 1px solid #ddd;'>{(transfer.FuelSensorWorking ? "Yes" : "No")}</td><td style='padding: 8px; border: 1px solid #ddd;'>{transfer.FuelSensorRemarks ?? ""}</td></tr>");
+            sb.AppendLine("</table>");
+        }
+
+        if (transfer.ServiceFilterPartsList?.Count > 0)
+        {
+            sb.AppendLine("<h3>Service Filter Parts</h3>");
+            sb.AppendLine("<table style='border-collapse: collapse; width: 100%; border: 1px solid #ddd;'>");
+            sb.AppendLine("<tr style='background-color: #f2f2f2;'><th style='padding: 8px; border: 1px solid #ddd;'>#</th><th style='padding: 8px; border: 1px solid #ddd;'>Description</th><th style='padding: 8px; border: 1px solid #ddd;'>Part Number</th><th style='padding: 8px; border: 1px solid #ddd;'>Qty</th></tr>");
+            foreach (var part in transfer.ServiceFilterPartsList)
+            {
+                sb.AppendLine($"<tr><td style='padding: 8px; border: 1px solid #ddd;'>{part.Number}</td><td style='padding: 8px; border: 1px solid #ddd;'>{part.Description ?? "-"}</td><td style='padding: 8px; border: 1px solid #ddd;'>{part.PartNumber ?? "-"}</td><td style='padding: 8px; border: 1px solid #ddd;'>{part.Quantity}</td></tr>");
+            }
+            sb.AppendLine("</table>");
+        }
+
         sb.AppendLine("<hr/>");
         sb.AppendLine($"<p style='color: #666;'>Status: <strong>{transfer.Status}</strong></p>");
         sb.AppendLine($"<p style='color: #666;'>Generated on: {System.DateTime.Now:dd-MMM-yyyy HH:mm}</p>");
@@ -435,6 +554,17 @@ public class VehicleTransferController : ControllerBase
             CheckupItems = transfer.CheckupItems,
             TyreDetails = transfer.TyreDetails,
             BatteryDetails = transfer.BatteryDetails,
+            transfer.GpsDeviceId,
+            GpsDeviceIdentifier = ResolveEquipmentIdentifier(transfer.GpsDeviceId, transfer.GpsDeviceRemarks),
+            transfer.GpsDeviceCondition,
+            transfer.GpsDeviceWorking,
+            transfer.GpsDeviceRemarks,
+            transfer.FuelSensorId,
+            transfer.FuelSensorCondition,
+            transfer.FuelSensorWorking,
+            transfer.FuelSensorRemarks,
+            LogoDataUri = LoadLetterheadLogoDataUri(),
+            ServiceFilterParts = transfer.ServiceFilterPartsList,
             GeneratedDate = System.DateTime.Now.ToString("dd-MMM-yyyy HH:mm")
         };
     }
@@ -445,10 +575,31 @@ public class VehicleTransferController : ControllerBase
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset='utf-8' />
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
-        h1 { text-align: center; color: #333; }
-        .header { text-align: center; margin-bottom: 20px; }
+        @page { size: A4; margin: 11mm 13mm 12mm 13mm; }
+        body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 0; padding: 0; line-height: 1.2; font-size: 10.2pt; }
+
+        .letterhead { border-top: 1px solid #7d89a6; padding: 12px 0 10px; margin: 10px 0 8px; }
+        .letterhead-table { width: 100%; border-collapse: collapse; }
+        .letterhead-table td { vertical-align: top; padding: 0 4px; border: none; }
+        .lh-brand { width: 62%; text-align: left; vertical-align: middle; }
+        .lh-disciplines { width: 38%; font-size: 6.8pt; line-height: 1.08; color: #6a6a6a; text-align: right; }
+        .brand-wrap { display: inline-flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 4px; padding-top: 2px; white-space: nowrap; }
+        .brand-logo { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; }
+        .brand-logo img { display: block; max-width: 38px; max-height: 38px; object-fit: contain; }
+        .company-name { font-family: 'Bookman Old Style', 'Times New Roman', serif; font-size: 40px; font-weight: 700; color: #0047B9; letter-spacing: 0.5px; line-height: 0.84; text-transform: uppercase; white-space: nowrap; }
+        .company-side { text-align: left; color: #7d7d7d; line-height: 0.96; padding-top: 2px; white-space: nowrap; }
+        .company-side-top { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; font-weight: 700; text-transform: uppercase; }
+        .company-side-bottom { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+        .header-divider-row td { padding: 0 4px 6px; border: none; }
+        .header-divider-line { border-top: 1px solid #7d89a6; height: 0; }
+        .report-title { text-align: center; font-size: 11.2pt; font-weight: 700; color: #6f6f6f; margin: 6px 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .project-line { text-align: center; font-size: 9.8pt; font-weight: 700; color: #7a7a7a; margin: 2px 0 6px; text-transform: uppercase; }
+        .divider { border-top: 1px solid #8f8f8f; margin: 0 0 10px; }
+        .report-status { margin: 0 0 10px; font-size: 9pt; color: #4f4f4f; text-align: left; }
+        .report-status strong { font-weight: 700; color: #000; }
+
         .section { margin-bottom: 15px; }
         .section-title { font-weight: bold; background-color: #f0f0f0; padding: 5px; margin-bottom: 5px; }
         table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
@@ -462,11 +613,38 @@ public class VehicleTransferController : ControllerBase
         .signature-box { display: inline-block; width: 45%; margin-right: 5%; }
     </style>
 </head>
-<body>
-    <div class='header'>
-        <h1>H. YOUNG & CO. (E.A.) LTD</h1>
-        <h2>Plant Equipment Transfer Checkup Report</h2>
+<body data-skip-fms-letterhead='true'>
+    <div class='letterhead'>
+        <table class='letterhead-table'>
+            <tr>
+                <td class='lh-brand'>
+                    <div class='brand-wrap'>
+                        {{#if LogoDataUri}}<div class='brand-logo'><img src='{{LogoDataUri}}' alt='H Young logo' /></div>{{/if}}
+                        <div class='company-name'>HYOUNG</div>
+                        <div class='company-side'>
+                            <div class='company-side-top'>&amp; Co</div>
+                            <div class='company-side-bottom'>(EA) Ltd.</div>
+                        </div>
+                    </div>
+                </td>
+                <td class='lh-disciplines'>
+                    <div>Road Contractors</div>
+                    <div>Civil Engineers</div>
+                    <div>Mechanical Engineers</div>
+                    <div>Piping and Process</div>
+                    <div>Structural Steel</div>
+                </td>
+            </tr>
+            <tr class='header-divider-row'>
+                <td colspan='2'><div class='header-divider-line'></div></td>
+            </tr>
+        </table>
+        <div class='report-title'>Plant Equipment Transfer Checkup Report</div>
+        <div class='project-line'>{{FromSiteName}} to {{ToSiteName}}</div>
+        <div class='divider'></div>
     </div>
+
+    <div class='report-status'><strong>Status:</strong> {{Status}}</div>
 
     <div class='section'>
         <div class='section-title'>Transport Details</div>
@@ -510,6 +688,53 @@ public class VehicleTransferController : ControllerBase
                 <td>{{#if IsDamaged}}✓{{/if}}</td>
                 <td>{{#if IsWorn}}{{WornPercentage}}%{{/if}}</td>
                 <td>{{Remarks}}</td>
+            </tr>
+            {{/each}}
+        </table>
+    </div>
+
+    <div class='section'>
+        <div class='section-title'>GPS Equipment Checkup</div>
+        <table>
+            <tr>
+                <th>Equipment</th>
+                <th>Identifier</th>
+                <th>Condition</th>
+                <th>Working</th>
+                <th>Remarks</th>
+            </tr>
+            <tr>
+                <td>GPS Device</td>
+                <td>{{GpsDeviceIdentifier}}</td>
+                <td>{{GpsDeviceCondition}}</td>
+                <td>{{#if GpsDeviceWorking}}Yes{{else}}No{{/if}}</td>
+                <td>{{GpsDeviceRemarks}}</td>
+            </tr>
+            <tr>
+                <td>Sensor Variables</td>
+                <td>{{FuelSensorId}}</td>
+                <td>{{FuelSensorCondition}}</td>
+                <td>{{#if FuelSensorWorking}}Yes{{else}}No{{/if}}</td>
+                <td>{{FuelSensorRemarks}}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class='section'>
+        <div class='section-title'>Service Filter Parts</div>
+        <table>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Part Number</th>
+                <th>Qty</th>
+            </tr>
+            {{#each ServiceFilterParts}}
+            <tr>
+                <td>{{Number}}</td>
+                <td>{{Description}}</td>
+                <td>{{PartNumber}}</td>
+                <td>{{Quantity}}</td>
             </tr>
             {{/each}}
         </table>

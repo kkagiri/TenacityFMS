@@ -2,7 +2,7 @@
  * File: GetWarningLettersQuery.cs
  * Purpose: Returns filtered warning letter lists for API consumers.
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetter DTOs/entities
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-09
  */
 using System;
 using System.Collections.Generic;
@@ -97,9 +97,12 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
                 SiteId = w.SiteId,
                 SiteName = w.Site.Name,
                 LetterDate = w.LetterDate,
+                PeriodStart = w.PeriodStart,
                 Status = w.Status,
                 EmailSentAt = w.EmailSentAt,
-                EmailRecipient = w.EmailRecipient
+                EmailRecipient = w.EmailRecipient,
+                SignatureRequestedAt = w.SignatureRequestedAt,
+                SignedCopyUploadedAt = w.SignedCopyUploadedAt
             })
             .ToListAsync(cancellationToken);
 

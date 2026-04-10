@@ -110,7 +110,7 @@ public class VehicleTransferConfiguration : IEntityTypeConfiguration<VehicleTran
 
         builder.Property(e => e.ServiceFilterParts)
             .HasColumnName("service_filter_parts")
-            .HasMaxLength(2000);
+            .HasColumnType("text");
 
         builder.Property(e => e.SenderName)
             .HasColumnName("sender_name")
@@ -202,7 +202,7 @@ public class VehicleTransferConfiguration : IEntityTypeConfiguration<VehicleTran
 
         builder.Property(e => e.GpsDeviceRemarks)
             .HasColumnName("GpsDeviceRemarks")
-            .HasMaxLength(500);
+            .HasColumnType("TEXT");
 
         // Fuel Sensor fields
         builder.Property(e => e.FuelSensorId)
@@ -219,7 +219,7 @@ public class VehicleTransferConfiguration : IEntityTypeConfiguration<VehicleTran
 
         builder.Property(e => e.FuelSensorRemarks)
             .HasColumnName("FuelSensorRemarks")
-            .HasMaxLength(500);
+            .HasColumnType("TEXT");
 
         // Vehicle details (denormalized)
         builder.Property(e => e.VehicleManufacturer)

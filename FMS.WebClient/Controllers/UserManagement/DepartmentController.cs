@@ -170,4 +170,24 @@ public class DepartmentController : ControllerBase
             return BadRequest(new { message = $"Error deleting department: {ex.Message}" });
         }
     }
+
+    /// <summary>
+    /// Get all active users in a department
+    /// </summary>
+    /// <param name="id">Department ID</param>
+    /// <returns>List of users in the department</returns>
+    [HttpGet("{id}/users")]
+    public async Task<IActionResult> GetUsersByDepartment(int id)
+    {
+        try
+        {
+            var query = new GetUsersByDepartmentQuery(id);
+            var result = await _mediator.Send(query);
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = $"Error fetching department users: {ex.Message}" });
+        }
+    }
 }

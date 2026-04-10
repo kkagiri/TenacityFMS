@@ -147,8 +147,73 @@ export const sendWarningLetterEmail = async (id, emailRecipient) => {
     return result;
 };
 
+export const requestWarningLetterSignature = async (id, emailRecipient) => {
+    const payload = typeof emailRecipient === "object"
+        ? emailRecipient
+        : { emailRecipient };
+
+    const response = await axiosInstance.post(`/warning-letters/${id}/request-signature`, payload);
+    const result = response.data;
+
+    if (!getSuccess(result)) {
+        throw new Error(getMessage(result, "Failed to request warning letter signature."));
+    }
+
+    return getData(result);
+};
+
+export const fetchWarningLetterSignatureRecipients = async (id) => {
+    const response = await axiosInstance.get(`/warning-letters/${id}/signature-recipients`);
+    const payload = response.data;
+
+    if (!getSuccess(payload)) {
+        throw new Error(getMessage(payload, "Failed to load site representatives."));
+    }
+
+    return ensureArray(getData(payload));
+};
+
+export const uploadWarningLetterSignedCopy = async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axiosInstance.post(`/warning-letters/${id}/signed-copy`, formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+
+    const result = response.data;
+    if (!getSuccess(result)) {
+        throw new Error(getMessage(result, "Failed to upload signed copy."));
+    }
+
+    return getData(result);
+};
+
+export const downloadWarningLetterSignedCopy = async (id) => {
+    const response = await axiosInstance.get(`/warning-letters/${id}/signed-copy`, { responseType: "blob" });
+    const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: "application/octet-stream" });
+
+    return {
+        blob,
+        fileName: extractFileName(response.headers, `warning-letter-${id}-signed-copy`),
+    };
+};
+
 export const previewWarningLetterHtml = async (payload) => {
     const response = await axiosInstance.post("/warning-letters/preview", payload, {
+        responseType: "text",
+        transformResponse: [(value) => value],
+    });
+
+    return response.data;
+};
+
+export const fetchWarningLetterHtml = async (id) => {
+    const response = await axiosInstance.get(`/warning-letters/${id}/html`, {
         responseType: "text",
         transformResponse: [(value) => value],
     });
@@ -173,6 +238,28 @@ export const fetchWarningLetterPdf = async (id, generate = false) => {
         blob,
         fileName: extractFileName(response.headers, `warning-letter-${id}.pdf`),
     };
+};
+
+export const getWarningLetterSettings = async () => {
+    const response = await axiosInstance.get(`/warning-letters/settings`);
+    const payload = response.data;
+
+    if (!getSuccess(payload)) {
+        throw new Error(getMessage(payload, "Failed to load warning letter settings."));
+    }
+
+    return getData(payload) || {};
+};
+
+export const updateWarningLetterSettings = async (settings) => {
+    const response = await axiosInstance.put(`/warning-letters/settings`, settings);
+    const payload = response.data;
+
+    if (!getSuccess(payload)) {
+        throw new Error(getMessage(payload, "Failed to update warning letter settings."));
+    }
+
+    return getData(payload) || {};
 };
 
 export const getConsumptionCandidates = async (filters) => {

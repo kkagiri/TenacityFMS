@@ -10,6 +10,9 @@
 *.env
 *.env.*
 !*.env.example
+
+# MCP server config (contains DB credentials)
+.mcp.json
 fms.frontend/.env
 fms.frontend/.env.local
 fms.frontend/.env.*.local

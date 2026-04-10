@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using FMS.Application.Features.WarningLetter.Templates;
 
 namespace FMS.WebClient.Services.Reporting
 {
@@ -192,6 +193,7 @@ namespace FMS.WebClient.Services.Reporting
                 ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
                 ["monthly-fleet-report"] = () => MonthlyFleetReportHtmlTemplate.Get(logoBase64),
                 ["weekly-fleet-report"] = WeeklyFleetReportHtmlTemplate.Get,
+                ["warning-letter-report"] = WarningLetterHtmlTemplates.GetTemplate,
             };
 
             foreach (var (name, generator) in templates)

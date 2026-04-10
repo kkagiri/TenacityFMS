@@ -113,9 +113,10 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<EventExpressionExecution> EventExpressionExecutions { get; set; }
     public virtual DbSet<ActiveEvent> ActiveEvents { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
+    public virtual DbSet<EmployeePosition> EmployeePositions { get; set; }
     public virtual DbSet<WarningLetter> WarningLetters { get; set; }
 
-    public virtual DbSet<UserRole> UserRoles { get; set; }
+    public new virtual DbSet<UserRole> UserRoles { get; set; }
     public virtual DbSet<TankTransfer> TankTransfers { get; set; }
     public virtual DbSet<Expectedaverage> Expectedaverages { get; set; }
 
@@ -358,6 +359,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
             Console.WriteLine("EmployeeConfiguration applied");
         }
         catch (Exception ex) { Console.WriteLine($"Error configuring EmployeeConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new EmployeePositionConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring EmployeePositionConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new WarningLetterConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring WarningLetterConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new NotificationCategoryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring NotificationCategoryConfiguration: {ex.Message}"); }

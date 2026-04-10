@@ -34,6 +34,52 @@ const toCheckupItem = (item) => ({
   remarks: "",
 });
 
+const CHECKUP_STATUS_FIELDS = ["isGood", "isFair", "isDamaged", "isWorn"];
+
+export const isPercentageCheckType = (checkType = "") =>
+  String(checkType || "").includes("%");
+
+export const normalizeCheckupItemSelection = (item = {}) => {
+  const nextItem = {
+    ...item,
+    isGood: Boolean(item.isGood),
+    isFair: Boolean(item.isFair),
+    isDamaged: Boolean(item.isDamaged),
+    isWorn: Boolean(item.isWorn),
+  };
+
+  const selectedField = CHECKUP_STATUS_FIELDS.find((fieldName) => nextItem[fieldName]);
+
+  if (selectedField) {
+    CHECKUP_STATUS_FIELDS.forEach((fieldName) => {
+      nextItem[fieldName] = fieldName === selectedField;
+    });
+  }
+
+  if (!isPercentageCheckType(nextItem.checkType) && !nextItem.isWorn) {
+    nextItem.wornPercentage = null;
+  }
+
+  return nextItem;
+};
+
+export const applyCheckupItemUpdate = (item, updates = {}) => {
+  const mergedItem = {
+    ...item,
+    ...updates,
+  };
+
+  const toggledStatusField = CHECKUP_STATUS_FIELDS.find((fieldName) => Object.prototype.hasOwnProperty.call(updates, fieldName));
+
+  if (toggledStatusField && updates[toggledStatusField]) {
+    CHECKUP_STATUS_FIELDS.forEach((fieldName) => {
+      mergedItem[fieldName] = fieldName === toggledStatusField;
+    });
+  }
+
+  return normalizeCheckupItemSelection(mergedItem);
+};
+
 export const isEquipmentVehicle = (vehicleTypeName = "") =>
   ["generator", "excavator", "loader", "dozer", "crane", "forklift"].some((keyword) =>
     vehicleTypeName.toLowerCase().includes(keyword)
@@ -80,6 +126,38 @@ export const buildVehicleMakeModel = (vehicle) =>
     .filter(Boolean)
     .join(" ");
 
+export const getVehicleDisplayNumber = (vehicle) =>
+  readString(
+    vehicle?.hyoungNo,
+    vehicle?.HyoungNo,
+    vehicle?.vehicleHyoungNo,
+    vehicle?.VehicleHyoungNo
+  );
+
+export const getVehicleRegistrationNumber = (vehicle) =>
+  readString(
+    vehicle?.numberPlate,
+    vehicle?.NumberPlate,
+    vehicle?.registrationNumber,
+    vehicle?.RegistrationNumber,
+    vehicle?.vehicleNumberPlate,
+    vehicle?.VehicleNumberPlate
+  );
+
+export const getVehicleWorkingSiteId = (vehicle) => {
+  const rawValue =
+    vehicle?.workingSiteId ??
+    vehicle?.WorkingSiteId ??
+    vehicle?.workingSite?.id ??
+    vehicle?.workingSite?.Id ??
+    vehicle?.currentSiteId ??
+    vehicle?.CurrentSiteId ??
+    null;
+
+  const numericValue = Number(rawValue);
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null;
+};
+
 export const getUserId = (user) =>
   user?.id ??
   user?.userId ??
@@ -105,10 +183,10 @@ export const getUserDisplayName = (user) => {
 };
 
 export const buildCheckupTemplateItems = (templateItems = []) =>
-  templateItems.map(toCheckupItem);
+  templateItems.map(toCheckupItem).map(normalizeCheckupItemSelection);
 
 export const buildDefaultCheckupItems = () =>
-  DEFAULT_CHECKUP_TEMPLATE.map(toCheckupItem);
+  DEFAULT_CHECKUP_TEMPLATE.map(toCheckupItem).map(normalizeCheckupItemSelection);
 
 export const getEmployeePhoneNumber = (employee) =>
   employee?.employeephoneNumber ||

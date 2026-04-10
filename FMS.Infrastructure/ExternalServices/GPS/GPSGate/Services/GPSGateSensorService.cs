@@ -80,6 +80,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
                     DeviceId = ParseExternalDeviceId(externalDeviceId),
                     IsOnline = false,
+                    TelemetryVariables = new List<VehicleTelemetryVariableDTO>(),
                     SensorHealth = new SensorHealthDTO
                     {
                         OverallHealth = "Unknown",
@@ -109,6 +110,17 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                         if (gpsData.Variables != null && gpsData.Variables.Any())
                         {
+                            gpsInfo.TelemetryVariables = gpsData.Variables
+                                .Where(variable => !string.IsNullOrWhiteSpace(variable.Name))
+                                .Select(variable => new VehicleTelemetryVariableDTO
+                                {
+                                    Name = variable.Name?.Trim() ?? string.Empty,
+                                    Value = variable.Value?.Trim(),
+                                    Type = variable.Type,
+                                    Time = variable.Time
+                                })
+                                .ToList();
+                            gpsInfo.CustomFuelCalibration = ResolveCustomFuelCalibration(gpsInfo.TelemetryVariables);
                             ParseSensorVariables(gpsData.Variables, gpsInfo.SensorHealth);
                         }
                         else
@@ -293,6 +305,26 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private static int? ParseExternalDeviceId(string? externalDeviceId)
         {
             return int.TryParse(externalDeviceId, out var parsedDeviceId) ? parsedDeviceId : null;
+        }
+
+        private static string? ResolveCustomFuelCalibration(IEnumerable<VehicleTelemetryVariableDTO>? telemetryVariables)
+        {
+            if (telemetryVariables == null)
+            {
+                return null;
+            }
+
+            return telemetryVariables
+                .FirstOrDefault(variable =>
+                {
+                    var normalizedName = variable.Name.Trim().ToLowerInvariant();
+                    return normalizedName == "custom fuel"
+                        || normalizedName == "customfuel"
+                        || normalizedName == "custom fuel calibration"
+                        || normalizedName == "fuel calibration"
+                        || (normalizedName.Contains("custom") && normalizedName.Contains("fuel"));
+                })
+                ?.Value;
         }
 
         private void ParseSensorVariables(List<GPSGateVariable> variables, SensorHealthDTO sensorHealth)

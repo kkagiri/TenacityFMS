@@ -75,7 +75,8 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
             // Use contains search to match anywhere in the name (first, middle, or last name)
             query = query.Where(e =>
                 e.FullName.Contains(searchTerm) ||
-                (e.EmployeeWorkNo != null && e.EmployeeWorkNo.Contains(searchTerm)));
+                (e.EmployeeWorkNo != null && e.EmployeeWorkNo.Contains(searchTerm)) ||
+                (e.Position != null && e.Position.Contains(searchTerm)));
 
             // No includes needed - just employee data for fast search results
             List<Domain.Entities.Employee> employees = await query

@@ -386,9 +386,10 @@ export const fetchAllRoles = () => async (dispatch) => {
 };
 
 // Fetch all departments for dropdown
-export const fetchAllDepartments = () => async (dispatch) => {
+export const fetchAllDepartments = (includeInactive = false) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get('/department');
+        const query = includeInactive ? '?includeInactive=true' : '';
+        const response = await axiosInstance.get(`/department${query}`);
         // Handle FMSResponse wrapper - data is in response.data.data
         const departments = response.data?.data || response.data || [];
         dispatch({ type: FETCH_ALL_DEPARTMENTS_SUCCESS, payload: departments });

@@ -102,6 +102,8 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     HasBeenProcessed = false
                 };
 
+                _context.Pumptransactions.Add(pumpTransactionData);
+
                 // Get site ID from tank if available
                 int? siteId = null;
                 if (pumpTransactionData.TankId.HasValue)

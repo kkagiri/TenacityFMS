@@ -11,6 +11,7 @@ import { useState, useCallback } from 'react';
 import notify from 'devextreme/ui/notify';
 import {
   fetchUsers,
+  fetchAllDepartments,
   createDepartment,
   updateDepartment,
   deleteDepartment,
@@ -19,9 +20,11 @@ import {
 import { getPrimaryRoleName } from './useUserNormalization';
 
 const EMPTY_DEPT_FORM = {
-  departmentId:  null,
-  name:         '',
-  description:  '',
+  departmentId: null,
+  name: '',
+  code: '',
+  description: '',
+  isActive: true,
 };
 
 /**
@@ -30,20 +33,21 @@ const EMPTY_DEPT_FORM = {
  * @param {Array}    allDepartments   - All departments from Redux
  */
 const useDepartmentManagement = (dispatch, users, allDepartments) => {
-  const [isDeptPopupVisible,   setDeptPopupVisible]   = useState(false);
-  const [isDeptFormVisible,    setDeptFormVisible]     = useState(false);
-  const [deptFormData,         setDeptFormData]        = useState(EMPTY_DEPT_FORM);
-  const [deptSaving,           setDeptSaving]          = useState(false);
-  const [deptEditTab,          setDeptEditTab]         = useState(0); // 0 = Details, 1 = Users
-  const [selectedUsersForDept, setSelectedUsersForDept]= useState([]);
+  const [isDeptFormVisible, setDeptFormVisible] = useState(false);
+  const [deptFormData, setDeptFormData] = useState(EMPTY_DEPT_FORM);
+  const [deptSaving, setDeptSaving] = useState(false);
+  const [deptEditTab, setDeptEditTab] = useState(0); // 0 = Details, 1 = Users
+  const [selectedUsersForDept, setSelectedUsersForDept] = useState([]);
 
   // ── Open form ──────────────────────────────────────────────────────────────
   const handleOpenDeptForm = useCallback((department = null) => {
     if (department) {
       setDeptFormData({
         departmentId: department.departmentId,
-        name:         department.name        || '',
-        description:  department.description || '',
+        name: department.name || '',
+        code: department.code || '',
+        description: department.description || '',
+        isActive: department.isActive ?? true,
       });
       const deptUsers = (users || []).filter(
         (u) => u.departmentId === department.departmentId && !u.isDeleted
@@ -69,20 +73,29 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
       if (deptFormData.departmentId) {
         await dispatch(updateDepartment(deptFormData.departmentId, {
           departmentId: deptFormData.departmentId,
-          name:         deptFormData.name,
-          description:  deptFormData.description,
+          name: deptFormData.name,
+          code: deptFormData.code || null,
+          description: deptFormData.description,
+          isActive: deptFormData.isActive ?? true,
         }));
+        await dispatch(fetchAllDepartments(true));
+        setDeptFormVisible(false);
+        setDeptFormData(EMPTY_DEPT_FORM);
+        setSelectedUsersForDept([]);
+        setDeptEditTab(0);
         notify('Department updated successfully', 'success', 3000);
       } else {
-        const result = await dispatch(createDepartment({
-          name:        deptFormData.name,
+        await dispatch(createDepartment({
+          name: deptFormData.name,
+          code: deptFormData.code || null,
           description: deptFormData.description,
+          isActive: deptFormData.isActive ?? true,
         }));
-        // Update form data with returned ID so user tab can operate on it
-        const newId = result?.data?.departmentId || result?.departmentId;
-        if (newId) {
-          setDeptFormData((prev) => ({ ...prev, departmentId: newId }));
-        }
+        await dispatch(fetchAllDepartments(true));
+        setDeptFormVisible(false);
+        setDeptFormData(EMPTY_DEPT_FORM);
+        setSelectedUsersForDept([]);
+        setDeptEditTab(0);
         notify('Department created successfully', 'success', 3000);
       }
     } catch (error) {
@@ -109,6 +122,7 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
 
     try {
       await dispatch(deleteDepartment(department.departmentId));
+      await dispatch(fetchAllDepartments(true));
       notify('Department deleted successfully', 'success', 3000);
     } catch (error) {
       notify(error.message || 'Failed to delete department', 'error', 3000);
@@ -126,7 +140,7 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
       .filter((u) => u.departmentId === deptFormData.departmentId && !u.isDeleted)
       .map((u) => u.id);
 
-    const toAdd    = selectedUsersForDept.filter((id) => !currentDeptUserIds.includes(id));
+    const toAdd = selectedUsersForDept.filter((id) => !currentDeptUserIds.includes(id));
     const toRemove = currentDeptUserIds.filter((id) => !selectedUsersForDept.includes(id));
 
     if (toAdd.length === 0 && toRemove.length === 0) {
@@ -140,9 +154,9 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
         const user = (users || []).find((u) => u.id === userId);
         if (user) {
           await dispatch(updateUser(userId, {
-            userName:     user.userName,
-            email:        user.email,
-            roleName:     getPrimaryRoleName(user),
+            userName: user.userName,
+            email: user.email,
+            roleName: getPrimaryRoleName(user),
             departmentId: deptFormData.departmentId,
           }));
         }
@@ -152,9 +166,9 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
         const user = (users || []).find((u) => u.id === userId);
         if (user) {
           await dispatch(updateUser(userId, {
-            userName:     user.userName,
-            email:        user.email,
-            roleName:     getPrimaryRoleName(user),
+            userName: user.userName,
+            email: user.email,
+            roleName: getPrimaryRoleName(user),
             departmentId: null,
           }));
         }
@@ -190,19 +204,18 @@ const useDepartmentManagement = (dispatch, users, allDepartments) => {
           ? (allDepartments || []).find((d) => d.departmentId === u.departmentId)?.name || 'Unknown'
           : 'None',
       })),
-  [users, allDepartments]);
+    [users, allDepartments]);
 
   const getDeptUserCount = useCallback((deptId) =>
     (users || []).filter((u) => u.departmentId === deptId && !u.isDeleted).length,
-  [users]);
+    [users]);
 
   return {
     // State
-    isDeptPopupVisible,   setDeptPopupVisible,
-    isDeptFormVisible,    setDeptFormVisible,
-    deptFormData,         setDeptFormData,
+    isDeptFormVisible, setDeptFormVisible,
+    deptFormData, setDeptFormData,
     deptSaving,
-    deptEditTab,          setDeptEditTab,
+    deptEditTab, setDeptEditTab,
     selectedUsersForDept, setSelectedUsersForDept,
 
     // Actions

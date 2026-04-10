@@ -35,6 +35,7 @@ export const adminRoutes = {
   providers: "/admin/providers",
   logs: "/admin/logs",
   expectedAverages: "/admin/expected-averages",
+  employeePositions: "/admin/employee-positions",
   checkupTemplates: "/admin/checkup-templates",
   fuelingRules: "/admin/fueling-rules",
   fuelingRulesRulesets: "/admin/fueling-rules/rulesets",

@@ -47,9 +47,11 @@
     flex: 1;
     overflow-y: auto;
     min-height: 0;
-    max-width: 1000px;
+    max-width: 1440px;
     width: 100%;
     margin: 0 auto;
+    padding: 0 20px 24px;
+    box-sizing: border-box;
   }
 
   // ── Loading state ──
@@ -97,6 +99,18 @@
       font-size: 13px;
       color: var(--m365-text-secondary);
       max-width: 400px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .transfer-review-page {
+    &__header {
+      flex-wrap: wrap;
+    }
+
+    &__body {
+      padding: 0 12px 16px;
     }
   }
 }

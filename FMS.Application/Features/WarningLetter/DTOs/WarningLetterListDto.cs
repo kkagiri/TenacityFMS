@@ -2,7 +2,7 @@
  * File: WarningLetterListDto.cs
  * Purpose: Represents the lightweight warning letter payload used in list endpoints.
  * Dependencies: WarningLetterStatus, WarningLetterType
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-09
  */
 using System;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
@@ -21,7 +21,10 @@ public class WarningLetterListDto
     public int SiteId { get; set; }
     public string SiteName { get; set; } = string.Empty;
     public DateTime LetterDate { get; set; }
+    public DateTime PeriodStart { get; set; }
     public WarningLetterStatus Status { get; set; }
     public DateTime? EmailSentAt { get; set; }
     public string? EmailRecipient { get; set; }
+    public DateTime? SignatureRequestedAt { get; set; }
+    public DateTime? SignedCopyUploadedAt { get; set; }
 }

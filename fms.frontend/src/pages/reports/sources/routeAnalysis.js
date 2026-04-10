@@ -10,7 +10,7 @@ const routeAnalysis = {
     name: 'Route Analysis',
     description:
         'Analyzes persisted vehicle trip groups with route summaries, cycle counts, reconciliation breakdowns, anomaly visibility, and planning-readiness notes.',
-    category: 'Fleet',
+    category: 'Fleet Management',
     categoryIcon: 'fa-light fa-truck-fast',
     icon: 'fa-light fa-route',
     apiEndpoint: '/vehicletrips',

@@ -4,6 +4,7 @@
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetter DTOs
  * Last Modified: 2026-04-06
  */
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -40,6 +41,31 @@ public class GetWarningLetterByIdQueryHandler : IRequestHandler<GetWarningLetter
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
         }
 
-        return FMSResponse<WarningLetterDto>.Success(CreateWarningLetterCommandHandler.MapToDto(warningLetter, warningLetter.Employee, warningLetter.Vehicle, warningLetter.Site));
+        var dto = CreateWarningLetterCommandHandler.MapToDto(warningLetter, warningLetter.Employee, warningLetter.Vehicle, warningLetter.Site);
+
+        if (!string.IsNullOrWhiteSpace(warningLetter.SignedCopyUploadedBy))
+        {
+            var uploader = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == warningLetter.SignedCopyUploadedBy)
+                .Select(u => new { u.FirstName, u.LastName, u.UserName, u.Email })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (uploader != null)
+            {
+                var fullName = string.Join(" ", new[] { uploader.FirstName?.Trim(), uploader.LastName?.Trim() }
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                dto.SignedCopyUploadedBy = !string.IsNullOrWhiteSpace(fullName) && !string.IsNullOrWhiteSpace(uploader.Email)
+                    ? $"{fullName} ({uploader.Email})"
+                    : !string.IsNullOrWhiteSpace(fullName)
+                        ? fullName
+                        : !string.IsNullOrWhiteSpace(uploader.UserName) && !string.IsNullOrWhiteSpace(uploader.Email)
+                            ? $"{uploader.UserName} ({uploader.Email})"
+                            : uploader.Email ?? uploader.UserName ?? dto.SignedCopyUploadedBy;
+            }
+        }
+
+        return FMSResponse<WarningLetterDto>.Success(dto);
     }
 }

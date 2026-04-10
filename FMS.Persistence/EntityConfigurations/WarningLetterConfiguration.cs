@@ -108,6 +108,56 @@ public class WarningLetterConfiguration : EntityTypeConfiguration<WarningLetter>
                 .HasMaxLength(255)
                 .HasColumnName("EmailRecipient");
 
+            builder.Property(e => e.SignatureRequestRecipientUserId)
+                .HasMaxLength(100)
+                .HasColumnName("SignatureRequestRecipientUserId")
+                .UseCollation("utf8mb4_general_ci")
+                .HasCharSet("utf8mb4");
+
+            builder.Property(e => e.SignatureRequestRecipient)
+                .HasMaxLength(255)
+                .HasColumnName("SignatureRequestRecipient");
+
+            builder.Property(e => e.SignatureRequestedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("SignatureRequestedAt");
+
+            builder.Property(e => e.SignatureRequestedBy)
+                .HasMaxLength(100)
+                .HasColumnName("SignatureRequestedBy")
+                .UseCollation("utf8mb4_general_ci")
+                .HasCharSet("utf8mb4");
+
+            builder.Property(e => e.SignedCopyFileName)
+                .HasMaxLength(255)
+                .HasColumnName("SignedCopyFileName");
+
+            builder.Property(e => e.SignedCopyStoredFileName)
+                .HasMaxLength(255)
+                .HasColumnName("SignedCopyStoredFileName");
+
+            builder.Property(e => e.SignedCopyFilePath)
+                .HasMaxLength(500)
+                .HasColumnName("SignedCopyFilePath");
+
+            builder.Property(e => e.SignedCopyContentType)
+                .HasMaxLength(100)
+                .HasColumnName("SignedCopyContentType");
+
+            builder.Property(e => e.SignedCopyFileSize)
+                .HasColumnType("bigint(20)")
+                .HasColumnName("SignedCopyFileSize");
+
+            builder.Property(e => e.SignedCopyUploadedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("SignedCopyUploadedAt");
+
+            builder.Property(e => e.SignedCopyUploadedBy)
+                .HasMaxLength(100)
+                .HasColumnName("SignedCopyUploadedBy")
+                .UseCollation("utf8mb4_general_ci")
+                .HasCharSet("utf8mb4");
+
             builder.Property(e => e.Status)
                 .HasColumnType("int(11)")
                 .HasColumnName("Status")

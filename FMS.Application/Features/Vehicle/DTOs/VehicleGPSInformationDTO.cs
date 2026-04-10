@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FMS.Application.Features.Vehicle.DTOs
 {
@@ -32,6 +33,16 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public string? Protocol { get; set; }
         public string? LastIP { get; set; }
         public DateTime? LastDeviceActivity { get; set; }
+        public string? CustomFuelCalibration { get; set; }
+        public List<VehicleTelemetryVariableDTO> TelemetryVariables { get; set; } = new();
+    }
+
+    public class VehicleTelemetryVariableDTO
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Value { get; set; }
+        public string? Type { get; set; }
+        public string? Time { get; set; }
     }
 
     /// <summary>

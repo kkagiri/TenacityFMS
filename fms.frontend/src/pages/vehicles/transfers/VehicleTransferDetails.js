@@ -23,9 +23,10 @@ import "./VehicleTransferDetails.scss";
 const TABS = [
   { key: "details", label: "Details", icon: "fa-light fa-file-lines" },
   { key: "inspection", label: "Equipment Inspection", icon: "fa-light fa-clipboard-check" },
+  { key: "additional", label: "Additional", icon: "fa-light fa-circle-info" },
 ];
 
-const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
+const VehicleTransferDetails = ({ transfer, onClose, onRefresh, isApprovalReview = false }) => {
   const dispatch = useDispatch();
   const users = useSelector((state) => state.user?.users || []);
   const [actionLoading, setActionLoading] = useState(false);
@@ -33,8 +34,25 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
   const [approvalUserId, setApprovalUserId] = useState("");
   const [pdfLoading, setPdfLoading] = useState(false);
 
+  const serviceFilterPartsList = useMemo(
+    () => transfer?.serviceFilterPartsList ?? transfer?.ServiceFilterPartsList ?? [],
+    [transfer]
+  );
+
+  const hasAdditionalData = useMemo(
+    () => Boolean(
+      transfer?.remarks ||
+      transfer?.documentFileName ||
+      transfer?.documentUrl ||
+      transfer?.senderFunction ||
+      transfer?.receiverFunction ||
+      serviceFilterPartsList.length > 0
+    ),
+    [serviceFilterPartsList.length, transfer]
+  );
+
   useEffect(() => {
-    dispatch(fetchUsers()).catch(() => {});
+    dispatch(fetchUsers()).catch(() => { });
   }, [dispatch]);
 
   const workshopUsers = useMemo(
@@ -229,7 +247,24 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
 
     const buttons = [];
 
-    if (status === "draft") {
+    if (isApprovalReview && status !== "pendingapproval") {
+      return (
+        <div className="transfer-details__action-bar">
+          <i className="fa-light fa-bolt transfer-details__action-icon" />
+          <span className="transfer-details__action-label">Actions</span>
+          <button
+            className="m365-btn m365-btn--ghost"
+            disabled={pdfLoading}
+            onClick={handleDownloadPdf}
+          >
+            <i className={`fa-light ${pdfLoading ? "fa-spinner fa-spin" : "fa-file-pdf"}`} />{" "}
+            {pdfLoading ? "Generating…" : "Print Report"}
+          </button>
+        </div>
+      );
+    }
+
+    if (!isApprovalReview && status === "draft") {
       buttons.push(
         <div key="approval-selector" className="transfer-details__approval-selector">
           <select
@@ -283,7 +318,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
       );
     }
 
-    if (status === "approved") {
+    if (!isApprovalReview && status === "approved") {
       buttons.push(
         <button
           key="dispatch"
@@ -296,7 +331,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
       );
     }
 
-    if (status === "intransit") {
+    if (!isApprovalReview && status === "intransit") {
       buttons.push(
         <button
           key="confirm"
@@ -506,19 +541,6 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
             </div>
           </div>
 
-          {/* ── Remarks ── */}
-          {transfer.remarks && (
-            <div className="m365-section-group transfer-details__remarks-section">
-              <div className="m365-section-group__header">
-                <i className="fa-light fa-comment m365-section-group__icon" />
-                <span className="m365-section-group__title">Remarks</span>
-              </div>
-              <div className="m365-section-group__body">
-                <p className="transfer-details__remarks-text">{transfer.remarks}</p>
-              </div>
-            </div>
-          )}
-
           {/* ── Sign / Approval ── */}
           <div className="m365-section-group">
             <div className="m365-section-group__header">
@@ -549,6 +571,84 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
       {/* ═══════ EQUIPMENT INSPECTION TAB ═══════ */}
       {activeTab === "inspection" && (
         <EquipmentInspectionTab transfer={transfer} />
+      )}
+
+      {/* ═══════ ADDITIONAL TAB ═══════ */}
+      {activeTab === "additional" && (
+        hasAdditionalData ? (
+          <>
+            {serviceFilterPartsList.length > 0 && (
+              <div className="m365-section-group">
+                <div className="m365-section-group__header">
+                  <i className="fa-light fa-filter m365-section-group__icon" />
+                  <span className="m365-section-group__title">Service Filter Parts</span>
+                </div>
+                <div className="m365-section-group__body" style={{ padding: 0 }}>
+                  <table className="transfer-details__table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Description</th>
+                        <th>Part Number</th>
+                        <th>Qty</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {serviceFilterPartsList.map((part, index) => (
+                        <tr key={`${part.number ?? part.Number ?? index}-${part.partNumber ?? part.PartNumber ?? index}`}>
+                          <td>{part.number ?? part.Number ?? index + 1}</td>
+                          <td>{part.description ?? part.Description ?? "-"}</td>
+                          <td>{part.partNumber ?? part.PartNumber ?? "-"}</td>
+                          <td>{part.quantity ?? part.Quantity ?? "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {transfer.remarks && (
+              <div className="m365-section-group transfer-details__remarks-section">
+                <div className="m365-section-group__header">
+                  <i className="fa-light fa-comment m365-section-group__icon" />
+                  <span className="m365-section-group__title">Remarks</span>
+                </div>
+                <div className="m365-section-group__body">
+                  <p className="transfer-details__remarks-text">{transfer.remarks}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="m365-section-group">
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-file-circle-info m365-section-group__icon" />
+                <span className="m365-section-group__title">Additional Information</span>
+              </div>
+              <div className="m365-section-group__body">
+                <div className="m365-info-grid m365-info-grid--3col">
+                  <div className="m365-info-cell">
+                    <span className="m365-info-cell__label">Sender Function</span>
+                    <span className="m365-info-cell__value">{transfer.senderFunction || "—"}</span>
+                  </div>
+                  <div className="m365-info-cell">
+                    <span className="m365-info-cell__label">Receiver Function</span>
+                    <span className="m365-info-cell__value">{transfer.receiverFunction || "—"}</span>
+                  </div>
+                  <div className="m365-info-cell">
+                    <span className="m365-info-cell__label">Attached Document</span>
+                    <span className="m365-info-cell__value">{transfer.documentFileName || "—"}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="transfer-details__empty-section">
+            <i className="fa-light fa-circle-info" />
+            <span>No additional information recorded for this transfer</span>
+          </div>
+        )
       )}
     </div>
   );

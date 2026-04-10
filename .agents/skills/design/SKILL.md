@@ -7,6 +7,7 @@ description: M365 Admin Center Fluent Design system for FMS. Use when building U
 
 > **Reference:** Microsoft 365 Admin Center flat design language.
 > All new UI and edits MUST follow this guide. No exceptions.
+> All design should include dark mode support, but dark mode styles are not included in this document for brevity. Use M365 Admin as the reference for dark mode tokens and styles.
 
 ---
 

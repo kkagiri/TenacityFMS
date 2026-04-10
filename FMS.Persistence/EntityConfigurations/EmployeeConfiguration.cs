@@ -44,8 +44,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasCharSet("utf8mb4");
 
                 builder.Property(e => e.EmployeeWorkNo)
-                    .HasMaxLength(45)
-                    .HasDefaultValueSql("'New'");
+                    .HasMaxLength(45);
 
                 builder.Property(e => e.EmployeephoneNumber)
                     .HasMaxLength(45)
@@ -60,7 +59,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(45)
                     .HasDefaultValueSql("'Employee Name'");
 
-                builder.Property(e => e.Trade)
+                builder.Property(e => e.Position)
                     .HasMaxLength(100)
                     .HasColumnName("Trade");
 
@@ -86,6 +85,7 @@ namespace FMS.Persistence.EntityConfigurations
                   .WithMany(s => s.Employees)  // Specify the inverse navigation property
                    .HasForeignKey(e => e.SiteId)
                    .OnDelete(DeleteBehavior.Restrict);
+
                 // Configure the CreatedByNavigation relationship
                 builder.HasOne(e => e.CreatedByNavigation)
                     .WithMany(u => u.EmployeeCreatedByNavigations)

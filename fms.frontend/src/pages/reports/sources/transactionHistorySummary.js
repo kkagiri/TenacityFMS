@@ -11,8 +11,8 @@ const transactionHistorySummary = {
     name: 'Transaction History Summary',
     description:
         'Monthly and yearly aggregated summary of tank transactions — dispensing, deliveries, transfers, and variance per tank and site.',
-    category: 'Fuel Management',
-    categoryIcon: 'fa-light fa-gas-pump',
+    category: 'Tank Management',
+    categoryIcon: 'fa-light fa-oil-can-drip',
     icon: 'fa-light fa-chart-column',
     apiEndpoint: '/TankVolumeHistory/filtered',
     defaultTemplate: 'transaction-history-summary-report',

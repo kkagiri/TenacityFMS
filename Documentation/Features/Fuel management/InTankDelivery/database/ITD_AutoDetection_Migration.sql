@@ -47,14 +47,16 @@ ALTER TABLE `intankdelivery`
 
 INSERT INTO `systemconfigurations` (`ConfigurationKey`, `ConfigurationValue`, `Description`, `Category`, `DataType`, `IsActive`, `CreatedAt`, `UpdatedAt`)
 VALUES
-  ('ITD_AlertsEnabled', 'true', 'Enable/disable alerts for PTS in-tank delivery auto-detection', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
-  ('ITD_MinVolumeThreshold', '50', 'Minimum volume change (liters) to trigger ITD alert', 'InTankDelivery', 'decimal', 1, NOW(), NOW()),
-  ('ITD_AutoCreateLedgerEntry', 'true', 'Automatically create TankVolumeHistory ledger entry for detected deliveries', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
-  ('ITD_AutoMatchManualDelivery', 'true', 'Automatically try to match PTS delivery with manual delivery records', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
-  ('ITD_MatchVolumeTolerance', '5', 'Volume tolerance percentage for matching PTS delivery with manual delivery', 'InTankDelivery', 'decimal', 1, NOW(), NOW()),
-  ('ITD_MatchTimeWindowHours', '24', 'Time window (hours) to search for matching manual deliveries', 'InTankDelivery', 'decimal', 1, NOW(), NOW()),
-  ('ITD_AlertPriority', 'Medium', 'Default alert priority for ITD notifications (Low, Medium, High, Critical)', 'InTankDelivery', 'string', 1, NOW(), NOW()),
-  ('ITD_AlertAutoResolveMinutes', '60', 'Auto-resolve ITD alerts after this many minutes (0 = never)', 'InTankDelivery', 'decimal', 1, NOW(), NOW())
+  ('ITD.AutoDetection.AlertsEnabled', 'true', 'Enable or disable alerts for PTS in-tank delivery auto-detection', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.MinVolumeThreshold', '50.0', 'Minimum volume change in liters required to trigger ITD processing', 'InTankDelivery', 'decimal', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.AutoCreateLedgerEntry', 'true', 'Automatically create TankVolumeHistory ledger entries for detected deliveries', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.AutoMatchManualDelivery', 'true', 'Automatically try to match detected ITD records to manual deliveries', 'InTankDelivery', 'bool', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.MatchVolumeTolerance', '0.10', 'Volume tolerance ratio used when matching ITD records to manual deliveries', 'InTankDelivery', 'decimal', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.MatchTimeWindowHours', '24', 'Time window in hours used to search for matching manual deliveries', 'InTankDelivery', 'int', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.AlertPriority', 'Medium', 'Default alert priority for ITD notifications (Low, Medium, High, Critical)', 'InTankDelivery', 'string', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.AlertAutoResolveMinutes', '0', 'Auto-resolve ITD alerts after this many minutes (0 = never)', 'InTankDelivery', 'int', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.MinHeightChangeMm', '20', 'Minimum product height change in mm required to treat a rise as a plausible delivery', 'InTankDelivery', 'Decimal', 1, NOW(), NOW()),
+  ('ITD.AutoDetection.MaxTempChangePerMinute', '2.0', 'Maximum plausible temperature change per minute before rejecting a delivery as probe noise', 'InTankDelivery', 'Decimal', 1, NOW(), NOW())
 ON DUPLICATE KEY UPDATE `ConfigurationKey` = VALUES(`ConfigurationKey`), `UpdatedAt` = NOW();
 
 -- =================================================

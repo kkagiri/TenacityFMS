@@ -11,6 +11,11 @@ namespace FMS.Application.Features.VehicleTransfer.DTOs;
 /// </summary>
 public class CreateVehicleTransferDTO
 {
+    private string? _checkupItemsJson;
+    private string? _tyreDetailsJson;
+    private string? _batteryDetailsJson;
+    private string? _serviceFilterPartsJson;
+
     [Required]
     public int VehicleId { get; set; }
 
@@ -137,45 +142,41 @@ public class CreateVehicleTransferDTO
     /// </summary>
     public string? CheckupItemsJson
     {
+        get => _checkupItemsJson;
         set
         {
-            if (!string.IsNullOrEmpty(value) && (CheckupItems == null || CheckupItems.Count == 0))
-            {
-                try { CheckupItems = JsonSerializer.Deserialize<List<CreateCheckupItemDTO>>(value, _jsonOpts); } catch { }
-            }
+            _checkupItemsJson = value;
+            EnsureJsonCollectionsParsed();
         }
     }
 
     public string? TyreDetailsJson
     {
+        get => _tyreDetailsJson;
         set
         {
-            if (!string.IsNullOrEmpty(value) && (TyreDetails == null || TyreDetails.Count == 0))
-            {
-                try { TyreDetails = JsonSerializer.Deserialize<List<CreateTyreDetailDTO>>(value, _jsonOpts); } catch { }
-            }
+            _tyreDetailsJson = value;
+            EnsureJsonCollectionsParsed();
         }
     }
 
     public string? BatteryDetailsJson
     {
+        get => _batteryDetailsJson;
         set
         {
-            if (!string.IsNullOrEmpty(value) && (BatteryDetails == null || BatteryDetails.Count == 0))
-            {
-                try { BatteryDetails = JsonSerializer.Deserialize<List<CreateBatteryDetailDTO>>(value, _jsonOpts); } catch { }
-            }
+            _batteryDetailsJson = value;
+            EnsureJsonCollectionsParsed();
         }
     }
 
     public string? ServiceFilterPartsJson
     {
+        get => _serviceFilterPartsJson;
         set
         {
-            if (!string.IsNullOrEmpty(value) && (ServiceFilterParts == null || ServiceFilterParts.Count == 0))
-            {
-                try { ServiceFilterParts = JsonSerializer.Deserialize<List<ServiceFilterPartDTO>>(value, _jsonOpts); } catch { }
-            }
+            _serviceFilterPartsJson = value;
+            EnsureJsonCollectionsParsed();
         }
     }
 
@@ -232,6 +233,29 @@ public class CreateVehicleTransferDTO
     /// Vehicle Model name (from vehicle details)
     /// </summary>
     public string? VehicleModelName { get; set; }
+
+    public void EnsureJsonCollectionsParsed()
+    {
+        if (!string.IsNullOrWhiteSpace(_checkupItemsJson) && (CheckupItems == null || CheckupItems.Count == 0))
+        {
+            try { CheckupItems = JsonSerializer.Deserialize<List<CreateCheckupItemDTO>>(_checkupItemsJson, _jsonOpts); } catch { }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_tyreDetailsJson) && (TyreDetails == null || TyreDetails.Count == 0))
+        {
+            try { TyreDetails = JsonSerializer.Deserialize<List<CreateTyreDetailDTO>>(_tyreDetailsJson, _jsonOpts); } catch { }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_batteryDetailsJson) && (BatteryDetails == null || BatteryDetails.Count == 0))
+        {
+            try { BatteryDetails = JsonSerializer.Deserialize<List<CreateBatteryDetailDTO>>(_batteryDetailsJson, _jsonOpts); } catch { }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_serviceFilterPartsJson) && (ServiceFilterParts == null || ServiceFilterParts.Count == 0))
+        {
+            try { ServiceFilterParts = JsonSerializer.Deserialize<List<ServiceFilterPartDTO>>(_serviceFilterPartsJson, _jsonOpts); } catch { }
+        }
+    }
 }
 
 /// <summary>

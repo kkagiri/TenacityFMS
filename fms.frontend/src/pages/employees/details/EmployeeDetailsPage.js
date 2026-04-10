@@ -27,6 +27,7 @@ import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
 import {
   deleteEmployee,
+  fetchEmployeePositions,
   updateEmployee,
 } from "../../../redux/actions/employeeActions";
 import { fetchpermissionbyUserId } from "../../../redux/actions/permissionActions";
@@ -68,6 +69,7 @@ const toEditFormData = (sourceEmployee) => ({
   fullName: sourceEmployee?.fullName || "",
   employeephoneNumber: sourceEmployee?.employeephoneNumber || "",
   employeeWorkNo: sourceEmployee?.employeeWorkNo || "",
+  position: sourceEmployee?.position || "",
   employeestatus: sourceEmployee?.employeestatus || "Active",
   siteId: sourceEmployee?.siteId ?? null,
   vehicles: Array.isArray(sourceEmployee?.vehicles) ? sourceEmployee.vehicles : [],
@@ -101,6 +103,7 @@ const EmployeeDetailsPage = () => {
   const [savingEmployeeChanges, setSavingEmployeeChanges] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState(false);
   const [editFormData, setEditFormData] = useState(() => toEditFormData(null));
+  const [positionOptions, setPositionOptions] = useState([]);
 
   useEffect(() => {
     if (!vehicles.length) {
@@ -110,6 +113,22 @@ const EmployeeDetailsPage = () => {
       dispatch(fetchSiteList());
     }
   }, [dispatch, sites.length, vehicles.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPositionOptions = async () => {
+      const result = await fetchEmployeePositions(true);
+      if (!cancelled && result.success) {
+        setPositionOptions(Array.isArray(result.data) ? result.data : []);
+      }
+    };
+
+    loadPositionOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -411,6 +430,21 @@ const EmployeeDetailsPage = () => {
     };
   }, [employeeTransactions, vehicleChangeRows.length]);
 
+  const availablePositionOptions = useMemo(() => {
+    const currentPosition = (editFormData.position || "").trim();
+    const options = Array.isArray(positionOptions) ? [...positionOptions] : [];
+
+    if (currentPosition && !options.some((option) => option?.name === currentPosition)) {
+      options.push({
+        id: `current-${currentPosition}`,
+        name: currentPosition,
+        isActive: false,
+      });
+    }
+
+    return options;
+  }, [editFormData.position, positionOptions]);
+
   const canEditEmployee = permissions.includes("_Edit_Employee");
   const canDeleteEmployee = permissions.includes("_Delete_Employee");
   const canReadWarningLetters = permissions.includes("_Read_WarningLetter");
@@ -443,6 +477,7 @@ const EmployeeDetailsPage = () => {
         ...editFormData,
         id: employeeId,
         fullName: editFormData.fullName.trim().toUpperCase(),
+        position: (editFormData.position || "").trim(),
         siteId: editFormData.siteId || null,
         vehicles: Array.isArray(editFormData.vehicles) ? editFormData.vehicles : [],
       };
@@ -538,6 +573,7 @@ const EmployeeDetailsPage = () => {
                   {employee.employeestatus || "Unknown"}
                 </span>
                 <span>Work No: {employee.employeeWorkNo || "-"}</span>
+                <span>Position: {employee.position || "-"}</span>
                 <span>Phone: {employee.employeephoneNumber || "-"}</span>
                 <span>Site: {siteMap.get(employee.siteId) || "Unassigned"}</span>
               </div>
@@ -805,6 +841,21 @@ const EmployeeDetailsPage = () => {
                 value={editFormData.employeeWorkNo}
                 onChange={(e) => setEditFormData((prev) => ({ ...prev, employeeWorkNo: e.target.value }))}
               />
+            </div>
+            <div className="m365-field">
+              <label className="m365-field__label">Position</label>
+              <select
+                className="m365-select"
+                value={editFormData.position}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, position: e.target.value }))}
+              >
+                <option value="">Select position</option>
+                {availablePositionOptions.map((position) => (
+                  <option key={position.id} value={position.name}>
+                    {position.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="m365-field">
               <label className="m365-field__label">Status</label>

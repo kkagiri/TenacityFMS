@@ -2,7 +2,7 @@
  * File: GetVehicleDocumentIssuingAuthoritiesQuery.cs
  * Purpose: Returns persisted issuing authorities used by vehicle documents and compliance requirements.
  * Dependencies: GpsdataContext, vehicle document DTOs.
- * Last Modified: 2026-03-25
+ * Last Modified: 2026-04-09
  */
 using System;
 using System.Collections.Generic;
@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
+using FMS.Application.Features.VehicleDocumentManagement.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,8 @@ public class GetVehicleDocumentIssuingAuthoritiesQueryHandler : IRequestHandler<
     {
         try
         {
+            var configuredMappings = await VehicleDocumentIssuingAuthoritySettings.LoadMappingsAsync(_context, cancellationToken);
+
             var documentAuthorities = await _context.VehicleDocuments
                 .AsNoTracking()
                 .Select(document => document.IssuingAuthority)
@@ -61,6 +64,7 @@ public class GetVehicleDocumentIssuingAuthoritiesQueryHandler : IRequestHandler<
 
             var names = documentCounts.Keys
                 .Concat(requirementCounts.Keys)
+                .Concat(configuredMappings.Values)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(name => name)
                 .ToList();
@@ -70,6 +74,7 @@ public class GetVehicleDocumentIssuingAuthoritiesQueryHandler : IRequestHandler<
                 Name = name,
                 DocumentUsageCount = documentCounts.TryGetValue(name, out var documentUsageCount) ? documentUsageCount : 0,
                 RequirementUsageCount = requirementCounts.TryGetValue(name, out var requirementUsageCount) ? requirementUsageCount : 0,
+                AssociatedComplianceCategories = VehicleDocumentIssuingAuthoritySettings.GetAssociatedComplianceCategories(configuredMappings, name),
             }).ToList();
 
             return FMSResponse<List<VehicleDocumentIssuingAuthorityDto>>.Success(authorities);
@@ -83,8 +88,6 @@ public class GetVehicleDocumentIssuingAuthoritiesQueryHandler : IRequestHandler<
 
     private static string NormalizeAuthorityName(string? value)
     {
-        return string.IsNullOrWhiteSpace(value)
-            ? string.Empty
-            : string.Join(" ", value.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim();
+        return VehicleDocumentIssuingAuthoritySettings.NormalizeAuthorityName(value);
     }
 }

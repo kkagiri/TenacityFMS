@@ -2,7 +2,7 @@
  * File: GetWarningLetterConsumptionCandidatesQuery.cs
  * Purpose: Returns filtered vehicle-consumption records that qualify as warning letter candidates.
  * Dependencies: MediatR, GpsdataContext, ISystemConfigurationService, FMSResponse, WarningLetter DTOs/entities
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-09
  */
 using System;
 using System.Collections.Generic;
@@ -18,6 +18,7 @@ using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using WarningLetterEntity = FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetter;
 
 namespace FMS.Application.Features.WarningLetter.Queries;
 
@@ -48,7 +49,7 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
 
     public async Task<FMSResponse<List<WarningLetterConsumptionCandidateDto>>> Handle(GetWarningLetterConsumptionCandidatesQuery request, CancellationToken cancellationToken)
     {
-        if (request.StartDate.HasValue && request.EndDate.HasValue && request.EndDate.Value < request.StartDate.Value)
+        if (request.StartDate is DateTime requestedStartDate && request.EndDate is DateTime requestedEndDate && requestedEndDate < requestedStartDate)
         {
             return FMSResponse<List<WarningLetterConsumptionCandidateDto>>.ValidationFailed(new List<string>
             {
@@ -67,49 +68,38 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
                 .ThenInclude(v => v.DefaultEmployee)
             .AsQueryable();
 
-        if (request.SiteId.HasValue)
+        if (request.SiteId is int siteId)
         {
-            query = query.Where(vc => vc.SiteId == request.SiteId.Value);
+            query = query.Where(vc => vc.SiteId == siteId);
         }
 
-        if (request.VehicleId.HasValue)
+        if (request.VehicleId is int vehicleId)
         {
-            query = query.Where(vc => vc.VehicleId == request.VehicleId.Value);
+            query = query.Where(vc => vc.VehicleId == vehicleId);
         }
 
-        if (request.EmployeeId.HasValue)
+        if (request.EmployeeId is int employeeId)
         {
-            query = query.Where(vc => vc.Vehicle.DefaultEmployeeId == request.EmployeeId.Value);
+            query = query.Where(vc => vc.Vehicle.DefaultEmployeeId == employeeId);
         }
 
-        if (request.StartDate.HasValue)
+        if (request.StartDate is DateTime startDateValue)
         {
-            var startDate = request.StartDate.Value.Date;
+            var startDate = startDateValue.Date;
             query = query.Where(vc => vc.Date >= startDate);
         }
 
-        if (request.EndDate.HasValue)
+        if (request.EndDate is DateTime endDateValue)
         {
-            var endDate = request.EndDate.Value.Date.AddDays(1).AddTicks(-1);
+            var endDate = endDateValue.Date.AddDays(1).AddTicks(-1);
             query = query.Where(vc => vc.Date <= endDate);
         }
-
-        query = query.Where(vc => !_context.WarningLetters.Any(w =>
-            w.VehicleId == vc.VehicleId &&
-            w.SiteId == vc.SiteId &&
-            w.LetterType == request.LetterType &&
-            w.PeriodStart <= vc.Date &&
-            w.PeriodEnd >= vc.Date &&
-            (!request.EmployeeId.HasValue || w.EmployeeId == request.EmployeeId.Value)));
 
         query = request.LetterType switch
         {
             WarningLetterType.ExcessiveSpeed => query.Where(vc => (vc.MaxSpeed ?? 0m) > speedThreshold),
             WarningLetterType.ExcessiveIdling => query.Where(vc => (vc.EngHours ?? 0m) > idlingThreshold),
-            _ => query.Where(vc =>
-                (vc.FuelLost ?? 0m) > 0m ||
-                ((vc.ExpectedConsumption ?? 0m) > 0m &&
-                 (vc.FuelEfficiency ?? decimal.MaxValue) < ((vc.ExpectedConsumption ?? 0m) * (1m - (excessFuelThresholdPercent / 100m)))))
+            _ => query.Where(vc => (vc.FuelLost ?? 0m) > 4m)
         };
 
         var candidates = await query
@@ -121,6 +111,31 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
         var response = candidates
             .Select(candidate => MapCandidate(candidate, request.LetterType, speedThreshold, idlingThreshold))
             .ToList();
+
+        var candidateVehicleIds = response
+            .Select(candidate => candidate.VehicleId)
+            .Distinct()
+            .ToList();
+
+        if (response.Count > 0 && candidateVehicleIds.Count > 0)
+        {
+            var minCandidateDate = response.Min(candidate => candidate.MetricDate.Date);
+            var maxCandidateDate = response.Max(candidate => candidate.MetricDate.Date);
+
+            var existingLetters = await _context.WarningLetters
+                .AsNoTracking()
+                .Include(w => w.Employee)
+                .Where(w =>
+                    w.LetterType == request.LetterType &&
+                    candidateVehicleIds.Contains(w.VehicleId) &&
+                    w.PeriodEnd >= minCandidateDate &&
+                    w.PeriodStart <= maxCandidateDate)
+                .ToListAsync(cancellationToken);
+
+            response = response
+                .Where(candidate => !existingLetters.Any(existingLetter => IsDuplicateCandidate(existingLetter, candidate)))
+                .ToList();
+        }
 
         return FMSResponse<List<WarningLetterConsumptionCandidateDto>>.Success(response);
     }
@@ -161,7 +176,8 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
             ExpectedValue = expectedValue,
             ActualValue = actualValue,
             ExcessValue = excessValue,
-            ViolationSummary = BuildViolationSummary(letterType, candidate.Date, expectedValue, actualValue, excessValue)
+            ViolationSummary = BuildViolationSummary(letterType, candidate.Date, expectedValue, actualValue, excessValue),
+            GpsDriverName = candidate.EmployeeName?.Trim()
         };
     }
 
@@ -189,9 +205,9 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
     {
         return letterType switch
         {
-            WarningLetterType.ExcessiveSpeed => actualValue.HasValue ? Math.Max(0m, actualValue.Value - (expectedValue ?? 0m)) : null,
-            WarningLetterType.ExcessiveIdling => actualValue.HasValue ? Math.Max(0m, actualValue.Value - (expectedValue ?? 0m)) : null,
-            _ => candidate.FuelLost ?? (expectedValue.HasValue && actualValue.HasValue ? Math.Max(0m, expectedValue.Value - actualValue.Value) : null)
+            WarningLetterType.ExcessiveSpeed => actualValue is decimal speedActual ? Math.Max(0m, speedActual - (expectedValue ?? 0m)) : null,
+            WarningLetterType.ExcessiveIdling => actualValue is decimal idleActual ? Math.Max(0m, idleActual - (expectedValue ?? 0m)) : null,
+            _ => candidate.FuelLost ?? (expectedValue is decimal expected && actualValue is decimal actual ? Math.Max(0m, expected - actual) : null)
         };
     }
 
@@ -211,6 +227,35 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
 
     private static string FormatDecimal(decimal? value)
     {
-        return value.HasValue ? value.Value.ToString("N2", CultureInfo.InvariantCulture) : "0.00";
+        return value is decimal decimalValue ? decimalValue.ToString("N2", CultureInfo.InvariantCulture) : "0.00";
+    }
+
+    private static bool IsDuplicateCandidate(WarningLetterEntity existingLetter, WarningLetterConsumptionCandidateDto candidate)
+    {
+        if (existingLetter.VehicleId != candidate.VehicleId)
+        {
+            return false;
+        }
+
+        var violationDate = candidate.MetricDate.Date;
+        if (!MatchesViolationDate(existingLetter, violationDate))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool MatchesViolationDate(WarningLetterEntity existingLetter, DateTime violationDate)
+    {
+        var storedStart = existingLetter.PeriodStart.Date;
+        var storedEnd = existingLetter.PeriodEnd.Date;
+
+        if (storedStart <= violationDate && storedEnd >= violationDate)
+        {
+            return true;
+        }
+
+        return storedStart.AddDays(1) <= violationDate && storedEnd.AddDays(1) >= violationDate;
     }
 }

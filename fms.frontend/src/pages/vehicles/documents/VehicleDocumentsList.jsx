@@ -1,6 +1,6 @@
 /**
  * File: VehicleDocumentsList.jsx
- * Purpose: Container page for vehicle compliance documents, bulk assignment workflows, and reporting widgets.
+ * Purpose: Container page for vehicle compliance documents, filters, and reporting actions.
  * Dependencies: React, Redux actions, page subcomponents.
  * Last Modified: 2026-03-25
  */
@@ -14,12 +14,10 @@ import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchVehicleTypes } from "../../../redux/actions/vehicleTypeActions";
 import {
-  bulkCreateVehicleComplianceRequirements,
+  createVehicleDocumentIssuingAuthority,
   createVehicleDocument,
   deleteVehicleDocumentIssuingAuthority,
   deleteVehicleDocument,
-  getVehicleComplianceDashboard,
-  getVehicleComplianceRequirements,
   getVehicleDocumentIssuingAuthorities,
   getVehicleDocumentUserPreferences,
   getVehicleDocuments,
@@ -27,8 +25,6 @@ import {
   saveVehicleDocumentUserPreferences,
   updateVehicleDocument,
 } from "../../../redux/actions/vehicleDocumentActions";
-import VehicleComplianceBulkPanel from "./components/VehicleComplianceBulkPanel";
-import VehicleComplianceWidgets from "./components/VehicleComplianceWidgets";
 import VehicleDocumentFormPanel from "./components/VehicleDocumentFormPanel";
 import VehicleDocumentSettingsPanel from "./components/VehicleDocumentSettingsPanel";
 import VehicleDocumentsFilterBar from "./components/VehicleDocumentsFilterBar";
@@ -38,7 +34,6 @@ import {
   DEFAULT_NOTIFICATION_REMINDER_SETTINGS,
   buildDocumentComplianceCatalog,
   EMPTY_DOCUMENT_FORM_STATE,
-  EMPTY_REQUIREMENT_FORM_STATE,
   getDefaultReminderDays,
   getComplianceEntry,
   getPreferredIssuingAuthority,
@@ -46,7 +41,6 @@ import {
   getStatusDescriptor,
   normalizeDocument,
   parseNotificationReminderSettings,
-  normalizeRequirement,
   normalizeSite,
   normalizeVehicle,
   normalizeVehicleType,
@@ -73,8 +67,6 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   const [vehicles, setVehicles] = useState([]);
   const [sites, setSites] = useState([]);
   const [vehicleTypes, setVehicleTypes] = useState([]);
-  const [requirements, setRequirements] = useState([]);
-  const [dashboard, setDashboard] = useState(null);
   const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [loadingLookups, setLoadingLookups] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(fixedVehicleId || "all");
@@ -83,15 +75,12 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   const [selectedComplianceCategory, setSelectedComplianceCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [documentPanelOpen, setDocumentPanelOpen] = useState(false);
-  const [bulkPanelOpen, setBulkPanelOpen] = useState(false);
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [documentSubmitting, setDocumentSubmitting] = useState(false);
-  const [bulkSubmitting, setBulkSubmitting] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [authoritySaving, setAuthoritySaving] = useState(false);
   const [documentFormErrors, setDocumentFormErrors] = useState({});
   const [documentFormState, setDocumentFormState] = useState({ ...EMPTY_DOCUMENT_FORM_STATE, vehicleId: fixedVehicleId || "" });
-  const [requirementFormState, setRequirementFormState] = useState({ ...EMPTY_REQUIREMENT_FORM_STATE });
   const [notificationDefaults, setNotificationDefaults] = useState({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS });
   const [issuingAuthorities, setIssuingAuthorities] = useState([]);
 
@@ -107,7 +96,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     () => Object.fromEntries(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType])),
     [vehicleTypes]
   );
-  const documentCatalog = useMemo(() => buildDocumentComplianceCatalog(requirements, documents), [documents, requirements]);
+  const documentCatalog = useMemo(() => buildDocumentComplianceCatalog([], documents, issuingAuthorities), [documents, issuingAuthorities]);
 
   const loadDocuments = useCallback(async () => {
     setLoadingDocuments(true);
@@ -138,20 +127,6 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     }
   }, [dispatch]);
 
-  const loadCompliance = useCallback(async () => {
-    if (fixedVehicleId) {
-      return;
-    }
-
-    const [requirementsResponse, dashboardResponse] = await Promise.all([
-      dispatch(getVehicleComplianceRequirements()),
-      dispatch(getVehicleComplianceDashboard()),
-    ]);
-
-    setRequirements(Array.isArray(requirementsResponse?.data) ? requirementsResponse.data.map(normalizeRequirement) : []);
-    setDashboard(dashboardResponse?.data || null);
-  }, [dispatch, fixedVehicleId]);
-
   const loadVehicleDocumentSettings = useCallback(async () => {
     try {
       const [preferenceResult, authorityResult] = await Promise.all([
@@ -169,8 +144,8 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   }, [dispatch]);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadDocuments(), loadCompliance()]);
-  }, [loadCompliance, loadDocuments]);
+    await loadDocuments();
+  }, [loadDocuments]);
 
   useEffect(() => {
     setSelectedVehicleId(fixedVehicleId || "all");
@@ -281,6 +256,27 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     setDocumentFormErrors({});
   }, [documentSubmitting]);
 
+  const handleCreateIssuingAuthority = useCallback(async (payload) => {
+    setAuthoritySaving(true);
+
+    try {
+      const response = await dispatch(createVehicleDocumentIssuingAuthority(payload));
+      if (response?.isSuccess) {
+        await loadVehicleDocumentSettings();
+        notify("Issuing authority saved", "success", 2500);
+      }
+
+      return response;
+    } catch (error) {
+      return {
+        isSuccess: false,
+        message: error?.message || "Failed to save issuing authority",
+      };
+    } finally {
+      setAuthoritySaving(false);
+    }
+  }, [dispatch, loadVehicleDocumentSettings]);
+
   const handleDelete = async (document) => {
     if (!window.confirm(`Delete ${document.complianceCategoryName} for ${document.vehicleLabel}?`)) {
       return;
@@ -360,40 +356,6 @@ const VehicleDocumentsList = ({ vehicleId }) => {
       notify(response?.message || "Failed to save vehicle document", "error", 3500);
     } finally {
       setDocumentSubmitting(false);
-    }
-  };
-
-  const handleRequirementSubmit = async (event) => {
-    event.preventDefault();
-    if (!requirementFormState.name.trim() || !requirementFormState.documentType || !requirementFormState.complianceCategory || requirementFormState.targetIds.length === 0) {
-      notify("Complete the requirement fields and select at least one target", "warning", 3000);
-      return;
-    }
-
-    setBulkSubmitting(true);
-    try {
-      const response = await dispatch(bulkCreateVehicleComplianceRequirements({
-        name: requirementFormState.name.trim(),
-        targetType: Number(requirementFormState.targetType),
-        targetIds: requirementFormState.targetIds,
-        documentType: Number(requirementFormState.documentType),
-        complianceCategory: Number(requirementFormState.complianceCategory),
-        alertLeadDays: Number(requirementFormState.alertLeadDays || 0),
-        defaultIssuingAuthority: requirementFormState.defaultIssuingAuthority?.trim() || "",
-        notes: requirementFormState.notes || "",
-      }));
-
-      if (response?.isSuccess) {
-        notify("Compliance assignments created", "success", 2500);
-        setBulkPanelOpen(false);
-        setRequirementFormState({ ...EMPTY_REQUIREMENT_FORM_STATE });
-        await loadCompliance();
-        return;
-      }
-
-      notify(response?.message || "Failed to create compliance assignments", "error", 3500);
-    } finally {
-      setBulkSubmitting(false);
     }
   };
 
@@ -494,7 +456,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         <div>
           <p className="vehicle-documents-page__eyebrow">Vehicle compliance</p>
           <h1 className="vehicle-documents-page__title">Vehicle documents</h1>
-          <p className="vehicle-documents-page__subtitle">Track uploaded compliance records, assign requirements by site or vehicle type, and review due versus completed coverage.</p>
+          <p className="vehicle-documents-page__subtitle">Track uploaded compliance records, filter by vehicle, site, and status, and generate compliance reports from the current view.</p>
         </div>
         <div className="vehicle-documents-page__header-actions">
           <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setSettingsPanelOpen(true)} disabled={settingsSaving || authoritySaving || !canEdit}>
@@ -509,12 +471,6 @@ const VehicleDocumentsList = ({ vehicleId }) => {
             <i className="fa-light fa-rotate-right" />
             Refresh
           </button>
-          {!fixedVehicleId && canCreate ? (
-            <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setBulkPanelOpen(true)} disabled={loadingLookups}>
-              <i className="fa-light fa-layer-group" />
-              Bulk assign
-            </button>
-          ) : null}
           {canCreate && (
             <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--primary" onClick={openCreatePanel} disabled={loadingLookups}>
               <i className="fa-light fa-plus" />
@@ -527,12 +483,10 @@ const VehicleDocumentsList = ({ vehicleId }) => {
       <div className="vehicle-documents-page__note-grid">
 
         <div className="vehicle-documents-page__note-card vehicle-documents-page__note-card--warning">
-          <span className="vehicle-documents-page__note-title">Compliance model</span>
-          <p>Each document now carries a dedicated compliance category and alert lead days. Bulk requirement assignments compare site and vehicle-type expectations against the latest uploaded record.</p>
+          <span className="vehicle-documents-page__note-title">Compliance tracking</span>
+          <p>Each document carries its compliance category, issuing authority, expiry date, and reminder lead days so the page can focus on current validity and reporting.</p>
         </div>
       </div>
-
-      {!fixedVehicleId ? <VehicleComplianceWidgets dashboard={dashboard} requirements={requirements} /> : null}
 
       <VehicleDocumentsSummaryCards stats={stats} selectedStatus={selectedStatus} onStatusChange={setSelectedStatus} />
 
@@ -567,21 +521,9 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         notificationDefaults={notificationDefaults}
         fixedVehicleId={fixedVehicleId}
         vehicles={vehicles}
+        isAuthoritySaving={authoritySaving}
+        onCreateIssuingAuthority={handleCreateIssuingAuthority}
       />
-
-      {!fixedVehicleId ? (
-        <VehicleComplianceBulkPanel
-          open={bulkPanelOpen}
-          onClose={() => !bulkSubmitting && setBulkPanelOpen(false)}
-          onSubmit={handleRequirementSubmit}
-          isSubmitting={bulkSubmitting}
-          formState={requirementFormState}
-          setFormState={setRequirementFormState}
-          sites={sites}
-          vehicleTypes={vehicleTypes}
-          documentCatalog={documentCatalog}
-        />
-      ) : null}
 
       <VehicleDocumentSettingsPanel
         open={settingsPanelOpen}

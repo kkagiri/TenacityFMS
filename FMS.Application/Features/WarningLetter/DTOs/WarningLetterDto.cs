@@ -17,7 +17,7 @@ public class WarningLetterDto
     public string EmployeeName { get; set; } = string.Empty;
     public string? EmployeeWorkNo { get; set; }
     public string? EmployeeEmail { get; set; }
-    public string? Trade { get; set; }
+    public string? Position { get; set; }
     public int VehicleId { get; set; }
     public string VehicleHyoungNo { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
@@ -38,6 +38,17 @@ public class WarningLetterDto
     public string? PdfFilePath { get; set; }
     public DateTime? EmailSentAt { get; set; }
     public string? EmailRecipient { get; set; }
+    public string? SignatureRequestRecipientUserId { get; set; }
+    public string? SignatureRequestRecipient { get; set; }
+    public DateTime? SignatureRequestedAt { get; set; }
+    public string? SignatureRequestedBy { get; set; }
+    public string? SignedCopyFileName { get; set; }
+    public string? SignedCopyStoredFileName { get; set; }
+    public string? SignedCopyFilePath { get; set; }
+    public string? SignedCopyContentType { get; set; }
+    public long? SignedCopyFileSize { get; set; }
+    public DateTime? SignedCopyUploadedAt { get; set; }
+    public string? SignedCopyUploadedBy { get; set; }
     public WarningLetterStatus Status { get; set; }
     public DateTime? EmployeeAcknowledgedAt { get; set; }
     public string? Notes { get; set; }

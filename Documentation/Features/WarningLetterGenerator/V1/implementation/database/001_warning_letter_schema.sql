@@ -81,9 +81,9 @@ SET @warningLetterTableSql = IF(
         CONSTRAINT FK_warning_letter_employee FOREIGN KEY (EmployeeId) REFERENCES employee(id),
         CONSTRAINT FK_warning_letter_vehicle FOREIGN KEY (VehicleId) REFERENCES vehicle(vehicleID),
         CONSTRAINT FK_warning_letter_site FOREIGN KEY (SiteId) REFERENCES site(id),
-        CONSTRAINT FK_warning_letter_issued_by FOREIGN KEY (IssuedByUserId) REFERENCES users(Id),
-        CONSTRAINT FK_warning_letter_created_by FOREIGN KEY (CreatedBy) REFERENCES users(Id),
-        CONSTRAINT FK_warning_letter_modified_by FOREIGN KEY (ModifiedBy) REFERENCES users(Id)
+        CONSTRAINT FK_warning_letter_issued_by FOREIGN KEY (IssuedByUserId) REFERENCES `user`(Id),
+        CONSTRAINT FK_warning_letter_created_by FOREIGN KEY (CreatedBy) REFERENCES `user`(Id),
+        CONSTRAINT FK_warning_letter_modified_by FOREIGN KEY (ModifiedBy) REFERENCES `user`(Id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
     'SELECT ''warning_letter table already exists'''
 );

@@ -289,7 +289,7 @@ const mergeAuthority = (entry, authority) => {
     }
 };
 
-export const buildDocumentComplianceCatalog = (requirements = [], documents = []) => {
+export const buildDocumentComplianceCatalog = (requirements = [], documents = [], issuingAuthorities = []) => {
     const catalogMap = new Map();
 
     FALLBACK_COMPLIANCE_RULES.forEach((rule) => {
@@ -314,6 +314,23 @@ export const buildDocumentComplianceCatalog = (requirements = [], documents = []
     documents.forEach((document) => {
         const entry = ensureCatalogEntry(catalogMap, document?.complianceCategory, document?.documentType);
         mergeAuthority(entry, document?.issuingAuthority);
+    });
+
+    issuingAuthorities.forEach((authority) => {
+        const normalizedAuthority = normalizeAuthorityValue(authority?.name ?? authority?.Name ?? "");
+        const associatedComplianceCategories = authority?.associatedComplianceCategories ?? authority?.AssociatedComplianceCategories ?? [];
+
+        associatedComplianceCategories
+            .map((value) => Number(value || 0))
+            .filter((value) => value > 0)
+            .forEach((complianceCategory) => {
+                const entry = ensureCatalogEntry(catalogMap, complianceCategory, 0);
+                mergeAuthority(entry, normalizedAuthority);
+
+                if (entry && normalizedAuthority) {
+                    entry.defaultIssuingAuthority = normalizedAuthority;
+                }
+            });
     });
 
     return Array.from(catalogMap.values())

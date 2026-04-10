@@ -11,5 +11,6 @@ public enum WarningLetterStatus
     Draft = 0,
     Finalized = 1,
     Sent = 2,
-    Acknowledged = 3
+    Acknowledged = 3,
+    SignedCopyReceived = 4
 }

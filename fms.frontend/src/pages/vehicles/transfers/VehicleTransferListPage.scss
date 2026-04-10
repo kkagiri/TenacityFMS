@@ -10,7 +10,9 @@
 .vehicle-transfer-list-page {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   height: 100%;
+  min-height: 0;
   background: var(--m365-bg-surface);
   font-family: var(--m365-font);
 
@@ -40,6 +42,7 @@
   // ── Transfer grid container ──
   .transfer-grid-container {
     flex: 1;
+    width: 100%;
     background: #fff;
     border-top: 1px solid var(--m365-border-light);
     overflow: hidden;
@@ -48,6 +51,7 @@
 
   // ── DataGrid overrides ──
   .dx-datagrid {
+    height: 100%;
     font-family: var(--m365-font);
     font-size: 13px;
 
@@ -84,69 +88,142 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
   }
 }
 
-// ── Approval dialog overlay (portal-level) ──
-.transfer-list__dialog-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: rgba(0, 0, 0, 0.4);
+.transfer-approval-panel {
+  .fms-slide-panel__body {
+    padding: 0;
+    background: var(--m365-bg-surface);
+  }
+}
+
+.transfer-approval-panel__content {
   display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.transfer-approval-panel__hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 20px 20px 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+}
+
+.transfer-approval-panel__hero-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: #deecf9;
+  color: var(--m365-primary, #0078d4);
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.transfer-list__dialog {
-  background: #fff;
-  border-radius: var(--m365-radius-md, 8px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-  width: 440px;
-  max-width: 90vw;
-  overflow: hidden;
-  font-family: var(--m365-font, "Segoe UI", sans-serif);
-}
-
-.transfer-list__dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px 12px;
-  border-bottom: 1px solid var(--m365-border-light, #edebe9);
-
-  h3 {
-    margin: 0;
+.transfer-approval-panel__hero-copy {
+  h4 {
+    margin: 0 0 6px;
     font-size: 16px;
     font-weight: 600;
-    color: var(--m365-text, #323130);
+    color: var(--m365-text, #201f1e);
+  }
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--m365-text-secondary, #605e5c);
   }
 }
 
-.transfer-list__dialog-body {
-  padding: 16px 20px 20px;
+.transfer-approval-panel__summary {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 16px 20px;
 }
 
-.transfer-list__dialog-desc {
+.transfer-approval-panel__summary-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.transfer-approval-panel__summary-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--m365-text-tertiary, #a19f9d);
+}
+
+.transfer-approval-panel__summary-value {
   font-size: 13px;
-  color: var(--m365-text-secondary, #605e5c);
-  margin: 0 0 14px;
-  line-height: 1.5;
+  color: var(--m365-text, #201f1e);
 }
 
-.transfer-list__dialog-label {
+.transfer-approval-panel__form {
+  padding: 0 20px 20px;
+}
+
+.transfer-approval-panel__label {
   display: block;
+  margin-bottom: 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--m365-text-secondary, #605e5c);
-  margin-bottom: 6px;
 }
 
-.transfer-list__dialog-footer {
+.transfer-approval-panel__select {
+  width: 100%;
+}
+
+.transfer-approval-panel__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--m365-text-secondary, #605e5c);
+}
+
+.transfer-approval-panel__footer {
+  margin-top: auto;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 16px 20px 20px;
   border-top: 1px solid var(--m365-border-light, #edebe9);
-  background: var(--m365-bg-surface, #faf9f8);
+  background: #fff;
+}
+
+@media (max-width: 768px) {
+  .transfer-approval-panel__hero {
+    padding: 16px;
+  }
+
+  .transfer-approval-panel__summary,
+  .transfer-approval-panel__form,
+  .transfer-approval-panel__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .transfer-approval-panel__footer {
+    flex-direction: column-reverse;
+
+    .m365-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 }

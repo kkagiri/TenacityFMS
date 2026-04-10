@@ -88,6 +88,7 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
             </span>
             <span>{siteName}</span>
             {employee.employeeWorkNo && <span>Work No: {employee.employeeWorkNo}</span>}
+            {employee.position && <span>Position: {employee.position}</span>}
           </div>
           <p className="m365-detail-header__description">
             Review employment details, assigned vehicles, and audit information from a single workspace.
@@ -172,6 +173,10 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
           <div className="m365-info-cell">
             <span className="m365-info-cell__label">Phone Number</span>
             <span className="m365-info-cell__value">{employee.employeephoneNumber || "-"}</span>
+          </div>
+          <div className="m365-info-cell">
+            <span className="m365-info-cell__label">Position</span>
+            <span className="m365-info-cell__value">{employee.position || "-"}</span>
           </div>
           <div className="m365-info-cell">
             <span className="m365-info-cell__label">Site</span>

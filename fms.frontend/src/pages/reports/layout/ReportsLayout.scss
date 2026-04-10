@@ -1,12 +1,14 @@
 // Reports Layout - Analytics Theme with Purple Gradient
 .reports-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
   background-color: #f8fafc;
+  overflow: hidden;
 }
 
 .reports-sidebar {
   width: 280px;
+  height: 100vh;
   background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: white;
   display: flex;
@@ -74,11 +76,29 @@
   .sidebar-content {
     flex: 1;
     padding: 8px 0;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+    scrollbar-gutter: stable;
 
-    &::-webkit-scrollbar { width: 3px; }
-    &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.28);
+      border-radius: 999px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.42);
+    }
 
     .nav-group {
       margin-bottom: 4px;
@@ -95,6 +115,17 @@
       }
 
       .nav-menu {
+        &.nav-menu--category-tree {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .nav-category-group {
+          display: flex;
+          flex-direction: column;
+        }
+
         .nav-item {
           display: flex;
           align-items: center;
@@ -155,6 +186,57 @@
             }
           }
 
+          &.nav-item--category-toggle {
+            .nav-item-chevron {
+              font-size: 11px;
+              color: rgba(255, 255, 255, 0.72);
+              flex-shrink: 0;
+              transition: color 0.12s ease;
+            }
+
+            &:hover,
+            &.active {
+              .nav-item-chevron {
+                color: #fff;
+              }
+            }
+          }
+
+          &.nav-item--nested {
+            margin: 1px 6px 1px 20px;
+            padding: 7px 12px;
+            color: rgba(255, 255, 255, 0.78);
+
+            .nav-item-content {
+              gap: 8px;
+
+              i {
+                font-size: 13px;
+                width: 16px;
+                color: rgba(255, 255, 255, 0.72);
+              }
+
+              span {
+                font-size: 13px;
+                font-weight: 500;
+              }
+            }
+
+            &::after {
+              content: '';
+              position: absolute;
+              left: 10px;
+              top: 50%;
+              width: 6px;
+              height: 1px;
+              background: rgba(255, 255, 255, 0.35);
+            }
+
+            &.active::after {
+              background: rgba(255, 255, 255, 0.75);
+            }
+          }
+
           .nav-badge {
             background: #dc2626;
             color: white;
@@ -165,6 +247,12 @@
             min-width: 20px;
             text-align: center;
           }
+        }
+
+        .nav-submenu {
+          display: flex;
+          flex-direction: column;
+          padding-bottom: 2px;
         }
       }
     }
@@ -179,16 +267,20 @@
 
 .reports-main {
   flex: 1;
+  height: 100vh;
   min-width: 0;
   display: flex;
   flex-direction: column;
   background: #f8fafc;
   color: #374151;
+  overflow: hidden;
 
   .main-content {
     flex: 1;
+    min-height: 0;
     padding: 1.5rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 
@@ -220,8 +312,13 @@
   }
 
   .reports-main {
+    height: auto;
+    overflow: visible;
+
     .main-content {
+      min-height: auto;
       padding: 1rem;
+      overflow-y: visible;
     }
   }
 }

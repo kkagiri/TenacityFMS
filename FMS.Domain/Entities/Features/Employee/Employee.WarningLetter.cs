@@ -11,7 +11,7 @@ namespace FMS.Domain.Entities;
 
 public partial class Employee
 {
-    public string? Trade { get; set; }
+    public string? Position { get; set; }
     public string? Email { get; set; }
 
     public virtual ICollection<WarningLetter> WarningLetters { get; set; } = new List<WarningLetter>();

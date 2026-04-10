@@ -70,6 +70,37 @@
           .dx-button {
             @apply tw-text-white;
           }
+
+          .preview-print-button {
+            .dx-button-content {
+              @apply tw-bg-white tw-text-gray-800 tw-px-5 tw-py-3 tw-rounded-md tw-border tw-border-gray-200 tw-shadow-sm;
+              gap: 0.5rem;
+              min-height: 46px;
+            }
+
+            .dx-icon {
+              @apply tw-text-lg tw-text-gray-800;
+            }
+
+            .dx-button-text {
+              @apply tw-text-sm tw-font-semibold;
+              letter-spacing: 0.01em;
+            }
+
+            &.dx-state-hover .dx-button-content,
+            .dx-button-has-text.dx-state-hover .dx-button-content {
+              @apply tw-bg-gray-100 tw-border-gray-300;
+            }
+
+            &.dx-state-disabled .dx-button-content {
+              @apply tw-bg-gray-100 tw-text-gray-400 tw-border-gray-200 tw-shadow-none;
+            }
+
+            &.dx-state-disabled .dx-icon,
+            &.dx-state-disabled .dx-button-text {
+              @apply tw-text-gray-400;
+            }
+          }
         }
       }
 
@@ -123,6 +154,24 @@
 @media (max-width: 640px) {
   .jsreport-viewer {
     .viewer-content {
+      .preview-panel {
+        .panel-header {
+          @apply tw-flex-col tw-items-start tw-gap-3;
+
+          .header-actions {
+            @apply tw-w-full tw-flex-wrap;
+
+            .preview-print-button {
+              @apply tw-w-full;
+
+              .dx-button-content {
+                @apply tw-justify-center tw-w-full;
+              }
+            }
+          }
+        }
+      }
+
       .filters-panel {
         .filters-form {
           @apply tw-grid-cols-1;

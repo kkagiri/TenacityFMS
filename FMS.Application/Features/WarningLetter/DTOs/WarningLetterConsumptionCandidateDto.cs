@@ -27,4 +27,7 @@ public class WarningLetterConsumptionCandidateDto
     public decimal? ActualValue { get; set; }
     public decimal? ExcessValue { get; set; }
     public string ViolationSummary { get; set; } = string.Empty;
+    public string? GpsDriverName { get; set; }
+    public bool HasExistingLetter { get; set; }
+    public DateTime? ExistingLetterDate { get; set; }
 }

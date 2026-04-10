@@ -1,8 +1,8 @@
 /**
  * File: WarningLetterPdfRenderer.cs
- * Purpose: Converts warning letter HTML into PDF bytes using the shared jsreport renderer.
+ * Purpose: Renders warning letters through the shared jsreport template engine for HTML and PDF output.
  * Dependencies: IJsReportService, IWarningLetterPdfRenderer
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-07
  */
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +19,13 @@ public class WarningLetterPdfRenderer : IWarningLetterPdfRenderer
         _jsReportService = jsReportService;
     }
 
-    public Task<byte[]> RenderPdfAsync(string html, CancellationToken cancellationToken = default)
+    public Task<string> RenderHtmlAsync(string templateName, object data, CancellationToken cancellationToken = default)
     {
-        return _jsReportService.RenderInlinePdfAsync(html, new { });
+        return _jsReportService.RenderHtmlAsync(templateName, data);
+    }
+
+    public Task<byte[]> RenderPdfAsync(string templateName, object data, CancellationToken cancellationToken = default)
+    {
+        return _jsReportService.RenderPdfAsync(templateName, data);
     }
 }

@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useState } from "react";
+import DateBox from "devextreme-react/date-box";
 import { Popup } from "devextreme-react/popup";
 import VehicleSearchableSelector from "../../../../components/selectors/VehicleSearchableSelector";
 import SlidePanel from "../../../../components/ui/SlidePanel";
@@ -15,13 +16,34 @@ import {
   getComplianceEntry,
   getPreferredIssuingAuthority,
   normalizeAuthorityValue,
+  toDateInputValue,
 } from "../VehicleDocuments.shared";
+
+const resolveDateBoxValue = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
 
 const VehicleDocumentFormPanel = ({
   open,
   onClose,
   onSubmit,
+  onCreateIssuingAuthority,
   isSubmitting,
+  isAuthoritySaving = false,
   formState,
   setFormState,
   validationErrors = {},
@@ -71,12 +93,29 @@ const VehicleDocumentFormPanel = ({
     }));
   };
 
-  const handleAuthoritySave = () => {
+  const handleAuthoritySave = async () => {
     const normalizedAuthority = normalizeAuthorityValue(newAuthorityName);
 
     if (!normalizedAuthority) {
       setAuthorityPopupError("Issuing authority is required.");
       return;
+    }
+
+    if (!formState.complianceCategory) {
+      setAuthorityPopupError("Select a compliance category before adding an issuing authority.");
+      return;
+    }
+
+    if (typeof onCreateIssuingAuthority === "function") {
+      const response = await onCreateIssuingAuthority({
+        name: normalizedAuthority,
+        complianceCategory: Number(formState.complianceCategory || 0),
+      });
+
+      if (!response?.isSuccess) {
+        setAuthorityPopupError(response?.message || "Failed to save issuing authority.");
+        return;
+      }
     }
 
     setFormState((currentState) => ({
@@ -172,13 +211,27 @@ const VehicleDocumentFormPanel = ({
             <div className="vehicle-documents-panel__field-grid">
               <label className="vehicle-documents-panel__field">
                 <span>Issue date</span>
-                <input className={`vehicle-documents-panel__input${validationErrors.issueDate ? " vehicle-documents-panel__control--invalid" : ""}`} type="date" value={formState.issueDate} onChange={(event) => setFormState((currentState) => ({ ...currentState, issueDate: event.target.value }))} />
+                <DateBox
+                  className={`vehicle-documents-panel__datebox${validationErrors.issueDate ? " vehicle-documents-panel__datebox--invalid" : ""}`}
+                  type="date"
+                  stylingMode="outlined"
+                  displayFormat="dd/MM/yyyy"
+                  value={resolveDateBoxValue(formState.issueDate)}
+                  onValueChanged={(event) => setFormState((currentState) => ({ ...currentState, issueDate: toDateInputValue(event.value) }))}
+                />
                 {renderValidationMessage("issueDate")}
               </label>
 
               <label className="vehicle-documents-panel__field">
                 <span>Expiry date</span>
-                <input className={`vehicle-documents-panel__input${validationErrors.expiryDate ? " vehicle-documents-panel__control--invalid" : ""}`} type="date" value={formState.expiryDate} onChange={(event) => setFormState((currentState) => ({ ...currentState, expiryDate: event.target.value }))} />
+                <DateBox
+                  className={`vehicle-documents-panel__datebox${validationErrors.expiryDate ? " vehicle-documents-panel__datebox--invalid" : ""}`}
+                  type="date"
+                  stylingMode="outlined"
+                  displayFormat="dd/MM/yyyy"
+                  value={resolveDateBoxValue(formState.expiryDate)}
+                  onValueChanged={(event) => setFormState((currentState) => ({ ...currentState, expiryDate: toDateInputValue(event.value) }))}
+                />
                 {renderValidationMessage("expiryDate")}
               </label>
 
@@ -280,11 +333,11 @@ const VehicleDocumentFormPanel = ({
               setAuthorityPopupOpen(false);
               setAuthorityPopupError("");
               setNewAuthorityName("");
-            }}>
+            }} disabled={isAuthoritySaving}>
               Cancel
             </button>
-            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--primary" onClick={handleAuthoritySave}>
-              Save authority
+            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--primary" onClick={handleAuthoritySave} disabled={isAuthoritySaving}>
+              {isAuthoritySaving ? "Saving..." : "Save authority"}
             </button>
           </div>
         </div>

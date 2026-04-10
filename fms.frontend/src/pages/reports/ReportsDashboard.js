@@ -32,7 +32,7 @@ const ReportsDashboard = () => {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="tw-grid tw-grid-cols-4 tw-gap-4 tw-mb-8">
+      <div className="reports-dashboard__quick-actions tw-mb-8">
         <div
           className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
           onClick={() => navigate(reportsRoutes.engine)}
@@ -84,6 +84,19 @@ const ReportsDashboard = () => {
             <p className="stat-description">Track execution history & errors</p>
           </div>
         </div>
+
+        <div
+          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+          onClick={() => navigate(reportsRoutes.warningLetters)}
+        >
+          <div className="stat-icon">
+            <i className="fa-light fa-triangle-exclamation tw-text-red-500"></i>
+          </div>
+          <div className="stat-content">
+            <h3 className="stat-title">Compliance</h3>
+            <p className="stat-description">Open warning letters and compliance follow-up</p>
+          </div>
+        </div>
       </div>
 
       {/* Standardized Widget Dashboard */}
@@ -98,13 +111,14 @@ const ReportsDashboard = () => {
 
       {/* Report Source Catalog by Category */}
       {categories.map((category) => {
-        const sources = getReportSourcesByCategory(category);
+        const categoryName = typeof category === 'string' ? category : category.name;
+        const sources = getReportSourcesByCategory(categoryName);
         if (sources.length === 0) return null;
 
         return (
-          <div key={category} className="tw-mb-6">
+          <div key={categoryName} className="tw-mb-6">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-3">
-              {category}
+              {categoryName}
             </h3>
             <div className="tw-grid tw-grid-cols-3 tw-gap-4">
               {sources.map((source) => (

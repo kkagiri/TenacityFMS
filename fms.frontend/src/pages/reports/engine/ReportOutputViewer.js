@@ -10,7 +10,6 @@
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Button } from 'devextreme-react/button';
 
 const ReportOutputViewer = ({
     htmlContent,
@@ -57,14 +56,21 @@ const ReportOutputViewer = ({
                             Generated: {lastGenerated.toLocaleTimeString()}
                         </span>
                     )}
-                    <Button
-                        icon="fa-light fa-print"
-                        hint="Print"
+                    <button
+                        type="button"
                         onClick={handlePrint}
-                        stylingMode="text"
                         disabled={!htmlContent}
-                        elementAttr={{ class: 'tw-text-white' }}
-                    />
+                        className={[
+                            'tw-inline-flex tw-h-[34px] tw-w-[34px] tw-items-center tw-justify-center tw-rounded-md tw-border tw-transition-colors',
+                            htmlContent
+                                ? 'tw-bg-white/10 tw-text-white tw-border-white/20 hover:tw-bg-white/20 hover:tw-border-white/30'
+                                : 'tw-bg-white/5 tw-text-gray-400 tw-border-white/10 tw-cursor-not-allowed'
+                        ].join(' ')}
+                        aria-label="Print PDF"
+                        title="Print PDF"
+                    >
+                        <i className="fa-light fa-print tw-text-lg"></i>
+                    </button>
                 </div>
             </div>
 

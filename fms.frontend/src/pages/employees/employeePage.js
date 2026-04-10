@@ -491,6 +491,7 @@ const EmployeePage = () => {
           />
           <Column dataField="employeephoneNumber" caption="Phone No" minWidth={140} />
           <Column dataField="employeeWorkNo" caption="Work No" minWidth={120} />
+          <Column dataField="position" caption="Position" minWidth={160} />
           <Column dataField="employeestatus" caption="Status" minWidth={120} />
           <Column dataField="vehicles" caption="Default Vehicles" minWidth={260} cellRender={renderVehiclesCell} />
           <Column

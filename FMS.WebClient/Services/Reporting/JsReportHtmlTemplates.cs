@@ -219,7 +219,7 @@ namespace FMS.WebClient.Services.Reporting
     <div class=""empty-state""><p>{emptyMessage}</p></div>
     {{{{/unless}}}}{{{{/unless}}}}{{{{/unless}}}}
     <div class=""report-footer"">
-        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung FMS</strong></span></div>
         <div>Report ID: {{{{reportId}}}}</div>
     </div>
 </div>
@@ -446,7 +446,7 @@ namespace FMS.WebClient.Services.Reporting
         .company-bar-left { display: flex; align-items: center; gap: 14px; }
         .company-logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0) invert(1); }
         .company-bar-titles { display: flex; flex-direction: column; gap: 1px; }
-        .company-main-title { font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.3px; }
+        .company-main-title { font-size: 10px; font-weight: 600; color: #FFFFFF; letter-spacing: 0.3px; }
         .company-sub-title { font-size: 10.5px; color: #9CA3AF; font-weight: 500; }
         .company-bar-right { font-size: 10.5px; color: #6B7280; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; }
 
@@ -580,7 +580,7 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""company-bar-left"">
             <img src=""data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUEAAAG9CAYAAACLXsRTAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAACxMAAAsTAQCanBgAAAjUSURBVHhe7d09q51ZGYDhtU8cRMViiqk0I/hR+BtkwCZuC2FABasBsYmFrbVgI1hZBu2msLQQJHOGUfxAf4CihZ04aKMyg4MGOTnbInLy5i1Smb0Wua8LUpwngbzstdeds/MUZwwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+L877Adn88rrPxpjjHFxOI0xxrg+PX6WwuwXr33pZnZOL37i9jh94OOPvvjfs4zN85mZPcvZO7/75ePZGjYPeUZ37t8dFxf39uOUy+Oc1/6V739zfPBj392P4Sxmve+f4mI/ACgRwRxHDltuRM71fgBpIgikiSCQJoJAmgjmOHLYciNyLEZgSwSBNBEE0kQQSBPBHEcOW25EjsUIbIkgkCaCQJoIAmkimOPIYcuNyLEYgS0RBNJEEEgTQSBNBHMcOWy5ETkWI7AlgkCaCAJpIgikiWCOI4ctNyLHYgS2RBBIE0EQTSRBBIE8EcRw5bbkSOxQhsiSCQJoJAmggCaSKY48hhy43IsRiBLREE0kQQSBNBIE0Ecxw5bLkRORYjsCWCQJoIAmkiCKSJYI4jhy03IsdiBLZEEEgTQSBNBIE0Ecxx5LDlRuRYjMCWCAJpIgikiSCQJoI5jhy23IgcixHYOuwHZ3Hn/t1xcXFvP065PM557T/zg2+MD93+1n4MZ/Hm51/aj2abcxFFcF4EgSf4OAykiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKQd9oOzuHP/7ri4uLcfwzN39eDP46evvrwfn81nf/irMcYYp3E9xhjjsPlG5HmfHW49GD//yvFmtggRpOXhg7fHW6/e3o/P5nh52o9SLo9zmvMUPg4DaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIngLNcP/3Hz63T97jhdv3uW2en6nf2jQNlhPziLO/fvjouLe/txyuXRaz/Dwwdvj7devb0fn83x8rQfpcx63z+F7wSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIm/MzQOs/+3ZM/Pmr9df+dPXeuPr3mzdfHy4encPp+vHPA36Wsxc+/MWbedGs9/1TzHmg+kUcE98MXntmmvW+fwofh4E0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTwVmOP/n6fgScnwjO8vD6I/sRcH4iCKSJIJAmgkCaCAJpIgikiSCQJoJAmggCaSIIpIkgkCaCQJoIAmkiCKSJIJAmgkCaCAJpIgikieAs11fv34+A8xPBWQ4Pr/cj4PxEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE8FZrq5e2I+A8xNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSDvsB2dx5/7dcTh9bz9OufrXd8bPvvzt/Zjn2PHytB/lXB7nNOcplnsgeG6J4JIR9HEYSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0EgTQSBNBEE0kQQSBNBIE0EgTQRBNJEEEgTQSBNBIE0EQTSRBBIE0Eg7bAfnMXn3vjtGIePjsPpyb//dDiZmT3z2W++9snxz7/8/Yk/cw7Hy9N+lHN5fPJsFjDngY5v/GmMw8v7MZzFr7/60njvr3/bj585EVwygpM+Dh+WeyGApkkRPPkXEVjCpAgCrEEEgTQRBNImRdBiBFjDpAhajABrmBRBgDWIIJAmgkDapAhajABrmBRBgDVMiqDtMLCGSREEWIMIAmmTImgxAqxhUgQB1jApghYjwBomRRBgDSIIpE2KoMUIsIZJEQRYw6QIWowAa5gUQYA1iCCQNimCFiPAGiZFEGANkyJoMQKsYVIEAdYggkDapAhajABrmBRBgDVMiqDFCLCGSREEWIMIAmmTImgxAqxhUgQB1jApghYjwBomRRBgDSIIpE2KoMUIsIZJEQRYw6QIWowAa5gUQYA1iCCQNimCFiPAGiZFEGANkyJoMQKsYVIEAdYggkDapAhajABrmBRBgDVMiqDFCLCGSREEWIMIAmkiCKRNiqDtMLCGSRG0GAHWMCmCAGsQQSBNBIG0SRG0GAHWMCmCFiPAGiZFEGANIgikiSCQNimCFiPAGiZF0GIEWMOkCAKsQQSBNBEE0iZF0GIEWMOkCFqMAGuYFEGANYggkCaCQNqcBcWnXvv0uLj1vjHGGKfrR89wuHj8/4RmZs9y9sfXfz/GeHgzP5fj5eNnqbo8PjqDhSz3QPDcuvPjP4xx68Uxxhin06NPYYfD9c3vP/+z/4y3vnD7ZgYAAFP9F0xweSsc6RVJAAAAAElFTkSuQmCC"" alt=""H Young Logo"" class=""company-logo"">
             <div class=""company-bar-titles"">
-                <span class=""company-main-title"">Hyoung Fleet Management</span>
+                <span class=""company-main-title"">Hyoung FMS</span>
                 <span class=""company-sub-title"">Fleet Management &amp; Fueling Operations</span>
             </div>
         </div>

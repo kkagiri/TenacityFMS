@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +16,11 @@ public record GetVehicleTransferByIdQuery(int TransferId) : IRequest<FMSResponse
 
 public class GetVehicleTransferByIdQueryHandler : IRequestHandler<GetVehicleTransferByIdQuery, FMSResponse<VehicleTransferDTO>>
 {
+    private static readonly JsonSerializerOptions _serviceFilterJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
 
@@ -46,17 +52,7 @@ public class GetVehicleTransferByIdQueryHandler : IRequestHandler<GetVehicleTran
             var transferDTO = _mapper.Map<VehicleTransferDTO>(transfer);
 
             // Parse service filter parts from JSON
-            if (!string.IsNullOrEmpty(transfer.ServiceFilterParts))
-            {
-                try
-                {
-                    transferDTO.ServiceFilterPartsList = JsonSerializer.Deserialize<System.Collections.Generic.List<ServiceFilterPartDTO>>(transfer.ServiceFilterParts);
-                }
-                catch
-                {
-                    // If parsing fails, leave as null
-                }
-            }
+            transferDTO.ServiceFilterPartsList = ParseServiceFilterParts(transfer.ServiceFilterParts);
 
             return FMSResponse<VehicleTransferDTO>.Success(transferDTO, "Transfer fetched successfully");
         }
@@ -64,5 +60,38 @@ public class GetVehicleTransferByIdQueryHandler : IRequestHandler<GetVehicleTran
         {
             return FMSResponse<VehicleTransferDTO>.Failed($"Error fetching transfer: {ex.Message}");
         }
+    }
+
+    private static System.Collections.Generic.List<ServiceFilterPartDTO>? ParseServiceFilterParts(string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            return null;
+        }
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<System.Collections.Generic.List<ServiceFilterPartDTO>>(rawValue, _serviceFilterJsonOptions);
+            if (parsed?.Count > 0)
+            {
+                return parsed;
+            }
+        }
+        catch
+        {
+        }
+
+        var legacyParts = rawValue
+            .Split(new[] { "\r\n", "\n", ";", "," }, StringSplitOptions.RemoveEmptyEntries)
+            .Select((value, index) => new ServiceFilterPartDTO
+            {
+                Number = index + 1,
+                PartNumber = value.Trim(),
+                Quantity = 1
+            })
+            .Where(part => !string.IsNullOrWhiteSpace(part.PartNumber))
+            .ToList();
+
+        return legacyParts.Count > 0 ? legacyParts : null;
     }
 }

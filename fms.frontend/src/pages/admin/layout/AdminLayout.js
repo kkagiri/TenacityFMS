@@ -99,6 +99,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Expected Fuel Average Management",
         subtitle: "Configure expected fuel consumption benchmarks",
       };
+    } else if (pathname.includes("/employee-positions")) {
+      return {
+        title: "Employee Position Management",
+        subtitle: "Manage employee position master data",
+      };
     } else if (pathname.includes("/checkup-templates")) {
       return {
         title: "Checkup Templates",
@@ -287,6 +292,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Expected Averages",
       icon: "fa-light fa-chart-line-up",
       path: adminRoutes.expectedAverages,
+    },
+    {
+      id: "employee-positions",
+      title: "Employee Positions",
+      icon: "fa-light fa-user-tag",
+      path: adminRoutes.employeePositions,
     },
     {
       id: "checkup-templates",

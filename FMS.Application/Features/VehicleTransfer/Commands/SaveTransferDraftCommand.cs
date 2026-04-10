@@ -121,6 +121,8 @@ public class SaveTransferDraftCommandHandler : IRequestHandler<SaveTransferDraft
             SenderFunction = dto.SenderFunction,
             ReceiverName = dto.ReceiverName,
             ReceiverFunction = dto.ReceiverFunction,
+            ReceiverUserId = dto.ReceiverUserId,
+            ApproverUserId = dto.ApproverUserId,
             ApprovedBy = dto.ApprovedBy,
             WorkshopManagerSign = dto.WorkshopManagerSign,
             GpsDeviceId = dto.GpsDeviceId,
@@ -215,15 +217,22 @@ public class SaveTransferDraftCommandHandler : IRequestHandler<SaveTransferDraft
 
     private async Task<FMSResponse<VehicleTransferDTO>> UpdateDraftAsync(SaveTransferDraftDTO dto, CancellationToken cancellationToken)
     {
+        var transferId = dto.TransferId ?? 0;
+
+        if (transferId <= 0)
+        {
+            return FMSResponse<VehicleTransferDTO>.Failed("Transfer ID is required to update a draft", "VALIDATION_ERROR");
+        }
+
         var transfer = await _context.Set<Domain.Entities.Features.VehicleManagement.VehicleTransfer>()
             .Include(t => t.CheckupItems)
             .Include(t => t.TyreDetails)
             .Include(t => t.BatteryDetails)
-            .FirstOrDefaultAsync(t => t.TransferId == dto.TransferId!.Value, cancellationToken);
+            .FirstOrDefaultAsync(t => t.TransferId == transferId, cancellationToken);
 
         if (transfer == null)
         {
-            return FMSResponse<VehicleTransferDTO>.Failed($"Transfer with ID {dto.TransferId.Value} not found", "NOT_FOUND");
+            return FMSResponse<VehicleTransferDTO>.Failed($"Transfer with ID {transferId} not found", "NOT_FOUND");
         }
 
         if (!string.Equals(transfer.Status, "Draft", StringComparison.OrdinalIgnoreCase))
@@ -289,6 +298,8 @@ public class SaveTransferDraftCommandHandler : IRequestHandler<SaveTransferDraft
         if (dto.SenderFunction != null) transfer.SenderFunction = dto.SenderFunction;
         if (dto.ReceiverName != null) transfer.ReceiverName = dto.ReceiverName;
         if (dto.ReceiverFunction != null) transfer.ReceiverFunction = dto.ReceiverFunction;
+        if (dto.ReceiverUserId != null) transfer.ReceiverUserId = dto.ReceiverUserId;
+        if (dto.ApproverUserId != null) transfer.ApproverUserId = dto.ApproverUserId;
         if (dto.ApprovedBy != null) transfer.ApprovedBy = dto.ApprovedBy;
         if (dto.WorkshopManagerSign != null) transfer.WorkshopManagerSign = dto.WorkshopManagerSign;
         if (dto.GpsDeviceId != null) transfer.GpsDeviceId = dto.GpsDeviceId;

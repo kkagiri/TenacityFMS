@@ -13,6 +13,32 @@
 
 import axiosInstance from './../../api/axiosInstance';
 
+const resolveApiErrorMessage = (error, fallbackMessage) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === 'string' && responseData.trim()) {
+    return responseData;
+  }
+
+  if (responseData?.message) {
+    return responseData.message;
+  }
+
+  if (responseData?.Message) {
+    return responseData.Message;
+  }
+
+  if (Array.isArray(responseData?.validationErrors) && responseData.validationErrors.length > 0) {
+    return responseData.validationErrors[0];
+  }
+
+  if (Array.isArray(responseData?.ValidationErrors) && responseData.ValidationErrors.length > 0) {
+    return responseData.ValidationErrors[0];
+  }
+
+  return error?.message || fallbackMessage;
+};
+
 export const FETCH_EMPLOYEES_REQUEST = 'FETCH_EMPLOYEES_REQUEST';
 export const FETCH_EMPLOYEES_SUCCESS = 'FETCH_EMPLOYEES_SUCCESS';
 export const FETCH_EMPLOYEES_FAILURE = 'FETCH_EMPLOYEES_FAILURE';
@@ -73,7 +99,7 @@ export const createEmployee = (employeeData) => async (dispatch) => {
     dispatch({ type: CREATE_EMPLOYEE_SUCCESS, payload: response.data });
     return response.data;
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message;
+    const errorMessage = resolveApiErrorMessage(error, 'Failed to create employee.');
     dispatch({ type: CREATE_EMPLOYEE_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
@@ -97,7 +123,7 @@ export const updateEmployee = (key, employeeData) => async (dispatch) => {
     dispatch({ type: UPDATE_EMPLOYEE_SUCCESS, payload: response.data });
     return response.data;
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message;
+    const errorMessage = resolveApiErrorMessage(error, 'Failed to update employee.');
     dispatch({ type: UPDATE_EMPLOYEE_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
   }
@@ -123,9 +149,47 @@ export const deleteEmployee = (id) => async (dispatch) => {
       data: response?.data,
     };
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message;
+    const errorMessage = resolveApiErrorMessage(error, 'Failed to delete employee.');
     dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: errorMessage });
     return { success: false, message: errorMessage };
+  }
+};
+
+export const checkEmployeeDuplicates = async ({ employeeId, siteId, fullName, employeeWorkNo }) => {
+  try {
+    const response = await axiosInstance.get('/employee/duplicate-check', {
+      params: {
+        employeeId,
+        siteId,
+        fullName,
+        employeeWorkNo,
+      },
+    });
+
+    return {
+      success: true,
+      data: response?.data?.data || response?.data?.Data || null,
+      message: response?.data?.message || response?.data?.Message || 'Duplicate check completed.',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      message: resolveApiErrorMessage(error, 'Failed to check employee duplicates.'),
+    };
+  }
+};
+
+export const fetchEmployeePositions = async (active = true) => {
+  try {
+    const response = await axiosInstance.get(`/employee/positions?active=${active}`);
+    return { success: true, data: Array.isArray(response?.data) ? response.data : [] };
+  } catch (error) {
+    return {
+      success: false,
+      data: [],
+      message: resolveApiErrorMessage(error, 'Failed to load employee positions.'),
+    };
   }
 };
 

@@ -32,9 +32,16 @@ const VehicleTransferReviewPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get(`/vehicletransfers/${id}`);
-      if (response.data?.isSuccess && response.data.data) {
-        setTransfer(response.data.data);
+      const response = await axiosInstance.get(`/vehicletransfers/${id}`, {
+        params: { _: Date.now() },
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      const detailedTransfer = response.data?.data || response.data?.Data || response.data;
+      if (response.data?.isSuccess && detailedTransfer) {
+        setTransfer(detailedTransfer);
       } else {
         setError(response.data?.message || "Transfer not found");
       }
@@ -51,6 +58,26 @@ const VehicleTransferReviewPage = () => {
 
   useEffect(() => {
     loadTransfer();
+  }, [loadTransfer]);
+
+  useEffect(() => {
+    const handleVisibilityRefresh = () => {
+      if (document.visibilityState === "visible") {
+        loadTransfer();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      loadTransfer();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
+    window.addEventListener("focus", handleWindowFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
+      window.removeEventListener("focus", handleWindowFocus);
+    };
   }, [loadTransfer]);
 
   const handleRefresh = useCallback(() => {
@@ -121,6 +148,7 @@ const VehicleTransferReviewPage = () => {
           transfer={transfer}
           onClose={handleBack}
           onRefresh={handleRefresh}
+          isApprovalReview={true}
         />
       </div>
     </div>

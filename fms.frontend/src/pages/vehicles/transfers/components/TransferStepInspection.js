@@ -16,9 +16,10 @@
 
 import React from "react";
 import { SelectBox } from "devextreme-react/select-box";
-import { TextBox } from "devextreme-react/text-box";
+import { TextArea } from "devextreme-react/text-area";
 import { DataGrid } from "devextreme-react/data-grid";
 import { Column, Editing, SearchPanel } from "devextreme-react/data-grid";
+import { applyCheckupItemUpdate, isPercentageCheckType } from "../vehicleTransferFormUtils";
 
 const CONDITION_OPTIONS = [
   { value: "Good", text: "Good" },
@@ -31,6 +32,7 @@ const TransferStepInspection = ({
   formData,
   hasGps,
   gpsMapping,
+  gpsInfo,
   checkupItems,
   serviceFilterParts,
   onFieldChange,
@@ -40,6 +42,12 @@ const TransferStepInspection = ({
   onManageTemplates,
   onSendGpsForReview,
 }) => {
+  const gpsDeviceLabel = gpsMapping?.deviceName || gpsInfo?.deviceName || formData.gpsDeviceId || "Not mapped";
+  const gpsSerialLabel = gpsMapping?.deviceIMEI || gpsInfo?.deviceIMEI || formData.gpsDeviceId || gpsMapping?.externalDeviceId || "Not available";
+  const gpsProviderDeviceId = gpsMapping?.externalDeviceId || "";
+  const fuelSensorLabel = formData.fuelSensorId || (gpsInfo?.sensorHealth?.fuelLevel != null ? "Detected from live telemetry" : "Not detected");
+  const gridServiceFilterParts = serviceFilterParts.map((part) => ({ ...part }));
+
   return (
     <div className="vtf-step">
       <div className="m365-section-group">
@@ -64,13 +72,38 @@ const TransferStepInspection = ({
             showBorders={false}
             showColumnLines={false}
             columnAutoWidth={true}
+            allowColumnResizing={true}
+            columnResizingMode="widget"
             rowAlternationEnabled={true}
             keyExpr="serialNo"
             height={360}
+            onEditorPreparing={(event) => {
+              if (event.parentType !== "dataRow" || event.dataField !== "wornPercentage") {
+                return;
+              }
+
+              const isPercentageRow = isPercentageCheckType(event.row?.data?.checkType);
+              event.editorOptions = {
+                ...event.editorOptions,
+                min: 0,
+                max: 100,
+                showSpinButtons: true,
+                format: "#,##0.##",
+                disabled: !isPercentageRow,
+              };
+            }}
+            onRowUpdating={(event) => {
+              const currentItem = checkupItems.find((item) => item.serialNo === event.key);
+              if (!currentItem) {
+                return;
+              }
+
+              event.newData = applyCheckupItemUpdate(currentItem, event.newData || {});
+            }}
             onRowUpdated={(event) => {
               onCheckupItemsChange(
                 checkupItems.map((item) =>
-                  item.serialNo === event.key ? { ...item, ...event.data } : item
+                  item.serialNo === event.key ? applyCheckupItemUpdate(item, event.data || {}) : item
                 )
               );
             }}
@@ -88,7 +121,7 @@ const TransferStepInspection = ({
             <Column dataField="isFair" caption="Fair" dataType="boolean" width={60} />
             <Column dataField="isDamaged" caption="Damaged" dataType="boolean" width={70} />
             <Column dataField="isWorn" caption="Worn" dataType="boolean" width={60} />
-            <Column dataField="wornPercentage" caption="%" dataType="number" width={50} />
+            <Column dataField="wornPercentage" caption="%" dataType="number" width={90} />
             <Column dataField="remarks" caption="Remarks" width={150} />
           </DataGrid>
         </div>
@@ -134,16 +167,13 @@ const TransferStepInspection = ({
               </h4>
               <div className="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4">
                 <div className="m365-field">
-                  <label className="m365-field__label">Device ID / Serial</label>
-                  <TextBox
-                    value={formData.gpsDeviceId}
-                    onValueChanged={(event) =>
-                      onFieldChange("gpsDeviceId", event.value)
-                    }
-                    placeholder="GPS device ID"
-                  />
-                  {gpsMapping?.deviceIMEI && (
-                    <span className="m365-field__hint">IMEI: {gpsMapping.deviceIMEI}</span>
+                  <label className="m365-field__label">Mapped GPS Device</label>
+                  <div className="m365-input tw-flex tw-items-center tw-bg-gray-50" style={{ minHeight: 34 }}>
+                    {gpsDeviceLabel}
+                  </div>
+                  <span className="m365-field__hint">IMEI / Serial: {gpsSerialLabel}</span>
+                  {gpsProviderDeviceId && gpsProviderDeviceId !== gpsSerialLabel && (
+                    <span className="m365-field__hint">Provider Device ID: {gpsProviderDeviceId}</span>
                   )}
                 </div>
                 <div className="m365-field">
@@ -160,30 +190,31 @@ const TransferStepInspection = ({
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Working</label>
-                  <label className={`m365-toggle tw-mt-1 ${formData.gpsDeviceWorking ? "m365-toggle--on" : ""}`}>
+                  <label className="m365-checkbox tw-mt-2">
                     <input
                       type="checkbox"
                       checked={formData.gpsDeviceWorking}
                       onChange={(event) =>
                         onFieldChange("gpsDeviceWorking", event.target.checked)
                       }
-                      className="tw-sr-only"
                     />
-                    <span className="m365-toggle__track" />
-                    <span className={`m365-badge ${formData.gpsDeviceWorking ? "m365-badge--success" : "m365-badge--error"}`}>
+                    <span className="m365-checkbox__label">
                       {formData.gpsDeviceWorking ? "Working" : "Not Working"}
                     </span>
                   </label>
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Remarks</label>
-                  <TextBox
+                  <TextArea
                     value={formData.gpsDeviceRemarks}
-                    onValueChanged={(event) =>
-                      onFieldChange("gpsDeviceRemarks", event.value)
-                    }
-                    placeholder="GPS device remarks"
+                    readOnly={true}
+                    height={130}
+                    autoResizeEnabled={false}
+                    stylingMode="outlined"
+                    className="vtf-readonly-description"
+                    placeholder="GPS device remarks are generated automatically"
                   />
+                  <span className="m365-field__hint">Auto-generated from live GPS status, provider mapping, and telemetry variables.</span>
                 </div>
               </div>
             </div>
@@ -195,14 +226,11 @@ const TransferStepInspection = ({
               </h4>
               <div className="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4">
                 <div className="m365-field">
-                  <label className="m365-field__label">Sensor ID / Serial</label>
-                  <TextBox
-                    value={formData.fuelSensorId}
-                    onValueChanged={(event) =>
-                      onFieldChange("fuelSensorId", event.value)
-                    }
-                    placeholder="Fuel sensor ID"
-                  />
+                  <label className="m365-field__label">Mapped Fuel Sensor</label>
+                  <div className="m365-input tw-flex tw-items-center tw-bg-gray-50" style={{ minHeight: 34 }}>
+                    {fuelSensorLabel}
+                  </div>
+                  <span className="m365-field__hint">Source: active provider mapping</span>
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Condition</label>
@@ -218,30 +246,31 @@ const TransferStepInspection = ({
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Working</label>
-                  <label className={`m365-toggle tw-mt-1 ${formData.fuelSensorWorking ? "m365-toggle--on" : ""}`}>
+                  <label className="m365-checkbox tw-mt-2">
                     <input
                       type="checkbox"
                       checked={formData.fuelSensorWorking}
                       onChange={(event) =>
                         onFieldChange("fuelSensorWorking", event.target.checked)
                       }
-                      className="tw-sr-only"
                     />
-                    <span className="m365-toggle__track" />
-                    <span className={`m365-badge ${formData.fuelSensorWorking ? "m365-badge--success" : "m365-badge--error"}`}>
+                    <span className="m365-checkbox__label">
                       {formData.fuelSensorWorking ? "Working" : "Not Working"}
                     </span>
                   </label>
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Remarks</label>
-                  <TextBox
+                  <TextArea
                     value={formData.fuelSensorRemarks}
-                    onValueChanged={(event) =>
-                      onFieldChange("fuelSensorRemarks", event.value)
-                    }
-                    placeholder="Fuel sensor remarks"
+                    readOnly={true}
+                    height={170}
+                    autoResizeEnabled={false}
+                    stylingMode="outlined"
+                    className="vtf-readonly-description"
+                    placeholder="Fuel sensor remarks are generated automatically"
                   />
+                  <span className="m365-field__hint">Shows GPSGate custom fuel calibration and all live telemetry variables.</span>
                 </div>
               </div>
             </div>
@@ -265,7 +294,7 @@ const TransferStepInspection = ({
         </div>
         <div className="m365-section-group__body tw-p-0">
           <DataGrid
-            dataSource={serviceFilterParts}
+            dataSource={gridServiceFilterParts}
             showBorders={false}
             showColumnLines={false}
             columnAutoWidth={true}
@@ -273,6 +302,13 @@ const TransferStepInspection = ({
             keyExpr="number"
             height={200}
             onRowInserted={(event) => onServiceFilterPartsChange([...serviceFilterParts, event.data])}
+            onRowUpdated={(event) =>
+              onServiceFilterPartsChange(
+                serviceFilterParts.map((part) =>
+                  part.number === event.key ? { ...part, ...event.data } : part
+                )
+              )
+            }
             onRowRemoved={(event) =>
               onServiceFilterPartsChange(
                 serviceFilterParts.filter((part) => part.number !== event.key)

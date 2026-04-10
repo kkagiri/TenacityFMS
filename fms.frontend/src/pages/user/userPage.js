@@ -54,6 +54,10 @@ const UserPage = () => {
     const allDepartments = useSelector((state) => state.user.allDepartments);
     const loading = useSelector((state) => state.user.loading);
     const { hasPermission } = usePermissions();
+    const activeDepartments = React.useMemo(
+        () => (allDepartments || []).filter((department) => department?.isActive !== false),
+        [allDepartments]
+    );
 
     // â”€â”€ Permissions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const canManageUsers = hasPermission('_Manage_Users');
@@ -79,7 +83,7 @@ const UserPage = () => {
             await Promise.all([
                 dispatch(fetchUsers()),
                 dispatch(fetchAllRoles()),
-                dispatch(fetchAllDepartments()),
+                dispatch(fetchAllDepartments(true)),
             ]);
         } catch (error) {
             notify(error.message || 'Failed to load data', 'error', 3000);
@@ -127,7 +131,7 @@ const UserPage = () => {
                         </button>
                     )}
                     {canAddDepartment && (
-                        <button className="m365-btn m365-btn--ghost" onClick={() => deptHook.setDeptPopupVisible(true)}>
+                        <button className="m365-btn m365-btn--ghost" onClick={() => setActiveTab('departments')}>
                             <i className="fa-light fa-building-circle-arrow-right" />
                             Departments
                         </button>
@@ -242,7 +246,7 @@ const UserPage = () => {
                 onHide={() => setCreatePopupVisible(false)}
                 onSuccess={loadData}
                 roleOptions={roleOptions}
-                departments={allDepartments || []}
+                departments={activeDepartments}
             />
 
             {/* User Detail Panel */}
@@ -253,7 +257,7 @@ const UserPage = () => {
                 initialTab={detailInitialTab}
                 allUsers={normalizedUsers}
                 roleOptions={roleOptions}
-                departments={allDepartments || []}
+                departments={activeDepartments}
                 onUserChanged={loadData}
             />
         </div>

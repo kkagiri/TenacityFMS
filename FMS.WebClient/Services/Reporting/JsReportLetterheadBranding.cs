@@ -2,7 +2,7 @@
  * File: JsReportLetterheadBranding.cs
  * Purpose: Injects company letterhead (logo + CSS) into jsreport HTML templates before rendering.
  * Dependencies: ILogger, System.IO
- * Last Modified: 2026-02-18
+ * Last Modified: 2026-04-09
  *
  * Key Functions:
  * - Apply: Injects letterhead CSS and HTML block into a template string
@@ -25,6 +25,8 @@ namespace FMS.WebClient.Services.Reporting
         private readonly string _logoDataUri;
 
         public string LogoPath => _logoPath;
+        public string LogoDataUri => _logoDataUri;
+        public bool HasLogo => !string.IsNullOrWhiteSpace(_logoDataUri);
 
         public JsReportLetterheadBranding(ILogger logger, string logoPath)
         {
@@ -39,17 +41,24 @@ namespace FMS.WebClient.Services.Reporting
         /// Injects letterhead CSS and an image/placeholder block into the template.
         /// No-ops if the template already contains the letterhead marker.
         /// </summary>
-        public string Apply(string templateContent)
+        public string Apply(string templateContent, bool includeHtmlBlock = true)
         {
             if (string.IsNullOrWhiteSpace(templateContent))
                 return templateContent;
 
-            if (templateContent.Contains("fms-report-letterhead", StringComparison.OrdinalIgnoreCase))
+            if (!includeHtmlBlock || ShouldSkipBranding(templateContent))
                 return templateContent;
 
             var result = InjectCss(templateContent);
             result = InjectHtmlBlock(result);
             return result;
+        }
+
+        private static bool ShouldSkipBranding(string templateContent)
+        {
+            return templateContent.Contains("fms-report-letterhead", StringComparison.OrdinalIgnoreCase)
+                || templateContent.Contains("data-skip-fms-letterhead=\"true\"", StringComparison.OrdinalIgnoreCase)
+                || templateContent.Contains("data-skip-fms-letterhead='true'", StringComparison.OrdinalIgnoreCase);
         }
 
         // ─── CSS injection ────────────────────────────────────────────────────────
@@ -70,8 +79,8 @@ namespace FMS.WebClient.Services.Reporting
         }
 
         private static string LetterheadCss() => @"
-        .fms-report-letterhead { margin: 0 0 18px 0; padding-bottom: 10px; border-bottom: 2px solid #d1d5db; }
-        .fms-report-letterhead img { display: block; width: 100%; max-height: 140px; object-fit: contain; object-position: left center; }
+        .fms-report-letterhead { margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 1px solid #d1d5db; }
+        .fms-report-letterhead img { display: block; width: auto; max-width: 240px; max-height: 72px; height: auto; object-fit: contain; object-position: left center; }
         .fms-report-letterhead-missing { border: 1px dashed #9ca3af; background: #f9fafb; color: #374151; font-size: 11px; padding: 10px 12px; border-radius: 4px; }
         .fms-report-letterhead-missing code { background: #eef2f7; padding: 2px 4px; border-radius: 3px; }";
 
@@ -79,8 +88,20 @@ namespace FMS.WebClient.Services.Reporting
 
         private string InjectHtmlBlock(string template)
         {
-            const string bodyTag = "<body";
             var html = BuildHtmlBlock();
+            if (string.IsNullOrWhiteSpace(html))
+                return template;
+
+            const string pageClassMarker = "<div class=\"page\"";
+            var pageIdx = template.IndexOf(pageClassMarker, StringComparison.OrdinalIgnoreCase);
+            if (pageIdx >= 0)
+            {
+                var pageTagEnd = template.IndexOf('>', pageIdx);
+                if (pageTagEnd >= 0)
+                    return template.Insert(pageTagEnd + 1, $"\n{html}\n");
+            }
+
+            const string bodyTag = "<body";
             var bodyIdx = template.IndexOf(bodyTag, StringComparison.OrdinalIgnoreCase);
             if (bodyIdx < 0)
                 return $"{html}\n{template}";

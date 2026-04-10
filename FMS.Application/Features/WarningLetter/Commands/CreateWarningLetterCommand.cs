@@ -10,7 +10,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.WarningLetter.DTOs;
+using FMS.Application.Features.WarningLetter.Queries;
+using FMS.Application.Features.WarningLetter.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.WarningLetterManagement;
 using EmployeeEntity = FMS.Domain.Entities.Employee;
 using SiteEntity = FMS.Domain.Entities.Site;
 using VehicleEntity = FMS.Domain.Entities.Vehicle;
@@ -30,24 +34,50 @@ public class CreateWarningLetterCommand : IRequest<FMSResponse<WarningLetterDto>
 public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLetterCommand, FMSResponse<WarningLetterDto>>
 {
     private readonly GpsdataContext _context;
+    private readonly ISystemConfigurationService _systemConfigurationService;
 
-    public CreateWarningLetterCommandHandler(GpsdataContext context)
+    public CreateWarningLetterCommandHandler(GpsdataContext context, ISystemConfigurationService systemConfigurationService)
     {
         _context = context;
+        _systemConfigurationService = systemConfigurationService;
     }
 
     public async Task<FMSResponse<WarningLetterDto>> Handle(CreateWarningLetterCommand request, CancellationToken cancellationToken)
     {
-        var validationErrors = ValidateRequest(request.WarningLetter, request.CreatedBy);
+        var configuredIssuerName = await _systemConfigurationService.GetConfigurationValueAsync(
+            GetWarningLetterSettingsQueryHandler.IssuerNameConfigKey,
+            cancellationToken);
+        var configuredIssuerTitle = await _systemConfigurationService.GetConfigurationValueAsync(
+            GetWarningLetterSettingsQueryHandler.IssuerTitleConfigKey,
+            cancellationToken);
+
+        var resolvedIssuedByName = ResolveIssuerName(configuredIssuerName, request.WarningLetter.IssuedByName);
+        var resolvedIssuedByTitle = ResolveIssuerTitle(configuredIssuerTitle, request.WarningLetter.IssuedByTitle);
+
+        var validationErrors = ValidateRequest(request.WarningLetter, request.CreatedBy, resolvedIssuedByName);
         if (validationErrors.Count > 0)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(validationErrors);
         }
 
+        var resolvedViolationSummary = WarningLetterSummaryBuilder.Resolve(
+            request.WarningLetter.ViolationSummary,
+            request.WarningLetter.LetterType,
+            request.WarningLetter.PeriodStart,
+            request.WarningLetter.PeriodEnd,
+            request.WarningLetter.ExpectedValue,
+            request.WarningLetter.ActualValue,
+            request.WarningLetter.ExcessValue);
+
         var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Id == request.WarningLetter.EmployeeId, cancellationToken);
         if (employee == null)
         {
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_EMPLOYEE_NOT_FOUND", "Employee not found");
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.Position))
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee position is required before creating a warning letter." });
         }
 
         var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.VehicleId == request.WarningLetter.VehicleId, cancellationToken);
@@ -72,7 +102,15 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        if (employee.SiteId.HasValue && employee.SiteId.Value != request.WarningLetter.SiteId)
+        var employeeAllowedForVehicle = await IsEmployeeAllowedForWarningLetterAsync(
+            employee.Id,
+            employee.SiteId,
+            vehicle.VehicleId,
+            vehicle.DefaultEmployeeId,
+            request.WarningLetter.SiteId,
+            cancellationToken);
+
+        if (!employeeAllowedForVehicle)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee does not belong to the selected site." });
         }
@@ -80,6 +118,13 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
         if (vehicle.WorkingSiteId.HasValue && vehicle.WorkingSiteId.Value != request.WarningLetter.SiteId)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Vehicle does not belong to the selected site." });
+        }
+
+        var fuelPrice = request.WarningLetter.FuelPrice;
+        if (request.WarningLetter.LetterType == WarningLetterType.ExcessFuelConsumption)
+        {
+            fuelPrice = await _systemConfigurationService.GetDecimalAsync(
+                GetWarningLetterSettingsQueryHandler.FuelPricePerLitreConfigKey, 0m, cancellationToken);
         }
 
         var warningLetter = new WarningLetterEntity
@@ -91,18 +136,18 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             LetterDate = request.WarningLetter.LetterDate,
             PeriodStart = request.WarningLetter.PeriodStart,
             PeriodEnd = request.WarningLetter.PeriodEnd,
-            ViolationSummary = request.WarningLetter.ViolationSummary.Trim(),
+            ViolationSummary = resolvedViolationSummary,
             ExpectedValue = request.WarningLetter.ExpectedValue,
             ActualValue = request.WarningLetter.ActualValue,
             ExcessValue = request.WarningLetter.ExcessValue,
-            FuelPrice = request.WarningLetter.FuelPrice,
-            ExcessCost = ResolveExcessCost(request.WarningLetter.ExcessCost, request.WarningLetter.ExcessValue, request.WarningLetter.FuelPrice),
+            FuelPrice = fuelPrice,
+            ExcessCost = ResolveExcessCost(request.WarningLetter.ExcessCost, request.WarningLetter.ExcessValue, fuelPrice),
             IssuedByUserId = userId,
-            IssuedByName = request.WarningLetter.IssuedByName.Trim(),
-            IssuedByTitle = string.IsNullOrWhiteSpace(request.WarningLetter.IssuedByTitle) ? null : request.WarningLetter.IssuedByTitle.Trim(),
+            IssuedByName = resolvedIssuedByName,
+            IssuedByTitle = resolvedIssuedByTitle,
             EmailRecipient = string.IsNullOrWhiteSpace(request.WarningLetter.EmailRecipient) ? employee.Email : request.WarningLetter.EmailRecipient.Trim(),
             Notes = string.IsNullOrWhiteSpace(request.WarningLetter.Notes) ? null : request.WarningLetter.Notes.Trim(),
-            Status = FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterStatus.Draft,
+            Status = global::FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterStatus.Draft,
             DateCreated = DateTime.UtcNow,
             CreatedBy = request.CreatedBy
         };
@@ -115,15 +160,14 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
         return response;
     }
 
-    private static List<string> ValidateRequest(CreateWarningLetterDto dto, string createdBy)
+    private static List<string> ValidateRequest(CreateWarningLetterDto dto, string createdBy, string resolvedIssuedByName)
     {
         var errors = new List<string>();
 
         if (dto.EmployeeId <= 0) errors.Add("EmployeeId is required.");
         if (dto.VehicleId <= 0) errors.Add("VehicleId is required.");
         if (dto.SiteId <= 0) errors.Add("SiteId is required.");
-        if (string.IsNullOrWhiteSpace(dto.ViolationSummary)) errors.Add("ViolationSummary is required.");
-        if (string.IsNullOrWhiteSpace(dto.IssuedByName)) errors.Add("IssuedByName is required.");
+        if (string.IsNullOrWhiteSpace(resolvedIssuedByName)) errors.Add("IssuedByName is required.");
         if (string.IsNullOrWhiteSpace(createdBy)) errors.Add("CreatedBy is required.");
         if (dto.PeriodEnd < dto.PeriodStart) errors.Add("PeriodEnd cannot be earlier than PeriodStart.");
         if (dto.ExpectedValue < 0) errors.Add("ExpectedValue cannot be negative.");
@@ -133,6 +177,26 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
         if (dto.ExcessCost < 0) errors.Add("ExcessCost cannot be negative.");
 
         return errors;
+    }
+
+    private static string ResolveIssuerName(string? configuredIssuerName, string? requestedIssuerName)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredIssuerName))
+        {
+            return configuredIssuerName.Trim();
+        }
+
+        return requestedIssuerName?.Trim() ?? string.Empty;
+    }
+
+    private static string? ResolveIssuerTitle(string? configuredIssuerTitle, string? requestedIssuerTitle)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredIssuerTitle))
+        {
+            return configuredIssuerTitle.Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(requestedIssuerTitle) ? null : requestedIssuerTitle.Trim();
     }
 
     internal static decimal? ResolveExcessCost(decimal? providedValue, decimal? excessValue, decimal? fuelPrice)
@@ -150,6 +214,31 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
         return null;
     }
 
+    private async Task<bool> IsEmployeeAllowedForWarningLetterAsync(
+        int employeeId,
+        int? employeeSiteId,
+        int vehicleId,
+        int? vehicleDefaultEmployeeId,
+        int warningLetterSiteId,
+        CancellationToken cancellationToken)
+    {
+        if (!employeeSiteId.HasValue || employeeSiteId.Value == warningLetterSiteId)
+        {
+            return true;
+        }
+
+        if (vehicleDefaultEmployeeId.HasValue && vehicleDefaultEmployeeId.Value == employeeId)
+        {
+            return true;
+        }
+
+        return await _context.EmployeeVehicle
+            .AsNoTracking()
+            .AnyAsync(
+                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicleId,
+                cancellationToken);
+    }
+
     internal static WarningLetterDto MapToDto(WarningLetterEntity entity, EmployeeEntity employee, VehicleEntity vehicle, SiteEntity site)
     {
         return new WarningLetterDto
@@ -160,7 +249,7 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             EmployeeName = employee.FullName,
             EmployeeWorkNo = employee.EmployeeWorkNo,
             EmployeeEmail = employee.Email,
-            Trade = employee.Trade,
+            Position = employee.Position,
             VehicleId = entity.VehicleId,
             VehicleHyoungNo = vehicle.HyoungNo,
             NumberPlate = vehicle.NumberPlate,
@@ -181,6 +270,17 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             PdfFilePath = entity.PdfFilePath,
             EmailSentAt = entity.EmailSentAt,
             EmailRecipient = entity.EmailRecipient,
+            SignatureRequestRecipientUserId = entity.SignatureRequestRecipientUserId,
+            SignatureRequestRecipient = entity.SignatureRequestRecipient,
+            SignatureRequestedAt = entity.SignatureRequestedAt,
+            SignatureRequestedBy = entity.SignatureRequestedBy,
+            SignedCopyFileName = entity.SignedCopyFileName,
+            SignedCopyStoredFileName = entity.SignedCopyStoredFileName,
+            SignedCopyFilePath = entity.SignedCopyFilePath,
+            SignedCopyContentType = entity.SignedCopyContentType,
+            SignedCopyFileSize = entity.SignedCopyFileSize,
+            SignedCopyUploadedAt = entity.SignedCopyUploadedAt,
+            SignedCopyUploadedBy = entity.SignedCopyUploadedBy,
             Status = entity.Status,
             EmployeeAcknowledgedAt = entity.EmployeeAcknowledgedAt,
             Notes = entity.Notes,

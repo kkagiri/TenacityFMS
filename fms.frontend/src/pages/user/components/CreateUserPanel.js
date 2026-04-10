@@ -91,7 +91,7 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
         <SlidePanel open={visible} onClose={handleClose} title="Add a user" width={420}>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Scrollable form body */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+                <div className="m365-panel-body">
                     {/* First name */}
                     <div className="m365-field">
                         <label className="m365-field__label">First name</label>

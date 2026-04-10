@@ -20,7 +20,7 @@ import SlidePanel from '../../../components/ui/SlidePanel';
  * @param {object}   props
  * @param {boolean}  props.visible
  * @param {Function} props.onHide
- * @param {object}   props.formData           - { departmentId, name, description }
+ * @param {object}   props.formData           - { departmentId, name, code, description, isActive }
  * @param {Function} props.onFormDataChange   - (newData) => void
  * @param {boolean}  props.saving
  * @param {number}   props.activeTab          - 0=Details, 1=Users
@@ -57,7 +57,7 @@ const DepartmentFormPopup = ({
     if (!visible) return null;
 
     return (
-        <SlidePanel open={visible} onClose={onHide} title={title} width={420}>
+        <SlidePanel open={visible} onClose={onHide} title={title} width={420} panelClassName="department-form-panel">
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Tab bar */}
                 <div className="m365-detail-tabs">
@@ -84,6 +84,24 @@ const DepartmentFormPopup = ({
                     {activeTab === 0 && (
                         <div>
                             <div className="m365-field">
+                                <label className="m365-field__label">Status</label>
+                                <div className="department-form-panel__status-row">
+                                    <span className={`m365-badge ${formData?.isActive !== false ? 'm365-badge--success' : 'm365-badge--neutral'}`}>
+                                        <i className={`fa-light ${formData?.isActive !== false ? 'fa-circle-check' : 'fa-circle-minus'}`} />
+                                        {formData?.isActive !== false ? 'Active' : 'Inactive'}
+                                    </span>
+                                    <label className="department-form-panel__toggle">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData?.isActive !== false}
+                                            onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                                        />
+                                        <span>Department can be assigned to users</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="m365-field">
                                 <label className="m365-field__label m365-field__label--required">
                                     Department Name
                                 </label>
@@ -92,6 +110,17 @@ const DepartmentFormPopup = ({
                                     value={formData?.name || ''}
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
                                     placeholder="Enter department name"
+                                />
+                            </div>
+
+                            <div className="m365-field">
+                                <label className="m365-field__label">Code</label>
+                                <input
+                                    className="m365-input"
+                                    value={formData?.code || ''}
+                                    onChange={(e) => handleFieldChange('code', e.target.value.toUpperCase())}
+                                    placeholder="Optional short code, e.g. CTRL"
+                                    maxLength={20}
                                 />
                             </div>
 

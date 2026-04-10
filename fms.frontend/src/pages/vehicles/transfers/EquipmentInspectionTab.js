@@ -19,18 +19,50 @@ import React from "react";
 const EquipmentInspectionTab = ({ transfer }) => {
     if (!transfer) return null;
 
+    const extractRemarkValue = (remarks, label) => {
+        if (!remarks) {
+            return "";
+        }
+
+        const matchedLine = String(remarks)
+            .split(/\r?\n/)
+            .find((line) => line.trim().toLowerCase().startsWith(`${label.toLowerCase()}:`));
+
+        if (!matchedLine) {
+            return "";
+        }
+
+        return matchedLine.split(":").slice(1).join(":").trim();
+    };
+
+    const gpsDeviceId = transfer.gpsDeviceId ?? transfer.GpsDeviceId ?? "";
+    const fuelSensorId = transfer.fuelSensorId ?? transfer.FuelSensorId ?? "";
+    const gpsDeviceCondition = transfer.gpsDeviceCondition ?? transfer.GpsDeviceCondition ?? "";
+    const fuelSensorCondition = transfer.fuelSensorCondition ?? transfer.FuelSensorCondition ?? "";
+    const gpsDeviceWorking = transfer.gpsDeviceWorking ?? transfer.GpsDeviceWorking ?? false;
+    const fuelSensorWorking = transfer.fuelSensorWorking ?? transfer.FuelSensorWorking ?? false;
+    const gpsDeviceRemarks = transfer.gpsDeviceRemarks ?? transfer.GpsDeviceRemarks ?? "";
+    const fuelSensorRemarks = transfer.fuelSensorRemarks ?? transfer.FuelSensorRemarks ?? "";
+    const gpsDisplayIdentifier = extractRemarkValue(gpsDeviceRemarks, "IMEI") || gpsDeviceId;
+    const checkupItems = transfer.checkupItems ?? transfer.CheckupItems ?? [];
+    const tyreDetails = transfer.tyreDetails ?? transfer.TyreDetails ?? [];
+    const batteryDetails = transfer.batteryDetails ?? transfer.BatteryDetails ?? [];
+    const serviceFilterPartsList = transfer.serviceFilterPartsList ?? transfer.ServiceFilterPartsList ?? [];
+
     const hasGpsData =
-        transfer.gpsDeviceId ||
-        transfer.fuelSensorId ||
-        transfer.gpsDeviceCondition ||
-        transfer.fuelSensorCondition;
+        gpsDeviceId ||
+        fuelSensorId ||
+        gpsDeviceCondition ||
+        fuelSensorCondition ||
+        gpsDeviceRemarks ||
+        fuelSensorRemarks;
 
     const hasAnyData =
         hasGpsData ||
-        transfer.checkupItems?.length > 0 ||
-        transfer.tyreDetails?.length > 0 ||
-        transfer.batteryDetails?.length > 0 ||
-        transfer.serviceFilterPartsList?.length > 0;
+        checkupItems.length > 0 ||
+        tyreDetails.length > 0 ||
+        batteryDetails.length > 0 ||
+        serviceFilterPartsList.length > 0;
 
     if (!hasAnyData) {
         return (
@@ -58,26 +90,32 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                     <i className="fa-light fa-location-dot" /> GPS Device
                                 </h4>
                                 <div className="m365-info-row">
-                                    <span className="m365-info-row__label">Device ID / Serial</span>
-                                    <span className="m365-info-row__value">{transfer.gpsDeviceId || "—"}</span>
+                                    <span className="m365-info-row__label">IMEI / Serial</span>
+                                    <span className="m365-info-row__value">{gpsDisplayIdentifier || "—"}</span>
                                 </div>
+                                {gpsDeviceId && gpsDisplayIdentifier && gpsDeviceId !== gpsDisplayIdentifier && (
+                                    <div className="m365-info-row">
+                                        <span className="m365-info-row__label">Provider Device ID</span>
+                                        <span className="m365-info-row__value">{gpsDeviceId}</span>
+                                    </div>
+                                )}
                                 <div className="m365-info-row">
                                     <span className="m365-info-row__label">Condition</span>
-                                    <span className="m365-info-row__value">{transfer.gpsDeviceCondition || "—"}</span>
+                                    <span className="m365-info-row__value">{gpsDeviceCondition || "—"}</span>
                                 </div>
                                 <div className="m365-info-row">
                                     <span className="m365-info-row__label">Working</span>
                                     <span
-                                        className={`m365-info-row__value ${transfer.gpsDeviceWorking ? "transfer-details__yes" : "transfer-details__no"
+                                        className={`m365-info-row__value ${gpsDeviceWorking ? "transfer-details__yes" : "transfer-details__no"
                                             }`}
                                     >
-                                        {transfer.gpsDeviceWorking ? "Yes" : "No"}
+                                        {gpsDeviceWorking ? "Yes" : "No"}
                                     </span>
                                 </div>
-                                {transfer.gpsDeviceRemarks && (
+                                {gpsDeviceRemarks && (
                                     <div className="m365-info-row">
                                         <span className="m365-info-row__label">Remarks</span>
-                                        <span className="m365-info-row__value">{transfer.gpsDeviceRemarks}</span>
+                                        <span className="m365-info-row__value" style={{ whiteSpace: "pre-wrap" }}>{gpsDeviceRemarks}</span>
                                     </div>
                                 )}
                             </div>
@@ -89,25 +127,25 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                 </h4>
                                 <div className="m365-info-row">
                                     <span className="m365-info-row__label">Sensor ID / Serial</span>
-                                    <span className="m365-info-row__value">{transfer.fuelSensorId || "—"}</span>
+                                    <span className="m365-info-row__value">{fuelSensorId || "—"}</span>
                                 </div>
                                 <div className="m365-info-row">
                                     <span className="m365-info-row__label">Condition</span>
-                                    <span className="m365-info-row__value">{transfer.fuelSensorCondition || "—"}</span>
+                                    <span className="m365-info-row__value">{fuelSensorCondition || "—"}</span>
                                 </div>
                                 <div className="m365-info-row">
                                     <span className="m365-info-row__label">Working</span>
                                     <span
-                                        className={`m365-info-row__value ${transfer.fuelSensorWorking ? "transfer-details__yes" : "transfer-details__no"
+                                        className={`m365-info-row__value ${fuelSensorWorking ? "transfer-details__yes" : "transfer-details__no"
                                             }`}
                                     >
-                                        {transfer.fuelSensorWorking ? "Yes" : "No"}
+                                        {fuelSensorWorking ? "Yes" : "No"}
                                     </span>
                                 </div>
-                                {transfer.fuelSensorRemarks && (
+                                {fuelSensorRemarks && (
                                     <div className="m365-info-row">
                                         <span className="m365-info-row__label">Remarks</span>
-                                        <span className="m365-info-row__value">{transfer.fuelSensorRemarks}</span>
+                                        <span className="m365-info-row__value" style={{ whiteSpace: "pre-wrap" }}>{fuelSensorRemarks}</span>
                                     </div>
                                 )}
                             </div>
@@ -117,7 +155,7 @@ const EquipmentInspectionTab = ({ transfer }) => {
             )}
 
             {/* ── Checkup Items ── */}
-            {transfer.checkupItems?.length > 0 ? (
+            {checkupItems.length > 0 ? (
                 <div className="m365-section-group">
                     <div className="m365-section-group__header">
                         <i className="fa-light fa-clipboard-check m365-section-group__icon" />
@@ -137,34 +175,34 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transfer.checkupItems.map((item) => (
-                                    <tr key={item.id}>
-                                        <td>{item.serialNo}</td>
-                                        <td>{item.description}</td>
+                                {checkupItems.map((item, index) => (
+                                    <tr key={item.id ?? item.Id ?? `${item.serialNo ?? item.SerialNo ?? index}`}>
+                                        <td>{item.serialNo ?? item.SerialNo}</td>
+                                        <td>{item.description ?? item.Description}</td>
                                         <td className="transfer-details__table-center">
-                                            {item.isGood && (
+                                            {(item.isGood ?? item.IsGood) && (
                                                 <i className="fa-solid fa-check" style={{ color: "#107c10" }} />
                                             )}
                                         </td>
                                         <td className="transfer-details__table-center">
-                                            {item.isFair && (
+                                            {(item.isFair ?? item.IsFair) && (
                                                 <i className="fa-solid fa-check" style={{ color: "#ca5010" }} />
                                             )}
                                         </td>
                                         <td className="transfer-details__table-center">
-                                            {item.isDamaged && (
+                                            {(item.isDamaged ?? item.IsDamaged) && (
                                                 <i className="fa-solid fa-check" style={{ color: "#d13438" }} />
                                             )}
                                         </td>
                                         <td className="transfer-details__table-center">
-                                            {item.isWorn && (
+                                            {(item.isWorn ?? item.IsWorn) && (
                                                 <span>
                                                     <i className="fa-solid fa-check" style={{ color: "#ca5010" }} />
-                                                    {item.wornPercentage && ` ${item.wornPercentage}%`}
+                                                    {(item.wornPercentage ?? item.WornPercentage) && ` ${item.wornPercentage ?? item.WornPercentage}%`}
                                                 </span>
                                             )}
                                         </td>
-                                        <td>{item.remarks}</td>
+                                        <td>{item.remarks ?? item.Remarks}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -179,7 +217,7 @@ const EquipmentInspectionTab = ({ transfer }) => {
             )}
 
             {/* ── Tyre Details ── */}
-            {transfer.tyreDetails?.length > 0 && (
+            {tyreDetails.length > 0 && (
                 <div className="m365-section-group">
                     <div className="m365-section-group__header">
                         <i className="fa-light fa-tire m365-section-group__icon" />
@@ -197,28 +235,28 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transfer.tyreDetails.map((tyre) => (
-                                    <tr key={tyre.id}>
-                                        <td>{tyre.position || "—"}</td>
-                                        <td>{tyre.brand || "—"}</td>
-                                        <td>{tyre.size || "—"}</td>
+                                {tyreDetails.map((tyre, index) => (
+                                    <tr key={tyre.id ?? tyre.Id ?? index}>
+                                        <td>{tyre.position ?? tyre.Position ?? "—"}</td>
+                                        <td>{tyre.brand ?? tyre.Brand ?? "—"}</td>
+                                        <td>{tyre.size ?? tyre.Size ?? "—"}</td>
                                         <td>
-                                            {tyre.condition != null ? (
+                                            {(tyre.condition ?? tyre.Condition) != null ? (
                                                 <span
-                                                    className={`m365-badge ${tyre.condition >= 70
-                                                            ? "m365-badge--success"
-                                                            : tyre.condition >= 40
-                                                                ? "m365-badge--warning"
-                                                                : "m365-badge--error"
+                                                    className={`m365-badge ${(tyre.condition ?? tyre.Condition) >= 70
+                                                        ? "m365-badge--success"
+                                                        : (tyre.condition ?? tyre.Condition) >= 40
+                                                            ? "m365-badge--warning"
+                                                            : "m365-badge--error"
                                                         }`}
                                                 >
-                                                    {tyre.condition}%
+                                                    {tyre.condition ?? tyre.Condition}%
                                                 </span>
                                             ) : (
                                                 "—"
                                             )}
                                         </td>
-                                        <td>{tyre.remarks || "—"}</td>
+                                        <td>{tyre.remarks ?? tyre.Remarks ?? "—"}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -228,7 +266,7 @@ const EquipmentInspectionTab = ({ transfer }) => {
             )}
 
             {/* ── Battery Details ── */}
-            {transfer.batteryDetails?.length > 0 && (
+            {batteryDetails.length > 0 && (
                 <div className="m365-section-group">
                     <div className="m365-section-group__header">
                         <i className="fa-light fa-car-battery m365-section-group__icon" />
@@ -245,12 +283,12 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transfer.batteryDetails.map((bat) => (
-                                    <tr key={bat.id}>
-                                        <td>{bat.batteryNumber || "—"}</td>
-                                        <td>{bat.condition || "—"}</td>
-                                        <td>{bat.voltage != null ? `${bat.voltage}V` : "—"}</td>
-                                        <td>{bat.remarks || "—"}</td>
+                                {batteryDetails.map((bat, index) => (
+                                    <tr key={bat.id ?? bat.Id ?? index}>
+                                        <td>{bat.batteryNumber ?? bat.BatteryNumber ?? "—"}</td>
+                                        <td>{bat.condition ?? bat.Condition ?? "—"}</td>
+                                        <td>{(bat.voltage ?? bat.Voltage) != null ? `${bat.voltage ?? bat.Voltage}V` : "—"}</td>
+                                        <td>{bat.remarks ?? bat.Remarks ?? "—"}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -260,7 +298,7 @@ const EquipmentInspectionTab = ({ transfer }) => {
             )}
 
             {/* ── Service Filter Parts ── */}
-            {transfer.serviceFilterPartsList?.length > 0 && (
+            {serviceFilterPartsList.length > 0 && (
                 <div className="m365-section-group">
                     <div className="m365-section-group__header">
                         <i className="fa-light fa-filter m365-section-group__icon" />
@@ -277,12 +315,12 @@ const EquipmentInspectionTab = ({ transfer }) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {transfer.serviceFilterPartsList.map((part, idx) => (
+                                {serviceFilterPartsList.map((part, idx) => (
                                     <tr key={idx}>
-                                        <td>{part.number || idx + 1}</td>
-                                        <td>{part.description || "—"}</td>
-                                        <td>{part.partNumber || "—"}</td>
-                                        <td>{part.quantity}</td>
+                                        <td>{part.number ?? part.Number ?? idx + 1}</td>
+                                        <td>{part.description ?? part.Description ?? "—"}</td>
+                                        <td>{part.partNumber ?? part.PartNumber ?? "—"}</td>
+                                        <td>{part.quantity ?? part.Quantity ?? "—"}</td>
                                     </tr>
                                 ))}
                             </tbody>

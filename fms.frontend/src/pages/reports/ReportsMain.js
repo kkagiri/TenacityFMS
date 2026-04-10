@@ -85,6 +85,7 @@ const ReportsMain = () => {
         <Route path="vehicle-consumption" element={<VehicleConsumptionReport />} />
         <Route path="vehicle-consumption/details/:vehicleId" element={<VehicleConsumptionReportDetails />} />
         <Route path="warning-letters" element={<WarningLetterListPage />} />
+        <Route path="warning-letters/settings" element={<Navigate to="/reports/warning-letters" replace />} />
         <Route path="warning-letters/new" element={<WarningLetterFormPage />} />
         <Route path="warning-letters/:id/edit" element={<WarningLetterFormPage />} />
         <Route path="warning-letters/:id/preview" element={<WarningLetterPreviewPage />} />

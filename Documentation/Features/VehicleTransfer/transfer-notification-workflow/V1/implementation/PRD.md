@@ -1,240 +1,237 @@
-# PRD: Vehicle Transfer Notification & Approval Workflow
+# Vehicle Transfer Notification Workflow: As-Is Implementation Review
 
-**Version:** 1.0
-**Date:** 2026-02-27
-**Status:** In Progress
+**Version:** 1.1
+**Date:** 2026-04-09
+**Status:** Implemented with Gaps
 **Domain:** Vehicle Transfer
 
 ---
 
-## 1. Problem Statement
+## 1. Purpose
 
-The current vehicle transfer system uses **email-only notifications** and lacks real-time in-app notifications. Key stakeholders (workshop managers, senders, receivers) have no visibility into transfer lifecycle events unless they check their email. There is no concept of a **Receiver as a system user** — receiver info is stored as free-text name/function strings, so no targeted notifications can be sent. Daily reminders for pending receipt confirmation do not exist.
+This document no longer describes a proposed workflow. It records the current implementation that exists in the codebase today, highlights what is already working, and calls out the gaps that still need follow-up.
 
----
+Primary implementation areas reviewed:
 
-## 2. Goals
-
-1. Integrate the existing `INotificationService` (SignalR + Email + Push) into the vehicle transfer workflow
-2. Add **Receiver as a User** (`ReceiverUserId` FK) so the system can send targeted notifications
-3. Add **Approver as a User** linked to users with approval rights or Workshop role
-4. Implement the complete notification chain across all transfer lifecycle states
-5. Add daily reminder notifications for receivers until they confirm vehicle receipt
+- `FMS.Application/Features/VehicleTransfer/*`
+- `FMS.WebClient/Controllers/VehicleManagement/VehicleTransferController.cs`
+- `FMS.BackgroundServices/TransferReminderBackgroundService.cs`
+- `fms.frontend/src/pages/vehicles/transfers/*`
 
 ---
 
-## 3. Transfer Lifecycle & Notification Matrix
+## 2. Current Status Summary
 
-### 3.1 State Machine (Unchanged)
+### Implemented
 
-```
-Draft → PendingApproval → Approved → InTransit → Completed
-                ↓
-              Draft (rejection)
-Any non-terminal → Cancelled
-```
+1. The vehicle transfer lifecycle supports `Draft`, `PendingApproval`, `Approved`, `InTransit`, `Completed`, and `Cancelled`.
+2. Vehicle transfer notifications are integrated with the existing notification stack through `IVehicleTransferNotificationService`.
+3. Receiver and approver user linkage fields exist in the transfer DTO and are used by the workflow.
+4. Dispatch and receipt confirmation commands exist and trigger the expected lifecycle notifications.
+5. Daily in-transit reminders are implemented through a background service.
+6. Frontend transfer pages expose receiver selection and workflow actions for submit, approve, reject, dispatch, and confirm receipt.
 
-### 3.2 Notification Flow
+### Not Fully Implemented
 
-| # | Trigger Event | From Status | To Status | Notification Recipients | Delivery Methods | Priority |
-|---|--------------|-------------|-----------|------------------------|-----------------|----------|
-| N1 | User creates transfer & submits for approval | Draft | PendingApproval | **Workshop Manager / Approver** (users with `_Approve_VehicleTransfer` permission or Workshop role at the from-site) | System + Email | High |
-| N2 | Approver approves the transfer | PendingApproval | Approved | **Creator** (sender) — transfer has been approved, release the vehicle | System + Email | High |
-| N3 | Approver rejects the transfer | PendingApproval | Draft | **Creator** (sender) — transfer rejected with reason | System + Email | Medium |
-| N4 | Sender dispatches the vehicle (Approved → InTransit) | Approved | InTransit | **Receiver** (`ReceiverUserId`) — vehicle has been dispatched and is in transit. Includes signed copy & system printout attached by sender. | System + Email + Push | High |
-| N5 | Daily reminder while InTransit | InTransit | InTransit | **Receiver** (`ReceiverUserId`) — daily reminder: "Vehicle XYZ is in transit. Please confirm receipt." | System + Push | Medium |
-| N6 | Receiver confirms receipt (InTransit → Completed) | InTransit | Completed | **Creator/Sender** — vehicle received at destination site. System updates vehicle working site. | System + Email | High |
-| N7 | Transfer cancelled | Any | Cancelled | **All stakeholders** (Creator, Approver, Receiver if assigned) | System + Email | Medium |
-
-### 3.3 Detailed Flow Narrative
-
-```
-1. CREATOR fills out the transfer form (vehicle, from/to site, inspection, receiver user, etc.)
-2. CREATOR clicks "Submit for Approval"
-   → Status: Draft → PendingApproval
-   → [N1] Notification to Workshop Manager / users with approval rights at from-site
-
-3. APPROVER reviews and approves
-   → Status: PendingApproval → Approved
-   → [N2] Notification to CREATOR: "Your transfer has been approved. Please release the vehicle."
-
-   OR APPROVER rejects
-   → Status: PendingApproval → Draft
-   → [N3] Notification to CREATOR: "Transfer rejected. Reason: ..."
-
-4. SENDER (creator) prepares vehicle, attaches signed copy + system printout, clicks "Dispatch"
-   → Status: Approved → InTransit
-   → [N4] Notification to RECEIVER: "Vehicle XYZ has been dispatched from Site A to Site B. ETA: ..."
-   → Sender attaches signed document copy and system-generated report to the transfer
-
-5. While InTransit:
-   → [N5] DAILY reminder to RECEIVER until they confirm receipt
-
-6. RECEIVER clicks "Confirm Receipt"
-   → Status: InTransit → Completed
-   → [N6] Notification to SENDER: "Vehicle XYZ received at Site B"
-   → System updates Vehicle.WorkingSiteId to ToSiteId
-   → System updates GPSGate tags
-```
+1. Dispatch does not yet accept the signed-copy attachment payload described in the original PRD.
+2. Receipt confirmation is not limited to the designated `ReceiverUserId`; it currently relies on general vehicle edit permission.
+3. The frontend dispatch and receipt actions still use lightweight confirm/prompt flows instead of a richer workflow form.
+4. Approval submission still supports legacy direct-email behavior alongside role-based approver notification.
 
 ---
 
-## 4. Data Model Changes
+## 3. Verified Lifecycle
 
-### 4.1 Entity: `VehicleTransfer` — New Fields
+### 3.1 Status Flow
 
-| Property | Type | DB Column | Purpose |
-|----------|------|-----------|---------|
-| `ReceiverUserId` | `string?` | `receiver_user_id` VARCHAR(450) | FK to AspNetUsers — the system user designated as receiver |
-| `ApproverUserId` | `string?` | `approver_user_id` VARCHAR(450) | FK to AspNetUsers — the user who approved (distinct from `ApprovedBy` name string) |
-| `DispatchedAt` | `DateTime?` | `dispatched_at` DATETIME | Timestamp when vehicle was dispatched (InTransit) |
-| `ReceivedAt` | `DateTime?` | `received_at` DATETIME | Timestamp when receiver confirmed receipt |
-| `LastReminderSentAt` | `DateTime?` | `last_reminder_sent_at` DATETIME | Track last daily reminder to avoid duplicates |
-| `ReminderCount` | `int` | `reminder_count` INT DEFAULT 0 | Number of reminders sent |
+```text
+Draft -> PendingApproval -> Approved -> InTransit -> Completed
+                  |
+                  -> Draft (rejected)
 
-### 4.2 Notification Category (DB Insert)
-
-```sql
-INSERT INTO notificationcategories (Id, Name, Description, IsActive)
-VALUES (18, 'VehicleTransfer', 'Vehicle transfer lifecycle notifications', 1);
+Any non-terminal status -> Cancelled
 ```
 
-### 4.3 Enum: `WellKnownCategories`
+### 3.2 Transition Coverage
 
-```csharp
-VehicleTransfer = 18,  // Vehicle transfer lifecycle notifications
-```
+| Transition | Backend Support | Frontend Support | Notes |
+|---|---|---|---|
+| Draft -> PendingApproval | Yes | Yes | Submit endpoint exists and sends approver notifications |
+| PendingApproval -> Approved | Yes | Yes | Approver notification to creator is implemented |
+| PendingApproval -> Draft | Yes | Yes | Reject path includes rejection reason |
+| Approved -> InTransit | Yes | Yes | Dispatch command exists; no attachment payload yet |
+| InTransit -> Completed | Yes | Yes | Receipt confirmation updates vehicle working site and GPSGate tags |
+| Any active -> Cancelled | Yes | Partial | Notification support exists; UX depends on page and status |
 
 ---
 
-## 5. Backend Implementation Plan
+## 4. Notification Matrix
 
-### Phase 1: Foundation (Current Sprint)
+| # | Trigger | Recipients | Delivery Methods | Status |
+|---|---|---|---|---|
+| N1 | Submit for approval | Approvers resolved by explicit approver, `Workshop Manager`, or `Workshop` role at source site | System + Email | Implemented |
+| N2 | Approval | Creator/sender | System + Email | Implemented |
+| N3 | Rejection | Creator/sender | System + Email | Implemented |
+| N4 | Dispatch | `ReceiverUserId` | System + Email + Push | Implemented |
+| N5 | In-transit reminder | `ReceiverUserId` | System + Push | Implemented |
+| N6 | Receipt confirmed | Creator/sender | System + Email | Implemented |
+| N7 | Cancellation | Creator, approver, receiver | System + Email | Implemented in notification service |
 
-#### 5.1 Domain Changes (Requires Approval)
-- Add `ReceiverUserId`, `ApproverUserId`, `DispatchedAt`, `ReceivedAt`, `LastReminderSentAt`, `ReminderCount` to `VehicleTransfer` entity
+### Reminder Behavior
 
-#### 5.2 Notification Service Integration
-- Create `IVehicleTransferNotificationService` — encapsulates all transfer notification logic
-- Create `VehicleTransferNotificationService` — implementation using `INotificationService`
-- Add `WellKnownCategories.VehicleTransfer = 18`
-- Register in DI
-
-#### 5.3 Command Handler Updates
-- **SubmitForApprovalCommandHandler**: Add `IVehicleTransferNotificationService` call to notify approvers
-- **ApproveTransferCommandHandler**: Add notification to creator
-- **RejectTransferCommandHandler**: Add notification to creator
-- **UpdateVehicleTransferStatusCommand** (InTransit): Add notification to receiver
-- **UpdateVehicleTransferStatusCommand** (Completed): Add notification to sender/creator
-
-#### 5.4 New Commands
-- **DispatchTransferCommand**: Approved → InTransit with document attachment + receiver notification
-- **ConfirmReceiptCommand**: InTransit → Completed by receiver user
-
-#### 5.5 Background Service
-- **TransferReminderBackgroundService**: Daily job that finds InTransit transfers and sends reminder notifications to receivers
-
-### Phase 2: Frontend (Next Sprint)
-- Add Receiver user selector to transfer form
-- Add dispatch action (attach signed copy, system printout)
-- Add receiver confirmation action
-- Real-time notification toasts via SignalR
-- Notification bell integration
+1. `TransferReminderBackgroundService` runs every 6 hours.
+2. The notification service enforces a 24-hour per-transfer cooldown using `LastReminderSentAt`.
+3. Successful reminders increment `ReminderCount` and update `LastReminderSentAt`.
 
 ---
 
-## 6. API Changes
+## 5. Data Model and DTO State
 
-### New Endpoints
+### Implemented Notification Workflow Fields
 
-| Method | Route | Purpose |
-|--------|-------|---------|
-| POST | `/api/v1/vehicletransfers/{id}/dispatch` | Sender dispatches vehicle (Approved → InTransit) |
-| POST | `/api/v1/vehicletransfers/{id}/confirm-receipt` | Receiver confirms receipt (InTransit → Completed) |
+The transfer workflow currently uses these fields in the application layer:
 
-### Modified Request Models
+| Field | Present | Usage |
+|---|---|---|
+| `ReceiverUserId` | Yes | Targeted receiver notifications |
+| `ApproverUserId` | Yes | Explicit approver targeting |
+| `DispatchedAt` | Yes | Set on dispatch |
+| `ReceivedAt` | Yes | Set on receipt confirmation |
+| `LastReminderSentAt` | Yes | Reminder cooldown tracking |
+| `ReminderCount` | Yes | Reminder count tracking |
 
-**SubmitForApprovalRequest** — remove `WorkshopManagerEmail` (system will find approvers by role/permission):
-```json
-{
-  "approverUserId": "optional-specific-approver-id"
-}
-```
+### DTO Coverage
 
-**DispatchTransferRequest**:
-```json
-{
-  "notes": "Vehicle dispatched with all documents",
-  "documentFile": "(multipart file - signed copy)"
-}
-```
+`CreateVehicleTransferDTO` and `SaveTransferDraftDTO` include:
 
-**ConfirmReceiptRequest**:
-```json
-{
-  "notes": "Vehicle received in good condition",
-  "arrivalTime": "2026-02-27T14:30:00Z"
-}
-```
+- `ReceiverUserId`
+- `ApproverUserId`
+- `DocumentFile`
 
-### Modified DTOs
+`VehicleTransferDTO` includes:
 
-**CreateVehicleTransferDTO** — add:
-- `ReceiverUserId` (string?) — the designated receiver user
-- `ApproverUserId` (string?) — optional specific approver
-
-**VehicleTransferDTO** — add:
-- `ReceiverUserId`, `ReceiverUserName` (resolved)
-- `ApproverUserId`, `ApproverUserName` (resolved)
-- `DispatchedAt`, `ReceivedAt`
+- `ReceiverUserId`
+- `ReceiverUserName`
+- `ApproverUserId`
+- `ApproverUserName`
+- `DispatchedAt`
+- `ReceivedAt`
 - `ReminderCount`
 
 ---
 
-## 7. Permission Model
+## 6. Current API Surface
 
-| Permission | Purpose |
-|-----------|---------|
-| `_Read_VehicleTransfer` | View transfers (existing) |
-| `_Create_VehicleTransfer` | Create transfers (existing) |
-| `_Approve_VehicleTransfer` | Approve/reject transfers (NEW) |
-| `_Manage_VehicleTransfer` | Full admin (existing) |
+### Implemented Endpoints
 
-Approvers are resolved by:
-1. Explicit `ApproverUserId` if provided in the request
-2. Users with `_Approve_VehicleTransfer` permission at the from-site
-3. Users with "Workshop Manager" role at the from-site
+| Method | Route | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/vehicletransfers/{id}/submit-approval` | Moves draft transfer to pending approval |
+| `POST` | `/api/v1/vehicletransfers/{id}/approve` | Approves pending transfer |
+| `POST` | `/api/v1/vehicletransfers/{id}/reject` | Rejects pending transfer |
+| `POST` | `/api/v1/vehicletransfers/{id}/dispatch` | Dispatches approved transfer |
+| `POST` | `/api/v1/vehicletransfers/{id}/confirm-receipt` | Confirms receipt and completes transfer |
+| `PUT` | `/api/v1/vehicletransfers/{id}/status` | General legacy status update path |
+
+### Current Request Shape
+
+#### Submit for Approval
+
+Current backend behavior supports these optional fields:
+
+```json
+{
+   "workshopManagerEmail": "optional@example.com",
+   "workshopManagerName": "Optional Approver Name",
+   "approvalBaseUrl": "https://host"
+}
+```
+
+Notes:
+
+1. Approver notifications are resolved from the transfer and site roles even when no email is provided.
+2. If `workshopManagerEmail` is provided, the legacy approval email is still sent.
+
+#### Dispatch
+
+Current endpoint is parameterless:
+
+```json
+{}
+```
+
+Notes:
+
+1. The command sets `Status = InTransit` and `DispatchedAt = UtcNow`.
+2. No document upload or dispatch notes payload is currently accepted by the endpoint.
+
+#### Confirm Receipt
+
+Current request model:
+
+```json
+{
+   "remarks": "Optional receipt remarks"
+}
+```
+
+Notes:
+
+1. `ReceivedAt` and `ArrivalTime` are both set server-side.
+2. The endpoint does not currently accept a client-supplied arrival timestamp.
 
 ---
 
-## 8. Success Metrics
+## 7. Frontend State
 
-- All transfer state transitions trigger in-app notifications within 2 seconds (SignalR)
-- Email notifications sent within 30 seconds of state change
-- Daily reminders sent for all InTransit transfers older than 24 hours
-- Receiver can confirm receipt from notification link
-- Zero dropped notifications (logged and retried)
+### Already Present
 
----
+1. The transfer form includes a receiver user selector.
+2. The transfer form includes an approver selector labelled as workshop manager.
+3. The transfer list and details pages expose workflow actions based on status.
+4. Transfer details pages display dispatch and receipt timestamps.
 
-## 9. Out of Scope (V1)
+### Current UX Limitations
 
-- Mobile push notification deep links
-- SMS notifications
-- Notification preferences per user for transfer events
-- Escalation chains (if approver doesn't respond in X days)
-- Batch transfer operations
+1. Dispatch in the list page uses `window.confirm` and then calls the dispatch endpoint without extra data.
+2. Receipt confirmation in the list page uses `window.prompt` to capture remarks.
+3. The details page dispatch and confirm-receipt actions are also thin workflow actions without attachment support.
+4. The richer dispatch package described in the original PRD is not present in the current UI.
 
 ---
 
-## 10. Technical Dependencies
+## 8. Permission and Security Notes
 
-| Component | Status |
-|-----------|--------|
-| `INotificationService` | Exists — 2293-line service with SignalR + Email + SMS + Push |
-| `ISignalRNotificationService` | Exists — real-time delivery |
-| `INotificationRecipientResolver` | Exists — can resolve users by role/permission |
-| `CreateNotificationRequest` DTO | Exists — supports VehicleId, SiteId, Recipients, Data |
-| `WellKnownCategories` enum | Exists — needs VehicleTransfer = 18 added |
-| `VehicleTransfer` entity | Exists — needs ReceiverUserId, ApproverUserId, etc. |
-| Background service infrastructure | Exists — `FMS.BackgroundServices` project |
+### Current Permission Model in Use
+
+| Permission | Current Use |
+|---|---|
+| `_Read_VehicleTransfer` | Controller access and list/read workflows |
+| `_Approve_VehicleTransfer` | Notification resolution and approval intent |
+| `Permissions.Vehicle.Edit` | Dispatch and confirm receipt endpoints |
+
+### Gap
+
+The designated receiver is not yet enforced as the only user allowed to confirm receipt. Backend authorization currently checks vehicle edit permission, not `ReceiverUserId` ownership.
+
+---
+
+## 9. Implementation Gaps to Fix Next
+
+### High Priority
+
+1. Add multipart dispatch support so sender-uploaded signed documents can be stored and referenced.
+2. Restrict receipt confirmation so the assigned receiver, or an approved override role, performs the completion step.
+3. Replace prompt/confirm-based workflow steps in the frontend with explicit M365-style forms and validation.
+
+### Medium Priority
+
+1. Remove the remaining legacy email-centric assumptions from the controller and request models.
+2. Expose reminder count and reminder history more clearly in the frontend.
+3. Verify notification-bell and toast behavior for all transfer events end to end.
+
+---
+
+## 10. Conclusion
+
+The notification workflow is materially implemented. The main backend lifecycle and notification chain already exist and are in use. The remaining work is mostly around tightening authorization, replacing legacy email-first assumptions, and completing the richer dispatch and receipt UX that the original PRD described.

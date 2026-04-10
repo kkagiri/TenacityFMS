@@ -34,6 +34,7 @@ import TaskManagement from "../taskManagement";
 import LogManagementPage from "./logManagement/LogManagementPage";
 import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
 import CheckupTemplateManagementPage from "./checkupTemplates/CheckupTemplateManagementPage";
+import EmployeePositionManagementPage from "./employeePositions/EmployeePositionManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
 const AdminMain = () => {
@@ -96,6 +97,15 @@ const AdminMain = () => {
         <Route
           path="expected-averages/*"
           element={<ExpectedAverageManagementPage />}
+        />
+
+        <Route
+          path="employee-positions"
+          element={<EmployeePositionManagementPage />}
+        />
+        <Route
+          path="employee-positions/*"
+          element={<EmployeePositionManagementPage />}
         />
 
         {/* Vehicle Transfer Checkup Templates Route */}

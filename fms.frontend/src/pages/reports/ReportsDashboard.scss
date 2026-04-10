@@ -8,6 +8,12 @@
 .reports-dashboard {
   padding: 0;
 
+  &__quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+
   .dashboard-header {
     margin-bottom: 2rem;
   }

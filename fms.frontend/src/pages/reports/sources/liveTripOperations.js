@@ -9,7 +9,7 @@ const liveTripOperations = {
     id: 'live-trip-operations',
     name: 'Live Trip Operations',
     description: 'Shows vehicles currently traveling, active trips, trip counts per vehicle, live tipper cycle counts, and vehicles idle outside work zones.',
-    category: 'Fleet',
+    category: 'Fleet Management',
     categoryIcon: 'fa-light fa-truck-fast',
     icon: 'fa-light fa-road-circle-check',
     apiEndpoint: '/vehicletrips/reports/live-operations',

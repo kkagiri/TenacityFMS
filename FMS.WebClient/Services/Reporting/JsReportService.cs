@@ -5,7 +5,7 @@
  *          PDF conversion is handled by PuppeteerSharp using the system Chrome/Edge.
  * Dependencies: jsreport.Local, jsreport.Binary, jsreport.Types, PuppeteerSharp,
  *               ClosedXML, IWebHostEnvironment, JsReportTemplateManager, JsReportLetterheadBranding
- * Last Modified: 2026-03-07
+ * Last Modified: 2026-04-09
  *
  * Key Functions:
  * - RenderPdfAsync        : Template → HTML (jsreport) → PDF (PuppeteerSharp + system Chrome)
@@ -87,6 +87,9 @@ namespace FMS.WebClient.Services.Reporting
 
         /// <summary>The executable path that successfully launched the current browser instance.</summary>
         private string? _activeBrowserExePath;
+
+        /// <summary>The user-data-dir used by the current shared Puppeteer browser instance.</summary>
+        private string? _activeBrowserProfileDir;
 
         /// <summary>Shared browser instance — lazily created, reused across renders.</summary>
         private IBrowser? _browser;
@@ -367,7 +370,7 @@ namespace FMS.WebClient.Services.Reporting
             try
             {
                 // Step 1: Render Handlebars → HTML (jsreport, no Chrome involved)
-                var html = await RenderTemplateToHtml(templateName, data);
+                var html = await RenderTemplateToHtml(templateName, data, includeBodyBranding: false);
 
                 // Step 2: Convert HTML → PDF (PuppeteerSharp + system Chrome)
                 return await ConvertHtmlToPdfAsync(html, landscape);
@@ -384,7 +387,7 @@ namespace FMS.WebClient.Services.Reporting
 
                     try
                     {
-                        var fallbackHtml = await RenderRawHtml(embeddedTemplate, data);
+                        var fallbackHtml = await RenderRawHtml(_branding.Apply(embeddedTemplate, includeHtmlBlock: false), data);
                         return await ConvertHtmlToPdfAsync(fallbackHtml, landscape);
                     }
                     catch (Exception fallbackEx)
@@ -435,7 +438,7 @@ namespace FMS.WebClient.Services.Reporting
                 // ── Step 2: fallback — render HTML and return those bytes ──
                 _logger.LogWarning("ClosedXML could not parse payload for {Template}; falling back to HTML bytes", templateName);
                 var content = await LoadTemplate(templateName);
-                content = _branding.Apply(content);
+                content = _branding.Apply(content, includeHtmlBlock: false);
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
                     Template = new Template
@@ -464,7 +467,7 @@ namespace FMS.WebClient.Services.Reporting
         {
             try
             {
-                return await RenderTemplateToHtml(templateName, data);
+                return await RenderTemplateToHtml(templateName, data, includeBodyBranding: false);
             }
             catch (Exception ex)
             {
@@ -851,11 +854,21 @@ namespace FMS.WebClient.Services.Reporting
         /// Loads a named template from disk and renders it with jsreport using
         /// the Handlebars engine + Html recipe. Returns the rendered HTML string.
         /// </summary>
-        private async Task<string> RenderTemplateToHtml(string templateName, object data)
+        private async Task<string> RenderTemplateToHtml(string templateName, object data, bool includeBodyBranding = false)
         {
             var content = await LoadTemplate(templateName);
-            content = _branding.Apply(content);
+            content = _branding.Apply(content, includeBodyBranding);
             return await RenderRawHtml(content, data);
+        }
+
+        private string BuildPdfHeaderTemplate()
+        {
+            const string leftBranding = @"<span style=""color:#9CA3AF; font-size:8px; font-weight:600; white-space:nowrap;"">Hyoung FMS</span>";
+
+            return $@"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
+                    {leftBranding}
+                    <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
+                </div>";
         }
 
         /// <summary>
@@ -900,7 +913,7 @@ namespace FMS.WebClient.Services.Reporting
             }
 
             using var reader = new StreamReader(report.Content);
-            var html = await reader.ReadToEndAsync();
+            var html = await reader.ReadToEndAsync() ?? string.Empty;
 
             // Debug: log a snippet of the rendered HTML to help diagnose data binding issues
             if (html != null && html.Length > 0)
@@ -971,12 +984,9 @@ namespace FMS.WebClient.Services.Reporting
                         Landscape = landscape,
                         PrintBackground = true,
                         DisplayHeaderFooter = true,
-                        HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
-                    <span style=""font-weight:700; color:#1F2937; font-size:10px;"">Hyoung Fleet Management</span>
-                    <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
-                </div>",
+                        HeaderTemplate = BuildPdfHeaderTemplate(),
                         FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
-                    <span>HYoung EA &mdash; Fleet Management &amp; Fueling Operations</span>
+                    <span>Hyoung FMS &mdash; Fleet Management &amp; Fueling Operations</span>
                     <span>Page <span class=""pageNumber""></span> of <span class=""totalPages""></span></span>
                 </div>",
                         MarginOptions = new MarginOptions
@@ -1235,36 +1245,21 @@ namespace FMS.WebClient.Services.Reporting
         /// Core browser launch logic with explicit timeout and a dedicated
         /// user-data-dir under <see cref="PuppeteerProfileRoot"/> to avoid
         /// profile lock conflicts and %TEMP% permission issues.
-        /// The profile directory is recreated on each attempt to clear stale locks.
+        /// Each launch uses a unique profile directory so Crashpad and singleton
+        /// lock files from a previous browser process cannot block a new launch.
         /// </summary>
         private async Task<IBrowser> LaunchBrowserCoreAsync(string exePath, int attempt)
         {
-            // Build a per-executable profile subdirectory so Chrome and Edge
-            // don't share (and lock) the same profile.
             var exeLabel = Path.GetFileNameWithoutExtension(exePath).ToLowerInvariant();
+            var profileRoot = Directory.Exists(PuppeteerProfileRoot) ? PuppeteerProfileRoot : Path.GetTempPath();
             var profileDir = Path.Combine(
-                Directory.Exists(PuppeteerProfileRoot) ? PuppeteerProfileRoot : Path.GetTempPath(),
-                $"fms-puppeteer-{exeLabel}");
+                profileRoot,
+                $"fms-puppeteer-{exeLabel}-{DateTime.UtcNow:yyyyMMddHHmmssfff}-{Guid.NewGuid():N}");
 
-            // Recreate the profile directory on every attempt to clear stale
-            // lock files (SingletonLock, SingletonSocket, etc.) that prevent
-            // the browser from starting cleanly.
-            try
-            {
-                if (Directory.Exists(profileDir))
-                {
-                    Directory.Delete(profileDir, recursive: true);
-                    _logger.LogInformation(
-                        "Deleted stale PuppeteerSharp profile dir: {Dir}", profileDir);
-                }
-            }
-            catch (Exception delEx)
-            {
-                _logger.LogWarning(delEx,
-                    "Could not delete PuppeteerSharp profile dir {Dir} — continuing anyway", profileDir);
-            }
+            CleanupStalePuppeteerProfileDirectories(profileRoot, exeLabel, excludeDir: _activeBrowserProfileDir);
 
             Directory.CreateDirectory(profileDir);
+            _activeBrowserProfileDir = profileDir;
 
             _logger.LogInformation(
                 "Launching PuppeteerSharp browser (exe: {Exe}, attempt: {Attempt}, profile: {Dir})",
@@ -1369,6 +1364,41 @@ namespace FMS.WebClient.Services.Reporting
             catch
             {
                 return null;
+            }
+        }
+
+        private void CleanupStalePuppeteerProfileDirectories(string profileRoot, string exeLabel, string? excludeDir)
+        {
+            try
+            {
+                if (!Directory.Exists(profileRoot))
+                {
+                    return;
+                }
+
+                var searchPattern = $"fms-puppeteer-{exeLabel}-*";
+                var staleDirs = Directory.GetDirectories(profileRoot, searchPattern, SearchOption.TopDirectoryOnly)
+                    .Where(dir => !string.Equals(dir, excludeDir, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                foreach (var staleDir in staleDirs)
+                {
+                    try
+                    {
+                        Directory.Delete(staleDir, recursive: true);
+                        _logger.LogInformation("Deleted stale PuppeteerSharp profile dir: {Dir}", staleDir);
+                    }
+                    catch (Exception deleteEx)
+                    {
+                        _logger.LogDebug(deleteEx,
+                            "Could not delete stale PuppeteerSharp profile dir {Dir}; it may still be locked",
+                            staleDir);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Stale PuppeteerSharp profile cleanup skipped for {ExeLabel}", exeLabel);
             }
         }
 

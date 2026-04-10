@@ -2,7 +2,7 @@
  * File:          VehicleTransferHistory.js
  * Purpose:       M365-styled vehicle transfer history tab with SlidePanel details
  * Dependencies:  DataGrid (DevExtreme), SlidePanel, VehicleTransferForm, VehicleTransferDetails
- * Last Modified: 2026-02-02
+ * Last Modified: 2026-04-09
  *
  * Key Components:
  * - Transfer history DataGrid
@@ -94,8 +94,17 @@ const VehicleTransferHistory = ({ vehicleId }) => {
   };
 
   const handleViewDetails = (transfer) => {
-    setSelectedTransfer(transfer);
     setShowDetailsPanel(true);
+
+    axiosInstance
+      .get(`/vehicletransfers/${transfer.transferId}`)
+      .then((response) => {
+        const detailedTransfer = response.data?.data || response.data?.Data || response.data;
+        setSelectedTransfer(detailedTransfer || transfer);
+      })
+      .catch(() => {
+        setSelectedTransfer(transfer);
+      });
   };
 
   const handleCloseDetailsPanel = () => {
@@ -157,18 +166,39 @@ const VehicleTransferHistory = ({ vehicleId }) => {
     }
   };
 
+  const handleDeleteTransfer = async (transfer) => {
+    if (!window.confirm(`Delete transfer #${transfer.transferId}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.delete(`/vehicletransfers/${transfer.transferId}`);
+      if (response.data?.isSuccess) {
+        notify("Vehicle transfer deleted", "success", 3000);
+        if (selectedTransfer?.transferId === transfer.transferId) {
+          handleCloseDetailsPanel();
+        }
+        loadTransferHistory();
+      } else {
+        throw new Error(response.data?.message || "Failed to delete transfer");
+      }
+    } catch (error) {
+      notify(error.message || "Failed to delete transfer", "error", 3000);
+    }
+  };
+
   // ── Status badge helper ──
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase();
     const map = {
-      completed:       { cls: "m365-badge--success",  text: "Completed" },
-      approved:        { cls: "m365-badge--primary",   text: "Approved" },
-      intransit:       { cls: "m365-badge--primary",   text: "In Transit" },
-      pendingapproval: { cls: "m365-badge--warning",   text: "Pending Approval" },
-      draft:           { cls: "m365-badge--neutral",   text: "Draft" },
-      cancelled:       { cls: "m365-badge--error",     text: "Cancelled" },
-      rejected:        { cls: "m365-badge--error",     text: "Rejected" },
-      pending:         { cls: "m365-badge--warning",   text: "Pending" },
+      completed: { cls: "m365-badge--success", text: "Completed" },
+      approved: { cls: "m365-badge--primary", text: "Approved" },
+      intransit: { cls: "m365-badge--primary", text: "In Transit" },
+      pendingapproval: { cls: "m365-badge--warning", text: "Pending Approval" },
+      draft: { cls: "m365-badge--neutral", text: "Draft" },
+      cancelled: { cls: "m365-badge--error", text: "Cancelled" },
+      rejected: { cls: "m365-badge--error", text: "Rejected" },
+      pending: { cls: "m365-badge--warning", text: "Pending" },
     };
     const info = map[s] || { cls: "m365-badge--neutral", text: status || "—" };
     return <span className={`m365-badge ${info.cls}`}>{info.text}</span>;
@@ -177,6 +207,9 @@ const VehicleTransferHistory = ({ vehicleId }) => {
   const renderStatusCell = (cellInfo) => getStatusBadge(cellInfo.value || "Pending");
 
   const renderActionsCell = (cellInfo) => {
+    const status = cellInfo.data?.status?.toLowerCase();
+    const canDelete = status === "draft" || status === "pending";
+
     return (
       <div className="transfer-history__actions">
         <button
@@ -207,6 +240,15 @@ const VehicleTransferHistory = ({ vehicleId }) => {
             onClick={() => window.open(cellInfo.data.documentUrl, "_blank")}
           >
             <i className="fa-light fa-file-arrow-down" />
+          </button>
+        )}
+        {canDelete && (
+          <button
+            className="m365-icon-btn m365-icon-btn--danger"
+            title="Delete Transfer"
+            onClick={() => handleDeleteTransfer(cellInfo.data)}
+          >
+            <i className="fa-light fa-trash" />
           </button>
         )}
       </div>
@@ -241,6 +283,7 @@ const VehicleTransferHistory = ({ vehicleId }) => {
         columnAutoWidth={true}
         rowAlternationEnabled={false}
         allowColumnResizing={true}
+        columnResizingMode="widget"
         keyExpr="transferId"
         hoverStateEnabled={true}
         onRowDblClick={(e) => handleViewDetails(e.data)}
@@ -285,7 +328,7 @@ const VehicleTransferHistory = ({ vehicleId }) => {
         />
         <Column
           caption="Actions"
-          width={120}
+          width={160}
           cellRender={renderActionsCell}
           allowFiltering={false}
           allowSorting={false}
@@ -311,7 +354,7 @@ const VehicleTransferHistory = ({ vehicleId }) => {
         open={showDetailsPanel}
         onClose={handleCloseDetailsPanel}
         title={`Transfer Details — ${selectedTransfer?.deliveryNoteNumber || ""}`}
-        width={1200}
+        width="min(1440px, calc(100vw - 32px))"
       >
         {selectedTransfer && (
           <VehicleTransferDetails

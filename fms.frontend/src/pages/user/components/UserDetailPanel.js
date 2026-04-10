@@ -174,6 +174,7 @@ const UserDetailPanel = ({
     // ── Edit mode ─────────────────────────────────────────────────────────
     const startEdit = useCallback(() => {
         if (!user) return;
+        setActiveTab('general');
         setEditValues({
             firstName: user.firstName || user.FirstName || '',
             lastName: user.lastName || user.LastName || '',
@@ -301,25 +302,20 @@ const UserDetailPanel = ({
     const renderGeneralView = () => (
         <div className="m365-detail-content">
             {/* Account info — 2-column grid like M365 */}
-            <div className="m365-info-grid">
-                <div className="m365-info-cell">
+            <div className="m365-info-grid user-detail-info-grid">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">First name</span>
                     <span className="m365-info-cell__value">{user?.firstName || user?.FirstName || '—'}</span>
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Last name</span>
                     <span className="m365-info-cell__value">{user?.lastName || user?.LastName || '—'}</span>
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Username</span>
                     <span className="m365-info-cell__value">{user?.userName || user?.Username || '—'}</span>
-                    {canManage && (
-                        <button className="m365-info-cell__link" onClick={startEdit}>
-                            Manage account
-                        </button>
-                    )}
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Last sign-in</span>
                     <span className="m365-info-cell__value">
                         {user?.lastLogin || user?.LastLogin
@@ -331,33 +327,33 @@ const UserDetailPanel = ({
                     </button>
                 </div>
 
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Email</span>
                     <span className="m365-info-cell__value">{userEmail || '—'}</span>
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Phone</span>
                     <span className="m365-info-cell__value">{user?.phone || user?.Phone || '—'}</span>
                 </div>
 
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Department</span>
                     <span className="m365-info-cell__value">{user?.departmentDisplay || '—'}</span>
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Roles</span>
                     <span className="m365-info-cell__value">
                         <UserRoleBadgeList roles={user?.roleNames || user?.roles || []} maxVisible={3} />
                     </span>
                 </div>
 
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Status</span>
                     <span className="m365-info-cell__value">
                         <UserStatusBadge isActive={isActive} />
                     </span>
                 </div>
-                <div className="m365-info-cell">
+                <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Created</span>
                     <span className="m365-info-cell__value">
                         {user?.createdDate || user?.CreatedDate
@@ -368,10 +364,10 @@ const UserDetailPanel = ({
             </div>
 
             {/* Settings section */}
-            <div className="m365-flat-section">
+            <div className="m365-flat-section user-detail-settings-section">
                 <h3 className="m365-flat-section__title">Settings</h3>
-                <div className="m365-info-grid">
-                    <div className="m365-info-cell">
+                <div className="m365-info-grid user-detail-info-grid">
+                    <div className="m365-info-cell user-detail-info-cell">
                         <span className="m365-info-cell__label">
                             Bypass GPS
                             <span className="m365-info-tooltip" data-tip="Skip mobile check on location">
@@ -460,7 +456,7 @@ const UserDetailPanel = ({
             </div>
 
             {/* Settings */}
-            <div className="m365-flat-section">
+            <div className="m365-flat-section user-detail-settings-section">
                 <h3 className="m365-flat-section__title">Settings</h3>
                 <div className="m365-edit-fields">
                     <label className="m365-checkbox">
@@ -950,6 +946,12 @@ const UserDetailPanel = ({
                             {/* Inline action links */}
                             {canManage && (
                                 <div className="m365-detail-profile__actions">
+                                    {!editMode && (
+                                        <button className="m365-action-link" onClick={startEdit}>
+                                            <i className="fa-light fa-pen-to-square" />
+                                            <span>Edit</span>
+                                        </button>
+                                    )}
                                     <button className="m365-action-link" onClick={() => setShowPwdPopup(true)}>
                                         <i className="fa-light fa-key" />
                                         <span>Reset password</span>

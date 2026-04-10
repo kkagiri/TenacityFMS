@@ -104,6 +104,16 @@
     border-color: var(--m365-border);
   }
 
+  &--inactive {
+    border-style: dashed;
+    opacity: 0.85;
+
+    .m365-dept-card__icon {
+      background: var(--m365-bg-hover);
+      color: var(--m365-text-tertiary);
+    }
+  }
+
   &__icon {
     width: 36px;
     height: 36px;
@@ -122,11 +132,26 @@
     min-width: 0;
   }
 
+  &__heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
   &__name {
     font-size: var(--m365-font-body);
     font-weight: 600;
     color: var(--m365-text);
     margin: 0;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: var(--m365-text-tertiary);
+    margin: 4px 0 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
 
   &__desc {
@@ -149,6 +174,30 @@
     display: flex;
     gap: 4px;
     flex-shrink: 0;
+  }
+}
+
+.department-form-panel {
+  &__status-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--m365-text);
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--m365-primary);
+    }
   }
 }
 

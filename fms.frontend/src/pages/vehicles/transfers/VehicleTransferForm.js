@@ -26,11 +26,17 @@ import axiosInstance from "../../../api/axiosInstance";
 import TransferStepDetails from "./components/TransferStepDetails";
 import TransferStepInspection from "./components/TransferStepInspection";
 import TransferStepApproval from "./components/TransferStepApproval";
+import GpsIssuePopup from "./components/GpsIssuePopup";
 import useVehicleResolution from "./hooks/useVehicleResolution";
 import {
+  applyCheckupItemUpdate,
   getEmployeePhoneNumber,
   getUserDisplayName,
   getUserId,
+  getVehicleDisplayNumber,
+  getVehicleRegistrationNumber,
+  getVehicleWorkingSiteId,
+  normalizeCheckupItemSelection,
   validateTransferDetails,
 } from "./vehicleTransferFormUtils";
 
@@ -72,6 +78,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
   const [documentFile, setDocumentFile] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
   const draftSaveInProgress = useRef(false);
+  const preserveLoadedCheckupItemsRef = useRef(false);
 
   const [formData, setFormData] = useState({
     vehicleId: vehicleId ? parseInt(vehicleId, 10) : null,
@@ -101,7 +108,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     receiverName: "",
     receiverFunction: "",
     approvedBy: "",
-    workshopManagerId: null,
+    approverUserId: null,
     workshopManagerSign: "",
     receiverUserId: null,
     sendEmail: true,
@@ -130,8 +137,8 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     }));
   }, [vehicleId]);
 
-  const { vehicle, hasGps, gpsMapping, checkupItems, setCheckupItems } =
-    useVehicleResolution(selectedVehicleId, vehicles, setFormData);
+  const { vehicle, hasGps, gpsMapping, gpsInfo, checkupItems, setCheckupItems } =
+    useVehicleResolution(selectedVehicleId, vehicles, setFormData, preserveLoadedCheckupItemsRef);
 
   useEffect(() => {
     dispatch(fetchSiteList());
@@ -139,7 +146,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
   useEffect(() => {
     if (users.length === 0) {
-      dispatch(fetchUsers()).catch(() => {});
+      dispatch(fetchUsers()).catch(() => { });
     }
   }, [dispatch, users.length]);
 
@@ -155,6 +162,9 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
         const transfer = response.data?.data || response.data;
 
         if (cancelled || !transfer) return;
+
+        preserveLoadedCheckupItemsRef.current = Array.isArray(transfer.checkupItems)
+          && transfer.checkupItems.length > 0;
 
         setSelectedVehicleId(transfer.vehicleId);
         setFormData((prev) => ({
@@ -186,7 +196,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
           receiverName: transfer.receiverName || "",
           receiverFunction: transfer.receiverFunction || "",
           approvedBy: transfer.approvedBy || "",
-          workshopManagerId: transfer.approverUserId ? parseInt(transfer.approverUserId, 10) : null,
+          approverUserId: transfer.approverUserId || null,
           workshopManagerSign: transfer.workshopManagerSign || "",
           receiverUserId: transfer.receiverUserId || null,
           sendEmail: true,
@@ -206,7 +216,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
         }));
 
         if (transfer.checkupItems?.length) {
-          setCheckupItems(transfer.checkupItems.map((item) => ({
+          setCheckupItems(transfer.checkupItems.map((item) => normalizeCheckupItemSelection({
             serialNo: item.serialNo,
             description: item.description,
             checkType: item.checkType || "",
@@ -214,7 +224,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
             isFair: item.isFair || false,
             isDamaged: item.isDamaged || false,
             isWorn: item.isWorn || false,
-            wornPercentage: item.wornPercentage || 0,
+            wornPercentage: item.wornPercentage,
             remarks: item.remarks || "",
           })));
         }
@@ -332,7 +342,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
       "batteryNumber", "makeModel", "fuelInTank", "sealNumber",
       "antiTheftCheckedDeparture", "antiTheftCheckedArrival", "keysInEnvelopeChecked",
       "remarks", "senderName", "senderFunction", "receiverName", "receiverFunction",
-      "approvedBy", "workshopManagerSign", "workshopManagerId", "receiverUserId",
+      "approvedBy", "workshopManagerSign", "approverUserId", "receiverUserId",
       "sendEmail", "emailRecipients", "updateOdometer", "createMaintenanceEntry",
       "gpsDeviceId", "gpsDeviceCondition", "gpsDeviceWorking", "gpsDeviceRemarks",
       "fuelSensorId", "fuelSensorCondition", "fuelSensorWorking", "fuelSensorRemarks",
@@ -365,7 +375,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
     // Complex arrays via JSON string fallback setters
     if (checkupItems.length > 0) {
-      payload.append("checkupItemsJson", JSON.stringify(checkupItems));
+      payload.append("checkupItemsJson", JSON.stringify(checkupItems.map((item) => applyCheckupItemUpdate(item, {}))));
     }
     if (tyreDetails.length > 0) {
       payload.append("tyreDetailsJson", JSON.stringify(tyreDetails));
@@ -373,9 +383,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     if (batteryDetails.length > 0) {
       payload.append("batteryDetailsJson", JSON.stringify(batteryDetails));
     }
-    if (serviceFilterParts.length > 0) {
-      payload.append("serviceFilterPartsJson", JSON.stringify(serviceFilterParts));
-    }
+    payload.append("serviceFilterPartsJson", JSON.stringify(serviceFilterParts || []));
 
     // File upload
     if (documentFile) {
@@ -438,6 +446,8 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     const nextVehicleId = event?.value ? parseInt(event.value, 10) : null;
     const normalizedVehicleId = Number.isNaN(nextVehicleId) ? null : nextVehicleId;
 
+    preserveLoadedCheckupItemsRef.current = false;
+
     setSelectedVehicleId(normalizedVehicleId);
     setFormData((prev) => ({
       ...prev,
@@ -446,6 +456,14 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
     clearValidationErrorsForFields(["vehicleId"]);
   }, [clearValidationErrorsForFields]);
+
+  const handleCheckupItemsChange = useCallback((items) => {
+    const normalizedItems = Array.isArray(items)
+      ? items.map((item) => applyCheckupItemUpdate(item, {}))
+      : [];
+
+    setCheckupItems(normalizedItems);
+  }, [setCheckupItems]);
 
   const handleDriverChange = useCallback(async (event) => {
     const selectedDriverId = event?.value || null;
@@ -504,7 +522,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     if (selectedManagerId === null || selectedManagerId === undefined || selectedManagerId === "") {
       setFormData((prev) => ({
         ...prev,
-        workshopManagerId: null,
+        approverUserId: null,
         workshopManagerSign: "",
       }));
       return;
@@ -516,7 +534,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
     setFormData((prev) => ({
       ...prev,
-      workshopManagerId: selectedManagerId,
+      approverUserId: selectedManagerId,
       workshopManagerSign: selectedManager?.displayName || "",
     }));
   }, [workshopManagerUsers]);
@@ -565,7 +583,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
       // Step 2: Find workshop manager email for approval notification
       const selectedManager = workshopManagerUsers.find(
-        (u) => String(u.id) === String(formData.workshopManagerId)
+        (u) => String(u.id) === String(formData.approverUserId)
       );
 
       // Step 3: Submit for approval — transitions Draft → PendingApproval
@@ -597,8 +615,11 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
     }
   };
 
+  // GPS Issue Popup state
+  const [showGpsIssuePopup, setShowGpsIssuePopup] = useState(false);
+
   /**
-   * Sends GPS equipment section to GPS department for review/confirmation.
+   * Opens the GPS issue creation popup after ensuring the draft is saved.
    */
   const handleSendGpsForReview = useCallback(async () => {
     try {
@@ -613,20 +634,13 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
         return;
       }
 
-      // Notify GPS department  — uses the existing notification endpoint
-      await axiosInstance.post(`/vehicletransfers/${currentDraftId}/notify-gps-review`);
-      notify("GPS equipment section sent to GPS department for review", "success", 3000);
+      setShowGpsIssuePopup(true);
     } catch (error) {
-      // If endpoint doesn't exist yet, show info message
-      if (error.response?.status === 404) {
-        notify("GPS review notification will be available soon", "info", 3000);
-      } else {
-        notify(
-          error.response?.data?.message || "Failed to send GPS review request",
-          "error",
-          3000
-        );
-      }
+      notify(
+        error.response?.data?.message || "Failed to prepare GPS review",
+        "error",
+        3000
+      );
     }
   }, [draftId, saveDraftAsync]);
 
@@ -659,11 +673,11 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
           <div className="vtf-header__meta">
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Vehicle No</span>
-              <span className="vtf-header__meta-value">{vehicle.hyoungNo}</span>
+              <span className="vtf-header__meta-value">{getVehicleDisplayNumber(vehicle) || "-"}</span>
             </div>
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Reg. No</span>
-              <span className="vtf-header__meta-value">{vehicle.numberPlate}</span>
+              <span className="vtf-header__meta-value">{getVehicleRegistrationNumber(vehicle) || "-"}</span>
             </div>
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Make / Model</span>
@@ -672,7 +686,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Current Site</span>
               <span className="vtf-header__meta-value">
-                {sites.find((site) => site.id === vehicle.workingSiteId)?.name || "N/A"}
+                {sites.find((site) => site.id === getVehicleWorkingSiteId(vehicle))?.name || "N/A"}
               </span>
             </div>
             <div className="vtf-header__meta-item">
@@ -727,10 +741,11 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
           formData={formData}
           hasGps={hasGps}
           gpsMapping={gpsMapping}
+          gpsInfo={gpsInfo}
           checkupItems={checkupItems}
           serviceFilterParts={serviceFilterParts}
           onFieldChange={handleFieldChange}
-          onCheckupItemsChange={setCheckupItems}
+          onCheckupItemsChange={handleCheckupItemsChange}
           onServiceFilterPartsChange={setServiceFilterParts}
           canManageTemplates={canManageCheckupTemplates}
           onManageTemplates={openCheckupTemplateManager}
@@ -794,6 +809,21 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
           )}
         </div>
       </div>
+
+      <GpsIssuePopup
+        visible={showGpsIssuePopup}
+        onHide={() => setShowGpsIssuePopup(false)}
+        vehicleId={selectedVehicleId}
+        vehicleNumber={getVehicleRegistrationNumber(vehicle)}
+        fromSiteId={formData.fromSiteId}
+        fromSiteName={sites.find((s) => s.id === formData.fromSiteId)?.name}
+        gpsMapping={gpsMapping}
+        gpsInfo={gpsInfo}
+        gpsCondition={formData.gpsDeviceCondition}
+        gpsWorking={formData.gpsDeviceWorking}
+        currentUserName={currentUser?.userName}
+        onIssueCreated={() => notify("GPS issue created successfully", "success", 3000)}
+      />
     </div>
   );
 };

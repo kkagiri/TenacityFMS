@@ -16,6 +16,7 @@ using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers;
@@ -92,6 +93,18 @@ public class WarningLettersController : BaseApiController
         }
 
         var result = await _mediator.Send(new GetWarningLettersQuery { VehicleId = vehicleId });
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:int}/signature-recipients")]
+    public async Task<IActionResult> GetSignatureRecipients(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _mediator.Send(new GetWarningLetterSignatureRecipientsQuery(id));
         return StatusCode(result.StatusCode, result);
     }
 
@@ -197,6 +210,30 @@ public class WarningLettersController : BaseApiController
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetWarningLetterSettings()
+    {
+        var result = await _mediator.Send(new GetWarningLetterSettingsQuery());
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("settings")]
+    [RequirePermission(Permissions.WarningLetter.Update)]
+    public async Task<IActionResult> UpdateWarningLetterSettings([FromBody] WarningLetterSettingsDto settings)
+    {
+        var validationResult = ValidateModelState();
+        if (validationResult != null)
+        {
+            return validationResult;
+        }
+
+        var result = await _mediator.Send(new UpdateWarningLetterSettingsCommand
+        {
+            Settings = settings
+        });
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpGet("consumption-candidates")]
     public async Task<IActionResult> GetConsumptionCandidates(
         [FromQuery] WarningLetterType letterType,
@@ -230,6 +267,23 @@ public class WarningLettersController : BaseApiController
         }
 
         var result = await _warningLetterService.PreviewHtmlAsync(warningLetterDto);
+        if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.Data))
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return Content(result.Data, "text/html");
+    }
+
+    [HttpGet("{id:int}/html")]
+    public async Task<IActionResult> GetWarningLetterHtml(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _warningLetterService.GetHtmlAsync(id);
         if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.Data))
         {
             return StatusCode(result.StatusCode, result);
@@ -295,5 +349,63 @@ public class WarningLettersController : BaseApiController
 
         var result = await _mediator.Send(new SendWarningLetterEmailCommand(id, userId, request?.EmailRecipient));
         return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{id:int}/request-signature")]
+    [RequirePermission(Permissions.WarningLetter.Send)]
+    public async Task<IActionResult> RequestWarningLetterSignature(int id, [FromBody] RequestWarningLetterSignatureDto? request)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _warningLetterService.RequestSignatureAsync(id, userId, request ?? new RequestWarningLetterSignatureDto());
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{id:int}/signed-copy")]
+    [RequirePermission(Permissions.WarningLetter.Update)]
+    public async Task<IActionResult> UploadSignedCopy(int id, [FromForm] IFormFile file)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file provided.");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _warningLetterService.UploadSignedCopyAsync(id, file, userId);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{id:int}/signed-copy")]
+    public async Task<IActionResult> DownloadSignedCopy(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _warningLetterService.GetSignedCopyAsync(id);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
     }
 }
