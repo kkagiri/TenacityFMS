@@ -13,6 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { usePermissions } from "../../../hooks/usePermissions";
 import SlidePanel from "../../../components/ui/SlidePanel";
 import notificationGroupsApi from "../../../dataservice/notificationGroupsApi";
+import notificationsApi from "../../../dataservice/notificationsApi";
 import {
     acknowledgeWarningLetter,
     downloadWarningLetterApproveLetter,
@@ -59,6 +60,7 @@ const mapUserToViewModel = (user) => ({
     id: user.id || user.userId || user.Id,
     firstName: user.firstName || user.FirstName || "",
     lastName: user.lastName || user.LastName || "",
+    userName: user.userName || user.UserName || user.username || user.Username || "",
     email: user.email || user.Email || "",
     role: (user.role || user.Role || (Array.isArray(user.roles) ? user.roles.join(",") : "")) ?? "",
     isActive: user.isActive !== false && user.deleted !== true,
@@ -106,6 +108,8 @@ const WarningLetterPreviewPage = () => {
     const canViewPdf = hasPermission("_Generate_WarningLetter_PDF");
     const canUploadApproveLetter = hasPermission("_Update_WarningLetter");
     const canUploadSignedCopy = hasPermission("_UploadSignedCopy_WarningLetter");
+    const canManageRecipientGroups = hasPermission("_Manage_NotificationGroups");
+    const canEditSignatureRecipients = canManageRecipientGroups || canUpdate;
 
     const signatureRecipients = Array.isArray(signatureRecipientOptions.siteRepresentatives) ? signatureRecipientOptions.siteRepresentatives : [];
     const signatureCcRecipients = Array.isArray(signatureRecipientOptions.signatureCcRecipients) ? signatureRecipientOptions.signatureCcRecipients : [];
@@ -124,16 +128,26 @@ const WarningLetterPreviewPage = () => {
             return recipientGroupUserOptions;
         }
 
-        const { default: axiosInstance } = await import("../../../api/axiosInstance");
-        const response = await axiosInstance.get("/user");
-        const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-        const normalizedUsers = data
+        if (!letter?.siteId) {
+            return [];
+        }
+
+        const response = await notificationsApi.getRecipientCandidates({
+            siteId: Number(letter.siteId),
+            take: 200,
+        });
+
+        if (!response.isSuccess) {
+            throw new Error(response.message || "Failed to load recipient candidates.");
+        }
+
+        const normalizedUsers = (Array.isArray(response.data) ? response.data : [])
             .map(mapUserToViewModel)
             .filter((user) => user.id);
 
         setRecipientGroupUserOptions(normalizedUsers);
         return normalizedUsers;
-    }, [recipientGroupUserOptions]);
+    }, [letter?.siteId, recipientGroupUserOptions]);
 
     const loadRecipientGroupMembers = useCallback(async (group, usersSource) => {
         const response = await notificationGroupsApi.getGroupMembers(group.id);
@@ -148,38 +162,16 @@ const WarningLetterPreviewPage = () => {
         }));
 
         const userMap = new Map((usersSource || []).map((user) => [String(user.id), user]));
-        const usersToFetch = Array.from(new Set(
-            rawMembers
-                .filter((member) => member.memberType === "User" && !userMap.has(member.memberId))
-                .map((member) => member.memberId)
-        ));
-
-        if (usersToFetch.length > 0) {
-            const { default: axiosInstance } = await import("../../../api/axiosInstance");
-            const fetchedUsers = await Promise.all(
-                usersToFetch.map((userId) =>
-                    axiosInstance.get(`/user/${userId}`)
-                        .then((result) => result.data)
-                        .catch(() => null)
-                )
-            );
-
-            fetchedUsers.filter(Boolean).forEach((user) => {
-                const normalizedUser = mapUserToViewModel(user);
-                if (normalizedUser.id) {
-                    userMap.set(String(normalizedUser.id), normalizedUser);
-                }
-            });
-        }
 
         return rawMembers.map((member) => {
             if (member.memberType === "User") {
                 const matchedUser = userMap.get(member.memberId);
                 if (matchedUser) {
                     const fullName = `${matchedUser.firstName || ""} ${matchedUser.lastName || ""}`.trim();
+                    const resolvedName = fullName || matchedUser.userName || matchedUser.email || member.memberId;
                     return {
                         ...member,
-                        name: fullName || matchedUser.email || member.memberId,
+                        name: resolvedName,
                         email: matchedUser.email,
                         role: matchedUser.role,
                     };
@@ -191,6 +183,11 @@ const WarningLetterPreviewPage = () => {
     }, []);
 
     const openRecipientGroupPanel = useCallback(async (groupName) => {
+        if (!canEditSignatureRecipients) {
+            notify("You do not have permission to manage warning-letter recipient groups.", "warning", 2500);
+            return;
+        }
+
         if (!letter?.siteId || !groupName) {
             notify("Warning-letter site context is missing.", "warning", 2500);
             return;
@@ -227,7 +224,7 @@ const WarningLetterPreviewPage = () => {
         } finally {
             setRecipientGroupLoading(false);
         }
-    }, [letter?.siteId, loadRecipientGroupMembers, loadRecipientGroupUsers]);
+    }, [canEditSignatureRecipients, letter?.siteId, loadRecipientGroupMembers, loadRecipientGroupUsers]);
 
     const loadPdfPreview = useCallback(async (forceGenerate = false) => {
         try {
@@ -903,16 +900,18 @@ const WarningLetterPreviewPage = () => {
                                 Site Representative
                                 <strong className="warning-letter-preview__signature-picker-count">{signatureRecipients.length}</strong>
                             </span>
-                            <button
-                                type="button"
-                                className="m365-icon-btn"
-                                title="Edit site representative group"
-                                aria-label="Edit site representative group"
-                                onClick={() => openRecipientGroupPanel(signatureRecipientOptions.siteRepresentativeGroupName)}
-                                disabled={!letter?.siteId || signatureSubmitting}
-                            >
-                                <i className="fa-light fa-pen-to-square" />
-                            </button>
+                            {canEditSignatureRecipients && (
+                                <button
+                                    type="button"
+                                    className="m365-icon-btn"
+                                    title="Edit site representative group"
+                                    aria-label="Edit site representative group"
+                                    onClick={() => openRecipientGroupPanel(signatureRecipientOptions.siteRepresentativeGroupName)}
+                                    disabled={!letter?.siteId || signatureSubmitting}
+                                >
+                                    <i className="fa-light fa-pen-to-square" />
+                                </button>
+                            )}
                         </div>
                         <small>
                             This list only shows members of <strong>{signatureRecipientOptions.siteRepresentativeGroupName}</strong>.
@@ -948,16 +947,18 @@ const WarningLetterPreviewPage = () => {
                                 CC Recipients
                                 <strong className="warning-letter-preview__signature-picker-count">{signatureCcRecipients.length}</strong>
                             </span>
-                            <button
-                                type="button"
-                                className="m365-icon-btn"
-                                title="Edit signature CC group"
-                                aria-label="Edit signature CC group"
-                                onClick={() => openRecipientGroupPanel(signatureRecipientOptions.signatureCcGroupName)}
-                                disabled={!letter?.siteId || signatureSubmitting}
-                            >
-                                <i className="fa-light fa-pen-to-square" />
-                            </button>
+                            {canEditSignatureRecipients && (
+                                <button
+                                    type="button"
+                                    className="m365-icon-btn"
+                                    title="Edit signature CC group"
+                                    aria-label="Edit signature CC group"
+                                    onClick={() => openRecipientGroupPanel(signatureRecipientOptions.signatureCcGroupName)}
+                                    disabled={!letter?.siteId || signatureSubmitting}
+                                >
+                                    <i className="fa-light fa-pen-to-square" />
+                                </button>
+                            )}
                         </div>
                         <small>
                             This list shows members of <strong>{signatureRecipientOptions.signatureCcGroupName}</strong> only.
@@ -1016,14 +1017,15 @@ const WarningLetterPreviewPage = () => {
                                 displayExpr={(item) => {
                                     if (!item) return "";
                                     const fullName = `${item.firstName || ""} ${item.lastName || ""}`.trim();
-                                    return `${fullName || item.email || item.id}${item.email ? ` (${item.email})` : ""}`;
+                                    const resolvedName = fullName || item.userName || item.email || item.id;
+                                    return `${resolvedName}${item.email ? ` (${item.email})` : ""}`;
                                 }}
                                 value={recipientGroupAddMemberId}
                                 onValueChanged={(event) => setRecipientGroupAddMemberId(event.value || "")}
                                 placeholder="Search and select a user"
                                 width="100%"
                                 searchEnabled={true}
-                                searchExpr={["firstName", "lastName", "email", "role"]}
+                                searchExpr={["firstName", "lastName", "userName", "email", "role"]}
                                 showClearButton={true}
                                 disabled={recipientGroupLoading || !recipientGroupTarget}
                             />

@@ -12,6 +12,8 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
 import AdminDashboard from "./AdminDashboard";
+import { usePermissions } from "../../hooks/usePermissions";
+import { WEB_APP_PERMISSIONS } from "../../constants/webAppPermissions";
 
 // Import the existing component pages to be used in admin routes
 import UserPage from "../user/userPage";
@@ -37,8 +39,19 @@ import CheckupTemplateManagementPage from "./checkupTemplates/CheckupTemplateMan
 import EmployeePositionManagementPage from "./employeePositions/EmployeePositionManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
+
 const AdminMain = () => {
   const location = useLocation();
+  const { hasPermission, permissionsLoaded } = usePermissions();
+  const canAccessAdmin = hasPermission(WEB_APP_PERMISSIONS.ADMIN);
+
+  if (!permissionsLoaded) {
+    return null;
+  }
+
+  if (!canAccessAdmin) {
+    return <Navigate to="/home" replace />;
+  }
 
   return (
     <AdminLayout currentPath={location.pathname}>

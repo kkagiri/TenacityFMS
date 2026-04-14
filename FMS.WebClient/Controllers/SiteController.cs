@@ -108,7 +108,6 @@ namespace FMS.WebClient.Controllers
         /// NEW: GET /api/site/me
         /// </summary>
         [HttpGet("me")]
-        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public async Task<IActionResult> GetForCurrentUser()
         {
             if (!TryGetCurrentUserId(out var userId))
@@ -124,7 +123,6 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("getsitebyuserid")]
         [Obsolete("Use GET /api/site/me")] // backward compatibility
-        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public Task<IActionResult> LegacyGetForCurrentUser()
         {
             return GetForCurrentUser();

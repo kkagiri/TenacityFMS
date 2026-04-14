@@ -22,7 +22,7 @@ namespace FMS.Infrastructure.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMemoryCache _cache;
         private readonly ILogger<PermissionAuthorizationService> _logger;
-        private const int CACHE_DURATION_MINUTES = 15; // Cache permissions for 15 minutes
+        private const int CACHE_DURATION_MINUTES = 2; // Cache permissions for 15 minutes
 
         public PermissionAuthorizationService(
             GpsdataContext context,

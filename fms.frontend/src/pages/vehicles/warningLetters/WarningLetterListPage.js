@@ -17,19 +17,45 @@ import DataGrid, {
 } from "devextreme-react/data-grid";
 import notify from "devextreme/ui/notify";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import SlidePanel from "../../../components/ui/SlidePanel";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { quickSearchEmployees, searchEmployees } from "../../../redux/actions/employeeActions";
 import { getUserId } from "../transfers/vehicleTransferFormUtils";
 import {
     acknowledgeWarningLetter,
     deleteWarningLetter,
-    getEmployees,
     getSites,
     getWarningLetters,
 } from "./warningLetterService";
 import WarningLetterSettingsPanelContent from "./WarningLetterSettingsPanelContent";
 import "./WarningLetters.scss";
+
+const MIN_EMPLOYEE_SEARCH_TERM = 2;
+
+const normalizeEmployeeSearchResults = (payload) => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (Array.isArray(payload?.data)) {
+        return payload.data;
+    }
+
+    if (Array.isArray(payload?.Data)) {
+        return payload.Data;
+    }
+
+    return [];
+};
+
+const getEmployeeOptionId = (employee) => String(employee?.id ?? employee?.Id ?? "");
+
+const getEmployeeOptionLabel = (employee) => {
+    const fullName = employee?.fullName || employee?.FullName || `Employee #${getEmployeeOptionId(employee)}`;
+    const workNo = employee?.employeeWorkNo || employee?.EmployeeWorkNo;
+    return workNo ? `${fullName} (${workNo})` : fullName;
+};
 
 const workflowStageMap = {
     0: { label: "Draft", cls: "m365-badge--neutral" },
@@ -48,17 +74,23 @@ const typeMap = {
 };
 
 const WarningLetterListPage = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const currentUser = useSelector((state) => state.auth?.user || {});
     const [searchParams, setSearchParams] = useSearchParams();
     const gridRef = useRef(null);
+    const employeeSearchRef = useRef(null);
+    const employeeSearchTimeoutRef = useRef(null);
     const { hasPermission } = usePermissions();
 
     const [letters, setLetters] = useState([]);
     const [sites, setSites] = useState([]);
-    const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(false);
     const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+    const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
+    const [employeeSuggestions, setEmployeeSuggestions] = useState([]);
+    const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
+    const [employeeSearchLoading, setEmployeeSearchLoading] = useState(false);
     const [filters, setFilters] = useState({
         siteId: "",
         employeeId: searchParams.get("employeeId") || "",
@@ -76,14 +108,44 @@ const WarningLetterListPage = () => {
     const currentUserId = String(getUserId(currentUser) || "");
 
     const loadReferenceData = useCallback(async () => {
-        try {
-            const [siteItems, employeeItems] = await Promise.all([getSites(), getEmployees()]);
-            setSites(siteItems);
-            setEmployees(employeeItems);
-        } catch (error) {
-            notify(error.message || "Failed to load warning letter filters.", "error", 3000);
+        const [siteResult] = await Promise.allSettled([getSites()]);
+
+        if (siteResult.status === "fulfilled") {
+            setSites(siteResult.value);
+        } else {
+            setSites([]);
+            notify(siteResult.reason?.message || "Failed to load your assigned sites.", "warning", 3000);
         }
     }, []);
+
+    const performEmployeeSearch = useCallback(async (term) => {
+        const normalizedTerm = term.trim();
+        if (normalizedTerm.length < MIN_EMPLOYEE_SEARCH_TERM) {
+            setEmployeeSuggestions([]);
+            setEmployeeSearchLoading(false);
+            return;
+        }
+
+        setEmployeeSearchLoading(true);
+
+        try {
+            const quickResult = await quickSearchEmployees(normalizedTerm, 8);
+            let matches = normalizeEmployeeSearchResults(quickResult?.data);
+
+            if (!matches.length) {
+                const fallbackResult = await dispatch(searchEmployees(normalizedTerm, { limit: 8, active: true }));
+                matches = normalizeEmployeeSearchResults(fallbackResult?.data);
+            }
+
+            setEmployeeSuggestions(matches);
+            setEmployeeSearchOpen(true);
+        } catch (error) {
+            setEmployeeSuggestions([]);
+            setEmployeeSearchOpen(true);
+        } finally {
+            setEmployeeSearchLoading(false);
+        }
+    }, [dispatch]);
 
     const loadLetters = useCallback(async () => {
         try {
@@ -103,6 +165,14 @@ const WarningLetterListPage = () => {
     }, [loadReferenceData]);
 
     useEffect(() => {
+        return () => {
+            if (employeeSearchTimeoutRef.current) {
+                clearTimeout(employeeSearchTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    useEffect(() => {
         loadLetters();
     }, [loadLetters]);
 
@@ -116,7 +186,38 @@ const WarningLetterListPage = () => {
                     employeeId: queryEmployeeId,
                 }
         );
+
+        if (!queryEmployeeId) {
+            setEmployeeSearchTerm("");
+        }
     }, [searchParams]);
+
+    useEffect(() => {
+        if (!filters.employeeId || employeeSearchTerm) {
+            return;
+        }
+
+        const matchedLetter = letters.find((letter) => String(letter?.employeeId || "") === String(filters.employeeId) && letter?.employeeName);
+        if (matchedLetter?.employeeName) {
+            setEmployeeSearchTerm(matchedLetter.employeeName);
+        }
+    }, [employeeSearchTerm, filters.employeeId, letters]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (employeeSearchRef.current && !employeeSearchRef.current.contains(event.target)) {
+                setEmployeeSearchOpen(false);
+            }
+        };
+
+        if (employeeSearchOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [employeeSearchOpen]);
 
     const setFilterValue = (key, value) => {
         setFilters((current) => {
@@ -138,6 +239,51 @@ const WarningLetterListPage = () => {
 
             return next;
         });
+    };
+
+    const handleEmployeeSearchChange = (event) => {
+        const value = event.target.value || "";
+        setEmployeeSearchTerm(value);
+
+        if (filters.employeeId) {
+            setFilterValue("employeeId", "");
+        }
+
+        if (employeeSearchTimeoutRef.current) {
+            clearTimeout(employeeSearchTimeoutRef.current);
+        }
+
+        if (value.trim().length < MIN_EMPLOYEE_SEARCH_TERM) {
+            setEmployeeSuggestions([]);
+            setEmployeeSearchOpen(false);
+            setEmployeeSearchLoading(false);
+            return;
+        }
+
+        setEmployeeSearchLoading(true);
+        setEmployeeSearchOpen(true);
+        employeeSearchTimeoutRef.current = setTimeout(() => {
+            performEmployeeSearch(value);
+        }, 300);
+    };
+
+    const handleEmployeeSuggestionSelect = (employee) => {
+        setEmployeeSearchTerm(getEmployeeOptionLabel(employee));
+        setEmployeeSuggestions([]);
+        setEmployeeSearchOpen(false);
+        setFilterValue("employeeId", getEmployeeOptionId(employee));
+    };
+
+    const handleEmployeeFilterClear = () => {
+        if (employeeSearchTimeoutRef.current) {
+            clearTimeout(employeeSearchTimeoutRef.current);
+        }
+
+        setEmployeeSearchTerm("");
+        setEmployeeSuggestions([]);
+        setEmployeeSearchOpen(false);
+        setEmployeeSearchLoading(false);
+        setFilterValue("employeeId", "");
     };
 
     const handleDelete = async (row) => {
@@ -259,12 +405,62 @@ const WarningLetterListPage = () => {
                     </label>
                     <label className="warning-letter-page__field">
                         <span>Employee</span>
-                        <select className="m365-select" value={filters.employeeId} onChange={(event) => setFilterValue("employeeId", event.target.value)}>
-                            <option value="">All employees</option>
-                            {employees.map((employee) => (
-                                <option key={employee.id} value={employee.id}>{employee.fullName}</option>
-                            ))}
-                        </select>
+                        <div className="warning-letter-list__employee-search" ref={employeeSearchRef}>
+                            <div className="warning-letter-list__employee-search-input-wrap">
+                                <i className="fa-light fa-magnifying-glass warning-letter-list__employee-search-icon" />
+                                <input
+                                    type="text"
+                                    className="m365-input warning-letter-list__employee-search-input"
+                                    value={employeeSearchTerm}
+                                    onChange={handleEmployeeSearchChange}
+                                    onFocus={() => {
+                                        if (employeeSuggestions.length > 0 || employeeSearchTerm.trim().length >= MIN_EMPLOYEE_SEARCH_TERM) {
+                                            setEmployeeSearchOpen(true);
+                                        }
+                                    }}
+                                    placeholder="Search employee by name or work no"
+                                    autoComplete="off"
+                                />
+                                {employeeSearchLoading ? (
+                                    <i className="fa-light fa-loader warning-letter-list__employee-search-spinner" />
+                                ) : (filters.employeeId || employeeSearchTerm) ? (
+                                    <button
+                                        type="button"
+                                        className="warning-letter-list__employee-search-clear"
+                                        onClick={handleEmployeeFilterClear}
+                                        aria-label="Clear employee filter"
+                                    >
+                                        <i className="fa-light fa-xmark" />
+                                    </button>
+                                ) : null}
+                            </div>
+
+                            {employeeSearchOpen && (
+                                <div className="warning-letter-list__employee-search-dropdown">
+                                    {employeeSuggestions.length > 0 ? employeeSuggestions.map((employee) => (
+                                        <button
+                                            key={getEmployeeOptionId(employee)}
+                                            type="button"
+                                            className="warning-letter-list__employee-search-option"
+                                            onClick={() => handleEmployeeSuggestionSelect(employee)}
+                                        >
+                                            <strong>{getEmployeeOptionLabel(employee)}</strong>
+                                            <span>
+                                                {employee?.siteName || employee?.SiteName || "Employee match"}
+                                            </span>
+                                        </button>
+                                    )) : (
+                                        <div className="warning-letter-list__employee-search-empty">
+                                            {employeeSearchLoading
+                                                ? "Searching employees..."
+                                                : employeeSearchTerm.trim().length < MIN_EMPLOYEE_SEARCH_TERM
+                                                    ? "Type at least 2 characters to search employees"
+                                                    : "No employees found"}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </label>
                     <label className="warning-letter-page__field">
                         <span>Stage</span>

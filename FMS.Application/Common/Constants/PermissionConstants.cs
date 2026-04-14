@@ -827,5 +827,46 @@ namespace FMS.Application.Common.Constants
             /// <summary>Access tank levels / site overview screen (Id: 234) - DB name: _Mobile_TankLevels</summary>
             public const string TankLevels = "_Mobile_TankLevels";
         }
+
+        // ============================================================
+        // WEB APP DRAWER PERMISSIONS
+        // Parent: WebAppModule (Id: 258)
+        // Controls visibility of tiles in the web AppDrawer.
+        // Assign these to roles so users only see the web modules
+        // they need.
+        // ============================================================
+
+        public static class WebApp
+        {
+            /// <summary>Access Dashboard tile (Id: 259) - DB name: _WebApp_Dashboard</summary>
+            public const string Dashboard = "_WebApp_Dashboard";
+
+            /// <summary>Access Vehicles tile (Id: 260) - DB name: _WebApp_Vehicles</summary>
+            public const string Vehicles = "_WebApp_Vehicles";
+
+            /// <summary>Access Employees tile (Id: 261) - DB name: _WebApp_Employees</summary>
+            public const string Employees = "_WebApp_Employees";
+
+            /// <summary>Access Automatic Fueling tile (Id: 262) - DB name: _WebApp_Fueling</summary>
+            public const string Fueling = "_WebApp_Fueling";
+
+            /// <summary>Access Device Issues tile (Id: 263) - DB name: _WebApp_Issues</summary>
+            public const string Issues = "_WebApp_Issues";
+
+            /// <summary>Access Reports tile (Id: 264) - DB name: _WebApp_Reports</summary>
+            public const string Reports = "_WebApp_Reports";
+
+            /// <summary>Access Tank Stock tile (Id: 265) - DB name: _WebApp_TankStock</summary>
+            public const string TankStock = "_WebApp_TankStock";
+
+            /// <summary>Access Admin tile (Id: 266) - DB name: _WebApp_Admin</summary>
+            public const string Admin = "_WebApp_Admin";
+
+            /// <summary>Access Events tile (Id: 267) - DB name: _WebApp_Events</summary>
+            public const string Events = "_WebApp_Events";
+
+            /// <summary>Access Maintenance tile (Id: 268) - DB name: _WebApp_Maintenance</summary>
+            public const string Maintenance = "_WebApp_Maintenance";
+        }
     }
 }

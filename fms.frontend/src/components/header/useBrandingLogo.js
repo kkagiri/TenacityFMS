@@ -117,6 +117,10 @@ const getConfigurationEntryValue = (configuration) => {
     return configuration?.configurationValue || configuration?.ConfigurationValue || null;
 };
 
+const getConfiguration = (response) => {
+    return response?.data?.data || response?.data?.Data || response?.data || null;
+};
+
 const resolveConfiguredBrandingLogo = (configurations) => {
     const valueByKey = new Map();
 
@@ -145,23 +149,25 @@ export default function useBrandingLogo() {
 
         const loadBrandingLogo = async () => {
             try {
-                const queryParams = new URLSearchParams({
-                    page: "1",
-                    pageSize: "50",
-                    searchTerm: "Logo",
-                    isActive: "true",
-                });
+                for (const key of BRANDING_LOGO_KEYS) {
+                    try {
+                        const response = await axiosInstance.get(
+                            `/SystemConfiguration/by-key/${encodeURIComponent(key)}`
+                        );
 
-                const response = await axiosInstance.get(
-                    `/SystemConfiguration?${queryParams.toString()}`
-                );
-
-                const resolvedUrl = resolveConfiguredBrandingLogo(getConfigurations(response));
-                if (resolvedUrl) {
-                    if (isMounted) {
-                        setLogoSrc(resolvedUrl);
+                        const configuration = getConfiguration(response);
+                        const resolvedUrl = resolveBrandingLogoUrl(getConfigurationEntryValue(configuration));
+                        if (resolvedUrl) {
+                            if (isMounted) {
+                                setLogoSrc(resolvedUrl);
+                            }
+                            return;
+                        }
+                    } catch (error) {
+                        if (error?.response?.status !== 404 && process.env.NODE_ENV === "development") {
+                            console.warn(`[Branding] Failed to load branding logo key ${key}`, error);
+                        }
                     }
-                    return;
                 }
             } catch (error) {
                 if (process.env.NODE_ENV === "development") {

@@ -387,7 +387,12 @@ export const getConsumptionCandidates = async (filters) => {
 };
 
 export const getSites = async () => {
-    const response = await axiosInstance.get("/site");
+    let response;
+    try {
+        response = await axiosInstance.get("/site/me");
+    } catch (error) {
+        response = await axiosInstance.get("/site/getsitebyuserid");
+    }
     return ensureArray(response.data);
 };
 

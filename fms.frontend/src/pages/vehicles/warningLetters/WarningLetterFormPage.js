@@ -30,6 +30,7 @@ import {
     previewWarningLetterHtml,
     updateWarningLetter,
 } from "./warningLetterService";
+import WarningLetterCandidateGrid from "./WarningLetterCandidateGrid";
 import "./WarningLetters.scss";
 
 const typeOptions = [
@@ -335,12 +336,22 @@ const WarningLetterFormPage = () => {
                 : "The selected employee must have a position before you can generate this warning letter. Update the employee position, then select the employee again.";
 
     useEffect(() => {
-        Promise.all([getEmployees(), getSites()])
-            .then(([employeeList, siteList]) => {
-                setEmployees(employeeList);
-                setSites(siteList);
-            })
-            .catch(() => notify("Failed to load employee lookups.", "error", 3000));
+        Promise.allSettled([getEmployees(), getSites()])
+            .then(([employeeResult, siteResult]) => {
+                if (employeeResult.status === "fulfilled") {
+                    setEmployees(employeeResult.value);
+                } else {
+                    setEmployees([]);
+                    notify(employeeResult.reason?.message || "Failed to load employees.", "warning", 3000);
+                }
+
+                if (siteResult.status === "fulfilled") {
+                    setSites(siteResult.value);
+                } else {
+                    setSites([]);
+                    notify(siteResult.reason?.message || "Failed to load your assigned sites.", "warning", 3000);
+                }
+            });
     }, []);
 
     useEffect(() => {
@@ -727,47 +738,12 @@ const WarningLetterFormPage = () => {
                             {typeOptions.find((t) => t.value === letterType)?.label} &mdash; {selectedMonth}
                             {" \u00B7 "}{candidates.length} candidate{candidates.length !== 1 ? "s" : ""}
                         </p>
-                        <div className="warning-letter-candidates">
-                            {candidates.map((c) => {
-                                const ml = metricLabelsByType[letterType] || metricLabelsByType[1];
-                                const blocked = c.hasExistingLetter;
-                                return (
-                                    <button
-                                        type="button"
-                                        key={c.consumptionId}
-                                        className={
-                                            "warning-letter-candidates__item"
-                                            + (blocked ? " warning-letter-candidates__item--blocked" : "")
-                                            + (selectedCandidate?.consumptionId === c.consumptionId ? " warning-letter-candidates__item--active" : "")
-                                        }
-                                        onClick={() => handleSelectCandidate(c)}
-                                        disabled={blocked}
-                                        title={blocked ? "A letter of this type already exists for this employee." : "Select this candidate"}
-                                    >
-                                        {blocked && (
-                                            <div className="warning-letter-candidates__blocked-badge">
-                                                <i className="fa-light fa-ban" /> Duplicate &mdash; letter already issued
-                                                {c.existingLetterDate && (
-                                                    <span> ({new Date(c.existingLetterDate).toLocaleDateString("en-GB")})</span>
-                                                )}
-                                            </div>
-                                        )}
-                                        <div className="warning-letter-candidates__topline">
-                                            <strong>{c.vehicleHyoungNo}</strong>
-                                            {c.numberPlate && <span>{c.numberPlate}</span>}
-                                            <span>{c.employeeName || "Unassigned"}</span>
-                                            <span>{new Date(c.metricDate).toLocaleDateString("en-GB")}</span>
-                                        </div>
-                                        <div className="warning-letter-candidates__metrics">
-                                            <span>{ml.expectedLabel.replace(/ \(.*\)$/, "")}: {c.expectedValue != null ? (c.expectedValue + " " + ml.expectedUnit) : "-"}</span>
-                                            <span>{ml.actualLabel.replace(/ \(.*\)$/, "")}: {c.actualValue != null ? (c.actualValue + " " + ml.actualUnit) : "-"}</span>
-                                            <span>{ml.excessLabel.replace(/ \(.*\)$/, "")}: {c.excessValue != null ? (c.excessValue + " " + ml.excessUnit) : "-"}</span>
-                                        </div>
-                                        <div className="warning-letter-candidates__summary">{c.violationSummary}</div>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <WarningLetterCandidateGrid
+                            candidates={candidates}
+                            metricLabels={metricLabels}
+                            selectedCandidate={selectedCandidate}
+                            onSelectCandidate={handleSelectCandidate}
+                        />
                     </div>
                     <div className="warning-letter-wizard__step-actions">
                         <button type="button" className="m365-btn m365-btn--ghost" onClick={() => setStep(1)}>

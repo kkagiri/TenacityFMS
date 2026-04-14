@@ -12,6 +12,7 @@ import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import "./AppDrawer.scss";
 import { usePermissions } from "../../hooks/usePermissions";
+import { WEB_APP_PERMISSIONS } from "../../constants/webAppPermissions";
 
 const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const navigate = useNavigate();
@@ -28,7 +29,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-chart-line",
       route: "/home",
       color: "#0078d4",
-      requiredPermissions: ["_View_Dashboard", "Dashboard Module"]
+      webAppPermission: WEB_APP_PERMISSIONS.DASHBOARD,
+      legacyPermissions: ["_View_Dashboard", "Dashboard Module"]
     },
     {
       id: 2,
@@ -36,7 +38,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-car",
       route: "/vehicles",
       color: "#107c10",
-      requiredPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "GeofenceModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer", "_Read_Geofence"]
+      webAppPermission: WEB_APP_PERMISSIONS.VEHICLES,
+      legacyPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "GeofenceModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer", "_Read_Geofence"]
     },
     {
       id: 3,
@@ -44,7 +47,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-users",
       route: "/employees",
       color: "#ff8c00",
-      requiredPermissions: ["Employee Module", "_Read_Employee"]
+      webAppPermission: WEB_APP_PERMISSIONS.EMPLOYEES,
+      legacyPermissions: ["Employee Module", "_Read_Employee"]
     },
     {
       id: 4,
@@ -52,7 +56,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-gas-pump",
       route: "/atg",
       color: "#d13438",
-      requiredPermissions: ["ATG", "FuelRefil", "FuelingRuleModule", "PTSServiceModule", "PushDeviceModule", "_Manage_ATG", "_Read_PTSDevice", "_Read_FuelingRule", "_Read_FuelRefill"]
+      webAppPermission: WEB_APP_PERMISSIONS.FUELING,
+      legacyPermissions: ["ATG", "FuelRefil", "FuelingRuleModule", "PTSServiceModule", "PushDeviceModule", "_Manage_ATG", "_Read_PTSDevice", "_Read_FuelingRule", "_Read_FuelRefill"]
     },
     {
       id: 5,
@@ -60,7 +65,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-exclamation-triangle",
       route: "/issue-tracker",
       color: "#881798",
-      requiredPermissions: ["IssueTracker", "IssueManagementV2Module", "_Read_Issues", "_Manage_Issues"]
+      webAppPermission: WEB_APP_PERMISSIONS.ISSUES,
+      legacyPermissions: ["IssueTracker", "IssueManagementV2Module", "_Read_Issues", "_Manage_Issues"]
     },
     {
       id: 6,
@@ -68,7 +74,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-chart-pie",
       route: "/reports",
       color: "#7c3aed",
-      requiredPermissions: ["Data Analysis Module", "ReportingModule", "ReportModule", "StockReportModule", "TankVolumeHistoryModule", "_Read_Reporting", "_Generate_Report", "_Read_VehicleConsumptionReport", "_Read_FuelRefillReport", "_Read_TankVolumeHistory", "_Read_PTSDevice"]
+      webAppPermission: WEB_APP_PERMISSIONS.REPORTS,
+      legacyPermissions: ["Data Analysis Module", "ReportingModule", "ReportModule", "StockReportModule", "TankVolumeHistoryModule", "_Read_Reporting", "_Generate_Report", "_Read_VehicleConsumptionReport", "_Read_FuelRefillReport", "_Read_TankVolumeHistory", "_Read_PTSDevice"]
     },
     {
       id: 7,
@@ -76,7 +83,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-oil-can",
       route: "/tankstock",
       color: "#498205",
-      requiredPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_TankVolumeHistory"]
+      webAppPermission: WEB_APP_PERMISSIONS.TANK_STOCK,
+      legacyPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_TankVolumeHistory"]
     },
     {
       id: 8,
@@ -84,7 +92,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-cog",
       route: "/admin",
       color: "#005a70",
-      requiredPermissions: ["Admin Module", "_Manage_Users", "_Manage_Roles", "_Manage_Site"]
+      webAppPermission: WEB_APP_PERMISSIONS.ADMIN,
+      legacyPermissions: []
     },
 
     {
@@ -93,7 +102,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-bell",
       route: "/event-expressions",
       color: "#e74856",
-      requiredPermissions: ["_Read_EventExpression", "_Manage_ATG"]
+      webAppPermission: WEB_APP_PERMISSIONS.EVENTS,
+      legacyPermissions: ["_Read_EventExpression", "_Manage_ATG"]
     },
     {
       id: 11,
@@ -101,7 +111,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-wrench",
       route: "/maintenance",
       color: "#ea580c",
-      requiredPermissions: ["VehicleMaintenanceModule", "Vehicle Module", "_Read_VehicleMaintenance", "_Read_Vehicle"]
+      webAppPermission: WEB_APP_PERMISSIONS.MAINTENANCE,
+      legacyPermissions: ["VehicleMaintenanceModule", "Vehicle Module", "_Read_VehicleMaintenance", "_Read_Vehicle"]
     }
   ], []);
 
@@ -110,7 +121,9 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       return [];
     }
 
-    const result = modules.filter((module) => hasAnyPermission(module.requiredPermissions));
+    const result = modules.filter((module) => {
+      return hasAnyPermission([module.webAppPermission]) || hasAnyPermission(module.legacyPermissions);
+    });
     return result;
   }, [hasAnyPermission, isAuthenticated, modules]);
 

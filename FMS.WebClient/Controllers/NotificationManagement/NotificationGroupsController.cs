@@ -28,7 +28,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
-        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups)]
+        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
         public async Task<IActionResult> GetGroups([FromQuery] int? siteId = null, CancellationToken cancellationToken = default)
         {
             FMSResponse<List<NotificationGroupDto>> result = await _groupService.GetGroupsAsync(siteId, cancellationToken);
@@ -63,7 +63,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("{groupId}/members")]
-        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups)]
+        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
         public async Task<IActionResult> GetMembers(int groupId, CancellationToken cancellationToken = default)
         {
             FMSResponse<List<GroupMemberDto>> result = await _groupService.GetGroupMembersAsync(groupId, cancellationToken);
@@ -71,7 +71,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("{groupId}/members")]
-        [RequirePermission(Permissions.Notification.ManageGroups)]
+        [RequirePermission(Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
         public async Task<IActionResult> AddMembers(int groupId, [FromBody] List<GroupMemberCreateRequest> members, CancellationToken cancellationToken = default)
         {
             if (members == null || members.Count == 0)
@@ -85,7 +85,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{groupId}/members/{memberId}")]
-        [RequirePermission(Permissions.Notification.ManageGroups)]
+        [RequirePermission(Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
         public async Task<IActionResult> RemoveMember(int groupId, int memberId, CancellationToken cancellationToken = default)
         {
             FMSResponse result = await _groupService.RemoveGroupMemberAsync(groupId, memberId, cancellationToken);

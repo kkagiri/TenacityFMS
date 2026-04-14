@@ -635,7 +635,7 @@ namespace FMS.WebClient.Controllers
         /// Get recipient candidates with rich filtering for the dual-pane recipient picker.
         /// </summary>
         [HttpGet("recipient-candidates")]
-        [RequirePermission(Permissions.Admin.Users)]
+        [RequirePermission(Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
         public async Task<IActionResult> GetRecipientCandidates(
             [FromQuery] int? siteId = null,
             [FromQuery] int? departmentId = null,
