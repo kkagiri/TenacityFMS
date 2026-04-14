@@ -9,6 +9,7 @@ import {
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import VehicleDocumentForm from "./components/VehicleDocumentForm";
+import BulkDocumentUpload from "./components/BulkDocumentUpload";
 import DocumentStatusBadge from "./components/DocumentStatusBadge";
 import {
   getVehicleDocuments,
@@ -23,6 +24,7 @@ const VehicleDocumentsList = () => {
   const [vehicles, setVehicles] = useState([]);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [currentDocument, setCurrentDocument] = useState(null);
+  const [isBulkUploadVisible, setIsBulkUploadVisible] = useState(false);
 
   const fetchDocuments = async () => {
     const response = await getVehicleDocuments();
@@ -101,12 +103,21 @@ const VehicleDocumentsList = () => {
     <div className="tw-p-4">
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
         <h2 className="tw-text-2xl tw-font-bold">Vehicle Documents</h2>
-        <Button
-          text="Add Document"
-          icon="plus"
-          type="default"
-          onClick={handleAddClick}
-        />
+        <div className="tw-flex tw-gap-2">
+          <Button
+            text="Bulk Upload"
+            icon="fa fa-light fa-cloud-arrow-up"
+            stylingMode="outlined"
+            type="default"
+            onClick={() => setIsBulkUploadVisible(true)}
+          />
+          <Button
+            text="Add Document"
+            icon="plus"
+            type="default"
+            onClick={handleAddClick}
+          />
+        </div>
       </div>
 
       <DataGrid
@@ -144,6 +155,12 @@ const VehicleDocumentsList = () => {
           vehicles={vehicles}
         />
       )}
+
+      <BulkDocumentUpload
+        visible={isBulkUploadVisible}
+        onHide={() => setIsBulkUploadVisible(false)}
+        onSaved={fetchDocuments}
+      />
     </div>
   );
 };

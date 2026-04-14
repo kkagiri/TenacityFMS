@@ -2,6 +2,7 @@ import react , { useState, useEffect, createContext, useContext, useCallback } f
 import  {useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { signIn as signInAction, loadUser as loadUserAction, logout as logoutAction } from './../redux/actions/AuthActions';
+import { buildLoginRedirectUrl, getCurrentRelativeUrl } from '../utils/authRedirect';
 
 const AuthContext = createContext();
 
@@ -40,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   const signOut = () => {
     localStorage.removeItem('token');
     dispatch(logoutAction());
-    navigate('/login');
+    navigate(buildLoginRedirectUrl(getCurrentRelativeUrl()), { replace: true });
   };
   return (
     <AuthContext.Provider value={{ user, loading, signIn, signOut }}>

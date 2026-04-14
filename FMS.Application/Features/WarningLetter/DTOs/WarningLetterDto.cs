@@ -2,10 +2,12 @@
  * File: WarningLetterDto.cs
  * Purpose: Represents a detailed warning letter payload for API responses.
  * Dependencies: WarningLetterStatus, WarningLetterType
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-11
  */
 using System;
+using System.Collections.Generic;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
+using FMS.Application.Features.WarningLetter;
 
 namespace FMS.Application.Features.WarningLetter.DTOs;
 
@@ -40,8 +42,17 @@ public class WarningLetterDto
     public string? EmailRecipient { get; set; }
     public string? SignatureRequestRecipientUserId { get; set; }
     public string? SignatureRequestRecipient { get; set; }
+    public List<string> SignatureRequestCcUserIds { get; set; } = new();
+    public List<string> SignatureRequestCcRecipients { get; set; } = new();
     public DateTime? SignatureRequestedAt { get; set; }
     public string? SignatureRequestedBy { get; set; }
+    public string? ApproveLetterFileName { get; set; }
+    public string? ApproveLetterStoredFileName { get; set; }
+    public string? ApproveLetterFilePath { get; set; }
+    public string? ApproveLetterContentType { get; set; }
+    public long? ApproveLetterFileSize { get; set; }
+    public DateTime? ApproveLetterUploadedAt { get; set; }
+    public string? ApproveLetterUploadedBy { get; set; }
     public string? SignedCopyFileName { get; set; }
     public string? SignedCopyStoredFileName { get; set; }
     public string? SignedCopyFilePath { get; set; }
@@ -50,6 +61,7 @@ public class WarningLetterDto
     public DateTime? SignedCopyUploadedAt { get; set; }
     public string? SignedCopyUploadedBy { get; set; }
     public WarningLetterStatus Status { get; set; }
+    public WarningLetterWorkflowStage WorkflowStage { get; set; }
     public DateTime? EmployeeAcknowledgedAt { get; set; }
     public string? Notes { get; set; }
     public DateTime DateCreated { get; set; }

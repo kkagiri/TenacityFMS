@@ -75,8 +75,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FMS.Application.Communication;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
-using FMS.Application.CommonInterface;
-using FMS.Infrastructure.Services;
 using FMS.BackgroundServices.VehicleDocumentNotifier;
 using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
@@ -136,7 +134,7 @@ public static class FmsServiceCollectionExtensions
         {
             signalRBuilder.AddStackExchangeRedis(redisConn, options =>
             {
-                options.Configuration.ChannelPrefix = "fms-signalr"; // Namespace SignalR channels
+                options.Configuration.ChannelPrefix = RedisChannel.Literal("fms-signalr"); // Namespace SignalR channels
             });
             Log.Information("SignalR Redis backplane configured for cross-process communication");
         }
@@ -240,6 +238,15 @@ public static class FmsServiceCollectionExtensions
         services.AddIdentity<User, FMS.Domain.Entities.Role>()
             .AddEntityFrameworkStores<GpsdataContext>()
             .AddDefaultTokenProviders();
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Password.RequiredLength = 6;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequireDigit = false;
+        });
 
         services.AddDbContext<GpsdataContext>(opt =>
         {
@@ -444,6 +451,7 @@ public static class FmsServiceCollectionExtensions
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();
         services.AddScoped<IFileHandlingService, FileHandlingService>();
+        services.AddScoped<FMS.Application.Features.VehicleDocumentManagement.Services.IDocumentOcrService, FMS.Infrastructure.Services.DocumentOcrService>();
 
         // Ensure file storage directory exists at startup
         var fileStorageSettings = configuration.GetSection(FileStorageSettings.SectionName).Get<FileStorageSettings>() ?? new FileStorageSettings();

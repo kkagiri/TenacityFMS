@@ -1,6 +1,16 @@
 @import "../../themes/generated/variables.base.scss";
 
 .login-form {
+  &__error {
+    padding: 10px 12px;
+    border: 1px solid #d13438;
+    border-radius: 4px;
+    background: #fde7e9;
+    color: #a4262c;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
   .login-submit-button {
     width: 100%;
 

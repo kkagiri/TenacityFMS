@@ -9,14 +9,18 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.WarningLetter.DTOs;
 using FMS.Application.Features.WarningLetter.Queries;
 using FMS.Application.Features.WarningLetter.Services;
 using FMS.Application.Services.Configuration;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
+using VehicleEntity = global::FMS.Domain.Entities.Vehicle;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.WarningLetter.Commands;
 
@@ -30,11 +34,19 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
 {
     private readonly GpsdataContext _context;
     private readonly ISystemConfigurationService _systemConfigurationService;
+    private readonly ILogger<UpdateWarningLetterCommandHandler> _logger;
+    private readonly IGPSGateDriverNameService? _driverNameService;
 
-    public UpdateWarningLetterCommandHandler(GpsdataContext context, ISystemConfigurationService systemConfigurationService)
+    public UpdateWarningLetterCommandHandler(
+        GpsdataContext context,
+        ISystemConfigurationService systemConfigurationService,
+        ILogger<UpdateWarningLetterCommandHandler> logger,
+        IGPSGateDriverNameService? driverNameService = null)
     {
         _context = context;
         _systemConfigurationService = systemConfigurationService;
+        _logger = logger;
+        _driverNameService = driverNameService;
     }
 
     public async Task<FMSResponse<WarningLetterDto>> Handle(UpdateWarningLetterCommand request, CancellationToken cancellationToken)
@@ -108,19 +120,6 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        var employeeAllowedForVehicle = await IsEmployeeAllowedForWarningLetterAsync(
-            employee.Id,
-            employee.SiteId,
-            vehicle.VehicleId,
-            vehicle.DefaultEmployeeId,
-            request.WarningLetter.SiteId,
-            cancellationToken);
-
-        if (!employeeAllowedForVehicle)
-        {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee does not belong to the selected site." });
-        }
-
         if (vehicle.WorkingSiteId.HasValue && vehicle.WorkingSiteId.Value != request.WarningLetter.SiteId)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Vehicle does not belong to the selected site." });
@@ -149,11 +148,17 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         warningLetter.IssuedByName = resolvedIssuedByName;
         warningLetter.IssuedByTitle = resolvedIssuedByTitle;
         warningLetter.EmailRecipient = string.IsNullOrWhiteSpace(request.WarningLetter.EmailRecipient) ? employee.Email : request.WarningLetter.EmailRecipient.Trim();
+        warningLetter.SignatureRequestRecipientUserId = string.IsNullOrWhiteSpace(request.WarningLetter.SignatureRequestRecipientUserId) ? null : request.WarningLetter.SignatureRequestRecipientUserId.Trim();
+        warningLetter.SignatureRequestCcUserIds = CreateWarningLetterCommandHandler.JoinDelimitedValues(request.WarningLetter.SignatureRequestCcUserIds);
         warningLetter.Notes = string.IsNullOrWhiteSpace(request.WarningLetter.Notes) ? null : request.WarningLetter.Notes.Trim();
         warningLetter.DateModified = DateTime.UtcNow;
         warningLetter.ModifiedBy = request.ModifiedBy;
 
+        await EnsureEmployeeVehicleAssignmentAsync(vehicle, employee.Id, request.ModifiedBy, cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
+
+        await TryUpdateGpsGateDriverNameAsync(vehicle.VehicleId, employee.Id, cancellationToken);
 
         return FMSResponse<WarningLetterDto>.Success(CreateWarningLetterCommandHandler.MapToDto(warningLetter, employee, vehicle, site), "Warning letter updated successfully");
     }
@@ -198,28 +203,70 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         return string.IsNullOrWhiteSpace(requestedIssuerTitle) ? null : requestedIssuerTitle.Trim();
     }
 
-    private async Task<bool> IsEmployeeAllowedForWarningLetterAsync(
+    private async Task EnsureEmployeeVehicleAssignmentAsync(
+        VehicleEntity vehicle,
         int employeeId,
-        int? employeeSiteId,
-        int vehicleId,
-        int? vehicleDefaultEmployeeId,
-        int warningLetterSiteId,
+        string modifiedBy,
         CancellationToken cancellationToken)
     {
-        if (!employeeSiteId.HasValue || employeeSiteId.Value == warningLetterSiteId)
+        if (vehicle.DefaultEmployeeId != employeeId)
         {
-            return true;
+            vehicle.DefaultEmployeeId = employeeId;
+            vehicle.DateModified = DateTime.UtcNow;
+            vehicle.ModifiedBy = modifiedBy;
         }
 
-        if (vehicleDefaultEmployeeId.HasValue && vehicleDefaultEmployeeId.Value == employeeId)
-        {
-            return true;
-        }
-
-        return await _context.EmployeeVehicle
+        var assignmentExists = await _context.EmployeeVehicle
             .AsNoTracking()
             .AnyAsync(
-                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicleId,
+                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicle.VehicleId,
                 cancellationToken);
+
+        if (!assignmentExists)
+        {
+            _context.EmployeeVehicle.Add(new EmployeeVehicle
+            {
+                EmployeeId = employeeId,
+                VehicleId = vehicle.VehicleId,
+            });
+        }
+    }
+
+    private async Task TryUpdateGpsGateDriverNameAsync(int vehicleId, int employeeId, CancellationToken cancellationToken)
+    {
+        if (_driverNameService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _driverNameService.UpdateDriverNameAsync(vehicleId, employeeId, cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                _logger.LogInformation(
+                    "Updated GPSGate DriverName for vehicle {VehicleId} during warning letter update with employee {EmployeeId}: {Message}",
+                    vehicleId,
+                    employeeId,
+                    result.Message);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to update GPSGate DriverName for vehicle {VehicleId} during warning letter update with employee {EmployeeId}: {Message}",
+                    vehicleId,
+                    employeeId,
+                    result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Error updating GPSGate DriverName for vehicle {VehicleId} during warning letter update with employee {EmployeeId}",
+                vehicleId,
+                employeeId);
+        }
     }
 }

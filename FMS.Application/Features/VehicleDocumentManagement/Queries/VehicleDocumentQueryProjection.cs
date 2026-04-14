@@ -12,9 +12,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.VehicleDocumentManagement;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Features.VehicleDocumentManagement.Queries;
 
@@ -70,7 +74,8 @@ internal static class VehicleDocumentQueryProjection
             Status = row.Status,
             DaysUntilExpiry = (row.ExpiryDate.Date - DateTime.UtcNow.Date).Days,
             CreatedAt = row.CreatedAt,
-            CreatedBy = row.CreatedBy ?? string.Empty
+            CreatedBy = row.CreatedBy ?? string.Empty,
+            CreatedByDisplay = row.CreatedBy ?? string.Empty
         };
     }
 
@@ -93,6 +98,53 @@ internal static class VehicleDocumentQueryProjection
         }
 
         return $"/api/v1/files/{normalized}";
+    }
+}
+
+internal static class VehicleDocumentCreatorDisplayResolver
+{
+    public static async Task ApplyCreatedByDisplayAsync(this List<VehicleDocumentDto> documents, GpsdataContext context, CancellationToken cancellationToken)
+    {
+        if (documents == null || documents.Count == 0)
+        {
+            return;
+        }
+
+        var creatorIds = documents
+            .Select(document => document.CreatedBy?.Trim())
+            .Where(createdBy => !string.IsNullOrWhiteSpace(createdBy))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (creatorIds.Count == 0)
+        {
+            return;
+        }
+
+        var creatorDisplayMap = await context.Users
+            .AsNoTracking()
+            .Where(user => creatorIds.Contains(user.Id))
+            .Select(user => new { user.Id, user.UserName, user.Email })
+            .ToDictionaryAsync(
+                user => user.Id,
+                user => !string.IsNullOrWhiteSpace(user.UserName)
+                    ? user.UserName
+                    : user.Email ?? string.Empty,
+                cancellationToken);
+
+        foreach (var document in documents)
+        {
+            var createdBy = document.CreatedBy?.Trim();
+            if (string.IsNullOrWhiteSpace(createdBy))
+            {
+                document.CreatedByDisplay = string.Empty;
+                continue;
+            }
+
+            document.CreatedByDisplay = creatorDisplayMap.TryGetValue(createdBy, out var displayName)
+                ? displayName
+                : Guid.TryParse(createdBy, out _) ? string.Empty : createdBy;
+        }
     }
 }
 

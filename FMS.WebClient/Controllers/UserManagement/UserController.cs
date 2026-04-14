@@ -10,6 +10,7 @@
  */
 using System.Configuration;
 using System.Security.Claims;
+using System.Text;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Common; // FMSResponse
 using FMS.Application.Infrastructure.Services.Authentication;
@@ -18,6 +19,7 @@ using FMS.Application.Features.UserManagement.User.Queries;
 using FMS.Application.Features.UserManagement.User.Commands;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
@@ -212,6 +214,46 @@ public class UserController : ControllerBase
         }
     }
 
+    [HttpPost("confirm-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserId) || string.IsNullOrWhiteSpace(request.Token))
+        {
+            return BadRequest(FMSResponse<bool>.ValidationFailed(new List<string> { "User ID and token are required." }));
+        }
+
+        var user = await _userManager.FindByIdAsync(request.UserId);
+        if (user == null)
+        {
+            return NotFound(FMSResponse<bool>.Failed("User not found."));
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return Ok(FMSResponse<bool>.Success(true, "Email address is already confirmed."));
+        }
+
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch (Exception)
+        {
+            return BadRequest(FMSResponse<bool>.Failed("Invalid confirmation token."));
+        }
+
+        var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+        if (!result.Succeeded)
+        {
+            var errors = result.Errors.Select(e => e.Description).ToList();
+            return BadRequest(FMSResponse<bool>.ValidationFailed(errors));
+        }
+
+        return Ok(FMSResponse<bool>.Success(true, "Email confirmed successfully. You can now sign in."));
+    }
+
     [HttpGet("details")]
     public async Task<IActionResult> GetUserDetails()
     {
@@ -304,11 +346,12 @@ public class UserController : ControllerBase
 
             // Get user roles
             var userRoles = await _userManager.GetRolesAsync(user);
+            var userName = user.UserName ?? user.Email ?? user.Id;
 
             // Generate new access token with fresh permissions
             var newAccessToken = await _jwtTokenGenerator.GenerateTokenWithPermissions(
                 user.Id,
-                user.UserName,
+                userName,
                 user.Email ?? string.Empty,
                 userRoles);
 
@@ -370,7 +413,7 @@ public class UserController : ControllerBase
     /// </summary>
     public class RefreshTokenRequest
     {
-        public string RefreshToken { get; set; }
+        public string? RefreshToken { get; set; }
     }
 
     [HttpPost("assignRoles")]
@@ -436,3 +479,5 @@ public class UserController : ControllerBase
 
 /// <summary>Request DTO for ChangePassword endpoint.</summary>
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+
+public record ConfirmEmailRequest(string UserId, string Token);

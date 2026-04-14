@@ -31,6 +31,12 @@ public partial class User : IdentityUser
     /// Useful for users operating in areas with poor GPS/network coverage.
     /// </summary>
     public bool BypassLocationValidation { get; set; }
+
+    /// <summary>
+    /// When true, the user must change their password after the first successful login.
+    /// Used for temporary passwords issued during account onboarding.
+    /// </summary>
+    public bool RequirePasswordChangeOnFirstLogin { get; set; }
     public virtual ICollection<ErrorLog> ErrorLogs { get; set; } = new List<ErrorLog>();
     public virtual FuelTag? MasterTags { get; set; } //Navigation
 

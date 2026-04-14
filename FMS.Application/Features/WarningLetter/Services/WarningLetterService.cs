@@ -2,7 +2,7 @@
  * File: WarningLetterService.cs
  * Purpose: Handles warning letter preview, PDF persistence, and email delivery workflows.
  * Dependencies: EF Core, SystemConfigurationService, IEmailService, IWarningLetterPdfRenderer
- * Last Modified: 2026-04-09
+ * Last Modified: 2026-04-14
  */
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Docnet.Core;
+using Docnet.Core.Models;
 using FMS.Application.Common;
+using FMS.Application.Features.WarningLetter;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Enums;
@@ -28,7 +31,11 @@ using UserEntity = FMS.Domain.Entities.User;
 using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using QRCoder;
+using ZXing;
+using ZXing.Common;
 
 namespace FMS.Application.Features.WarningLetter.Services;
 
@@ -36,13 +43,17 @@ public class WarningLetterService : IWarningLetterService
 {
     private const string PdfStoragePathConfigKey = "WarningLetter:PdfStoragePath";
     private const string DefaultPdfStoragePath = @"C:\FMSData\reports\warning-letters";
-    private const string DefaultSignedCopyStoragePath = @"C:\FMSData\uploads\warning-letters";
+    private const string DefaultUploadedDocumentStoragePath = @"C:\FMSData\uploads\warning-letters";
+    private const string UploadedDocumentRelativeRoot = "warning-letters";
+    private const string ApproveLetterFolder = "approve";
     private const string LetterheadLogoPath = @"C:\FMSData\reports\branding\letterhead-logo.png";
     private const string CompanyName = "H. Young & Co. (EA) Ltd";
     private const string WarningLetterTemplateName = "warning-letter-report";
-    private static readonly HashSet<string> AllowedSignedCopyExtensions = new(StringComparer.OrdinalIgnoreCase)
+    private const string FrontendBaseUrlConfigKey = "IssueTracker:FrontendBaseUrl";
+    private const string DefaultFrontendBaseUrl = "http://localhost:3000";
+    private static readonly HashSet<string> AllowedLetterDocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".pdf", ".jpg", ".jpeg", ".png"
+        ".pdf"
     };
 
     private readonly GpsdataContext _context;
@@ -50,6 +61,7 @@ public class WarningLetterService : IWarningLetterService
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly ISystemConfigurationService _systemConfigurationService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<WarningLetterService> _logger;
 
     public WarningLetterService(
@@ -58,6 +70,7 @@ public class WarningLetterService : IWarningLetterService
         IEmailService emailService,
         INotificationService notificationService,
         ISystemConfigurationService systemConfigurationService,
+        IConfiguration configuration,
         ILogger<WarningLetterService> logger)
     {
         _context = context;
@@ -65,6 +78,7 @@ public class WarningLetterService : IWarningLetterService
         _emailService = emailService;
         _notificationService = notificationService;
         _systemConfigurationService = systemConfigurationService;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -220,6 +234,24 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
         }
 
+        if (!string.IsNullOrWhiteSpace(warningLetter.SignedCopyFilePath))
+        {
+            var signedCopyResult = await GetSignedCopyAsync(warningLetterId, cancellationToken);
+            if (signedCopyResult.IsSuccess)
+            {
+                return signedCopyResult;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(warningLetter.ApproveLetterFilePath))
+        {
+            var approvedLetterResult = await GetApproveLetterAsync(warningLetterId, cancellationToken);
+            if (approvedLetterResult.IsSuccess)
+            {
+                return approvedLetterResult;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(warningLetter.PdfFilePath) && File.Exists(warningLetter.PdfFilePath))
         {
             var pdfBytes = await File.ReadAllBytesAsync(warningLetter.PdfFilePath, cancellationToken);
@@ -319,10 +351,17 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
         }
 
-        if (bundle.WarningLetter.Status == WarningLetterStatus.Draft)
+        if (!bundle.WarningLetter.ApproveLetterUploadedAt.HasValue)
         {
-            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_FINALIZED", "Finalize the warning letter before requesting a signed copy.");
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_APPROVED", "Upload the approved letter before sending it to a site representative.");
         }
+
+        if (bundle.WarningLetter.EmployeeAcknowledgedAt.HasValue || bundle.WarningLetter.Status == WarningLetterStatus.Acknowledged)
+        {
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_ALREADY_CLOSED", "Acknowledged warning letters cannot be resent.");
+        }
+
+        var recipientOptions = await WarningLetterRecipientGroupResolver.GetRecipientOptionsAsync(_context, bundle.WarningLetter.SiteId, cancellationToken);
 
         var selectedUserId = string.IsNullOrWhiteSpace(request?.SignatureRecipientUserId)
             ? bundle.WarningLetter.SignatureRequestRecipientUserId
@@ -330,29 +369,37 @@ public class WarningLetterService : IWarningLetterService
 
         var selectedUser = string.IsNullOrWhiteSpace(selectedUserId)
             ? null
-            : await _context.Users
-                .AsNoTracking()
-                .Where(u => u.Id == selectedUserId && u.IsDeleted != true)
-                .Where(u => _context.UserSites.Any(us => us.UserId == u.Id && us.SiteId == bundle.WarningLetter.SiteId))
-                .Select(u => new { u.Id, u.UserName, u.Email })
-                .FirstOrDefaultAsync(cancellationToken);
+            : recipientOptions.SiteRepresentatives.FirstOrDefault(recipient => string.Equals(recipient.Id, selectedUserId, StringComparison.OrdinalIgnoreCase));
 
         if (!string.IsNullOrWhiteSpace(selectedUserId) && selectedUser == null)
         {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "The selected site representative is not assigned to this site." });
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"The selected site representative is not configured in recipient group '{recipientOptions.SiteRepresentativeGroupName}'." });
         }
 
-        var recipient = selectedUser?.Email;
-        if (string.IsNullOrWhiteSpace(recipient))
+        if (selectedUser == null || string.IsNullOrWhiteSpace(selectedUser.Email))
         {
-            recipient = string.IsNullOrWhiteSpace(request?.EmailRecipient)
-                ? bundle.WarningLetter.SignatureRequestRecipient
-                : request.EmailRecipient.Trim();
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"Select a configured site representative from recipient group '{recipientOptions.SiteRepresentativeGroupName}'." });
         }
 
-        if (string.IsNullOrWhiteSpace(recipient))
+        var recipient = selectedUser.Email;
+
+        var ccRecipientUserIds = (request?.CcRecipientUserIds ?? new List<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Where(value => !string.Equals(value, selectedUser.Id, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var ccRecipients = recipientOptions.SignatureCcRecipients
+            .Where(recipientOption => ccRecipientUserIds.Contains(recipientOption.Id, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+
+        var ccRecipientIds = ccRecipients.Select(recipientOption => recipientOption.Id).ToList();
+        var ccRecipientEmails = ccRecipients.Select(recipientOption => recipientOption.Email!).Where(email => !string.IsNullOrWhiteSpace(email)).ToList();
+
+        if (ccRecipientEmails.Count != ccRecipientUserIds.Count)
         {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "A site representative email is required." });
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"One or more CC recipients are not configured in recipient group '{recipientOptions.SignatureCcGroupName}'." });
         }
 
         var documentResult = await GetPdfAsync(warningLetterId, cancellationToken);
@@ -362,7 +409,7 @@ public class WarningLetterService : IWarningLetterService
         }
 
         var subject = $"Signature Required - Warning Letter #{warningLetterId} - {bundle.Vehicle.HyoungNo}";
-        var body = BuildSignatureRequestEmailBody(bundle.WarningLetter, bundle.Employee, bundle.Vehicle, bundle.Site);
+        var body = BuildSignatureRequestEmailBody(bundle.WarningLetter, bundle.Employee, bundle.Vehicle, bundle.Site, BuildWarningLetterPreviewUrl(bundle.WarningLetter.Id));
         var sent = await _emailService.SendEmailAsync(
             recipient,
             subject,
@@ -377,21 +424,21 @@ public class WarningLetterService : IWarningLetterService
                     ContentType = documentResult.Data.ContentType,
                     Content = documentResult.Data.Content
                 }
-            });
+            },
+            cc: ccRecipientEmails.Count == 0 ? null : string.Join(",", ccRecipientEmails.Distinct(StringComparer.OrdinalIgnoreCase)));
 
         if (!sent)
         {
             return FMSResponse<WarningLetterDto>.Failed("Failed to send signature request email.");
         }
 
-        bundle.WarningLetter.SignatureRequestRecipientUserId = selectedUser?.Id;
+        bundle.WarningLetter.SignatureRequestRecipientUserId = selectedUser.Id;
         bundle.WarningLetter.SignatureRequestRecipient = recipient;
+        bundle.WarningLetter.SignatureRequestCcUserIds = JoinDelimitedValues(ccRecipientIds);
+        bundle.WarningLetter.SignatureRequestCcRecipients = JoinDelimitedValues(ccRecipientEmails);
         bundle.WarningLetter.SignatureRequestedAt = DateTime.UtcNow;
         bundle.WarningLetter.SignatureRequestedBy = modifiedBy;
-        if (bundle.WarningLetter.Status != WarningLetterStatus.Acknowledged)
-        {
-            bundle.WarningLetter.Status = WarningLetterStatus.Sent;
-        }
+        bundle.WarningLetter.Status = WarningLetterStatus.Sent;
         bundle.WarningLetter.DateModified = DateTime.UtcNow;
         bundle.WarningLetter.ModifiedBy = modifiedBy;
 
@@ -420,9 +467,9 @@ public class WarningLetterService : IWarningLetterService
         }
 
         var extension = Path.GetExtension(file.FileName);
-        if (string.IsNullOrWhiteSpace(extension) || !AllowedSignedCopyExtensions.Contains(extension))
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedLetterDocumentExtensions.Contains(extension))
         {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Only PDF, JPG, JPEG, and PNG signed copies are allowed." });
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Only PDF signed copies are allowed." });
         }
 
         var bundle = await LoadWarningLetterBundleAsync(warningLetterId, cancellationToken);
@@ -431,14 +478,25 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
         }
 
-        if (bundle.WarningLetter.Status == WarningLetterStatus.Draft)
+        if (!bundle.WarningLetter.ApproveLetterUploadedAt.HasValue || !bundle.WarningLetter.SignatureRequestedAt.HasValue)
         {
-            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_UPLOADABLE", "Finalize the warning letter before uploading a signed copy.");
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_UPLOADABLE", "Send the approved letter to a site representative before uploading a signed copy.");
+        }
+
+        if (bundle.WarningLetter.EmployeeAcknowledgedAt.HasValue || bundle.WarningLetter.Status == WarningLetterStatus.Acknowledged)
+        {
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_ALREADY_CLOSED", "Acknowledged warning letters cannot accept another signed copy.");
+        }
+
+        var signedCopyQrValidationErrors = await ValidateUploadedDocumentQrAsync(file, bundle.WarningLetter, cancellationToken);
+        if (signedCopyQrValidationErrors.Count > 0)
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(signedCopyQrValidationErrors);
         }
 
         if (!string.IsNullOrWhiteSpace(bundle.WarningLetter.SignedCopyFilePath))
         {
-            var existingFullPath = GetSignedCopyFullPath(bundle.WarningLetter.SignedCopyFilePath);
+            var existingFullPath = GetUploadedDocumentFullPath(bundle.WarningLetter.SignedCopyFilePath);
             if (File.Exists(existingFullPath))
             {
                 File.Delete(existingFullPath);
@@ -446,7 +504,7 @@ public class WarningLetterService : IWarningLetterService
         }
 
         var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-        var relativePath = await SaveSignedCopyToDiskAsync(warningLetterId, storedFileName, file, cancellationToken);
+        var relativePath = await SaveUploadedDocumentToDiskAsync(warningLetterId.ToString(), storedFileName, file, cancellationToken);
 
         bundle.WarningLetter.SignedCopyFileName = Path.GetFileName(file.FileName);
         bundle.WarningLetter.SignedCopyStoredFileName = storedFileName;
@@ -455,10 +513,7 @@ public class WarningLetterService : IWarningLetterService
         bundle.WarningLetter.SignedCopyFileSize = file.Length;
         bundle.WarningLetter.SignedCopyUploadedAt = DateTime.UtcNow;
         bundle.WarningLetter.SignedCopyUploadedBy = uploadedBy;
-        if (bundle.WarningLetter.Status != WarningLetterStatus.Acknowledged)
-        {
-            bundle.WarningLetter.Status = WarningLetterStatus.SignedCopyReceived;
-        }
+        bundle.WarningLetter.Status = WarningLetterStatus.SignedCopyReceived;
         bundle.WarningLetter.DateModified = DateTime.UtcNow;
         bundle.WarningLetter.ModifiedBy = uploadedBy;
 
@@ -470,6 +525,96 @@ public class WarningLetterService : IWarningLetterService
         responseDto.SignedCopyUploadedBy = await ResolveUserDisplayLabelAsync(bundle.WarningLetter.SignedCopyUploadedBy, cancellationToken) ?? responseDto.SignedCopyUploadedBy;
 
         return FMSResponse<WarningLetterDto>.Success(responseDto, "Signed copy uploaded successfully.");
+    }
+
+    public async Task<FMSResponse<WarningLetterDto>> UploadApproveLetterAsync(int warningLetterId, IFormFile file, string uploadedBy, CancellationToken cancellationToken = default)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "An approved letter file is required." });
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(extension) || !AllowedLetterDocumentExtensions.Contains(extension))
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Only PDF approved letters are allowed." });
+        }
+
+        var bundle = await LoadWarningLetterBundleAsync(warningLetterId, cancellationToken);
+        if (bundle == null)
+        {
+            return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
+        }
+
+        if (bundle.WarningLetter.SignatureRequestedAt.HasValue || bundle.WarningLetter.SignedCopyUploadedAt.HasValue || bundle.WarningLetter.EmployeeAcknowledgedAt.HasValue)
+        {
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_UPLOADABLE", "Approved letters can only be uploaded before the letter is sent for signature.");
+        }
+
+        var approveLetterQrValidationErrors = await ValidateUploadedDocumentQrAsync(file, bundle.WarningLetter, cancellationToken);
+        if (approveLetterQrValidationErrors.Count > 0)
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(approveLetterQrValidationErrors);
+        }
+
+        if (!string.IsNullOrWhiteSpace(bundle.WarningLetter.ApproveLetterFilePath))
+        {
+            var existingFullPath = GetUploadedDocumentFullPath(bundle.WarningLetter.ApproveLetterFilePath);
+            if (File.Exists(existingFullPath))
+            {
+                File.Delete(existingFullPath);
+            }
+        }
+
+        var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        var relativePath = await SaveUploadedDocumentToDiskAsync(Path.Combine(ApproveLetterFolder, warningLetterId.ToString()), storedFileName, file, cancellationToken);
+
+        bundle.WarningLetter.ApproveLetterFileName = Path.GetFileName(file.FileName);
+        bundle.WarningLetter.ApproveLetterStoredFileName = storedFileName;
+        bundle.WarningLetter.ApproveLetterFilePath = relativePath;
+        bundle.WarningLetter.ApproveLetterContentType = string.IsNullOrWhiteSpace(file.ContentType) ? ResolveImageMimeType(extension) : file.ContentType;
+        bundle.WarningLetter.ApproveLetterFileSize = file.Length;
+        bundle.WarningLetter.ApproveLetterUploadedAt = DateTime.UtcNow;
+        bundle.WarningLetter.ApproveLetterUploadedBy = uploadedBy;
+        bundle.WarningLetter.Status = WarningLetterStatus.Finalized;
+        bundle.WarningLetter.DateModified = DateTime.UtcNow;
+        bundle.WarningLetter.ModifiedBy = uploadedBy;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var responseDto = Commands.CreateWarningLetterCommandHandler.MapToDto(bundle.WarningLetter, bundle.Employee, bundle.Vehicle, bundle.Site);
+        responseDto.ApproveLetterUploadedBy = await ResolveUserDisplayLabelAsync(bundle.WarningLetter.ApproveLetterUploadedBy, cancellationToken) ?? responseDto.ApproveLetterUploadedBy;
+
+        return FMSResponse<WarningLetterDto>.Success(responseDto, "Approved letter uploaded successfully.");
+    }
+
+    public async Task<FMSResponse<WarningLetterDocumentDto>> GetApproveLetterAsync(int warningLetterId, CancellationToken cancellationToken = default)
+    {
+        var warningLetter = await _context.WarningLetters.AsNoTracking().FirstOrDefaultAsync(w => w.Id == warningLetterId, cancellationToken);
+        if (warningLetter == null)
+        {
+            return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
+        }
+
+        if (string.IsNullOrWhiteSpace(warningLetter.ApproveLetterFilePath))
+        {
+            return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_APPROVE_LETTER_NOT_FOUND", "Approved letter not found.");
+        }
+
+        var fullPath = GetUploadedDocumentFullPath(warningLetter.ApproveLetterFilePath);
+        if (!File.Exists(fullPath))
+        {
+            return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_APPROVE_LETTER_NOT_FOUND", "Approved letter file not found on disk.");
+        }
+
+        var bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken);
+        return FMSResponse<WarningLetterDocumentDto>.Success(new WarningLetterDocumentDto
+        {
+            FileName = warningLetter.ApproveLetterFileName ?? Path.GetFileName(fullPath),
+            ContentType = string.IsNullOrWhiteSpace(warningLetter.ApproveLetterContentType) ? ResolveImageMimeType(Path.GetExtension(fullPath)) : warningLetter.ApproveLetterContentType,
+            Content = bytes,
+            FilePath = warningLetter.ApproveLetterFilePath
+        });
     }
 
     public async Task<FMSResponse<WarningLetterDocumentDto>> GetSignedCopyAsync(int warningLetterId, CancellationToken cancellationToken = default)
@@ -485,7 +630,7 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_SIGNED_COPY_NOT_FOUND", "Signed copy not found.");
         }
 
-        var fullPath = GetSignedCopyFullPath(warningLetter.SignedCopyFilePath);
+        var fullPath = GetUploadedDocumentFullPath(warningLetter.SignedCopyFilePath);
         if (!File.Exists(fullPath))
         {
             return FMSResponse<WarningLetterDocumentDto>.NotFound("WARNING_LETTER_SIGNED_COPY_NOT_FOUND", "Signed copy file not found on disk.");
@@ -513,24 +658,35 @@ public class WarningLetterService : IWarningLetterService
         return fullPath;
     }
 
-    private static async Task<string> SaveSignedCopyToDiskAsync(int warningLetterId, string storedFileName, IFormFile file, CancellationToken cancellationToken)
+    private static async Task<string> SaveUploadedDocumentToDiskAsync(string relativeDirectory, string storedFileName, IFormFile file, CancellationToken cancellationToken)
     {
-        var warningLetterDirectory = Path.Combine(DefaultSignedCopyStoragePath, warningLetterId.ToString());
+        var warningLetterDirectory = Path.Combine(DefaultUploadedDocumentStoragePath, relativeDirectory);
         Directory.CreateDirectory(warningLetterDirectory);
 
         var fullPath = Path.Combine(warningLetterDirectory, storedFileName);
         await using var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None);
         await file.CopyToAsync(stream, cancellationToken);
-        return Path.Combine("warning-letters", warningLetterId.ToString(), storedFileName).Replace('\\', '/');
+        return Path.Combine(UploadedDocumentRelativeRoot, relativeDirectory, storedFileName).Replace('\\', '/');
     }
 
-    private static string GetSignedCopyFullPath(string relativePath)
+    private static string GetUploadedDocumentFullPath(string relativePath)
     {
-        var stripped = relativePath.StartsWith("warning-letters/", StringComparison.OrdinalIgnoreCase)
-            ? relativePath.Substring("warning-letters/".Length)
+        var stripped = relativePath.StartsWith($"{UploadedDocumentRelativeRoot}/", StringComparison.OrdinalIgnoreCase)
+            ? relativePath.Substring($"{UploadedDocumentRelativeRoot}/".Length)
             : relativePath;
 
-        return Path.Combine(DefaultSignedCopyStoragePath, stripped.Replace('/', Path.DirectorySeparatorChar));
+        return Path.Combine(DefaultUploadedDocumentStoragePath, stripped.Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    private static string? JoinDelimitedValues(IEnumerable<string> values)
+    {
+        var resolved = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return resolved.Count == 0 ? null : string.Join(";", resolved);
     }
 
     private async Task<WarningLetterBundle?> LoadWarningLetterBundleAsync(int warningLetterId, CancellationToken cancellationToken)
@@ -622,6 +778,7 @@ public class WarningLetterService : IWarningLetterService
         var metrics = BuildMetricSet(warningLetter);
         var warningSequence = await ResolveWarningSequenceAsync(warningLetter, maxWarningCountBeforeLast, cancellationToken);
         var generatedBy = await ResolveGeneratedByAsync(generatedByUserId, cancellationToken);
+        var generatedDate = DateTime.Now.ToString("dd-MMM-yyyy HH:mm");
 
         return new WarningLetterHtmlTemplates.WarningLetterTemplateModel
         {
@@ -658,7 +815,8 @@ public class WarningLetterService : IWarningLetterService
             IssuedByTitle = string.IsNullOrWhiteSpace(warningLetter.IssuedByTitle) ? "Fleet Manager" : warningLetter.IssuedByTitle,
             Notes = NormalizeNotes(warningLetter.Notes),
             GeneratedBy = generatedBy,
-            GeneratedDate = DateTime.Now.ToString("dd-MMM-yyyy HH:mm")
+            GeneratedDate = generatedDate,
+            QrCodeDataUri = GenerateQrCodeDataUri(BuildReferenceNumber(warningLetter))
         };
     }
 
@@ -813,8 +971,11 @@ public class WarningLetterService : IWarningLetterService
         Domain.Entities.Features.WarningLetterManagement.WarningLetter warningLetter,
         EmployeeEntity employee,
         VehicleEntity vehicle,
-        SiteEntity site)
+        SiteEntity site,
+        string previewUrl)
     {
+        var encodedPreviewUrl = System.Net.WebUtility.HtmlEncode(previewUrl);
+
         return $@"<html><body style='font-family:Segoe UI,Arial,sans-serif;color:#201f1e;'>
 <p>Please print the attached warning letter for <strong>{System.Net.WebUtility.HtmlEncode(employee.FullName)}</strong>, obtain the driver signature and stamp where applicable, then upload the signed scan back into FMS.</p>
 <table style='border-collapse:collapse;'>
@@ -822,8 +983,21 @@ public class WarningLetterService : IWarningLetterService
 <tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(vehicle.HyoungNo)}</td></tr>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Site</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(site.Name)}</td></tr>
 </table>
+<p>Open the warning-letter preview page to upload the signed copy after signature collection:</p>
+<p><a href='{encodedPreviewUrl}' style='color:#0078d4;text-decoration:none;'>{encodedPreviewUrl}</a></p>
 <p>After upload, the issuer will be notified automatically.</p>
 </body></html>";
+    }
+
+    private string BuildWarningLetterPreviewUrl(int warningLetterId)
+    {
+        var baseUrl = (_configuration[FrontendBaseUrlConfigKey] ?? DefaultFrontendBaseUrl).Trim();
+        return $"{baseUrl.TrimEnd('/')}{BuildWarningLetterPreviewPath(warningLetterId)}";
+    }
+
+    private static string BuildWarningLetterPreviewPath(int warningLetterId)
+    {
+        return $"/reports/warning-letters/{warningLetterId}/preview";
     }
 
     private async Task NotifySiteRepresentativeSignatureRequestedAsync(
@@ -857,7 +1031,7 @@ public class WarningLetterService : IWarningLetterService
                 SiteId = warningLetter.SiteId,
                 SiteName = site.Name,
                 Action = "SignatureRequested",
-                Link = $"/reports/warning-letters/{warningLetter.Id}"
+                Link = BuildWarningLetterPreviewPath(warningLetter.Id)
             },
             TriggerSource = "WarningLetter.RequestSignature",
             TriggeredBy = requestedBy,
@@ -977,7 +1151,7 @@ public class WarningLetterService : IWarningLetterService
             return null;
         }
 
-        var fullPath = GetSignedCopyFullPath(warningLetter.SignedCopyFilePath);
+        var fullPath = GetUploadedDocumentFullPath(warningLetter.SignedCopyFilePath);
         if (!File.Exists(fullPath))
         {
             _logger.LogWarning("Signed copy attachment file was not found for warning letter {WarningLetterId} at {Path}", warningLetter.Id, fullPath);
@@ -1046,6 +1220,175 @@ public class WarningLetterService : IWarningLetterService
     {
         var suffix = warningLetter.Id > 0 ? warningLetter.Id.ToString("D5") : "PREVIEW";
         return $"WL-{warningLetter.SiteId}-{warningLetter.LetterDate:yyyy}-{suffix}";
+    }
+
+    private async Task<List<string>> ValidateUploadedDocumentQrAsync(
+        IFormFile file,
+        Domain.Entities.Features.WarningLetterManagement.WarningLetter warningLetter,
+        CancellationToken cancellationToken)
+    {
+        var expectedReferenceNumber = BuildReferenceNumber(warningLetter);
+        var uploadedReferenceNumber = await TryReadWarningLetterReferenceFromPdfQrAsync(file, cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(uploadedReferenceNumber))
+        {
+            return new List<string>
+            {
+                "Could not read a warning letter QR code from page 1 of the uploaded PDF. Upload the official warning letter PDF for this record."
+            };
+        }
+
+        if (!string.Equals(uploadedReferenceNumber, expectedReferenceNumber, StringComparison.OrdinalIgnoreCase))
+        {
+            return new List<string>
+            {
+                $"Uploaded document QR does not match this warning letter. Expected reference '{expectedReferenceNumber}' but found '{uploadedReferenceNumber}'."
+            };
+        }
+
+        return new List<string>();
+    }
+
+    private async Task<string?> TryReadWarningLetterReferenceFromPdfQrAsync(IFormFile file, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream, cancellationToken);
+            var pdfBytes = stream.ToArray();
+
+            if (pdfBytes.Length == 0)
+            {
+                return null;
+            }
+
+            using var docReader = DocLib.Instance.GetDocReader(pdfBytes, new PageDimensions(1080, 1920));
+            if (docReader.GetPageCount() <= 0)
+            {
+                return null;
+            }
+
+            using var pageReader = docReader.GetPageReader(0);
+            var rawBytes = pageReader.GetImage();
+            var width = pageReader.GetPageWidth();
+            var height = pageReader.GetPageHeight();
+
+            if (rawBytes == null || rawBytes.Length == 0 || width <= 0 || height <= 0)
+            {
+                return null;
+            }
+
+            var qrPayload = TryDecodeQrPayload(rawBytes, width, height)
+                ?? TryDecodeFooterQrPayload(rawBytes, width, height);
+
+            return ExtractReferenceNumberFromQrPayload(qrPayload);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read warning letter QR from uploaded PDF {FileName}", file.FileName);
+            return null;
+        }
+    }
+
+    private static string? TryDecodeFooterQrPayload(byte[] rawBytes, int width, int height)
+    {
+        var footerWidth = Math.Max(1, (int)(width * 0.35));
+        var footerHeight = Math.Max(1, (int)(height * 0.28));
+        var startX = Math.Max(0, width - footerWidth);
+        var startY = Math.Max(0, height - footerHeight);
+
+        var croppedRawBytes = CropRawBytes(rawBytes, width, height, startX, startY, footerWidth, footerHeight);
+        return TryDecodeQrPayload(croppedRawBytes, footerWidth, footerHeight);
+    }
+
+    private static string? TryDecodeQrPayload(byte[] rawBytes, int width, int height)
+    {
+        var barcodeReader = new BarcodeReaderGeneric
+        {
+            AutoRotate = true,
+            Options = new DecodingOptions
+            {
+                TryHarder = true,
+                PossibleFormats = new List<BarcodeFormat> { BarcodeFormat.QR_CODE }
+            }
+        };
+
+        var luminanceSource = new RGBLuminanceSource(rawBytes, width, height, RGBLuminanceSource.BitmapFormat.BGRA32);
+        var result = barcodeReader.Decode(luminanceSource);
+        return string.IsNullOrWhiteSpace(result?.Text)
+            ? null
+            : result.Text.Trim();
+    }
+
+    private static string? ExtractReferenceNumberFromQrPayload(string? qrPayload)
+    {
+        if (string.IsNullOrWhiteSpace(qrPayload))
+        {
+            return null;
+        }
+
+        var lines = qrPayload
+            .Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .ToList();
+
+        var referenceLine = lines.FirstOrDefault(line => line.StartsWith("Reference:", StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(referenceLine))
+        {
+            return referenceLine[(referenceLine.IndexOf(':') + 1)..].Trim();
+        }
+
+        return lines.FirstOrDefault();
+    }
+
+    private static byte[] CropRawBytes(byte[] rawBytes, int sourceWidth, int sourceHeight, int startX, int startY, int cropWidth, int cropHeight)
+    {
+        var output = new byte[cropWidth * cropHeight * 4];
+
+        for (var y = 0; y < cropHeight; y++)
+        {
+            var sourceY = startY + y;
+            if (sourceY >= sourceHeight)
+            {
+                break;
+            }
+
+            for (var x = 0; x < cropWidth; x++)
+            {
+                var sourceX = startX + x;
+                if (sourceX >= sourceWidth)
+                {
+                    break;
+                }
+
+                var sourceIndex = ((sourceY * sourceWidth) + sourceX) * 4;
+                var targetIndex = ((y * cropWidth) + x) * 4;
+
+                if (sourceIndex + 3 >= rawBytes.Length || targetIndex + 3 >= output.Length)
+                {
+                    continue;
+                }
+
+                output[targetIndex] = rawBytes[sourceIndex];
+                output[targetIndex + 1] = rawBytes[sourceIndex + 1];
+                output[targetIndex + 2] = rawBytes[sourceIndex + 2];
+                output[targetIndex + 3] = rawBytes[sourceIndex + 3];
+            }
+        }
+
+        return output;
+    }
+
+    private static string? GenerateQrCodeDataUri(string referenceNumber)
+    {
+        if (string.IsNullOrWhiteSpace(referenceNumber)) return null;
+
+        using var qrGenerator = new QRCodeGenerator();
+        using var qrCodeData = qrGenerator.CreateQrCode(referenceNumber, QRCodeGenerator.ECCLevel.M);
+        using var qrCode = new PngByteQRCode(qrCodeData);
+        var pngBytes = qrCode.GetGraphic(8);
+        return $"data:image/png;base64,{Convert.ToBase64String(pngBytes)}";
     }
 
     private static string BuildPdfFileName(Domain.Entities.Features.WarningLetterManagement.WarningLetter warningLetter)

@@ -37,9 +37,9 @@ public class AcknowledgeWarningLetterCommandHandler : IRequestHandler<Acknowledg
 
         var alreadyAcknowledged = warningLetter.Status == WarningLetterStatus.Acknowledged;
 
-        if (warningLetter.Status == WarningLetterStatus.Draft)
+        if (!warningLetter.SignedCopyUploadedAt.HasValue)
         {
-            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_ACKNOWLEDGEABLE", "Only finalized or sent warning letters can be acknowledged.");
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_NOT_ACKNOWLEDGEABLE", "Only signed warning letters can be acknowledged.");
         }
 
         if (!alreadyAcknowledged)

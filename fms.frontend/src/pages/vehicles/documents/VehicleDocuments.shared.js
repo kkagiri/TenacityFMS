@@ -167,6 +167,9 @@ export const normalizeDocument = (document) => {
         documentFileUrl: document?.documentFileUrl ?? document?.DocumentFileUrl ?? "",
         status: Number(document?.status ?? document?.Status ?? 0),
         daysUntilExpiry: Number(document?.daysUntilExpiry ?? document?.DaysUntilExpiry ?? 0) || 0,
+        createdAt: document?.createdAt ?? document?.CreatedAt ?? null,
+        createdBy: document?.createdBy ?? document?.CreatedBy ?? "",
+        createdByDisplay: document?.createdByDisplay ?? document?.CreatedByDisplay ?? document?.createdBy ?? document?.CreatedBy ?? "",
     };
 };
 
@@ -414,6 +417,25 @@ export const formatDisplayDate = (value) => {
         day: "2-digit",
         month: "short",
         year: "numeric",
+    }).format(date);
+};
+
+export const formatDisplayDateTime = (value) => {
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "-";
+    }
+
+    return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
     }).format(date);
 };
 

@@ -5,6 +5,7 @@
  * Last Modified: 2026-04-06
  */
 using System;
+using System.Collections.Generic;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 
 namespace FMS.Application.Features.WarningLetter.DTOs;
@@ -29,5 +30,7 @@ public class UpdateWarningLetterDto
     public string IssuedByName { get; set; } = string.Empty;
     public string? IssuedByTitle { get; set; }
     public string? EmailRecipient { get; set; }
+    public string? SignatureRequestRecipientUserId { get; set; }
+    public List<string> SignatureRequestCcUserIds { get; set; } = new();
     public string? Notes { get; set; }
 }

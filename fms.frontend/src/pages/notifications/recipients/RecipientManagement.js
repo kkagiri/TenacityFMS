@@ -1,86 +1,125 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * File: RecipientManagement.js
+ * Purpose: Manage notification recipient groups and memberships with M365 tab-based layout.
+ * Dependencies: DevExtreme DataGrid, SelectBox, Redux, SlidePanel, CreateUserPanel
+ * Last Modified: 2026-04-13
+ *
+ * Key Functions:
+ * - RecipientManagement(): Recipient and group administration experience
+ */
+import React, { useEffect, useMemo, useState } from 'react';
 import { DataGrid, Column } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
 import { SelectBox } from 'devextreme-react/select-box';
-import { TextBox } from 'devextreme-react/text-box';
-import { Form, SimpleItem } from 'devextreme-react/form';
+import { useSearchParams } from 'react-router-dom';
 import notify from 'devextreme/ui/notify';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
-import { createUser } from '../../../redux/actions/userActions';
 import notificationGroupsApi from '../../../dataservice/notificationGroupsApi';
+import SlidePanel from '../../../components/ui/SlidePanel';
+import CreateUserPanel from '../../user/components/CreateUserPanel';
+import './RecipientManagement.scss';
+
+const WARNING_LETTER_GROUP_NAMES = [
+  'Warning Letter Site Representatives',
+  'Warning Letter Signature CC'
+];
+
+const WARNING_LETTER_GROUP_DESCRIPTIONS = {
+  'Warning Letter Site Representatives': 'Primary signature recipients for warning letters at the selected site.',
+  'Warning Letter Signature CC': 'Additional CC recipients for warning-letter signature requests at the selected site.'
+};
+
+const mapGroupToViewModel = (group) => ({
+  id: group.id,
+  name: group.name || group.id || group.groupName,
+  displayName: group.name || group.displayName || group.groupName || `Group #${group.id}`,
+  description: group.description,
+  memberCount: group.memberCount ?? group.members?.length ?? 0,
+  isActive: group.isActive === true || group.isActive !== false,
+  siteId: group.siteId ?? group.siteID ?? null,
+  siteName: group.siteName || group.site?.name || ''
+});
+
+const TABS = [
+  { key: 'groups', label: 'Groups', icon: 'fa-light fa-layer-group' },
+  { key: 'warning-letter', label: 'Warning Letter Groups', icon: 'fa-light fa-triangle-exclamation' }
+];
 
 const RecipientManagement = () => {
+  const [activeTab, setActiveTab] = useState('groups');
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [userSearch, setUserSearch] = useState('');
   const [groups, setGroups] = useState([]);
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(false);
   const [showMembersPopup, setShowMembersPopup] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [addMemberForm, setAddMemberForm] = useState({ memberType: 'User', memberId: '' });
+  const [addMemberForm, setAddMemberForm] = useState({ memberId: '' });
   const [showGroupPopup, setShowGroupPopup] = useState(false);
-  const [groupFormData, setGroupFormData] = useState({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], includeSelectedUsers: false, isActive: true });
+  const [groupFormData, setGroupFormData] = useState({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], isActive: true });
   const [siteOptions, setSiteOptions] = useState([]);
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [showCreateUserPopup, setShowCreateUserPopup] = useState(false);
-  const [newUserForm, setNewUserForm] = useState({ email: '', username: '', password: '', confirmPassword: '', roleName: '' });
   const [rolesList, setRolesList] = useState([]);
-  const [creatingUser, setCreatingUser] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [passwordErrors, setPasswordErrors] = useState([]);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [selectedGroupSiteId, setSelectedGroupSiteId] = useState('');
+  const [warningLetterSetupLoading, setWarningLetterSetupLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const dispatch = useDispatch();
 
   const fallbackRoles = ['Manager', 'Supervisor', 'Technician', 'Operator', 'Administrator'];
+  const deepLinkSiteId = searchParams.get('siteId') || '';
+  const deepLinkGroupName = searchParams.get('groupName') || '';
+  const deepLinkWarningLetter = searchParams.get('warningLetter') === '1';
+  const deepLinkAutoOpen = searchParams.get('autoOpen') === '1';
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const { default: axiosInstance } = await import('../../../api/axiosInstance');
+      const resp = await axiosInstance.get('/user');
+      const data = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
+      const norm = data.map(u => ({
+        id: u.id || u.userId || u.Id,
+        firstName: u.firstName || u.FirstName || '',
+        lastName: u.lastName || u.LastName || '',
+        email: u.email || u.Email || '',
+        role: (u.role || u.Role || (Array.isArray(u.roles) ? u.roles.join(',') : '')) ?? '',
+        department: u.department || u.Department || '',
+        isActive: u.isActive !== false && u.deleted !== true
+      })).filter(u => u.id);
+      setUsers(norm);
+      return norm;
+    } catch {
+      setUsers([]);
+      notify('Failed to load users', 'error', 3000);
+      return [];
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const loadGroups = async () => {
+    try {
+      const res = await notificationGroupsApi.getGroups(null);
+      if (res.isSuccess) {
+        setGroups((res.data || []).map(mapGroupToViewModel));
+      } else {
+        setGroups([]);
+      }
+    } catch {
+      setGroups([]);
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
-      setUsersLoading(true);
-      try {
-        const { default: axiosInstance } = await import('../../../api/axiosInstance');
-        const resp = await axiosInstance.get('/user');
-        const data = Array.isArray(resp.data) ? resp.data : (resp.data?.data || []);
-        const norm = data.map(u => ({
-          id: u.id || u.userId || u.Id,
-          firstName: u.firstName || u.FirstName || '',
-          lastName: u.lastName || u.LastName || '',
-          email: u.email || u.Email || '',
-            role: (u.role || u.Role || (Array.isArray(u.roles) ? u.roles.join(',') : '')) ?? '',
-          department: u.department || u.Department || '',
-          isActive: u.isActive !== false && u.deleted !== true
-        })).filter(u => u.id);
-        setUsers(norm);
-      } catch {
-        setUsers([]);
-        notify('Failed to load users', 'error', 3000);
-      } finally {
-        setUsersLoading(false);
-      }
+      await loadUsers();
+      await loadGroups();
 
-      try {
-        const res = await notificationGroupsApi.getGroups();
-        if (res.isSuccess) {
-          const uiGroups = (res.data || []).map(g => ({
-            id: g.id,
-            name: g.name,
-            displayName: g.name,
-            description: g.description,
-            memberCount: g.memberCount ?? g.members?.length ?? 0,
-            isActive: g.isActive === true
-          }));
-          setGroups(uiGroups);
-        } else {
-          setGroups([]);
-        }
-      } catch {
-        setGroups([]);
-      }
-
-      // roles
       try {
         const { default: axiosInstance } = await import('../../../api/axiosInstance');
         const rolesResp = await axiosInstance.get('/role/getlist');
@@ -101,104 +140,226 @@ const RecipientManagement = () => {
     }
   }, [sitesFromStore]);
 
-  const roleDeliveryMap = {
-    Administrator: ['Email','Push','Webhook'],
-    Manager: ['Email','Push'],
-    Supervisor: ['Email','Sms','Push'],
-    Technician: ['Sms','Push'],
-    Operator: ['Sms'],
-    Default: ['Email']
-  };
-  const computeRoleDefaults = () => {
-    const roles = new Set((selectedUsers || []).flatMap(u => (u.role ? String(u.role).split(',') : [])));
-    if (!roles.size) return roleDeliveryMap.Default;
-    const methods = new Set();
-    roles.forEach(r => (roleDeliveryMap[r.trim()] || roleDeliveryMap.Default).forEach(m => methods.add(m)));
-    return Array.from(methods);
-  };
+  useEffect(() => {
+    if (!deepLinkWarningLetter) return;
+    setActiveTab('warning-letter');
+    if (deepLinkSiteId) {
+      setSelectedGroupSiteId(currentValue => (currentValue === deepLinkSiteId ? currentValue : deepLinkSiteId));
+    }
+    if (deepLinkGroupName) {
+      setGroupSearch(currentValue => (currentValue === deepLinkGroupName ? currentValue : deepLinkGroupName));
+    }
+  }, [deepLinkGroupName, deepLinkSiteId, deepLinkWarningLetter]);
 
-  // --- Create User Popup Handlers ---
-  const openCreateUserPopup = () => {
-    setNewUserForm({ email: '', username: '', password: '', confirmPassword: '', roleName: rolesList[0] || '' });
-    setShowCreateUserPopup(true);
-  };
+  const filteredGroups = groups.filter(group => {
+    const normalizedSearch = groupSearch.trim().toLowerCase();
+    const matchesSite = !selectedGroupSiteId || String(group.siteId) === String(selectedGroupSiteId);
+    const matchesSearch = !normalizedSearch ||
+      group.displayName?.toLowerCase().includes(normalizedSearch) ||
+      group.description?.toLowerCase().includes(normalizedSearch) ||
+      group.siteName?.toLowerCase().includes(normalizedSearch);
+    return matchesSearch && matchesSite;
+  });
 
-  const handleNewUserFieldChange = (field, value) => {
-    setNewUserForm(prev => ({ ...prev, [field]: value }));
-    if (field === 'password') {
-      setPasswordErrors(validatePassword(value));
-    }
-    if (field === 'confirmPassword' && value !== newUserForm.password) {
-      // We won't store separate confirm errors; mismatch handled in submit & UI highlight.
-    }
-  };
+  const allWarningLetterGroups = groups.filter(group =>
+    WARNING_LETTER_GROUP_NAMES.includes(group.displayName)
+  );
 
-  const validatePassword = (pwd) => {
-    const errors = [];
-    if (!pwd || pwd.length < 6) errors.push('At least 6 characters.');
-    if (!/[A-Z]/.test(pwd)) errors.push('At least one uppercase letter.');
-    if (!/[a-z]/.test(pwd)) errors.push('At least one lowercase letter.');
-    if (!/[0-9]/.test(pwd)) errors.push('At least one digit.');
-    if (!/[^a-zA-Z0-9]/.test(pwd)) errors.push('At least one non-alphanumeric character.');
-    return errors;
-  };
+  const warningLetterSiteItems = useMemo(() => {
+    const normalizedSearch = groupSearch.trim().toLowerCase();
+    const siteMap = new Map();
 
-  const submitCreateUser = async () => {
-    if (!newUserForm.email || !newUserForm.username || !newUserForm.password) {
-      notify('Email, Username and Password are required', 'warning', 3000);
-      return;
-    }
-    const currentPasswordErrors = validatePassword(newUserForm.password);
-    if (currentPasswordErrors.length) {
-      setPasswordErrors(currentPasswordErrors);
-      notify('Please satisfy password requirements', 'error', 4000);
-      return;
-    }
-    if (newUserForm.password !== newUserForm.confirmPassword) {
-      notify('Passwords do not match', 'error', 3000);
-      return;
-    }
-    setCreatingUser(true);
-    try {
-      const resp = await dispatch(createUser({
-        email: newUserForm.email,
-        username: newUserForm.username,
-        password: newUserForm.password,
-        roleName: newUserForm.roleName
-      }));
-      // If FMSResponse shape returned
-      if (resp && resp.isSuccess) {
-        notify('User created', 'success', 3000);
-      } else if (resp && resp.validationErrors) {
-        notify(resp.validationErrors.join('; '), 'error', 5000);
-        return; // stop further actions
+    siteOptions.forEach(site => {
+      siteMap.set(String(site.id), {
+        siteId: String(site.id),
+        siteName: site.name,
+        groupsByName: new Map(WARNING_LETTER_GROUP_NAMES.map(name => [name, []]))
+      });
+    });
+
+    allWarningLetterGroups.forEach(group => {
+      const siteId = String(group.siteId ?? '');
+      if (!siteId) return;
+      if (!siteMap.has(siteId)) {
+        siteMap.set(siteId, {
+          siteId,
+          siteName: group.siteName || `Site ${siteId}`,
+          groupsByName: new Map(WARNING_LETTER_GROUP_NAMES.map(name => [name, []]))
+        });
       }
-      // reload users list
-      try {
-        const { default: axiosInstance } = await import('../../../api/axiosInstance');
-        const reload = await axiosInstance.get('/user');
-        const data = Array.isArray(reload.data) ? reload.data : (reload.data?.data || []);
-        const norm = data.map(u => ({
-          id: u.id || u.userId || u.Id,
-          firstName: u.firstName || u.firstNameValue || u.FirstName || '',
-          lastName: u.lastName || u.lastNameValue || u.LastName || '',
-          email: u.email || u.Email || '',
-          role: (u.role || u.Role || (Array.isArray(u.roles) ? u.roles.join(',') : '')) ?? '',
-          department: u.department || u.Department || '',
-          isActive: u.isActive !== false && u.deleted !== true,
-          groups: []
-        })).filter(u => u.id);
-        setUsers(norm);
-      } catch { /* ignore */ }
-      setShowCreateUserPopup(false);
-    } catch (err) {
-      notify(err.message || 'Failed to create user', 'error', 5000);
-    } finally {
-      setCreatingUser(false);
+
+      const siteEntry = siteMap.get(siteId);
+      siteEntry.groupsByName.get(group.displayName)?.push(group);
+    });
+
+    return Array.from(siteMap.values())
+      .map(site => {
+        const counts = WARNING_LETTER_GROUP_NAMES.map(name => site.groupsByName.get(name)?.length || 0);
+        const missingCount = counts.filter(count => count === 0).length;
+        const duplicateCount = counts.reduce((sum, count) => sum + (count > 1 ? count - 1 : 0), 0);
+        const hasAllRequired = counts.every(count => count >= 1);
+        const hasExactRequired = counts.every(count => count === 1);
+
+        return {
+          ...site,
+          missingCount,
+          duplicateCount,
+          hasAllRequired,
+          hasExactRequired,
+          totalWarningLetterGroups: counts.reduce((sum, count) => sum + count, 0)
+        };
+      })
+      .filter(site => {
+        if (!normalizedSearch) return true;
+        return (
+          site.siteName.toLowerCase().includes(normalizedSearch) ||
+          WARNING_LETTER_GROUP_NAMES.some(name => name.toLowerCase().includes(normalizedSearch) && (site.groupsByName.get(name)?.length || 0) > 0)
+        );
+      })
+      .sort((left, right) => left.siteName.localeCompare(right.siteName));
+  }, [allWarningLetterGroups, groupSearch, siteOptions]);
+
+  const selectedWarningLetterSite = useMemo(
+    () => warningLetterSiteItems.find(site => String(site.siteId) === String(selectedGroupSiteId)) || null,
+    [selectedGroupSiteId, warningLetterSiteItems]
+  );
+
+  const warningLetterGroups = selectedWarningLetterSite
+    ? WARNING_LETTER_GROUP_NAMES.flatMap(name => selectedWarningLetterSite.groupsByName.get(name) || [])
+    : [];
+
+  const memberUserOptions = useMemo(() => users.map(user => ({
+    id: String(user.id),
+    name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || String(user.id),
+    email: user.email || '',
+    role: user.role || ''
+  })), [users]);
+
+  const createUserRoleOptions = useMemo(
+    () => (rolesList.length ? rolesList : fallbackRoles).map(roleName => ({ value: roleName, text: roleName })),
+    [fallbackRoles, rolesList]
+  );
+
+  const refreshAndSetGroups = async (siteId = selectedGroupSiteId) => {
+    await loadGroups();
+  };
+
+  const handleRefresh = async (silent = false) => {
+    const latestUsers = await loadUsers();
+    await refreshAndSetGroups(selectedGroupSiteId);
+    if (selectedGroup) {
+      await openMembersPopup(selectedGroup, latestUsers);
+    }
+    if (!silent) {
+      notify('Recipient data refreshed.', 'success', 2000);
     }
   };
 
-  const openMembersPopup = async (group) => {
+  const ensureWarningLetterGroupsForSite = async (siteId) => {
+    const normalizedSiteId = siteId ? parseInt(siteId, 10) : null;
+    if (!normalizedSiteId || Number.isNaN(normalizedSiteId)) {
+      notify('Select a site first.', 'warning', 2500);
+      return [];
+    }
+
+    const latestGroupsResponse = await notificationGroupsApi.getGroups(normalizedSiteId);
+    const latestSiteGroups = latestGroupsResponse.isSuccess
+      ? (latestGroupsResponse.data || []).map(mapGroupToViewModel)
+      : groups.filter(group => Number(group.siteId) === normalizedSiteId);
+    const warningLetterSiteGroups = latestSiteGroups.filter(group => WARNING_LETTER_GROUP_NAMES.includes(group.displayName));
+    const existingByName = new Map(
+      WARNING_LETTER_GROUP_NAMES.map(name => [
+        name,
+        warningLetterSiteGroups.filter(group => group.displayName === name)
+      ])
+    );
+
+    const duplicateNames = WARNING_LETTER_GROUP_NAMES.filter(name => (existingByName.get(name)?.length || 0) > 1);
+    let createdCount = 0;
+
+    for (const groupName of WARNING_LETTER_GROUP_NAMES) {
+      if ((existingByName.get(groupName)?.length || 0) > 0) continue;
+      const result = await notificationGroupsApi.createGroup({
+        name: groupName,
+        description: WARNING_LETTER_GROUP_DESCRIPTIONS[groupName],
+        siteId: normalizedSiteId,
+        isActive: true,
+        allowedDeliveryMethods: ['Email']
+      });
+      if (!result.isSuccess) throw new Error(result.message || `Failed to create ${groupName}`);
+      createdCount += 1;
+    }
+    await refreshAndSetGroups(String(normalizedSiteId));
+    const latestGroups = await notificationGroupsApi.getGroups(normalizedSiteId);
+    const resolvedGroups = latestGroups.isSuccess
+      ? (latestGroups.data || []).map(mapGroupToViewModel).filter(group => WARNING_LETTER_GROUP_NAMES.includes(group.displayName))
+      : [];
+    if (createdCount > 0) {
+      notify(`Created ${createdCount} warning-letter group(s) for the selected site.`, 'success', 3000);
+    }
+    if (duplicateNames.length > 0) {
+      notify(`This site has duplicate warning-letter groups for ${duplicateNames.join(', ')}. Keep only one of each required group.`, 'warning', 4500);
+    }
+    return resolvedGroups;
+  };
+
+  const handleCreateWarningLetterGroups = async () => {
+    try {
+      setWarningLetterSetupLoading(true);
+      await ensureWarningLetterGroupsForSite(selectedGroupSiteId);
+    } catch (error) {
+      notify(error.message || 'Failed to prepare warning-letter groups.', 'error', 3500);
+    } finally {
+      setWarningLetterSetupLoading(false);
+    }
+  };
+
+  const handleCreateAndPopulateWarningLetterGroups = async () => {
+    try {
+      setWarningLetterSetupLoading(true);
+      const resolvedGroups = await ensureWarningLetterGroupsForSite(selectedGroupSiteId);
+      if (!resolvedGroups.length) {
+        notify('Warning-letter groups were not found after creation.', 'warning', 3000);
+        return;
+      }
+      await openMembersPopup(resolvedGroups[0]);
+      notify('Warning-letter groups are ready. Managing members for the first required group now.', 'success', 3500);
+      await refreshAndSetGroups(selectedGroupSiteId);
+    } catch (error) {
+      notify(error.message || 'Failed to populate warning-letter groups.', 'error', 3500);
+    } finally {
+      setWarningLetterSetupLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!deepLinkAutoOpen || !deepLinkGroupName || deepLinkHandled) return;
+    const targetGroup = warningLetterGroups.find(group =>
+      group.displayName === deepLinkGroupName &&
+      (!deepLinkSiteId || String(group.siteId) === String(deepLinkSiteId))
+    );
+    if (targetGroup) {
+      setDeepLinkHandled(true);
+      openMembersPopup(targetGroup);
+      return;
+    }
+    if (groups.length > 0 && (!deepLinkSiteId || String(selectedGroupSiteId) === String(deepLinkSiteId))) {
+      setDeepLinkHandled(true);
+      notify(`Could not find ${deepLinkGroupName} for the selected site.`, 'warning', 4000);
+    }
+  }, [deepLinkAutoOpen, deepLinkGroupName, deepLinkHandled, deepLinkSiteId, warningLetterGroups, groups.length, selectedGroupSiteId]);
+
+  useEffect(() => {
+    if (activeTab !== 'warning-letter') return;
+    if (!warningLetterSiteItems.length) return;
+
+    const currentExists = warningLetterSiteItems.some(site => String(site.siteId) === String(selectedGroupSiteId));
+    if (!selectedGroupSiteId || !currentExists) {
+      setSelectedGroupSiteId(String(warningLetterSiteItems[0].siteId));
+    }
+  }, [activeTab, selectedGroupSiteId, warningLetterSiteItems]);
+
+  const openMembersPopup = async (group, usersSource = users) => {
     setSelectedGroup(group);
     setShowMembersPopup(true);
     setMembersLoading(true);
@@ -210,7 +371,7 @@ const RecipientManagement = () => {
           memberType: m.memberType,
           memberId: (m.memberId || '').trim()
         }));
-        const userMap = new Map(users.map(u => [String(u.id), u]));
+        const userMap = new Map(usersSource.map(u => [String(u.id), u]));
         const toFetch = Array.from(new Set(rawMembers.filter(m => m.memberType === 'User' && !userMap.has(m.memberId)).map(m => m.memberId)));
         if (toFetch.length) {
           try {
@@ -245,7 +406,7 @@ const RecipientManagement = () => {
         setMembers([]);
         notify(res.message || 'Failed to load members', 'error', 3000);
       }
-    } catch (e) {
+    } catch {
       setMembers([]);
       notify('Failed to load members', 'error', 3000);
     } finally {
@@ -256,12 +417,19 @@ const RecipientManagement = () => {
   const addMember = async () => {
     if (!selectedGroup) return;
     if (!addMemberForm.memberId) {
-      notify('Please enter a member identifier', 'warning', 2500);
+      notify('Select a user first.', 'warning', 2500);
+      return;
+    }
+    const alreadyExists = members.some(
+      m => m.memberType === 'User' && String(m.memberId) === String(addMemberForm.memberId)
+    );
+    if (alreadyExists) {
+      notify('This member is already in the group.', 'warning', 2500);
       return;
     }
     setMembersLoading(true);
     try {
-      const payload = [{ memberType: addMemberForm.memberType, memberId: addMemberForm.memberId }];
+      const payload = [{ memberType: 'User', memberId: addMemberForm.memberId }];
       const res = await notificationGroupsApi.addGroupMembers(selectedGroup.id, payload);
       if (res.isSuccess) {
         const r = res.data || {};
@@ -269,21 +437,13 @@ const RecipientManagement = () => {
           (r.duplicates || r.Duplicates ? `, duplicates: ${r.duplicates ?? r.Duplicates}` : '') +
           (r.invalid || r.Invalid ? `, invalid: ${r.invalid ?? r.Invalid}` : '');
         notify(res.message || detailMsg, 'success', 3500);
-        if ((r.duplicateKeys && r.duplicateKeys.length) || (r.invalidEntries && r.invalidEntries.length)) {
-          // Optional secondary toast with specifics
-          const dupList = (r.duplicateKeys || r.DuplicateKeys || []).slice(0,5).join(', ');
-            const invalidList = (r.invalidEntries || r.InvalidEntries || []).slice(0,5).join(', ');
-          if (dupList || invalidList) {
-            notify(`Duplicates: ${dupList || 'none'} | Invalid: ${invalidList || 'none'}`, 'info', 5000);
-          }
-        }
-        // reload members
+        await refreshAndSetGroups(selectedGroupSiteId);
         await openMembersPopup(selectedGroup);
-        setAddMemberForm({ memberType: 'User', memberId: '' });
+        setAddMemberForm({ memberId: '' });
       } else {
         notify(res.message || 'Failed to add member', 'error', 3000);
       }
-    } catch (e) {
+    } catch {
       notify('Failed to add member', 'error', 3000);
     } finally {
       setMembersLoading(false);
@@ -301,20 +461,20 @@ const RecipientManagement = () => {
       if (res.isSuccess) {
         notify('Member removed', 'success', 2000);
         setMembers(prev => prev.filter(m => m.id !== member.id));
+        await refreshAndSetGroups(selectedGroupSiteId);
       } else {
         notify(res.message || 'Failed to remove member', 'error', 3000);
       }
-    } catch (e) {
+    } catch {
       notify('Failed to remove member', 'error', 3000);
     } finally {
       setMembersLoading(false);
     }
   };
 
-
   const handleCreateGroup = () => {
     setEditingGroupId(null);
-    setGroupFormData({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], includeSelectedUsers: false, isActive: true });
+    setGroupFormData({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], isActive: true });
     if (!siteOptions.length) dispatch(fetchSiteList());
     setShowGroupPopup(true);
   };
@@ -326,19 +486,15 @@ const RecipientManagement = () => {
       description: g.description || '',
       siteId: g.siteId || '',
       allowedDeliveryMethods: g.allowedDeliveryMethods ? g.allowedDeliveryMethods.split(',') : [],
-      includeSelectedUsers: false,
       isActive: g.isActive !== false
     });
     if (!siteOptions.length) dispatch(fetchSiteList());
     setShowGroupPopup(true);
   };
 
-  // (Removed legacy recipient create/edit handlers)
-
   const handleSaveGroup = async () => {
     setLoading(true);
     try {
-      // Basic validation
       const errors = [];
       if (!groupFormData.name) errors.push('Group name is required');
       if (groupFormData.name && groupFormData.name.length > 100) errors.push('Name max length 100');
@@ -349,14 +505,12 @@ const RecipientManagement = () => {
         return;
       }
       const deliveryStr = (groupFormData.allowedDeliveryMethods || []).join(',');
-      const members = groupFormData.includeSelectedUsers ? (selectedUsers || []).map(u => ({ memberType: 'User', memberId: String(u.id) })) : undefined;
       const basePayload = {
         name: groupFormData.name,
         description: groupFormData.description || null,
         siteId: groupFormData.siteId ? parseInt(groupFormData.siteId) : null,
         allowedDeliveryMethods: deliveryStr || null,
-        isActive: groupFormData.isActive,
-        members
+        isActive: groupFormData.isActive
       };
       let res;
       if (editingGroupId) {
@@ -366,7 +520,6 @@ const RecipientManagement = () => {
       }
       if (res.isSuccess) {
         notify(editingGroupId ? 'Group updated successfully!' : 'Group created successfully!', 'success', 3000);
-        // refresh groups from API
         const reload = await notificationGroupsApi.getGroups();
         if (reload.isSuccess) {
           const uiGroups = (reload.data || []).map(g => ({
@@ -375,414 +528,513 @@ const RecipientManagement = () => {
             displayName: g.name || g.displayName || g.groupName || `Group #${g.id}`,
             description: g.description,
             memberCount: g.memberCount ?? g.members?.length ?? 0,
-            isActive: g.isActive !== false
+            isActive: g.isActive !== false,
+            siteId: g.siteId ?? g.siteID ?? null,
+            siteName: g.siteName || g.site?.name || ''
           }));
           setGroups(uiGroups);
         }
-  setShowGroupPopup(false);
-  setGroupFormData({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], includeSelectedUsers: false, isActive: true });
-  setEditingGroupId(null);
+        setShowGroupPopup(false);
+        setGroupFormData({ name: '', description: '', siteId: '', allowedDeliveryMethods: [], isActive: true });
+        setEditingGroupId(null);
       } else {
         notify(res.message || 'Failed to create group', 'error', 4000);
       }
-    } catch (e) {
-      // final fallback: optimistic add to UI
-      const newGroup = {
-        ...groupFormData,
-        id: groups.length ? Math.max(...groups.map(g => g.id)) + 1 : 1,
-        displayName: groupFormData.displayName || groupFormData.name,
-        memberCount: 0,
-        isActive: true
-      };
-      setGroups(prev => [...prev, newGroup]);
-      notify('Group created locally (API error).', 'warning', 4000);
+    } catch {
+      notify('Failed to save group.', 'error', 4000);
     } finally {
       setLoading(false);
     }
   };
 
+  const clearDeepLinkFilters = () => {
+    setDeepLinkHandled(false);
+    setSearchParams({});
+  };
 
+  const closeGroupPanel = () => {
+    setShowGroupPopup(false);
+    setEditingGroupId(null);
+  };
 
-  const renderStatus = (data) => {
+  const closeMembersPanel = () => {
+    setShowMembersPopup(false);
+    setSelectedGroup(null);
+    setAddMemberForm({ memberId: '' });
+  };
+
+  const renderStatus = (data) => (
+    <span className={`rm-status-pill ${data.value ? 'rm-status-pill--active' : 'rm-status-pill--inactive'}`}>
+      {data.value ? 'Active' : 'Inactive'}
+    </span>
+  );
+
+  const renderGroupActions = ({ data }) => (
+    <div className="rm-row-actions">
+      <button type="button" className="m365-icon-btn" title="View Members" onClick={() => openMembersPopup(data)}>
+        <i className="fa-light fa-users"></i>
+      </button>
+      <button type="button" className="m365-icon-btn" title="Edit Group" onClick={() => handleEditGroup(data)}>
+        <i className="fa-light fa-pen"></i>
+      </button>
+    </div>
+  );
+
+  const renderWarningLetterSlot = (groupName) => {
+    const matchedGroups = selectedWarningLetterSite?.groupsByName.get(groupName) || [];
+    const primaryGroup = matchedGroups[0];
+    const duplicateCount = matchedGroups.length > 1 ? matchedGroups.length - 1 : 0;
+
     return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-        data.value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'
-      }`}>
-        {data.value ? 'Active' : 'Inactive'}
-      </span>
-    );
-  };
-
-  const renderFullName = (data) => {
-    return `${data.data.firstName} ${data.data.lastName}`;
-  };
-
-  const filteredUsers = users.filter(u => {
-    if (!userSearch) return true;
-    const q = userSearch.toLowerCase();
-    return (
-      (u.firstName && u.firstName.toLowerCase().includes(q)) ||
-      (u.lastName && u.lastName.toLowerCase().includes(q)) ||
-      (u.email && u.email.toLowerCase().includes(q)) ||
-      (u.role && u.role.toLowerCase().includes(q))
-    );
-  });
-
-  const addSelectedUsersToGroup = async () => {
-    if (!selectedGroup) {
-      notify('Select a group first', 'warning', 2500);
-      return;
-    }
-    if (!selectedUsers.length) {
-      notify('No users selected', 'warning', 2500);
-      return;
-    }
-    // Filter out duplicates already in group members
-    const existingUserIds = new Set(members.filter(m => m.memberType === 'User').map(m => m.memberId));
-    const unique = selectedUsers.filter(u => !existingUserIds.has(String(u.id)));
-    if (!unique.length) {
-      notify('All selected users are already members', 'info', 3000);
-      return;
-    }
-    setMembersLoading(true);
-    try {
-      const payload = unique.map(u => ({ memberType: 'User', memberId: String(u.id) }));
-      const res = await notificationGroupsApi.addGroupMembers(selectedGroup.id, payload);
-      if (res.isSuccess) {
-        const r = res.data || {};
-        const summary = `Added ${r.added ?? r.Added ?? 0}/${r.attempted ?? r.Attempted ?? payload.length}`;
-        notify(res.message || summary, 'success', 3500);
-        await openMembersPopup(selectedGroup);
-        setSelectedUsers([]);
-      } else {
-        notify(res.message || 'Failed to add users', 'error', 3500);
-      }
-    } catch (e) {
-      notify('Failed to add users', 'error', 3500);
-    } finally {
-      setMembersLoading(false);
-    }
-  };
-
-
-  return (
-    <div className="form-container">
-      <div className="form-content">
-        <div className="tw-p-6 notification-form">
-          <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
-        {/* Header */}
-        <div className="tw-p-6 tw-border-b tw-border-gray-200">
-          <div className="tw-flex tw-justify-between tw-items-center">
-            <div>
-              <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-                <i className="fa-solid fa-users tw-mr-2 tw-text-blue-600"></i>
-                Recipient Management
-              </h2>
-              <p className="tw-text-gray-600 tw-mt-1">
-                Manage notification recipients and groups
-              </p>
-            </div>
-            <div className="tw-flex tw-space-x-3">
-              <Button
-                text="Create Group"
-                icon="fa-solid fa-user-friends"
-                type="normal"
-                onClick={handleCreateGroup}
-              />
-
-              <Button
-                text="Create User"
-                icon="fa-solid fa-user"
-                type="default"
-                onClick={openCreateUserPopup}
-              />
-            </div>
-          </div>
-        </div>
-
-  {/* Users Directory */}
-        <div className="tw-p-6">
-          <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-            <h3 className="tw-text-lg tw-font-medium tw-text-gray-900">Users Directory</h3>
-            <div className="tw-flex tw-space-x-2">
-              <input
-                type="text"
-                className="tw-border tw-rounded tw-px-2 tw-py-1 tw-text-sm"
-                placeholder="Search users..."
-                value={userSearch}
-                onChange={e => setUserSearch(e.target.value)}
-              />
-              <Button
-                text="Add Selected to Group"
-                type="default"
-                onClick={addSelectedUsersToGroup}
-                disabled={!selectedGroup || !selectedUsers.length || membersLoading}
-              />
-            </div>
-          </div>
-          <DataGrid
-            dataSource={filteredUsers}
-            keyExpr="id"
-            showBorders={true}
-            rowAlternationEnabled={true}
-            height={400}
-            columnAutoWidth={true}
-            loadPanel={{ enabled: usersLoading }}
-            selection={{ mode: 'multiple', showCheckBoxesMode: 'always' }}
-            onSelectionChanged={e => setSelectedUsers(e.selectedRowsData)}
-          >
-            <Column caption="Name" cellRender={renderFullName} />
-            <Column dataField="email" caption="Email" />
-            <Column dataField="role" caption="Role" />
-            <Column dataField="department" caption="Department" />
-            <Column dataField="isActive" caption="Active" cellRender={renderStatus} width={90} />
-          </DataGrid>
-        </div>
-
-  {/* Groups Panel */}
-        <div className="tw-px-6 tw-pb-6">
-          <div className="tw-flex tw-items-center tw-justify-between tw-mb-3">
-            <h3 className="tw-text-lg tw-font-medium tw-text-gray-900">Groups</h3>
-          </div>
-          <DataGrid
-            dataSource={groups}
-            showBorders={true}
-            rowAlternationEnabled={true}
-            columnAutoWidth={true}
-          >
-            <Column dataField="displayName" caption="Group"/>
-            <Column dataField="description" caption="Description"/>
-            <Column dataField="memberCount" caption="Members" width={100}/>
-            <Column dataField="isActive" caption="Status" width={100} cellRender={({ value }) => (
-              <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-                value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'
-              }`}>
-                {value ? 'Active' : 'Inactive'}
-              </span>
-            )}/>
-            <Column caption="Actions" width={220} cellRender={({ data }) => (
-              <div className="tw-flex tw-space-x-2">
-                <Button icon="fa-solid fa-users" hint="View Members" stylingMode="text" onClick={() => openMembersPopup(data)} />
-                <Button icon="fa-solid fa-pen" hint="Edit Group" stylingMode="text" onClick={() => handleEditGroup(data)} />
-              </div>
-            )}/>
-          </DataGrid>
-        </div>
-  </div>
-
-      {/* Create Group Popup */}
-      <Popup
-        visible={showGroupPopup}
-        onHiding={() => setShowGroupPopup(false)}
-        dragEnabled={false}
-  title={editingGroupId ? 'Edit Group' : 'Create New Group'}
-        width={400}
-        height='auto'
-        showCloseButton={true}
-      >
-  <div className="tw-p-4 tw-space-y-4">
+      <div key={groupName} className={`rm-wl-group-card ${duplicateCount ? 'rm-wl-group-card--duplicate' : primaryGroup ? 'rm-wl-group-card--ready' : 'rm-wl-group-card--missing'}`}>
+        <div className="rm-wl-group-card__header">
           <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Name<span className="tw-text-red-500">*</span></label>
+            <h3 className="rm-wl-group-card__title">{groupName}</h3>
+            <p className="rm-wl-group-card__description">{WARNING_LETTER_GROUP_DESCRIPTIONS[groupName]}</p>
+          </div>
+          <span className={`rm-wl-group-card__status ${duplicateCount ? 'rm-wl-group-card__status--warning' : primaryGroup ? 'rm-wl-group-card__status--success' : 'rm-wl-group-card__status--muted'}`}>
+            {duplicateCount ? `${matchedGroups.length} groups found` : primaryGroup ? 'Configured' : 'Missing'}
+          </span>
+        </div>
+
+        {primaryGroup ? (
+          <div className="rm-wl-group-card__body">
+            <div className="rm-wl-group-card__meta">
+              <span>{primaryGroup.memberCount} member{primaryGroup.memberCount !== 1 ? 's' : ''}</span>
+              <span>{primaryGroup.isActive ? 'Active' : 'Inactive'}</span>
+            </div>
+            <div className="rm-wl-group-card__actions">
+              <button type="button" className="m365-btn m365-btn--primary" onClick={() => openMembersPopup(primaryGroup)}>
+                <i className="fa-light fa-users"></i>
+                Manage Members
+              </button>
+              <button type="button" className="m365-btn m365-btn--ghost" onClick={() => handleEditGroup(primaryGroup)}>
+                <i className="fa-light fa-pen"></i>
+                Edit Group
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="rm-wl-group-card__body">
+            <p className="rm-wl-group-card__empty">This required group has not been created for the selected site.</p>
+          </div>
+        )}
+
+        {duplicateCount > 0 && (
+          <div className="rm-wl-group-card__duplicates">
+            <p className="rm-wl-group-card__warning">Only one {groupName.toLowerCase()} group should exist per site. Review the duplicates below.</p>
+            {matchedGroups.map(group => (
+              <div key={group.id} className="rm-wl-group-card__duplicate-row">
+                <span>{group.displayName} · {group.memberCount} member{group.memberCount !== 1 ? 's' : ''}</span>
+                <div className="rm-wl-group-card__duplicate-actions">
+                  <button type="button" className="m365-btn m365-btn--text" onClick={() => openMembersPopup(group)}>Members</button>
+                  <button type="button" className="m365-btn m365-btn--text" onClick={() => handleEditGroup(group)}>Edit</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /* Tab: Groups */
+  const renderGroupsTab = () => (
+    <div className="rm-tab-content">
+      <div className="rm-toolbar">
+        <div className="rm-toolbar__left">
+          <div className="m365-search rm-toolbar__search">
+            <i className="fa-light fa-magnifying-glass m365-search__icon" />
             <input
               type="text"
-              className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1"
-              value={groupFormData.name}
-              onChange={e => setGroupFormData(f => ({ ...f, name: e.target.value }))}
-              placeholder="Unique group key"
-              maxLength={100}
+              className="m365-search__input"
+              placeholder="Search groups..."
+              value={groupSearch}
+              onChange={e => setGroupSearch(e.target.value)}
             />
           </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Description</label>
-            <textarea
-              className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1 tw-h-20"
-              value={groupFormData.description}
-              onChange={e => setGroupFormData(f => ({ ...f, description: e.target.value }))}
-              placeholder="Describe purpose"
-              maxLength={500}
-            />
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Site (optional)</label>
-            <select
-              className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1"
-              value={groupFormData.siteId}
-              onChange={e => setGroupFormData(f => ({ ...f, siteId: e.target.value }))}
-            >
-              <option value="">-- None --</option>
-              {siteOptions.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Allowed Delivery Methods</label>
-            <div className="tw-grid tw-grid-cols-2 tw-gap-2">
-              {['Email','Sms','Push','Webhook'].map(m => {
-                const checked = groupFormData.allowedDeliveryMethods.includes(m);
-                return (
-                  <label key={m} className="tw-flex tw-items-center tw-space-x-2 tw-text-xs tw-bg-gray-50 tw-rounded tw-px-2 tw-py-1">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => setGroupFormData(f => ({
-                        ...f,
-                        allowedDeliveryMethods: checked ? f.allowedDeliveryMethods.filter(x => x !== m) : [...f.allowedDeliveryMethods, m]
-                      }))}
-                    />
-                    <span>{m}</span>
-                  </label>
-                );
-              })}
-            </div>
-            <div className="tw-flex tw-space-x-2 tw-mt-2">
-              <Button text="Apply Role Defaults" onClick={() => setGroupFormData(f => ({ ...f, allowedDeliveryMethods: computeRoleDefaults() }))} disabled={!selectedUsers.length} />
-              <Button text="Clear" onClick={() => setGroupFormData(f => ({ ...f, allowedDeliveryMethods: [] }))} />
-            </div>
-          </div>
-          <div>
-            <label className="tw-inline-flex tw-items-center tw-space-x-2 tw-text-sm">
-              <input
-                type="checkbox"
-                checked={groupFormData.isActive}
-                onChange={e => setGroupFormData(f => ({ ...f, isActive: e.target.checked }))}
-              />
-              <span>Active</span>
-            </label>
-          </div>
-          <div>
-            <label className="tw-inline-flex tw-items-center tw-space-x-2 tw-text-sm">
-              <input
-                type="checkbox"
-                checked={groupFormData.includeSelectedUsers}
-                onChange={e => setGroupFormData(f => ({ ...f, includeSelectedUsers: e.target.checked }))}
-              />
-              <span>Include currently selected users ({selectedUsers.length}) as members</span>
-            </label>
-          </div>
-          <div className="tw-flex tw-justify-end tw-space-x-3 tw-pt-2">
-            <Button text="Cancel" onClick={() => { setShowGroupPopup(false); setEditingGroupId(null); }} />
-            <Button text={loading ? 'Saving...' : (editingGroupId ? 'Update Group' : 'Create Group')} type="default" onClick={handleSaveGroup} disabled={loading} />
-          </div>
+          <select className="m365-select rm-toolbar__site-filter" value={selectedGroupSiteId} onChange={e => setSelectedGroupSiteId(e.target.value)}>
+            <option value="">All sites</option>
+            {siteOptions.map(site => (
+              <option key={site.id} value={site.id}>{site.name}</option>
+            ))}
+          </select>
         </div>
-      </Popup>
-
-      {/* Group Members Popup */}
-      <Popup
-        visible={showMembersPopup}
-        onHiding={() => setShowMembersPopup(false)}
-        dragEnabled={false}
-        title={selectedGroup ? `Members of ${selectedGroup.displayName}` : 'Group Members'}
-        width={600}
-        height={500}
-        showCloseButton={true}
-      >
-        <div className="tw-p-4 tw-space-y-4">
-          <div className="tw-flex tw-items-end tw-space-x-3">
-            <SelectBox
-              label="Member Type"
-              dataSource={[{ id: 'User', name: 'User' }, { id: 'Role', name: 'Role' }]}
-              valueExpr="id"
-              displayExpr="name"
-              value={addMemberForm.memberType}
-              onValueChanged={(e) => setAddMemberForm(prev => ({ ...prev, memberType: e.value }))}
-              width={180}
-            />
-            <TextBox
-              label="Member Identifier"
-              value={addMemberForm.memberId}
-              onValueChanged={(e) => setAddMemberForm(prev => ({ ...prev, memberId: e.value }))}
-              placeholder={addMemberForm.memberType === 'Role' ? 'Role name or id' : 'User id'}
-              width={260}
-              labelMode='outlined'
-            />
-            <Button text="Add" type="default" onClick={addMember} disabled={membersLoading || !selectedGroup} />
-          </div>
-
-          <div className="tw-border tw-border-gray-200 tw-rounded">
-            <DataGrid
-              dataSource={members}
-              height={320}
-              width='auto'
-              loadPanel={{ enabled: membersLoading }}
-              rowAlternationEnabled={true}
-              columnAutoWidth={true}
-            >
-              <Column dataField="memberType" caption="Type" width={80} />
-              <Column dataField="name" caption="Name / Identifier" width={180} />
-              <Column dataField="email" caption="Email" width={200} />
-              <Column dataField="memberId" caption="User Id" width={220} visible={false} />
-              <Column caption="Actions" width={90} cellRender={({ data }) => (
-                <Button icon="fa-solid fa-trash" hint="Remove" stylingMode="text" onClick={() => removeMember(data)} />
-              )} />
-            </DataGrid>
-          </div>
+        <div className="rm-toolbar__right">
+          <button type="button" className="m365-btn m365-btn--primary" onClick={handleCreateGroup}>
+            <i className="fa-light fa-plus"></i>
+            Create Group
+          </button>
         </div>
-      </Popup>
-
-  {/* Create User Popup */}
-      <Popup
-        visible={showCreateUserPopup}
-        onHiding={() => setShowCreateUserPopup(false)}
-        dragEnabled={false}
-        title="Create User"
-        width={480}
-        height={520}
-        showCloseButton={true}
-      >
-        <div className="tw-p-4 tw-space-y-4">
-          <div className="tw-grid tw-grid-cols-1 tw-gap-4">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Email</label>
-              <input type="email" className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" value={newUserForm.email} onChange={e => handleNewUserFieldChange('email', e.target.value)} />
-            </div>
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Username</label>
-              <input type="text" className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" value={newUserForm.username} onChange={e => handleNewUserFieldChange('username', e.target.value)} />
-            </div>
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Password</label>
-              <input
-                type="password"
-                className={`tw-w-full tw-border tw-rounded tw-px-2 tw-py-1 ${passwordErrors.length ? 'tw-border-red-500' : ''}`}
-                value={newUserForm.password}
-                onChange={e => handleNewUserFieldChange('password', e.target.value)}
-                placeholder="Enter strong password"
-              />
-              {passwordErrors.length > 0 && (
-                <ul className="tw-mt-1 tw-text-xs tw-text-red-600 tw-list-disc tw-ml-5">
-                  {passwordErrors.map((pe,i) => <li key={i}>{pe}</li>)}
-                </ul>
-              )}
-            </div>
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Confirm Password</label>
-              <input
-                type="password"
-                className={`tw-w-full tw-border tw-rounded tw-px-2 tw-py-1 ${newUserForm.confirmPassword && newUserForm.confirmPassword !== newUserForm.password ? 'tw-border-red-500' : ''}`}
-                value={newUserForm.confirmPassword}
-                onChange={e => handleNewUserFieldChange('confirmPassword', e.target.value)}
-                placeholder="Re-enter password"
-              />
-              {newUserForm.confirmPassword && newUserForm.confirmPassword !== newUserForm.password && (
-                <p className="tw-mt-1 tw-text-xs tw-text-red-600">Passwords do not match.</p>
-              )}
-            </div>
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Role</label>
-              <select className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" value={newUserForm.roleName} onChange={e => handleNewUserFieldChange('roleName', e.target.value)}>
-                <option value="">-- None --</option>
-                { (rolesList.length ? rolesList : fallbackRoles).map(r => <option key={r} value={r}>{r}</option>) }
-              </select>
-            </div>
-          </div>
-          <div className="tw-flex tw-justify-end tw-space-x-3 tw-pt-4 tw-border-t">
-            <Button text="Cancel" onClick={() => setShowCreateUserPopup(false)} />
-            <Button text={creatingUser ? 'Creating...' : 'Create User'} type="default" onClick={submitCreateUser} disabled={creatingUser} />
-          </div>
-        </div>
-      </Popup>
+      </div>
+      <div className="rm-grid-wrap">
+        <DataGrid
+          dataSource={filteredGroups}
+          showBorders={false}
+          rowAlternationEnabled={true}
+          columnAutoWidth={true}
+          hoverStateEnabled={true}
+          height={520}
+        >
+          <Column dataField="displayName" caption="Group Name" />
+          <Column dataField="siteName" caption="Site" width={180} />
+          <Column dataField="description" caption="Description" />
+          <Column dataField="memberCount" caption="Members" width={90} alignment="center" />
+          <Column dataField="isActive" caption="Status" width={90} alignment="center" cellRender={renderStatus} />
+          <Column caption="" width={100} cellRender={renderGroupActions} />
+        </DataGrid>
+      </div>
     </div>
-  </div>
-</div>
+  );
+
+  /* Tab: Warning Letter Groups */
+  const renderWarningLetterTab = () => (
+    <div className="rm-tab-content">
+      <div className="rm-wl-banner">
+        <i className="fa-light fa-circle-info rm-wl-banner__icon"></i>
+        <span className="rm-wl-banner__text">
+          Each site should have exactly one Warning Letter Site Representatives group and one Warning Letter Signature CC group.
+        </span>
+      </div>
+      <div className="rm-toolbar">
+        <div className="rm-toolbar__left">
+          <div className="m365-search rm-toolbar__search">
+            <i className="fa-light fa-magnifying-glass m365-search__icon" />
+            <input
+              type="text"
+              className="m365-search__input"
+              placeholder="Search sites..."
+              value={groupSearch}
+              onChange={e => setGroupSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="rm-toolbar__right">
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={handleCreateWarningLetterGroups}
+            disabled={warningLetterSetupLoading || !selectedGroupSiteId}
+          >
+            <i className="fa-light fa-layer-group"></i>
+            {warningLetterSetupLoading ? 'Checking...' : 'Ensure Required Groups'}
+          </button>
+          <button
+            type="button"
+            className="m365-btn m365-btn--primary"
+            onClick={handleCreateAndPopulateWarningLetterGroups}
+            disabled={warningLetterSetupLoading || !selectedGroupSiteId}
+          >
+            <i className="fa-light fa-user-check"></i>
+            {warningLetterSetupLoading ? 'Opening...' : 'Ensure + Open Members'}
+          </button>
+          {(groupSearch || selectedGroupSiteId) && (
+            <button type="button" className="m365-btn m365-btn--text" onClick={() => { setGroupSearch(''); clearDeepLinkFilters(); }}>
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+      {warningLetterSiteItems.length === 0 ? (
+        <div className="rm-empty-state">
+          <i className="fa-light fa-building rm-empty-state__icon"></i>
+          <p className="rm-empty-state__text">No sites matched the current search.</p>
+        </div>
+      ) : (
+        <div className="rm-wl-layout">
+          <div className="rm-wl-sites">
+            <div className="rm-wl-sites__header">
+              <div>
+                <h3 className="rm-wl-sites__title">Sites</h3>
+                <p className="rm-wl-sites__subtitle">Each site must have 1 representative group and 1 signature CC group.</p>
+              </div>
+              <span className="rm-wl-sites__count">{warningLetterSiteItems.length}</span>
+            </div>
+            {warningLetterSiteItems.map(site => (
+              <button
+                key={site.siteId}
+                type="button"
+                className={`rm-wl-site-item ${String(site.siteId) === String(selectedGroupSiteId) ? 'rm-wl-site-item--active' : ''}`}
+                onClick={() => setSelectedGroupSiteId(String(site.siteId))}
+              >
+                <div className="rm-wl-site-item__top">
+                  <div className="rm-wl-site-item__identity">
+                    <span className="rm-wl-site-item__name">{site.siteName}</span>
+                    <span className="rm-wl-site-item__summary">{site.totalWarningLetterGroups} configured of 2 required</span>
+                  </div>
+                  <span className={`rm-wl-site-item__badge ${site.duplicateCount ? 'rm-wl-site-item__badge--warning' : site.hasExactRequired ? 'rm-wl-site-item__badge--success' : site.hasAllRequired ? 'rm-wl-site-item__badge--neutral' : 'rm-wl-site-item__badge--muted'}`}>
+                    {site.duplicateCount ? 'Duplicates' : site.hasExactRequired ? 'Ready' : site.hasAllRequired ? 'Review' : `${site.missingCount} missing`}
+                  </span>
+                </div>
+                <div className="rm-wl-site-item__requirements">
+                  {WARNING_LETTER_GROUP_NAMES.map(name => {
+                    const count = site.groupsByName.get(name)?.length || 0;
+                    const shortLabel = name === 'Warning Letter Site Representatives' ? 'Rep' : 'CC';
+
+                    return (
+                      <span
+                        key={`${site.siteId}-${name}`}
+                        className={`rm-wl-site-item__requirement ${count > 1 ? 'rm-wl-site-item__requirement--warning' : count === 1 ? 'rm-wl-site-item__requirement--success' : 'rm-wl-site-item__requirement--muted'}`}
+                      >
+                        <span className="rm-wl-site-item__requirement-label">{shortLabel}</span>
+                        <span className="rm-wl-site-item__requirement-value">{count > 1 ? `${count}x` : count === 1 ? 'OK' : 'Missing'}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="rm-wl-site-item__meta">
+                  {site.duplicateCount > 0 ? <span>{site.duplicateCount} extra group{site.duplicateCount !== 1 ? 's' : ''}</span> : <span>No duplicates</span>}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="rm-wl-detail">
+            {selectedWarningLetterSite ? (
+              <>
+                <div className="rm-wl-detail__header">
+                  <div>
+                    <h3 className="rm-wl-detail__title">{selectedWarningLetterSite.siteName}</h3>
+                    <p className="rm-wl-detail__subtitle">Manage the two required warning-letter groups for this site.</p>
+                  </div>
+                  <div className="rm-wl-detail__summary">
+                    {selectedWarningLetterSite.duplicateCount > 0 ? 'Duplicates detected' : selectedWarningLetterSite.hasExactRequired ? 'Configuration complete' : `${selectedWarningLetterSite.missingCount} required group(s) missing`}
+                  </div>
+                </div>
+                <div className="rm-wl-group-stack">
+                  {WARNING_LETTER_GROUP_NAMES.map(renderWarningLetterSlot)}
+                </div>
+              </>
+            ) : (
+              <div className="rm-empty-state">
+                <i className="fa-light fa-building rm-empty-state__icon"></i>
+                <p className="rm-empty-state__text">Select a site from the list to manage its warning-letter groups.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="rm-page">
+      {/* Page header */}
+      <div className="rm-page-header">
+        <div className="rm-page-header__left">
+          <i className="fa-light fa-users-gear rm-page-header__icon"></i>
+          <h2 className="rm-page-header__title">Recipient Management</h2>
+          <span className="rm-page-header__count">{filteredGroups.length}</span>
+        </div>
+        <div className="rm-page-header__actions">
+          <button type="button" className="m365-btn m365-btn--primary" onClick={() => setShowCreateUserPopup(true)}>
+            <i className="fa-light fa-plus"></i>
+            Create User
+          </button>
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={() => handleRefresh()}
+            disabled={usersLoading || membersLoading || warningLetterSetupLoading}
+          >
+            <i className="fa-light fa-rotate-right"></i>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Tab bar */}
+      <div className="rm-tabs">
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            className={`rm-tab ${activeTab === tab.key ? 'rm-tab--active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.label}</span>
+            {tab.key === 'groups' && <span className="rm-tab__badge rm-tab__badge--neutral">{filteredGroups.length}</span>}
+            {tab.key === 'warning-letter' && warningLetterGroups.length > 0 && (
+              <span className="rm-tab__badge rm-tab__badge--warning">{warningLetterGroups.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="rm-body">
+        {activeTab === 'groups' && renderGroupsTab()}
+        {activeTab === 'warning-letter' && renderWarningLetterTab()}
+      </div>
+
+      {/* Side panels */}
+      <SlidePanel
+        open={showGroupPopup}
+        onClose={closeGroupPanel}
+        title={editingGroupId ? 'Edit Group' : 'Create New Group'}
+        width={480}
+      >
+        <div className="rm-panel">
+          <div className="rm-panel__body">
+            <div className="rm-panel__section">
+              <h3 className="rm-panel__section-title">Group Details</h3>
+              <div className="rm-panel__field">
+                <label className="rm-panel__label">Name</label>
+                <input
+                  type="text"
+                  className="m365-input"
+                  value={groupFormData.name}
+                  onChange={e => setGroupFormData(f => ({ ...f, name: e.target.value }))}
+                  placeholder="Unique group key"
+                  maxLength={100}
+                />
+              </div>
+              <div className="rm-panel__field">
+                <label className="rm-panel__label">Description</label>
+                <textarea
+                  className="m365-input rm-panel__textarea"
+                  value={groupFormData.description}
+                  onChange={e => setGroupFormData(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Describe the group purpose"
+                  maxLength={500}
+                />
+              </div>
+              <div className="rm-panel__field">
+                <label className="rm-panel__label">Site</label>
+                <select
+                  className="m365-select"
+                  value={groupFormData.siteId}
+                  onChange={e => setGroupFormData(f => ({ ...f, siteId: e.target.value }))}
+                >
+                  <option value="">No site restriction</option>
+                  {siteOptions.map(site => <option key={site.id} value={site.id}>{site.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="rm-panel__section">
+              <h3 className="rm-panel__section-title">Delivery Methods</h3>
+              <div className="rm-panel__checkbox-grid">
+                {['Email', 'Sms', 'Push', 'Webhook'].map(method => {
+                  const checked = groupFormData.allowedDeliveryMethods.includes(method);
+                  return (
+                    <label key={method} className="rm-panel__method-chip">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setGroupFormData(f => ({
+                          ...f,
+                          allowedDeliveryMethods: checked
+                            ? f.allowedDeliveryMethods.filter(item => item !== method)
+                            : [...f.allowedDeliveryMethods, method]
+                        }))}
+                      />
+                      <span>{method}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="rm-panel__inline-actions">
+                <button
+                  type="button"
+                  className="m365-btn m365-btn--text"
+                  onClick={() => setGroupFormData(f => ({ ...f, allowedDeliveryMethods: [] }))}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="rm-panel__section">
+              <h3 className="rm-panel__section-title">Options</h3>
+              <label className="m365-checkbox">
+                <input type="checkbox" checked={groupFormData.isActive} onChange={e => setGroupFormData(f => ({ ...f, isActive: e.target.checked }))} />
+                <span className="m365-checkbox__label">Active</span>
+              </label>
+            </div>
+          </div>
+          <div className="rm-panel__footer">
+            <button type="button" className="m365-btn m365-btn--ghost" onClick={closeGroupPanel}>Cancel</button>
+            <button type="button" className="m365-btn m365-btn--primary" onClick={handleSaveGroup} disabled={loading}>
+              {loading ? 'Saving...' : (editingGroupId ? 'Update Group' : 'Create Group')}
+            </button>
+          </div>
+        </div>
+      </SlidePanel>
+
+      <SlidePanel
+        open={showMembersPopup}
+        onClose={closeMembersPanel}
+        title={selectedGroup ? `Members - ${selectedGroup.displayName}` : 'Group Members'}
+        width={720}
+      >
+        <div className="rm-panel">
+          <div className="rm-panel__body">
+            <div className="rm-panel__info-banner">
+              <i className="fa-light fa-circle-info"></i>
+              <span>Use the user picker below to add members directly to this group.</span>
+            </div>
+            <div className="rm-panel__member-bar">
+              <div className="rm-panel__member-field rm-panel__member-field--entity">
+                <label className="rm-panel__label">User</label>
+                <SelectBox
+                  dataSource={memberUserOptions}
+                  valueExpr="id"
+                  displayExpr={(item) => {
+                    if (!item) return '';
+                    return `${item.name}${item.email ? ` (${item.email})` : ''}`;
+                  }}
+                  value={addMemberForm.memberId}
+                  onValueChanged={(e) => setAddMemberForm(prev => ({ ...prev, memberId: e.value || '' }))}
+                  placeholder="Search and select a user"
+                  width="100%"
+                  searchEnabled={true}
+                  searchExpr={['name', 'email', 'role']}
+                  showClearButton={true}
+                />
+              </div>
+              <div className="rm-panel__member-action">
+                <button type="button" className="m365-btn m365-btn--primary" onClick={addMember} disabled={membersLoading || !selectedGroup}>
+                  Add
+                </button>
+              </div>
+            </div>
+            <div className="rm-grid-wrap">
+              <DataGrid
+                dataSource={members}
+                height={400}
+                width="auto"
+                showBorders={false}
+                loadPanel={{ enabled: membersLoading }}
+                rowAlternationEnabled={true}
+                columnAutoWidth={true}
+                hoverStateEnabled={true}
+              >
+                <Column caption="" width={60} alignment="center" fixed={true} fixedPosition="left" cellRender={({ data }) => (
+                  <button type="button" className="m365-icon-btn m365-icon-btn--danger" title="Remove" onClick={() => removeMember(data)}>
+                    <i className="fa-light fa-trash"></i>
+                  </button>
+                )} />
+                <Column dataField="name" caption="Name / Identifier" />
+                <Column dataField="email" caption="Email" width={220} />
+                <Column dataField="memberId" caption="User Id" width={220} visible={false} />
+              </DataGrid>
+            </div>
+          </div>
+        </div>
+      </SlidePanel>
+
+      <CreateUserPanel
+        visible={showCreateUserPopup}
+        onHide={() => setShowCreateUserPopup(false)}
+        onSuccess={async () => {
+          await handleRefresh(true);
+        }}
+        roleOptions={createUserRoleOptions}
+        departments={[]}
+      />
+    </div>
   );
 };
 

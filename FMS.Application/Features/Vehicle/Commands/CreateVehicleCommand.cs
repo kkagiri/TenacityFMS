@@ -1,9 +1,11 @@
 using AutoMapper;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.Vehicle;
 using FMS.Application.Common;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -32,8 +34,10 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
     {
         try
         {
+            VehicleIdentifierNormalizer.NormalizeVehicleDto(request.VehicleDTO);
+
             // Check if hyoungNo already exists
-            if (_context.Vehicles.Any(v => v.HyoungNo == request.VehicleDTO.HyoungNo))
+            if (await HasNormalizedHyoungNoConflictAsync(request.VehicleDTO.HyoungNo, null, cancellationToken))
             {
                 return new FMSResponseMessage<VehicleDTO>(false, $"Vehicle with Hyoung No {request.VehicleDTO.HyoungNo} already exists", null);
             }
@@ -69,6 +73,21 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
             _logger.LogError(ex, "Error creating vehicle");
             return new FMSResponseMessage<VehicleDTO>(false, "Error creating vehicle: " + ex.Message, null);
         }
+    }
+
+    private Task<bool> HasNormalizedHyoungNoConflictAsync(string normalizedHyoungNo, int? currentVehicleId, CancellationToken cancellationToken)
+    {
+        return _context.Vehicles
+            .AsNoTracking()
+            .AnyAsync(
+                vehicle =>
+                    (!currentVehicleId.HasValue || vehicle.VehicleId != currentVehicleId.Value) &&
+                    (((vehicle.HyoungNo ?? string.Empty)
+                        .Replace(" ", string.Empty)
+                        .Replace("\r", string.Empty)
+                        .Replace("\n", string.Empty)
+                        .ToUpper()) == normalizedHyoungNo),
+                cancellationToken);
     }
 
     private async Task<(bool IsValid, string[] Errors)> ValidateVehicleDTO(VehicleDTO vehicleDTO)

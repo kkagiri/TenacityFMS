@@ -53,6 +53,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.IsDeleted)
                     .HasDefaultValueSql("'0'").IsRequired(false);
 
+                builder.Property(e => e.RequirePasswordChangeOnFirstLogin)
+                    .HasDefaultValue(false);
+
                 builder.Property(e => e.NormalizedEmail)
                     .HasMaxLength(256)
                     .UseCollation("utf8mb4_general_ci")

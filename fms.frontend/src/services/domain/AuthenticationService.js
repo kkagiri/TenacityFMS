@@ -51,6 +51,9 @@ export class AuthenticationService extends BaseService {
         // Backend returns FMSResponse<object> with Data = { Token, RefreshToken, User }
         const token = response.data.Token || response.data.token;
         const refreshToken = response.data.RefreshToken || response.data.refreshToken;
+        const loginUser = this._normalizeUserData(
+          response.data.User || response.data.user
+        );
 
         if (!token) {
           this.logger.error("No token in response data:", response.data);
@@ -85,7 +88,7 @@ export class AuthenticationService extends BaseService {
         }
 
         // Since the login endpoint only returns a token, we need to fetch user details separately
-        let user = null;
+        let user = loginUser;
         try {
           const userResponse = await this.getCurrentUser();
           if (userResponse.success) {
@@ -96,13 +99,14 @@ export class AuthenticationService extends BaseService {
             "Failed to fetch user details after login",
             userError
           );
-          // For now, create a minimal user object from the token or username
-          user = {
-            id: null,
-            userName: username,
-            roles: [],
-            permissions: [],
-          };
+          user =
+            loginUser || {
+              id: null,
+              userName: username,
+              roles: [],
+              permissions: [],
+              requirePasswordChangeOnFirstLogin: false,
+            };
         }
 
         // Fetch navigation items immediately after successful login
@@ -561,6 +565,10 @@ export class AuthenticationService extends BaseService {
       email: user.Email || user.email,
       firstName: user.FirstName || user.firstName,
       lastName: user.LastName || user.lastName,
+      requirePasswordChangeOnFirstLogin:
+        user.RequirePasswordChangeOnFirstLogin ??
+        user.requirePasswordChangeOnFirstLogin ??
+        false,
       roles: user.Roles || user.roles || [],
       permissions: user.Permissions || user.permissions || [],
       lastLogin: user.LastLogin || user.lastLogin,
@@ -568,8 +576,8 @@ export class AuthenticationService extends BaseService {
         user.IsActive !== undefined
           ? user.IsActive
           : user.isActive !== undefined
-          ? user.isActive
-          : true,
+            ? user.isActive
+            : true,
       // Preserve original data for debugging
       _original: user,
     };

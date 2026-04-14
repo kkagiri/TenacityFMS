@@ -65,6 +65,18 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
                 return FMSResponse<bool>.Failed(errors);
             }
 
+            if (user.RequirePasswordChangeOnFirstLogin)
+            {
+                user.RequirePasswordChangeOnFirstLogin = false;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    var updateErrors = string.Join("; ", updateResult.Errors.Select(e => e.Description));
+                    _logger.LogWarning("ChangePassword updated the password for user {UserId} but failed clearing first-login flag: {Errors}", request.UserId, updateErrors);
+                    return FMSResponse<bool>.Failed(updateErrors);
+                }
+            }
+
             _logger.LogInformation("Password changed successfully for user {UserId}.", request.UserId);
             return FMSResponse<bool>.Success(true, "Password changed successfully.");
         }

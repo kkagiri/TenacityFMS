@@ -264,7 +264,9 @@ namespace FMS.Application.Common.Constants
             public const string Read = "_Read_WarningLetter";
             public const string Create = "_Create_WarningLetter";
             public const string Update = "_Update_WarningLetter";
+            public const string UploadSignedCopy = "_UploadSignedCopy_WarningLetter";
             public const string Delete = "_Delete_WarningLetter";
+            public const string DeleteAny = "_delete_any_letter";
             public const string Finalize = "_Finalize_WarningLetter";
             public const string Send = "_Send_WarningLetter";
             public const string GeneratePdf = "_Generate_WarningLetter_PDF";

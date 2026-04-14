@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import notify from "devextreme/ui/notify";
 import { usePermissions } from "../../../hooks/usePermissions";
@@ -30,6 +31,7 @@ import VehicleDocumentSettingsPanel from "./components/VehicleDocumentSettingsPa
 import VehicleDocumentsFilterBar from "./components/VehicleDocumentsFilterBar";
 import VehicleDocumentsGrid from "./components/VehicleDocumentsGrid";
 import VehicleDocumentsSummaryCards from "./components/VehicleDocumentsSummaryCards";
+import BulkDocumentUpload from "../../../pages/vehiclesdocuments/components/BulkDocumentUpload";
 import {
   DEFAULT_NOTIFICATION_REMINDER_SETTINGS,
   buildDocumentComplianceCatalog,
@@ -57,10 +59,13 @@ const STATUS_TO_REPORT_STATUS = {
 const VehicleDocumentsList = ({ vehicleId }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
+  const currentUser = useSelector((state) => state.auth?.user || null);
+  const { hasPermission, hasRole, userInfo } = usePermissions();
   const canCreate = hasPermission('_Create_VehicleDocuments');
   const canEdit = hasPermission('_Edit_VehicleDocuments');
   const canDelete = hasPermission('_Delete_VehicleDocuments');
+  const currentUserId = String(userInfo?.id || currentUser?.id || currentUser?.Id || "").trim();
+  const isAdminRole = hasRole('Admin') || hasRole('Administrator') || hasRole('Super Admin');
   const fixedVehicleId = Number(vehicleId) > 0 ? Number(vehicleId) : null;
 
   const [documents, setDocuments] = useState([]);
@@ -83,6 +88,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   const [documentFormState, setDocumentFormState] = useState({ ...EMPTY_DOCUMENT_FORM_STATE, vehicleId: fixedVehicleId || "" });
   const [notificationDefaults, setNotificationDefaults] = useState({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS });
   const [issuingAuthorities, setIssuingAuthorities] = useState([]);
+  const [isBulkUploadVisible, setIsBulkUploadVisible] = useState(false);
 
   const vehicleLookup = useMemo(
     () => Object.fromEntries(vehicles.map((vehicle) => [vehicle.vehicleId, vehicle])),
@@ -181,9 +187,10 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         statusKey: statusDescriptor.key,
         statusLabel: statusDescriptor.label,
         statusTone: statusDescriptor.tone,
+        canDeleteDocument: canDelete && (isAdminRole || (currentUserId && String(document.createdBy || "").trim() === currentUserId)),
       };
     }),
-    [documents, siteLookup, vehicleLookup, vehicleTypeLookup]
+    [canDelete, currentUserId, documents, isAdminRole, siteLookup, vehicleLookup, vehicleTypeLookup]
   );
 
   const visibleDocuments = useMemo(
@@ -472,6 +479,12 @@ const VehicleDocumentsList = ({ vehicleId }) => {
             Refresh
           </button>
           {canCreate && (
+            <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setIsBulkUploadVisible(true)} disabled={loadingLookups}>
+              <i className="fa-light fa-cloud-arrow-up" />
+              Bulk upload
+            </button>
+          )}
+          {canCreate && (
             <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--primary" onClick={openCreatePanel} disabled={loadingLookups}>
               <i className="fa-light fa-plus" />
               Add document
@@ -537,6 +550,12 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         onRenameAuthority={handleRenameAuthority}
         onDeleteAuthority={handleDeleteAuthority}
         canEdit={canEdit}
+      />
+
+      <BulkDocumentUpload
+        visible={isBulkUploadVisible}
+        onHide={() => setIsBulkUploadVisible(false)}
+        onSaved={refreshAll}
       />
     </div>
   );

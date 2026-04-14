@@ -29,6 +29,7 @@ export const adminRoutes = {
   notification: "/admin/notification",
   notificationDashboard: "/admin/notification",
   notificationHistory: "/admin/notification/history",
+  notificationRecipients: "/admin/notification/recipients",
   notificationEmailSettings: "/admin/notification/configuration/email",
   notificationCategories: "/admin/notification/categories",
   notificationAlertThresholds: "/admin/notification/alert-configuration",

@@ -33,11 +33,10 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.CalibrationDate).HasColumnName("calibrationDate");
 
                 builder.Property(e => e.VehicleId)
-                    .HasMaxLength(45)
+                    .HasColumnType("int(11)")
                     .HasColumnName("VehicleID");
 
                 builder.HasOne(d => d.Vehicle).WithMany(p => p.Calibrationdata)
-                    .HasPrincipalKey(p => p.HyoungNo)
                     .HasForeignKey(d => d.VehicleId)
                     .HasConstraintName("calibrationData_vehicle");
             }

@@ -68,6 +68,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Configuration Management",
         subtitle: "Manage automated fueling configurations",
       };
+    } else if (pathname.includes("/notification/recipients")) {
+      return {
+        title: "Notification Recipients",
+        subtitle: "Manage notification recipients and delivery groups",
+      };
     } else if (pathname.includes("/notification")) {
       return {
         title: "Notification System",
@@ -196,6 +201,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   ];
 
   const notificationSettingsItems = [
+    {
+      id: "notif-recipients",
+      title: "Recipient Groups",
+      icon: "fa-light fa-users-gear",
+      path: adminRoutes.notificationRecipients,
+    },
     {
       id: "notif-email",
       title: "Email Settings",

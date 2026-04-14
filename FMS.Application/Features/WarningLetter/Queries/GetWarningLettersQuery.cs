@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.WarningLetter;
 using FMS.Application.Features.WarningLetter.DTOs;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Persistence.DataAccess;
@@ -25,6 +26,7 @@ public class GetWarningLettersQuery : IRequest<FMSResponse<List<WarningLetterLis
     public int? VehicleId { get; set; }
     public WarningLetterType? LetterType { get; set; }
     public WarningLetterStatus? Status { get; set; }
+    public WarningLetterWorkflowStage? WorkflowStage { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 }
@@ -72,6 +74,19 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
             query = query.Where(w => w.Status == request.Status.Value);
         }
 
+        if (request.WorkflowStage.HasValue)
+        {
+            query = request.WorkflowStage.Value switch
+            {
+                WarningLetterWorkflowStage.Draft => query.Where(w => w.ApproveLetterUploadedAt == null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.Approved => query.Where(w => w.ApproveLetterUploadedAt != null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.PendingSigned => query.Where(w => w.SignatureRequestedAt != null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.Signed => query.Where(w => w.SignedCopyUploadedAt != null && w.EmployeeAcknowledgedAt == null && w.Status != WarningLetterStatus.Acknowledged),
+                WarningLetterWorkflowStage.Acknowledged => query.Where(w => w.EmployeeAcknowledgedAt != null || w.Status == WarningLetterStatus.Acknowledged),
+                _ => query
+            };
+        }
+
         if (request.StartDate.HasValue)
         {
             query = query.Where(w => w.LetterDate >= request.StartDate.Value);
@@ -99,10 +114,24 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
                 LetterDate = w.LetterDate,
                 PeriodStart = w.PeriodStart,
                 Status = w.Status,
+                WorkflowStage = w.EmployeeAcknowledgedAt != null || w.Status == WarningLetterStatus.Acknowledged
+                    ? WarningLetterWorkflowStage.Acknowledged
+                    : w.SignedCopyUploadedAt != null
+                        ? WarningLetterWorkflowStage.Signed
+                        : w.SignatureRequestedAt != null
+                            ? WarningLetterWorkflowStage.PendingSigned
+                            : w.ApproveLetterUploadedAt != null
+                                ? WarningLetterWorkflowStage.Approved
+                                : WarningLetterWorkflowStage.Draft,
                 EmailSentAt = w.EmailSentAt,
                 EmailRecipient = w.EmailRecipient,
+                SignatureRequestRecipient = w.SignatureRequestRecipient,
+                SignatureRequestCcRecipients = w.SignatureRequestCcRecipients,
+                ApproveLetterUploadedAt = w.ApproveLetterUploadedAt,
                 SignatureRequestedAt = w.SignatureRequestedAt,
-                SignedCopyUploadedAt = w.SignedCopyUploadedAt
+                SignedCopyUploadedAt = w.SignedCopyUploadedAt,
+                EmployeeAcknowledgedAt = w.EmployeeAcknowledgedAt,
+                CreatedBy = w.CreatedBy
             })
             .ToListAsync(cancellationToken);
 

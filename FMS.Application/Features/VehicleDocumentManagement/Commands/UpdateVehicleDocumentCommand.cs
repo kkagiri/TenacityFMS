@@ -11,6 +11,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+#nullable disable
+
 namespace FMS.Application.Features.VehicleDocumentManagement.Commands;
 
 public record UpdateVehicleDocumentCommand(UpdateVehicleDocumentDto UpdateVehicleDocumentDto) : IRequest<FMSResponse<bool>>;
@@ -39,18 +41,32 @@ public class UpdateVehicleDocumentCommandHandler : IRequestHandler<UpdateVehicle
                 return FMSResponse<bool>.Failed("Vehicle document not found.");
             }
 
-            string documentFileUrl = vehicleDocument.DocumentFileUrl;
-            string documentFileName = vehicleDocument.DocumentFileName;
+            var documentFileUrl = vehicleDocument.DocumentFileUrl ?? string.Empty;
+            var documentFileName = vehicleDocument.DocumentFileName ?? string.Empty;
             var uploadDirectory = $"vehicle-documents/{vehicleDocument.VehicleId}";
             var complianceCategory = VehicleDocument.ResolveComplianceCategory(
                 request.UpdateVehicleDocumentDto.DocumentType,
                 request.UpdateVehicleDocumentDto.ComplianceCategory);
+
+            if (string.IsNullOrWhiteSpace(documentFileUrl))
+            {
+                documentFileUrl = string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(documentFileName))
+            {
+                documentFileName = string.Empty;
+            }
 
             if (request.UpdateVehicleDocumentDto.DocumentFile != null)
             {
                 documentFileUrl = await _fileHandlingService.UploadFileAsync(request.UpdateVehicleDocumentDto.DocumentFile, uploadDirectory);
                 documentFileName = request.UpdateVehicleDocumentDto.DocumentFile.FileName;
             }
+
+            var updatedBy = string.IsNullOrWhiteSpace(request.UpdateVehicleDocumentDto.UserId)
+                ? "System"
+                : request.UpdateVehicleDocumentDto.UserId.Trim();
 
             vehicleDocument.Update(
                 request.UpdateVehicleDocumentDto.DocumentType,
@@ -63,7 +79,7 @@ public class UpdateVehicleDocumentCommandHandler : IRequestHandler<UpdateVehicle
                 request.UpdateVehicleDocumentDto.Notes ?? string.Empty,
                 documentFileName,
                 documentFileUrl,
-                "System" // Replace with actual user
+                updatedBy
             );
 
             _context.VehicleDocuments.Update(vehicleDocument);

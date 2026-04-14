@@ -12,6 +12,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import serviceFactory from '../../services/core/ServiceFactory.js';
+import { getSafeInternalRedirect } from '../../utils/authRedirect';
 import Form, {
   Item,
   Label,
@@ -43,14 +44,36 @@ const LoginForm = () => {
   const [searchParams] = useSearchParams();
   const dispatch = useDispatch(); // Temporarily keeping for Redux state updates
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
   const formData = useRef({ username: '', password: '' });
 
   // Get authentication service from factory
   const authService = serviceFactory.getAuthenticationService();
 
+  const getAuthenticationErrorMessage = useCallback((result) => {
+    if (result?.errors?.includes('INVALID_CREDENTIALS')) {
+      return 'Invalid username or password.';
+    }
+
+    if (result?.errors?.includes('ACCOUNT_LOCKED')) {
+      return 'Account is locked. Please contact administrator.';
+    }
+
+    if (result?.errors?.includes('MISSING_TOKEN')) {
+      return 'Authentication service error. Please try again.';
+    }
+
+    if (result?.errorType === 'AUTHENTICATION') {
+      return result?.message || 'Invalid username or password.';
+    }
+
+    return result?.message || 'Sign in failed. Please try again.';
+  }, []);
+
   const onSubmit = useCallback(async (e) => {
     e.preventDefault();
     const { username, password } = formData.current;
+    setAuthError('');
 
     if (!username || !password) {
       notify('Please enter both username and password', 'warning', 2000);
@@ -95,37 +118,22 @@ const LoginForm = () => {
         notify(`Welcome back, ${user.userName || user.username}!`, 'success', 2000);
 
         const requestedRedirect = searchParams.get('redirect');
-        const isSafeInternalRedirect =
-          !!requestedRedirect &&
-          requestedRedirect.startsWith('/') &&
-          !requestedRedirect.startsWith('//') &&
-          !requestedRedirect.startsWith('/login');
-
-        const targetRoute = isSafeInternalRedirect ? requestedRedirect : '/home';
+        const safeRequestedRedirect = getSafeInternalRedirect(requestedRedirect);
+        const targetRoute =
+          safeRequestedRedirect && !safeRequestedRedirect.startsWith('/login')
+            ? safeRequestedRedirect
+            : '/home';
 
         console.log('✅ Sign in successful, navigating to:', targetRoute);
         navigate(targetRoute, { replace: true });
 
       } else {
         // Handle authentication failure
-        const errorMessage = result.message || 'Sign in failed';
+        const errorMessage = getAuthenticationErrorMessage(result);
         console.error('❌ Sign in failed:', errorMessage);
+        setAuthError(errorMessage);
 
-        // Show user-friendly error message
-        if (result.errors && result.errors.length > 0) {
-          // Handle specific error types
-          if (result.errors.includes('INVALID_CREDENTIALS')) {
-            notify('Invalid username or password', 'error', 3000);
-          } else if (result.errors.includes('ACCOUNT_LOCKED')) {
-            notify('Account is locked. Please contact administrator.', 'error', 4000);
-          } else if (result.errors.includes('MISSING_TOKEN')) {
-            notify('Authentication service error. Please try again.', 'error', 3000);
-          } else {
-            notify(errorMessage, 'error', 3000);
-          }
-        } else {
-          notify(errorMessage, 'error', 3000);
-        }
+        notify(errorMessage, 'error', 3000);
       }
 
     } catch (error) {
@@ -133,26 +141,35 @@ const LoginForm = () => {
 
       // Handle network errors and other exceptions
       if (error.message?.includes('Network Error') || error.code === 'ERR_NETWORK') {
+        setAuthError('Cannot connect to server. Please check your connection.');
         notify('Cannot connect to server. Please check your connection.', 'error', 4000);
       } else if (error.response?.status === 503) {
+        setAuthError('Service temporarily unavailable. Please try again later.');
         notify('Service temporarily unavailable. Please try again later.', 'error', 4000);
       } else {
+        setAuthError('An unexpected error occurred. Please try again.');
         notify('An unexpected error occurred. Please try again.', 'error', 3000);
       }
 
     } finally {
       setLoading(false);
     }
-  }, [authService, navigate, dispatch, searchParams]);
+  }, [authService, navigate, dispatch, searchParams, getAuthenticationErrorMessage]);
 
   // Handle form field changes for validation
   const onFieldDataChanged = useCallback((e) => {
+    if (authError) {
+      setAuthError('');
+    }
+
     if (e.dataField === 'username') {
       formData.current.username = e.value || '';
     } else if (e.dataField === 'password') {
       formData.current.password = e.value || '';
     }
-  }, []);
+  }, [authError]);
+
+  const authValidationErrors = authError ? [{ message: authError }] : null;
 
   return (
     <form className={'login-form tw-flex tw-flex-col tw-gap-6 tw-w-full'} onSubmit={onSubmit}>
@@ -166,6 +183,8 @@ const LoginForm = () => {
           editorType={'dxTextBox'}
           editorOptions={{
             ...UserNameEditorOptions,
+            validationStatus: authError ? 'invalid' : 'valid',
+            validationErrors: authValidationErrors,
             onEnterKey: onSubmit // Enable Enter key submission
           }}
         >
@@ -177,6 +196,8 @@ const LoginForm = () => {
           editorType={'dxTextBox'}
           editorOptions={{
             ...passwordEditorOptions,
+            validationStatus: authError ? 'invalid' : 'valid',
+            validationErrors: authValidationErrors,
             onEnterKey: onSubmit // Enable Enter key submission
           }}
         >
@@ -212,6 +233,12 @@ const LoginForm = () => {
           </ButtonOptions>
         </ButtonItem>
       </Form>
+
+      {authError && (
+        <div className="login-form__error" role="alert" aria-live="assertive">
+          {authError}
+        </div>
+      )}
 
       {/* Development debug info */}
       {process.env.NODE_ENV === 'development' && (

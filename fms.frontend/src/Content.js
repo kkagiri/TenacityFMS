@@ -7,7 +7,7 @@
  * Key Functions/Components:
  * - Content(): Root route configuration and layout composition
  */
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
 import appInfo from "./app-info";
 import { AppDrawerLayout } from "./layouts";
@@ -21,13 +21,16 @@ import withPermissionProtection from "./utils/withPermissionProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
+import ForcePasswordChangePage from "./pages/auth/ForcePasswordChangePage";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
 import useDocumentTitle from "./hooks/useDocumentTitle";
+import { getSafeInternalRedirect } from "./utils/authRedirect";
 
 export default function Content() {
   const dispatch = useDispatch();
   const { navigationItems } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
+  const location = useLocation();
 
   // Initialize route-based SignalR management
   const signalRState = useSignalRRouting({
@@ -60,9 +63,37 @@ export default function Content() {
       });
   }, [navigationItems]);
 
+  const requiresPasswordChange = Boolean(
+    user?.requirePasswordChangeOnFirstLogin ?? user?.RequirePasswordChangeOnFirstLogin
+  );
+
+  const requestedRedirect = getSafeInternalRedirect(
+    new URLSearchParams(location.search).get("redirect")
+  );
+
+  if (requiresPasswordChange && location.pathname !== "/change-password-required") {
+    const returnUrl = `${location.pathname}${location.search}${location.hash}`;
+    return (
+      <Navigate
+        to={`/change-password-required?redirect=${encodeURIComponent(returnUrl)}`}
+        replace
+      />
+    );
+  }
+
+  if (location.pathname === "/login") {
+    return (
+      <Navigate
+        to={requestedRedirect && !requestedRedirect.startsWith("/login") ? requestedRedirect : "/home"}
+        replace
+      />
+    );
+  }
+
   return (
     <AppDrawerLayout title={appInfo.title}>
       <Routes>
+        <Route path="/change-password-required" element={<ForcePasswordChangePage />} />
         {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
 

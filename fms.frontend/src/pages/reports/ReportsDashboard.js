@@ -14,10 +14,13 @@ import { useNavigate } from 'react-router-dom';
 import { getAllReportSources, getCategories, getReportSourcesByCategory } from './sources';
 import { reportsRoutes } from './utils/navigationHelper';
 import ModuleDashboard from '../../components/dashboard/ModuleDashboard';
+import { usePermissions } from '../../hooks/usePermissions';
 import './ReportsDashboard.scss';
 
 const ReportsDashboard = () => {
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canManageReportSchedules = hasPermission('_Manage_ReportSchedules');
 
   const categories = useMemo(() => getCategories(), []);
 
@@ -59,18 +62,20 @@ const ReportsDashboard = () => {
           </div>
         </div>
 
-        <div
-          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
-          onClick={() => navigate(reportsRoutes.scheduling)}
-        >
-          <div className="stat-icon">
-            <i className="fa-light fa-calendar-clock tw-text-green-500"></i>
+        {canManageReportSchedules && (
+          <div
+            className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+            onClick={() => navigate(reportsRoutes.scheduling)}
+          >
+            <div className="stat-icon">
+              <i className="fa-light fa-calendar-clock tw-text-green-500"></i>
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-title">Scheduling</h3>
+              <p className="stat-description">Schedule and automate report delivery</p>
+            </div>
           </div>
-          <div className="stat-content">
-            <h3 className="stat-title">Scheduling</h3>
-            <p className="stat-description">Schedule and automate report delivery</p>
-          </div>
-        </div>
+        )}
 
         <div
           className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"

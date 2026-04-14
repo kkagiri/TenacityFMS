@@ -109,11 +109,15 @@ export const createUser = (userData) => async (dispatch) => {
                 throw new Error(errors);
             }
             // Success: respData.data is userId. Fetch full user for state list.
-            const userId = respData.data;
+            const userId = typeof respData.data === 'string'
+                ? respData.data
+                : respData.data?.userId || respData.data?.UserId;
             let userObject = null;
             try {
-                const userDetailResp = await axiosInstance.get(`/user/${userId}`);
-                userObject = userDetailResp.data;
+                if (userId) {
+                    const userDetailResp = await axiosInstance.get(`/user/${userId}`);
+                    userObject = userDetailResp.data;
+                }
             } catch {
                 userObject = { id: userId };
             }

@@ -13,6 +13,7 @@
  */
 
 import { LOGOUT } from '../redux/actions/types';
+import { redirectToLoginPreservingReturnUrl } from './authRedirect';
 
 let storageListener = null;
 let currentStore = null;
@@ -146,11 +147,11 @@ function forceLogoutCurrentTab() {
         currentStore.dispatch({ type: LOGOUT });
 
         // Hard redirect to login (clears all in-memory state)
-        window.location.href = '/login';
+        redirectToLoginPreservingReturnUrl();
     } catch (error) {
         console.error('🔄 [Cross-Tab] Error during forced logout:', error);
         // Even on error, redirect to login
-        window.location.href = '/login';
+        redirectToLoginPreservingReturnUrl();
     }
 }
 

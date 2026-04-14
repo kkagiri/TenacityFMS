@@ -1,35 +1,38 @@
 /**
  * File: WarningLetterPreviewPage.js
  * Purpose: Presents a saved warning letter with PDF preview and workflow actions.
- * Dependencies: React, react-router-dom, warningLetterService, usePermissions
- * Last Modified: 2026-04-09
+ * Dependencies: React, react-router-dom, warningLetterService, usePermissions, SlidePanel
+ * Last Modified: 2026-04-14
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import notify from "devextreme/ui/notify";
-import Popup from "devextreme-react/popup";
+import DataGrid, { Column } from "devextreme-react/data-grid";
 import SelectBox from "devextreme-react/select-box";
+import TagBox from "devextreme-react/tag-box";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePermissions } from "../../../hooks/usePermissions";
+import SlidePanel from "../../../components/ui/SlidePanel";
+import notificationGroupsApi from "../../../dataservice/notificationGroupsApi";
 import {
     acknowledgeWarningLetter,
-    fetchWarningLetterHtml,
+    downloadWarningLetterApproveLetter,
     fetchWarningLetterPdf,
     fetchWarningLetterSignatureRecipients,
-    finalizeWarningLetter,
     getWarningLetter,
     downloadWarningLetterSignedCopy,
     requestWarningLetterSignature,
     sendWarningLetterEmail,
+    uploadWarningLetterApproveLetter,
     uploadWarningLetterSignedCopy,
 } from "./warningLetterService";
 import "./WarningLetters.scss";
 
-const statusMap = {
+const workflowStageMap = {
     0: { label: "Draft", cls: "m365-badge--neutral" },
-    1: { label: "Finalized", cls: "m365-badge--primary" },
-    2: { label: "Sent", cls: "m365-badge--success" },
-    3: { label: "Acknowledged", cls: "m365-badge--success" },
-    4: { label: "Signed Copy Received", cls: "m365-badge--success" },
+    1: { label: "Approved", cls: "m365-badge--primary" },
+    2: { label: "Pending Signed", cls: "m365-badge--warning" },
+    3: { label: "Signed", cls: "m365-badge--success" },
+    4: { label: "Acknowledged", cls: "m365-badge--success" },
 };
 
 const typeMap = {
@@ -41,47 +44,190 @@ const typeMap = {
 const isGuidLike = (value) =>
     typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
+const mapGroupToViewModel = (group) => ({
+    id: group.id,
+    name: group.name || group.id || group.groupName,
+    displayName: group.name || group.displayName || group.groupName || `Group #${group.id}`,
+    description: group.description,
+    memberCount: group.memberCount ?? group.members?.length ?? 0,
+    isActive: group.isActive === true || group.isActive !== false,
+    siteId: group.siteId ?? group.siteID ?? null,
+    siteName: group.siteName || group.site?.name || "",
+});
+
+const mapUserToViewModel = (user) => ({
+    id: user.id || user.userId || user.Id,
+    firstName: user.firstName || user.FirstName || "",
+    lastName: user.lastName || user.LastName || "",
+    email: user.email || user.Email || "",
+    role: (user.role || user.Role || (Array.isArray(user.roles) ? user.roles.join(",") : "")) ?? "",
+    isActive: user.isActive !== false && user.deleted !== true,
+});
+
 const WarningLetterPreviewPage = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const { hasPermission } = usePermissions();
+    const approveLetterInputRef = useRef(null);
     const signedCopyInputRef = useRef(null);
 
     const [letter, setLetter] = useState(null);
-    const [previewMode, setPreviewMode] = useState("html");
-    const [htmlContent, setHtmlContent] = useState("");
     const [pdfUrl, setPdfUrl] = useState("");
     const [loading, setLoading] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [signaturePopupOpen, setSignaturePopupOpen] = useState(false);
-    const [signatureRecipients, setSignatureRecipients] = useState([]);
+    const [signatureRecipientOptions, setSignatureRecipientOptions] = useState({
+        siteRepresentativeGroupName: "Warning Letter Site Representatives",
+        signatureCcGroupName: "Warning Letter Signature CC",
+        siteRepresentatives: [],
+        signatureCcRecipients: [],
+    });
     const [signatureRecipientsLoading, setSignatureRecipientsLoading] = useState(false);
     const [selectedSignatureRecipientId, setSelectedSignatureRecipientId] = useState(null);
+    const [selectedCcRecipientIds, setSelectedCcRecipientIds] = useState([]);
     const [signatureSubmitting, setSignatureSubmitting] = useState(false);
+    const [approveLetterUploading, setApproveLetterUploading] = useState(false);
     const [signedCopyUploading, setSignedCopyUploading] = useState(false);
+    const [recipientGroupPanelOpen, setRecipientGroupPanelOpen] = useState(false);
+    const [recipientGroupLoading, setRecipientGroupLoading] = useState(false);
+    const [recipientGroupTarget, setRecipientGroupTarget] = useState(null);
+    const [recipientGroupMembers, setRecipientGroupMembers] = useState([]);
+    const [recipientGroupUserOptions, setRecipientGroupUserOptions] = useState([]);
+    const [recipientGroupAddMemberId, setRecipientGroupAddMemberId] = useState("");
+    const [helpPanelOpen, setHelpPanelOpen] = useState(false);
+    const [expandedPanels, setExpandedPanels] = useState({
+        document: true,
+        approved: true,
+        signed: true,
+    });
 
-    const canFinalize = hasPermission("_Finalize_WarningLetter");
     const canUpdate = hasPermission("_Update_WarningLetter");
     const canSend = hasPermission("_Send_WarningLetter");
     const canViewPdf = hasPermission("_Generate_WarningLetter_PDF");
-    const canUploadSignedCopy = hasPermission("_Update_WarningLetter");
+    const canUploadApproveLetter = hasPermission("_Update_WarningLetter");
+    const canUploadSignedCopy = hasPermission("_UploadSignedCopy_WarningLetter");
 
+    const signatureRecipients = Array.isArray(signatureRecipientOptions.siteRepresentatives) ? signatureRecipientOptions.siteRepresentatives : [];
+    const signatureCcRecipients = Array.isArray(signatureRecipientOptions.signatureCcRecipients) ? signatureRecipientOptions.signatureCcRecipients : [];
+    const availableSignatureCcRecipients = signatureCcRecipients.filter((recipient) => recipient.id !== selectedSignatureRecipientId);
     const selectedSignatureRecipient = signatureRecipients.find((recipient) => recipient.id === selectedSignatureRecipientId) || null;
+    const showSignatureGroupWarning = signatureRecipients.length === 0 && signatureCcRecipients.length > 0;
+    const workflowStage = letter?.workflowStage ?? 0;
+    const hasApprovedLetter = Boolean(letter?.approveLetterUploadedAt);
     const hasSignedCopy = Boolean(letter?.signedCopyUploadedAt);
-    const isAcknowledgedState = letter?.status === 3 || hasSignedCopy;
-    const workflowLocked = hasSignedCopy;
+    const workflowLocked = workflowStage >= 3;
+    const canUploadWorkflowDocuments = Boolean(letter);
+    const approvedLetterLocked = Boolean(letter?.signatureRequestedAt || letter?.signedCopyUploadedAt || letter?.employeeAcknowledgedAt);
 
-    const loadHtmlPreview = useCallback(async () => {
-        try {
-            setPreviewLoading(true);
-            const html = await fetchWarningLetterHtml(id);
-            setHtmlContent(html);
-        } catch (error) {
-            notify(error.message || "Failed to load HTML preview.", "error", 3000);
-        } finally {
-            setPreviewLoading(false);
+    const loadRecipientGroupUsers = useCallback(async () => {
+        if (recipientGroupUserOptions.length > 0) {
+            return recipientGroupUserOptions;
         }
-    }, [id]);
+
+        const { default: axiosInstance } = await import("../../../api/axiosInstance");
+        const response = await axiosInstance.get("/user");
+        const data = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+        const normalizedUsers = data
+            .map(mapUserToViewModel)
+            .filter((user) => user.id);
+
+        setRecipientGroupUserOptions(normalizedUsers);
+        return normalizedUsers;
+    }, [recipientGroupUserOptions]);
+
+    const loadRecipientGroupMembers = useCallback(async (group, usersSource) => {
+        const response = await notificationGroupsApi.getGroupMembers(group.id);
+        if (!response.isSuccess) {
+            throw new Error(response.message || "Failed to load members.");
+        }
+
+        const rawMembers = (response.data || []).map((member) => ({
+            id: member.id,
+            memberType: member.memberType,
+            memberId: (member.memberId || "").trim(),
+        }));
+
+        const userMap = new Map((usersSource || []).map((user) => [String(user.id), user]));
+        const usersToFetch = Array.from(new Set(
+            rawMembers
+                .filter((member) => member.memberType === "User" && !userMap.has(member.memberId))
+                .map((member) => member.memberId)
+        ));
+
+        if (usersToFetch.length > 0) {
+            const { default: axiosInstance } = await import("../../../api/axiosInstance");
+            const fetchedUsers = await Promise.all(
+                usersToFetch.map((userId) =>
+                    axiosInstance.get(`/user/${userId}`)
+                        .then((result) => result.data)
+                        .catch(() => null)
+                )
+            );
+
+            fetchedUsers.filter(Boolean).forEach((user) => {
+                const normalizedUser = mapUserToViewModel(user);
+                if (normalizedUser.id) {
+                    userMap.set(String(normalizedUser.id), normalizedUser);
+                }
+            });
+        }
+
+        return rawMembers.map((member) => {
+            if (member.memberType === "User") {
+                const matchedUser = userMap.get(member.memberId);
+                if (matchedUser) {
+                    const fullName = `${matchedUser.firstName || ""} ${matchedUser.lastName || ""}`.trim();
+                    return {
+                        ...member,
+                        name: fullName || matchedUser.email || member.memberId,
+                        email: matchedUser.email,
+                        role: matchedUser.role,
+                    };
+                }
+            }
+
+            return { ...member, name: member.memberId, email: "", role: "" };
+        });
+    }, []);
+
+    const openRecipientGroupPanel = useCallback(async (groupName) => {
+        if (!letter?.siteId || !groupName) {
+            notify("Warning-letter site context is missing.", "warning", 2500);
+            return;
+        }
+
+        try {
+            setRecipientGroupLoading(true);
+            setRecipientGroupPanelOpen(true);
+            setRecipientGroupAddMemberId("");
+
+            const [usersSource, groupsResponse] = await Promise.all([
+                loadRecipientGroupUsers(),
+                notificationGroupsApi.getGroups(Number(letter.siteId)),
+            ]);
+
+            if (!groupsResponse.isSuccess) {
+                throw new Error(groupsResponse.message || "Failed to load notification groups.");
+            }
+
+            const matchedGroup = (groupsResponse.data || [])
+                .map(mapGroupToViewModel)
+                .find((group) => group.displayName === groupName);
+
+            if (!matchedGroup) {
+                throw new Error(`${groupName} is not configured for this site.`);
+            }
+
+            const members = await loadRecipientGroupMembers(matchedGroup, usersSource);
+            setRecipientGroupTarget(matchedGroup);
+            setRecipientGroupMembers(members);
+        } catch (error) {
+            setRecipientGroupPanelOpen(false);
+            notify(error.message || "Failed to open recipient group editor.", "error", 3000);
+        } finally {
+            setRecipientGroupLoading(false);
+        }
+    }, [letter?.siteId, loadRecipientGroupMembers, loadRecipientGroupUsers]);
 
     const loadPdfPreview = useCallback(async (forceGenerate = false) => {
         try {
@@ -116,8 +262,8 @@ const WarningLetterPreviewPage = () => {
     const loadSignatureRecipients = useCallback(async () => {
         try {
             setSignatureRecipientsLoading(true);
-            const recipients = await fetchWarningLetterSignatureRecipients(id);
-            setSignatureRecipients(recipients);
+            const recipientOptions = await fetchWarningLetterSignatureRecipients(id);
+            setSignatureRecipientOptions(recipientOptions);
         } catch (error) {
             notify(error.message || "Failed to load site representatives.", "error", 3000);
         } finally {
@@ -131,18 +277,35 @@ const WarningLetterPreviewPage = () => {
 
     useEffect(() => {
         setSelectedSignatureRecipientId(letter?.signatureRequestRecipientUserId || null);
-    }, [letter?.signatureRequestRecipientUserId]);
+        setSelectedCcRecipientIds(Array.isArray(letter?.signatureRequestCcUserIds) ? letter.signatureRequestCcUserIds : []);
+    }, [letter?.signatureRequestCcUserIds, letter?.signatureRequestRecipientUserId]);
 
     useEffect(() => {
-        if (previewMode === "pdf") {
-            if (canViewPdf) {
-                loadPdfPreview(false);
+        setSelectedSignatureRecipientId((currentValue) => {
+            if (currentValue && signatureRecipients.some((recipient) => recipient.id === currentValue)) {
+                return currentValue;
             }
-            return;
-        }
 
-        loadHtmlPreview();
-    }, [canViewPdf, loadHtmlPreview, loadPdfPreview, previewMode]);
+            const persistedValue = letter?.signatureRequestRecipientUserId;
+            return persistedValue && signatureRecipients.some((recipient) => recipient.id === persistedValue)
+                ? persistedValue
+                : null;
+        });
+
+        setSelectedCcRecipientIds((currentValue) => {
+            if (!Array.isArray(currentValue)) {
+                return [];
+            }
+
+            return currentValue.filter((recipientId) => signatureCcRecipients.some((recipient) => recipient.id === recipientId));
+        });
+    }, [letter?.signatureRequestRecipientUserId, signatureCcRecipients, signatureRecipients]);
+
+    useEffect(() => {
+        if (canViewPdf) {
+            loadPdfPreview(false);
+        }
+    }, [canViewPdf, loadPdfPreview]);
 
     useEffect(() => () => {
         if (pdfUrl) {
@@ -161,25 +324,8 @@ const WarningLetterPreviewPage = () => {
     const refreshAll = async (forceGenerate = false) => {
         await loadDetail();
 
-        if (previewMode === "pdf") {
+        if (canViewPdf) {
             await loadPdfPreview(forceGenerate);
-            return;
-        }
-
-        await loadHtmlPreview();
-    };
-
-    const handleFinalize = async () => {
-        if (!window.confirm(`Finalize warning letter #${id}?`)) {
-            return;
-        }
-
-        try {
-            await finalizeWarningLetter(id);
-            notify("Warning letter finalized.", "success", 2500);
-            refreshAll(previewMode === "pdf");
-        } catch (error) {
-            notify(error.message || "Failed to finalize warning letter.", "error", 3000);
         }
     };
 
@@ -198,14 +344,15 @@ const WarningLetterPreviewPage = () => {
     };
 
     const handleSendEmail = async () => {
-        const recipient = window.prompt("Email recipient", letter?.emailRecipient || letter?.employeeEmail || "");
-        if (recipient === null) {
+        const recipient = letter?.emailRecipient || letter?.employeeEmail || "";
+        if (!recipient) {
+            notify("No employee email address is available for this warning letter.", "warning", 3000);
             return;
         }
 
         try {
-            await sendWarningLetterEmail(id, recipient);
-            notify("Warning letter emailed.", "success", 2500);
+            await sendWarningLetterEmail(id);
+            notify(`Warning letter emailed to ${recipient}.`, "success", 2500);
             refreshAll(false);
         } catch (error) {
             notify(error.message || "Failed to send warning letter email.", "error", 3000);
@@ -215,6 +362,77 @@ const WarningLetterPreviewPage = () => {
     const handleOpenRequestSignature = () => {
         setSelectedSignatureRecipientId(letter?.signatureRequestRecipientUserId || null);
         setSignaturePopupOpen(true);
+    };
+
+    const handleCloseRecipientGroupPanel = () => {
+        if (recipientGroupLoading) {
+            return;
+        }
+
+        setRecipientGroupPanelOpen(false);
+        setRecipientGroupTarget(null);
+        setRecipientGroupMembers([]);
+        setRecipientGroupAddMemberId("");
+    };
+
+    const handleAddRecipientGroupMember = async () => {
+        if (!recipientGroupTarget) {
+            return;
+        }
+
+        if (!recipientGroupAddMemberId) {
+            notify("Select a user first.", "warning", 2500);
+            return;
+        }
+
+        const alreadyExists = recipientGroupMembers.some(
+            (member) => member.memberType === "User" && String(member.memberId) === String(recipientGroupAddMemberId)
+        );
+
+        if (alreadyExists) {
+            notify("This member is already in the group.", "warning", 2500);
+            return;
+        }
+
+        try {
+            setRecipientGroupLoading(true);
+            const result = await notificationGroupsApi.addGroupMembers(recipientGroupTarget.id, [{ memberType: "User", memberId: recipientGroupAddMemberId }]);
+            if (!result.isSuccess) {
+                throw new Error(result.message || "Failed to add member.");
+            }
+
+            const refreshedMembers = await loadRecipientGroupMembers(recipientGroupTarget, recipientGroupUserOptions);
+            setRecipientGroupMembers(refreshedMembers);
+            setRecipientGroupAddMemberId("");
+            await loadSignatureRecipients();
+            notify(result.message || "Member added.", "success", 2500);
+        } catch (error) {
+            notify(error.message || "Failed to add member.", "error", 3000);
+        } finally {
+            setRecipientGroupLoading(false);
+        }
+    };
+
+    const handleRemoveRecipientGroupMember = async (member) => {
+        if (!recipientGroupTarget || !member?.id) {
+            return;
+        }
+
+        try {
+            setRecipientGroupLoading(true);
+            const result = await notificationGroupsApi.removeGroupMember(recipientGroupTarget.id, member.id);
+            if (!result.isSuccess) {
+                throw new Error(result.message || "Failed to remove member.");
+            }
+
+            setRecipientGroupMembers((currentMembers) => currentMembers.filter((currentMember) => currentMember.id !== member.id));
+            await loadSignatureRecipients();
+            notify("Member removed.", "success", 2000);
+        } catch (error) {
+            notify(error.message || "Failed to remove member.", "error", 3000);
+        } finally {
+            setRecipientGroupLoading(false);
+        }
     };
 
     const handleRequestSignature = async () => {
@@ -228,6 +446,7 @@ const WarningLetterPreviewPage = () => {
             await requestWarningLetterSignature(id, {
                 signatureRecipientUserId: selectedSignatureRecipient.id,
                 emailRecipient: selectedSignatureRecipient.email,
+                ccRecipientUserIds: selectedCcRecipientIds,
             });
             notify("Signature request sent.", "success", 2500);
             setSignaturePopupOpen(false);
@@ -259,6 +478,26 @@ const WarningLetterPreviewPage = () => {
         }
     };
 
+    const handleApproveLetterSelected = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) {
+            return;
+        }
+
+        try {
+            setApproveLetterUploading(true);
+            const updatedLetter = await uploadWarningLetterApproveLetter(id, file);
+            setLetter(updatedLetter);
+            notify("Approved letter uploaded.", "success", 2500);
+            await refreshAll(false);
+        } catch (error) {
+            notify(error.message || "Failed to upload approved letter.", "error", 3000);
+        } finally {
+            setApproveLetterUploading(false);
+        }
+    };
+
     const handleDownloadSignedCopy = async () => {
         try {
             const fileDocument = await downloadWarningLetterSignedCopy(id);
@@ -275,6 +514,22 @@ const WarningLetterPreviewPage = () => {
         }
     };
 
+    const handleDownloadApproveLetter = async () => {
+        try {
+            const fileDocument = await downloadWarningLetterApproveLetter(id);
+            const url = URL.createObjectURL(fileDocument.blob);
+            const link = window.document.createElement("a");
+            link.href = url;
+            link.download = fileDocument.fileName;
+            window.document.body.appendChild(link);
+            link.click();
+            window.document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            notify(error.message || "Failed to download approved letter.", "error", 3000);
+        }
+    };
+
     const handleDownload = () => {
         if (!pdfUrl) {
             return;
@@ -288,13 +543,53 @@ const WarningLetterPreviewPage = () => {
         document.body.removeChild(link);
     };
 
-    const status = isAcknowledgedState
-        ? { label: "Acknowledged", cls: "m365-badge--success" }
-        : statusMap[letter?.status] || { label: "Unknown", cls: "m365-badge--neutral" };
+    const status = workflowStageMap[workflowStage] || { label: "Unknown", cls: "m365-badge--neutral" };
 
-    const uploadedByLabel = !letter?.signedCopyUploadedBy || isGuidLike(letter.signedCopyUploadedBy)
-        ? "Refreshing uploader details..."
-        : letter.signedCopyUploadedBy;
+    const getUploadedByLabel = (value) => {
+        if (!value) {
+            return "N/A";
+        }
+
+        return isGuidLike(value) ? "Refreshing uploader details..." : value;
+    };
+
+    const formatDocumentDate = (value, fallback) => (value ? new Date(value).toLocaleString() : fallback);
+    const formatDocumentSize = (value) => {
+        if (!value) {
+            return "N/A";
+        }
+
+        if (value >= 1024 * 1024) {
+            return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+        }
+
+        if (value >= 1024) {
+            return `${(value / 1024).toFixed(1)} KB`;
+        }
+
+        return `${value} bytes`;
+    };
+
+    const approveLetterUploadedByLabel = getUploadedByLabel(letter?.approveLetterUploadedBy);
+    const signedCopyUploadedByLabel = getUploadedByLabel(letter?.signedCopyUploadedBy);
+    const ccRecipientsLabel = Array.isArray(letter?.signatureRequestCcRecipients) && letter.signatureRequestCcRecipients.length > 0
+        ? letter.signatureRequestCcRecipients.join(", ")
+        : "None";
+    const approvedStatus = hasApprovedLetter
+        ? { label: "Uploaded", cls: "m365-badge--success" }
+        : { label: "Pending", cls: "m365-badge--neutral" };
+    const signedStatus = hasSignedCopy
+        ? { label: "Received", cls: "m365-badge--success" }
+        : letter?.signatureRequestedAt
+            ? { label: "Requested", cls: "m365-badge--warning" }
+            : { label: "Pending", cls: "m365-badge--neutral" };
+
+    const togglePanel = (panelKey) => {
+        setExpandedPanels((currentPanels) => ({
+            ...currentPanels,
+            [panelKey]: !currentPanels[panelKey],
+        }));
+    };
 
     return (
         <div className="warning-letter-page warning-letter-preview">
@@ -304,157 +599,381 @@ const WarningLetterPreviewPage = () => {
                     <h2 className="m365-page-header__title">Warning Letter Preview</h2>
                     {letter && <span className={`m365-badge ${status.cls}`}>{status.label}</span>}
                 </div>
-                <div className="m365-page-header__actions">
-                    <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate("/reports/warning-letters")}>
-                        <i className="fa-light fa-arrow-left" /> Back
-                    </button>
-                    {canUpdate && letter?.status === 0 && (
-                        <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate(`/reports/warning-letters/${id}/edit`)}>
-                            <i className="fa-light fa-pen" /> Edit
+                <div className="m365-page-header__actions warning-letter-preview__header-actions">
+                    <div className="warning-letter-preview__header-group">
+                        <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate("/reports/warning-letters")}>
+                            <i className="fa-light fa-arrow-left" /> Back
                         </button>
-                    )}
-                    <div className="warning-letter-preview__mode-toggle">
-                        <button
-                            type="button"
-                            className={`m365-btn ${previewMode === "html" ? "m365-btn--primary" : "m365-btn--ghost"}`}
-                            onClick={() => setPreviewMode("html")}
-                            disabled={previewLoading || loading}
-                        >
-                            <i className="fa-light fa-code" /> HTML View
+                        <button type="button" className="m365-btn m365-btn--ghost" onClick={() => setHelpPanelOpen(true)}>
+                            <i className="fa-light fa-circle-question" /> Document Procedure
                         </button>
-                        {canViewPdf && (
-                            <button
-                                type="button"
-                                className={`m365-btn ${previewMode === "pdf" ? "m365-btn--primary" : "m365-btn--ghost"}`}
-                                onClick={() => setPreviewMode("pdf")}
-                                disabled={previewLoading || loading}
-                            >
-                                <i className="fa-light fa-file-pdf" /> PDF View
+                        {canUpdate && letter?.status === 0 && (
+                            <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate(`/reports/warning-letters/${id}/edit`)}>
+                                <i className="fa-light fa-pen" /> Edit
                             </button>
                         )}
                     </div>
-                    {canViewPdf && (
-                        <button type="button" className="m365-btn m365-btn--ghost" onClick={() => { setPreviewMode("pdf"); loadPdfPreview(true); }} disabled={previewLoading || loading || workflowLocked} title={workflowLocked ? "Signed copy already uploaded. Regeneration disabled to preserve the issued document." : undefined}>
-                            <i className="fa-light fa-rotate-right" /> Regenerate PDF
-                        </button>
-                    )}
-                    <button type="button" className="m365-btn m365-btn--ghost" onClick={handleDownload} disabled={!pdfUrl || !canViewPdf}>
-                        <i className="fa-light fa-download" /> Download
-                    </button>
-                    {canFinalize && letter?.status === 0 && (
-                        <button type="button" className="m365-btn m365-btn--primary" onClick={handleFinalize}>
-                            <i className="fa-light fa-lock" /> Finalize
-                        </button>
-                    )}
-                    {canSend && letter && letter.status !== 0 && (
-                        <button type="button" className="m365-btn m365-btn--primary" onClick={handleSendEmail}>
-                            <i className="fa-light fa-envelope" /> Send Email
-                        </button>
-                    )}
-                    {canSend && letter && letter.status !== 0 && !workflowLocked && (
-                        <button type="button" className="m365-btn m365-btn--ghost" onClick={handleOpenRequestSignature}>
-                            <i className="fa-light fa-signature" /> Request Signature
-                        </button>
-                    )}
-                    {canUpdate && letter && letter.status !== 0 && letter.status !== 3 && !workflowLocked && (
-                        <button type="button" className="m365-btn m365-btn--success" onClick={handleAcknowledge}>
-                            <i className="fa-light fa-badge-check" /> Acknowledge
-                        </button>
-                    )}
                 </div>
             </div>
 
             {letter && (
-                <div className="warning-letter-preview__meta warning-letter-page__panel">
-                    <div><span>Reference</span><strong>#{letter.id}</strong></div>
-                    <div><span>Type</span><strong>{typeMap[letter.letterType] || "Unknown"}</strong></div>
-                    <div><span>Employee</span><strong>{letter.employeeName}</strong></div>
-                    <div><span>Vehicle</span><strong>{letter.vehicleHyoungNo}</strong></div>
-                    <div><span>Site</span><strong>{letter.siteName}</strong></div>
-                    <div><span>Recipient</span><strong>{letter.emailRecipient || letter.employeeEmail || "N/A"}</strong></div>
-                </div>
-            )}
-
-            {letter && (
-                <div className="warning-letter-page__panel warning-letter-preview__signed-copy">
-                    <div className="warning-letter-preview__signed-copy-header">
-                        <div>
-                            <h3>Signed Copy</h3>
-                            <p>{workflowLocked ? "Signed copy received. Workflow actions that would change the issued document are now locked." : "Track signature request and upload the scanned signed copy for record keeping."}</p>
+                <div className="warning-letter-preview__layout">
+                    <div className="warning-letter-preview__rail">
+                        <div className="warning-letter-page__panel warning-letter-preview__meta-card">
+                            <div className="warning-letter-preview__panel-heading">
+                                <button
+                                    type="button"
+                                    className="warning-letter-preview__collapse-toggle"
+                                    onClick={() => togglePanel("document")}
+                                    aria-expanded={expandedPanels.document}
+                                >
+                                    <div>
+                                        <span className="warning-letter-preview__eyebrow">Document</span>
+                                        <h3>Warning Letter Details</h3>
+                                    </div>
+                                    <div className="warning-letter-preview__panel-heading-meta">
+                                        <span className="m365-badge m365-badge--primary">PDF Only</span>
+                                        <i className={`fa-light ${expandedPanels.document ? "fa-chevron-up" : "fa-chevron-down"}`} />
+                                    </div>
+                                </button>
+                            </div>
+                            {expandedPanels.document && (
+                                <div className="warning-letter-preview__meta-list">
+                                    <div><span>Reference</span><strong>#{letter.id}</strong></div>
+                                    <div><span>Type</span><strong>{typeMap[letter.letterType] || "Unknown"}</strong></div>
+                                    <div><span>Employee</span><strong>{letter.employeeName}</strong></div>
+                                    <div><span>Email</span><strong>{letter.emailRecipient || letter.employeeEmail || "N/A"}</strong></div>
+                                    <div><span>Vehicle</span><strong>{letter.vehicleHyoungNo}</strong></div>
+                                    <div><span>Site</span><strong>{letter.siteName}</strong></div>
+                                    <div><span>Recipient</span><strong>{letter.signatureRequestRecipient || "N/A"}</strong></div>
+                                </div>
+                            )}
                         </div>
-                        <div className="warning-letter-preview__signed-copy-actions">
-                            {canUploadSignedCopy && !workflowLocked && (
-                                <>
-                                    <input
-                                        ref={signedCopyInputRef}
-                                        type="file"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        className="warning-letter-preview__signed-copy-input"
-                                        onChange={handleSignedCopySelected}
-                                        disabled={signedCopyUploading}
-                                    />
-                                    <button type="button" className="m365-btn m365-btn--ghost" onClick={() => signedCopyInputRef.current?.click()} disabled={signedCopyUploading}>
-                                        <i className={`fa-light ${signedCopyUploading ? "fa-spinner-third fa-spin" : "fa-upload"}`} /> {signedCopyUploading ? "Uploading..." : "Upload Signed Copy"}
+
+                        <div className="warning-letter-page__panel warning-letter-preview__workflow-card warning-letter-preview__signed-copy">
+                            <div className="warning-letter-preview__signed-copy-header">
+                                <div className="warning-letter-preview__section-copy">
+                                    <button
+                                        type="button"
+                                        className="warning-letter-preview__collapse-toggle warning-letter-preview__collapse-toggle--section"
+                                        onClick={() => togglePanel("approved")}
+                                        aria-expanded={expandedPanels.approved}
+                                    >
+                                        <div>
+                                            <h3>Approved Letter</h3>
+                                        </div>
+                                        <div className="warning-letter-preview__panel-heading-meta">
+                                            <span className={`m365-badge ${approvedStatus.cls}`}>{approvedStatus.label}</span>
+                                        </div>
                                     </button>
+                                    <p>Freeze the issued copy before requesting a signature.</p>
+                                </div>
+                                <div className="warning-letter-preview__signed-copy-actions">
+                                    {canUploadApproveLetter && canUploadWorkflowDocuments && !approvedLetterLocked && !hasApprovedLetter && (
+                                        <>
+                                            <input
+                                                ref={approveLetterInputRef}
+                                                type="file"
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                className="warning-letter-preview__signed-copy-input"
+                                                onChange={handleApproveLetterSelected}
+                                                disabled={approveLetterUploading}
+                                            />
+                                            <button type="button" className="m365-btn m365-btn--ghost" onClick={() => approveLetterInputRef.current?.click()} disabled={approveLetterUploading}>
+                                                <i className={`fa-light ${approveLetterUploading ? "fa-spinner-third fa-spin" : "fa-upload"}`} /> {approveLetterUploading ? "Uploading..." : "Upload Approved Letter"}
+                                            </button>
+                                        </>
+                                    )}
+                                    {letter.approveLetterUploadedAt && (
+                                        <button type="button" className="m365-btn m365-btn--ghost" onClick={handleDownloadApproveLetter} disabled={approveLetterUploading}>
+                                            <i className="fa-light fa-download" /> Download Approved Letter
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="warning-letter-preview__section-toggle-button"
+                                        onClick={() => togglePanel("approved")}
+                                        aria-expanded={expandedPanels.approved}
+                                        aria-label={expandedPanels.approved ? "Collapse approved letter section" : "Expand approved letter section"}
+                                    >
+                                        <i className={`fa-light ${expandedPanels.approved ? "fa-chevron-up" : "fa-chevron-down"}`} />
+                                    </button>
+                                </div>
+                            </div>
+                            {expandedPanels.approved && (
+                                <>
+                                    {approveLetterUploading && (
+                                        <div className="warning-letter-preview__signed-copy-uploading">
+                                            <i className="fa-light fa-spinner-third fa-spin" /> Uploading approved letter...
+                                        </div>
+                                    )}
+                                    <div className="warning-letter-preview__compact-list">
+                                        <div><span>Uploaded</span><strong>{formatDocumentDate(letter.approveLetterUploadedAt, "Pending")}</strong></div>
+                                        <div><span>By</span><strong>{approveLetterUploadedByLabel}</strong></div>
+                                        <div><span>File</span><strong>{letter.approveLetterFileName || "No approved letter uploaded"}</strong></div>
+                                        <div><span>Type</span><strong>{letter.approveLetterContentType || "N/A"}</strong></div>
+                                        <div><span>Size</span><strong>{formatDocumentSize(letter.approveLetterFileSize)}</strong></div>
+                                    </div>
                                 </>
                             )}
-                            {letter.signedCopyUploadedAt && (
-                                <button type="button" className="m365-btn m365-btn--ghost" onClick={handleDownloadSignedCopy} disabled={signedCopyUploading}>
-                                    <i className="fa-light fa-download" /> Download Signed Copy
-                                </button>
+                        </div>
+
+                        <div className="warning-letter-page__panel warning-letter-preview__workflow-card warning-letter-preview__signed-copy">
+                            <div className="warning-letter-preview__signed-copy-header">
+                                <div className="warning-letter-preview__section-copy">
+                                    <button
+                                        type="button"
+                                        className="warning-letter-preview__collapse-toggle warning-letter-preview__collapse-toggle--section"
+                                        onClick={() => togglePanel("signed")}
+                                        aria-expanded={expandedPanels.signed}
+                                    >
+                                        <div>
+                                            <h3>Signed Copy</h3>
+                                        </div>
+                                        <div className="warning-letter-preview__panel-heading-meta">
+                                            <span className={`m365-badge ${signedStatus.cls}`}>{signedStatus.label}</span>
+                                        </div>
+                                    </button>
+                                    <p>{workflowLocked ? "Signed copy received. Editing actions are locked." : "Request the signature, then upload the returned signed copy."}</p>
+                                </div>
+                                <div className="warning-letter-preview__signed-copy-actions">
+                                    {canSend && hasApprovedLetter && workflowStage < 3 && (
+                                        <button type="button" className="m365-btn m365-btn--ghost" onClick={handleOpenRequestSignature}>
+                                            <i className="fa-light fa-signature" /> Request Signature
+                                        </button>
+                                    )}
+                                    {canUploadSignedCopy && canUploadWorkflowDocuments && letter.signatureRequestedAt && workflowStage < 4 && (
+                                        <>
+                                            <input
+                                                ref={signedCopyInputRef}
+                                                type="file"
+                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                className="warning-letter-preview__signed-copy-input"
+                                                onChange={handleSignedCopySelected}
+                                                disabled={signedCopyUploading}
+                                            />
+                                            <button type="button" className="m365-btn m365-btn--ghost" onClick={() => signedCopyInputRef.current?.click()} disabled={signedCopyUploading}>
+                                                <i className={`fa-light ${signedCopyUploading ? "fa-spinner-third fa-spin" : "fa-upload"}`} /> {signedCopyUploading ? "Uploading..." : "Upload Signed Copy"}
+                                            </button>
+                                        </>
+                                    )}
+                                    {letter.signedCopyUploadedAt && (
+                                        <button type="button" className="m365-btn m365-btn--ghost" onClick={handleDownloadSignedCopy} disabled={signedCopyUploading}>
+                                            <i className="fa-light fa-download" /> Download Signed Copy
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="warning-letter-preview__section-toggle-button"
+                                        onClick={() => togglePanel("signed")}
+                                        aria-expanded={expandedPanels.signed}
+                                        aria-label={expandedPanels.signed ? "Collapse signed copy section" : "Expand signed copy section"}
+                                    >
+                                        <i className={`fa-light ${expandedPanels.signed ? "fa-chevron-up" : "fa-chevron-down"}`} />
+                                    </button>
+                                </div>
+                            </div>
+                            {expandedPanels.signed && (
+                                <>
+                                    {signedCopyUploading && (
+                                        <div className="warning-letter-preview__signed-copy-uploading">
+                                            <i className="fa-light fa-spinner-third fa-spin" /> Uploading signed document...
+                                        </div>
+                                    )}
+                                    <div className="warning-letter-preview__compact-list">
+                                        <div><span>Recipient</span><strong>{letter.signatureRequestRecipient || "N/A"}</strong></div>
+                                        <div><span>CC</span><strong>{ccRecipientsLabel}</strong></div>
+                                        <div><span>Requested</span><strong>{formatDocumentDate(letter.signatureRequestedAt, "N/A")}</strong></div>
+                                        <div><span>Uploaded</span><strong>{formatDocumentDate(letter.signedCopyUploadedAt, "Pending")}</strong></div>
+                                        <div><span>By</span><strong>{signedCopyUploadedByLabel}</strong></div>
+                                        <div><span>File</span><strong>{letter.signedCopyFileName || "No signed copy uploaded"}</strong></div>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
-                    {signedCopyUploading && (
-                        <div className="warning-letter-preview__signed-copy-uploading">
-                            <i className="fa-light fa-spinner-third fa-spin" /> Uploading signed document...
+
+                    <div className="warning-letter-preview__main">
+                        <div className="warning-letter-page__panel warning-letter-preview__preview-shell">
+                            <div className="warning-letter-preview__preview-header">
+                                <div className="warning-letter-preview__preview-title">
+                                    <span className="warning-letter-preview__eyebrow">Preview</span>
+                                    <h3>Issued PDF</h3>
+                                </div>
+                                <div className="warning-letter-preview__preview-actions">
+                                    <div className="warning-letter-preview__header-group warning-letter-preview__header-group--workflow">
+                                        {canSend && letter.status !== 0 && (
+                                            <button type="button" className="m365-btn m365-btn--primary" onClick={handleSendEmail}>
+                                                <i className="fa-light fa-envelope" /> Email Employee
+                                            </button>
+                                        )}
+                                        {canUpdate && workflowStage === 3 && (
+                                            <button type="button" className="m365-btn m365-btn--success" onClick={handleAcknowledge}>
+                                                <i className="fa-light fa-badge-check" /> Acknowledge
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="warning-letter-preview__document-toolbar-actions">
+                                        {canViewPdf && (
+                                            <button type="button" className="m365-btn m365-btn--ghost" onClick={() => loadPdfPreview(true)} disabled={previewLoading || loading || workflowLocked} title={workflowLocked ? "Signed copy already uploaded. Regeneration disabled to preserve the issued document." : undefined}>
+                                                <i className="fa-light fa-rotate-right" /> Regenerate PDF
+                                            </button>
+                                        )}
+                                        <button type="button" className="m365-btn m365-btn--ghost" onClick={handleDownload} disabled={!pdfUrl || !canViewPdf}>
+                                            <i className="fa-light fa-download" /> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="warning-letter-preview__frame-wrap">
+                                {(loading || previewLoading) && <div className="warning-letter-preview__loading">Loading preview...</div>}
+                                {!loading && !previewLoading && pdfUrl && (
+                                    <iframe title={`Warning letter ${id}`} className="warning-letter-preview__frame" src={pdfUrl} />
+                                )}
+                                {!loading && !previewLoading && !pdfUrl && !canViewPdf && (
+                                    <div className="warning-letter-preview__loading">PDF preview is unavailable because you do not have permission to generate warning letter PDFs.</div>
+                                )}
+                            </div>
                         </div>
-                    )}
-                    <div className="warning-letter-preview__signed-copy-grid">
-                        <div><span>Request Recipient</span><strong>{letter.signatureRequestRecipient || "N/A"}</strong></div>
-                        <div><span>Requested At</span><strong>{letter.signatureRequestedAt ? new Date(letter.signatureRequestedAt).toLocaleString() : "N/A"}</strong></div>
-                        <div><span>Uploaded At</span><strong>{letter.signedCopyUploadedAt ? new Date(letter.signedCopyUploadedAt).toLocaleString() : "Pending"}</strong></div>
-                        <div><span>Uploaded By</span><strong>{uploadedByLabel || "N/A"}</strong></div>
-                        <div><span>File</span><strong>{letter.signedCopyFileName || "No signed copy uploaded"}</strong></div>
                     </div>
                 </div>
             )}
 
-            <Popup
-                visible={signaturePopupOpen}
-                onHiding={() => !signatureSubmitting && setSignaturePopupOpen(false)}
-                dragEnabled={false}
-                showCloseButton={!signatureSubmitting}
-                showTitle={false}
+            <SlidePanel
+                open={helpPanelOpen}
+                onClose={() => setHelpPanelOpen(false)}
+                title="Document Procedure"
+                width={440}
+                panelClassName="warning-letter-preview__help-panel"
+            >
+                <div className="warning-letter-preview__help-panel-body">
+                    <div className="warning-letter-preview__help-panel-intro">
+                        <i className="fa-light fa-circle-info" />
+                        <span>Use this checklist on the preview page to keep the issued document consistent through approval, signature, and acknowledgement.</span>
+                    </div>
+
+                    <div className="warning-letter-preview__help-section">
+                        <h3>Procedure</h3>
+                        <ol className="warning-letter-preview__help-list">
+                            <li>Review the PDF preview on the right and confirm the employee, vehicle, site, and violation details are correct.</li>
+                            <li>If you changed document content, use Regenerate PDF before uploading any workflow documents.</li>
+                            <li>Upload the approved letter once management confirms the final version. After signature is requested, the approved copy should not be changed.</li>
+                            <li>Send Request Signature to the site representative only after the approved letter is in place.</li>
+                            <li>When the signed document comes back, upload the signed copy to lock the issued workflow record.</li>
+                            <li>Use Acknowledge only after the signed copy is complete and the employee response has been captured.</li>
+                        </ol>
+                    </div>
+
+                    <div className="warning-letter-preview__help-section">
+                        <h3>Important Notes</h3>
+                        <ul className="warning-letter-preview__help-list warning-letter-preview__help-list--unordered">
+                            <li>Regenerating the PDF after a signed copy exists is disabled to preserve the issued document.</li>
+                            <li>The Approved Letter and Signed Copy sections on the left show the current workflow status for quick checking.</li>
+                            <li>If anything is wrong in the PDF, go back to Edit before continuing with approval or signature steps.</li>
+                        </ul>
+                    </div>
+                </div>
+            </SlidePanel>
+
+            <SlidePanel
+                open={signaturePopupOpen}
+                onClose={() => !signatureSubmitting && setSignaturePopupOpen(false)}
+                title="Request Signature"
                 width={520}
-                height="auto"
-                maxHeight="80vh"
-                shading={true}
-                shadingColor="rgba(0,0,0,0.4)"
-                wrapperAttr={{ class: "warning-letter-preview__signature-popup" }}
+                panelClassName="warning-letter-preview__signature-panel"
             >
                 <div className="warning-letter-preview__signature-picker">
                     <div className="warning-letter-preview__signature-picker-header">
                         <div>
-                            <h3>Select Site Representative</h3>
-                            <p>Only users assigned to this site are shown. The selected representative will receive both email and in-app notification.</p>
+                            <div className="warning-letter-preview__signature-picker-titlebar">
+                                <h3>Select Site Representative</h3>
+                            </div>
+                            <p>The selected representative will receive both email and in-app notification. Recipients are managed in Notification Recipient Management using dedicated warning letter groups.</p>
+                            <p className="warning-letter-preview__signature-group-summary">
+                                Site Representative Group <strong>{signatureRecipientOptions.siteRepresentativeGroupName}</strong><br />
+                                Signature CC Group <strong>{signatureRecipientOptions.signatureCcGroupName}</strong>
+                            </p>
                         </div>
                     </div>
 
                     <div className="warning-letter-preview__signature-picker-field">
-                        <span>Site Representative</span>
+                        <div className="warning-letter-preview__signature-picker-label-row">
+                            <span>
+                                Site Representative
+                                <strong className="warning-letter-preview__signature-picker-count">{signatureRecipients.length}</strong>
+                            </span>
+                            <button
+                                type="button"
+                                className="m365-icon-btn"
+                                title="Edit site representative group"
+                                aria-label="Edit site representative group"
+                                onClick={() => openRecipientGroupPanel(signatureRecipientOptions.siteRepresentativeGroupName)}
+                                disabled={!letter?.siteId || signatureSubmitting}
+                            >
+                                <i className="fa-light fa-pen-to-square" />
+                            </button>
+                        </div>
+                        <small>
+                            This list only shows members of <strong>{signatureRecipientOptions.siteRepresentativeGroupName}</strong>.
+                            Adding a user to Signature CC does not add them here.
+                        </small>
+                        {showSignatureGroupWarning && (
+                            <div className="warning-letter-preview__signature-picker-warning">
+                                <i className="fa-light fa-triangle-exclamation" />
+                                <span>
+                                    Site Representatives is empty, but Signature CC already has {signatureCcRecipients.length} member{signatureCcRecipients.length !== 1 ? "s" : ""}. Add at least one user to the Site Representatives group before sending a signature request.
+                                </span>
+                            </div>
+                        )}
                         <SelectBox
                             dataSource={signatureRecipients}
                             value={selectedSignatureRecipientId}
                             onValueChanged={(event) => setSelectedSignatureRecipientId(event.value || null)}
                             valueExpr="id"
-                            displayExpr={(item) => item ? `${item.userName || "Unknown"}${item.email ? ` (${item.email})` : ""}${item.isSiteAdmin ? " • Site admin" : ""}` : ""}
+                            displayExpr={(item) => item ? `${item.userName || "Unknown"}${item.email ? ` (${item.email})` : ""}` : ""}
                             searchEnabled={true}
                             searchExpr={["userName", "email"]}
                             placeholder={signatureRecipientsLoading ? "Loading site representatives..." : "Search and select a site representative"}
                             showClearButton={true}
                             disabled={signatureRecipientsLoading || signatureSubmitting}
-                            noDataText="No site representatives with email are assigned to this site"
+                            noDataText={`No recipients configured in ${signatureRecipientOptions.siteRepresentativeGroupName}`}
+                            stylingMode="outlined"
+                        />
+                    </div>
+
+                    <div className="warning-letter-preview__signature-picker-field">
+                        <div className="warning-letter-preview__signature-picker-label-row">
+                            <span>
+                                CC Recipients
+                                <strong className="warning-letter-preview__signature-picker-count">{signatureCcRecipients.length}</strong>
+                            </span>
+                            <button
+                                type="button"
+                                className="m365-icon-btn"
+                                title="Edit signature CC group"
+                                aria-label="Edit signature CC group"
+                                onClick={() => openRecipientGroupPanel(signatureRecipientOptions.signatureCcGroupName)}
+                                disabled={!letter?.siteId || signatureSubmitting}
+                            >
+                                <i className="fa-light fa-pen-to-square" />
+                            </button>
+                        </div>
+                        <small>
+                            This list shows members of <strong>{signatureRecipientOptions.signatureCcGroupName}</strong> only.
+                        </small>
+                        <TagBox
+                            dataSource={availableSignatureCcRecipients}
+                            value={selectedCcRecipientIds}
+                            onValueChanged={(event) => setSelectedCcRecipientIds(Array.isArray(event.value) ? event.value : [])}
+                            valueExpr="id"
+                            displayExpr={(item) => item ? `${item.userName || "Unknown"}${item.email ? ` (${item.email})` : ""}` : ""}
+                            searchEnabled={true}
+                            searchExpr={["userName", "email"]}
+                            placeholder={signatureRecipientsLoading ? "Loading additional recipients..." : "Optional CC recipients at this site"}
+                            showClearButton={true}
+                            noDataText={`No recipients configured in ${signatureRecipientOptions.signatureCcGroupName}`}
+                            disabled={signatureRecipientsLoading || signatureSubmitting}
                             stylingMode="outlined"
                         />
                     </div>
@@ -473,17 +992,92 @@ const WarningLetterPreviewPage = () => {
                         </button>
                     </div>
                 </div>
-            </Popup>
+            </SlidePanel>
 
-            <div className="warning-letter-page__panel warning-letter-preview__frame-wrap">
-                {(loading || previewLoading) && <div className="warning-letter-preview__loading">Loading preview...</div>}
-                {!loading && !previewLoading && previewMode === "html" && htmlContent && (
-                    <iframe title={`Warning letter ${id} html`} className="warning-letter-preview__frame" srcDoc={htmlContent} />
-                )}
-                {!loading && !previewLoading && previewMode === "pdf" && pdfUrl && (
-                    <iframe title={`Warning letter ${id}`} className="warning-letter-preview__frame" src={pdfUrl} />
-                )}
-            </div>
+            <SlidePanel
+                open={recipientGroupPanelOpen}
+                onClose={handleCloseRecipientGroupPanel}
+                title={recipientGroupTarget ? `Members - ${recipientGroupTarget.displayName}` : "Group Members"}
+                width={720}
+                panelClassName="warning-letter-preview__recipient-group-panel"
+            >
+                <div className="warning-letter-preview__recipient-group-editor">
+                    <div className="warning-letter-preview__recipient-group-info">
+                        <i className="fa-light fa-circle-info" />
+                        <span>Use the user picker below to add members directly to this warning-letter recipient group.</span>
+                    </div>
+
+                    <div className="warning-letter-preview__recipient-group-bar">
+                        <div className="warning-letter-preview__recipient-group-field">
+                            <label className="warning-letter-preview__recipient-group-label">User</label>
+                            <SelectBox
+                                dataSource={recipientGroupUserOptions}
+                                valueExpr="id"
+                                displayExpr={(item) => {
+                                    if (!item) return "";
+                                    const fullName = `${item.firstName || ""} ${item.lastName || ""}`.trim();
+                                    return `${fullName || item.email || item.id}${item.email ? ` (${item.email})` : ""}`;
+                                }}
+                                value={recipientGroupAddMemberId}
+                                onValueChanged={(event) => setRecipientGroupAddMemberId(event.value || "")}
+                                placeholder="Search and select a user"
+                                width="100%"
+                                searchEnabled={true}
+                                searchExpr={["firstName", "lastName", "email", "role"]}
+                                showClearButton={true}
+                                disabled={recipientGroupLoading || !recipientGroupTarget}
+                            />
+                        </div>
+                        <div className="warning-letter-preview__recipient-group-action">
+                            <button
+                                type="button"
+                                className="m365-btn m365-btn--primary"
+                                onClick={handleAddRecipientGroupMember}
+                                disabled={recipientGroupLoading || !recipientGroupTarget}
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="warning-letter-preview__recipient-group-grid">
+                        <DataGrid
+                            dataSource={recipientGroupMembers}
+                            height={400}
+                            width="auto"
+                            showBorders={false}
+                            loadPanel={{ enabled: recipientGroupLoading }}
+                            rowAlternationEnabled={true}
+                            columnAutoWidth={true}
+                            hoverStateEnabled={true}
+                            noDataText={recipientGroupLoading ? "Loading members..." : "No members configured"}
+                        >
+                            <Column
+                                caption=""
+                                width={60}
+                                alignment="center"
+                                fixed={true}
+                                fixedPosition="left"
+                                cellRender={({ data }) => (
+                                    <button
+                                        type="button"
+                                        className="m365-icon-btn m365-icon-btn--danger"
+                                        title="Remove"
+                                        onClick={() => handleRemoveRecipientGroupMember(data)}
+                                        disabled={recipientGroupLoading}
+                                    >
+                                        <i className="fa-light fa-trash" />
+                                    </button>
+                                )}
+                            />
+                            <Column dataField="name" caption="Name / Identifier" />
+                            <Column dataField="email" caption="Email" width={220} />
+                            <Column dataField="memberId" caption="User Id" width={220} visible={false} />
+                        </DataGrid>
+                    </div>
+                </div>
+            </SlidePanel>
+
         </div>
     );
 };

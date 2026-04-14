@@ -73,11 +73,19 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         // For other operations, calculate new volume from previous volume + change
                         decimal newVolume;
                         decimal previousVolume = 0m;
-                        if ((request.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
-                             request.ChangeReason == VolumeChangeReasonEnum.ClosingStock) &&
-                            request.NewPhysicalStockValue.HasValue)
+                        var isCurrentDayEntry = request.Timestamp.Date == DateTime.UtcNow.Date ||
+                                                request.Timestamp.Date == DateTime.Now.Date;
+
+                        if (((request.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
+                              request.ChangeReason == VolumeChangeReasonEnum.ClosingStock) &&
+                             request.NewPhysicalStockValue.HasValue) ||
+                            ((request.ChangeReason == VolumeChangeReasonEnum.TransferIn ||
+                              request.ChangeReason == VolumeChangeReasonEnum.TransferOut) &&
+                             request.NewPhysicalStockValue.HasValue &&
+                             isCurrentDayEntry))
                         {
-                            // Use the physical stock value directly - user entered absolute value
+                            // For opening/closing stock and current-day physical transfers,
+                            // trust the supplied post-operation physical stock snapshot.
                             newVolume = request.NewPhysicalStockValue.Value;
                         }
                         else

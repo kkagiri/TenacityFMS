@@ -6,11 +6,11 @@
  */
 
 import React, { useCallback, useRef } from "react";
-import DataGrid, { Column, Export, FilterRow, Item as ToolbarItem, Pager, Paging, SearchPanel, Toolbar } from "devextreme-react/data-grid";
+import DataGrid, { Column, ColumnChooser, ColumnFixing, Export, FilterRow, HeaderFilter, Item as ToolbarItem, Pager, Paging, SearchPanel, Toolbar } from "devextreme-react/data-grid";
 import { Workbook } from "exceljs";
 import saveAs from "file-saver";
 import { exportDataGrid } from "devextreme/excel_exporter";
-import { formatDisplayDate } from "../VehicleDocuments.shared";
+import { formatDisplayDate, formatDisplayDateTime } from "../VehicleDocuments.shared";
 
 const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete, canEdit, canDelete }) => {
   const dataGridRef = useRef(null);
@@ -45,7 +45,7 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete, canEdit, c
           <i className="fa-light fa-pen" />
         </button>
       )}
-      {canDelete && onDelete && (
+      {canDelete && onDelete && data.canDeleteDocument && (
         <button type="button" className="vehicle-documents-page__icon-btn vehicle-documents-page__icon-btn--danger" onClick={() => onDelete(data)} title="Delete document">
           <i className="fa-light fa-trash" />
         </button>
@@ -94,12 +94,16 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete, canEdit, c
         onExporting={handleExporting}
       >
         <Export enabled={true} formats={["xlsx"]} allowExportSelectedData={false} />
+        <ColumnFixing enabled={true} />
         <Toolbar>
           <ToolbarItem name="searchPanel" location="before" />
+          <ToolbarItem name="columnChooserButton" location="after" />
           <ToolbarItem name="exportButton" location="after" />
         </Toolbar>
         <SearchPanel visible={true} width={280} placeholder="Search documents..." />
         <FilterRow visible={true} />
+        <HeaderFilter visible={true} allowSearch={true} />
+        <ColumnChooser enabled={true} mode="select" />
         <Paging defaultPageSize={10} />
         <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50, 100]} showInfo={true} />
 
@@ -111,11 +115,13 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete, canEdit, c
         <Column dataField="documentNumber" caption="Document Number" minWidth={140} />
         <Column dataField="issueDate" caption="Issue Date" calculateDisplayValue={(row) => formatDisplayDate(row.issueDate)} minWidth={110} />
         <Column dataField="expiryDate" caption="Expiry Date" calculateDisplayValue={(row) => formatDisplayDate(row.expiryDate)} minWidth={110} />
+        <Column dataField="createdAt" caption="Uploaded On" calculateDisplayValue={(row) => formatDisplayDateTime(row.createdAt)} minWidth={160} />
+        <Column dataField="createdByDisplay" caption="Uploaded By" minWidth={160} />
         <Column dataField="alertLeadDays" caption="Alert Days" width={90} alignment="right" />
         <Column dataField="daysUntilExpiry" caption="Days Left" width={90} alignment="right" />
         <Column caption="Status" cellRender={renderStatusCell} width={110} />
         <Column caption="File" cellRender={renderFileCell} width={120} />
-        <Column caption="Actions" cellRender={renderActionCell} width={110} />
+        <Column caption="Actions" cellRender={renderActionCell} width={110} fixed={true} fixedPosition="right" allowHiding={false} />
       </DataGrid>
     </div>
   );

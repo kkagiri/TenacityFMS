@@ -540,8 +540,10 @@ namespace FMS.WebClient.Controllers
                     return BadRequest(FMSResponse.FailedResponse("Search term is required"));
                 }
 
+                var normalizedSearchTerm = NormalizeVehicleSearchTerm(searchTerm);
+
                 // Use a cache key for search results
-                var cacheKey = $"VehicleSearch_{searchTerm}_{limit}_{vehicleType}_{status}_{manufacturer}_{model}_{isActive}";
+                var cacheKey = $"VehicleSearch_{normalizedSearchTerm}_{limit}_{vehicleType}_{status}_{manufacturer}_{model}_{isActive}";
                 var cachedData = await _cache.GetStringAsync(cacheKey);
 
                 if (!string.IsNullOrEmpty(cachedData))
@@ -552,7 +554,7 @@ namespace FMS.WebClient.Controllers
 
                 var query = new SearchVehicleQuery
                 {
-                    SearchTerm = searchTerm,
+                    SearchTerm = normalizedSearchTerm,
                     Limit = limit,
                     VehicleType = vehicleType,
                     Status = status,
@@ -599,13 +601,15 @@ namespace FMS.WebClient.Controllers
                     return BadRequest(FMSResponse.FailedResponse("Search term is required"));
                 }
 
-                if (searchTerm.Length < 2)
+                var normalizedSearchTerm = NormalizeVehicleSearchTerm(searchTerm);
+
+                if (normalizedSearchTerm.Length < 2)
                 {
                     return BadRequest(FMSResponse.FailedResponse("Search term must be at least 2 characters long"));
                 }
 
                 // Use a shorter cache timeout for quick searches
-                var cacheKey = $"QuickSearch_{searchTerm}_{limit}";
+                var cacheKey = $"QuickSearch_{normalizedSearchTerm}_{limit}";
                 var cachedData = await _cache.GetStringAsync(cacheKey);
 
                 if (!string.IsNullOrEmpty(cachedData))
@@ -616,7 +620,7 @@ namespace FMS.WebClient.Controllers
 
                 var query = new SearchVehicleQuery
                 {
-                    SearchTerm = searchTerm,
+                    SearchTerm = normalizedSearchTerm,
                     Limit = limit
                     // Temporarily remove IsActive filter for debugging
                     // IsActive = true // Only return active vehicles for quick search
@@ -655,9 +659,11 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
+                var normalizedSearchTerm = NormalizeVehicleSearchTerm(searchTerm);
+
                 var query = new DebugSearchVehicleQuery
                 {
-                    SearchTerm = searchTerm,
+                    SearchTerm = normalizedSearchTerm,
                     Limit = limit
                 };
 
@@ -681,9 +687,11 @@ namespace FMS.WebClient.Controllers
                     return BadRequest("Plate number is required");
                 }
 
+                var normalizedPlateNumber = NormalizeVehicleSearchTerm(plateNumber);
+
                 var query = new SearchVehicleQuery
                 {
-                    SearchTerm = plateNumber,
+                    SearchTerm = normalizedPlateNumber,
                     Limit = 5
                 };
 
@@ -713,9 +721,11 @@ namespace FMS.WebClient.Controllers
                     return BadRequest("Hyoung number is required");
                 }
 
+                var normalizedHyoungNo = NormalizeVehicleSearchTerm(hyoungNo);
+
                 var query = new SearchVehicleQuery
                 {
-                    SearchTerm = hyoungNo,
+                    SearchTerm = normalizedHyoungNo,
                     Limit = 5
                 };
 
@@ -732,6 +742,19 @@ namespace FMS.WebClient.Controllers
             {
                 return StatusCode(500, new { message = "Error searching by Hyoung number", error = ex.Message });
             }
+        }
+
+        private static string NormalizeVehicleSearchTerm(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            return string.Join(
+                " ",
+                value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                .ToUpperInvariant();
         }
 
         private static List<string> ValidateMovementProfiles(IEnumerable<VehicleDTO> vehicles)

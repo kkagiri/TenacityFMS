@@ -1,5 +1,7 @@
 import axiosInstance from "../../api/axiosInstance";
 
+const normalizeSearchTerm = (value) => typeof value === "string" ? value.trim() : value;
+
 // Action types for vehicle search
 export const SEARCH_VEHICLES_REQUEST = "SEARCH_VEHICLES_REQUEST";
 export const SEARCH_VEHICLES_SUCCESS = "SEARCH_VEHICLES_SUCCESS";
@@ -9,12 +11,13 @@ export const CLEAR_SEARCH_RESULTS = "CLEAR_SEARCH_RESULTS";
 // Search vehicles action
 export const searchVehicles = (searchTerm, filters = {}) => async (dispatch) => {
   try {
+    const normalizedSearchTerm = normalizeSearchTerm(searchTerm);
     dispatch({ type: SEARCH_VEHICLES_REQUEST });
 
     // Use the backend search endpoint
     const response = await axiosInstance.get('/vehicle/search', {
       params: {
-        searchTerm: searchTerm,
+        searchTerm: normalizedSearchTerm,
         ...filters
       }
     });
@@ -218,18 +221,20 @@ export const searchVehiclesByPlate = (plateNumber) => async (dispatch) => {
 
 // Search vehicles by Hyoung number
 export const searchVehiclesByHyoungNo = (hyoungNo) => async (dispatch) => {
+  const normalizedHyoungNo = normalizeSearchTerm(hyoungNo);
+
   try {
     dispatch({ type: SEARCH_VEHICLES_REQUEST });
 
     const response = await axiosInstance.get('/vehicle/search-by-hyoung', {
-      params: { hyoungNo },
+      params: { hyoungNo: normalizedHyoungNo },
     });
 
     dispatch({
       type: SEARCH_VEHICLES_SUCCESS,
       payload: {
         results: response.data.data || [],
-        searchTerm: hyoungNo,
+        searchTerm: normalizedHyoungNo,
         totalCount: response.data.data?.length || 0
       },
     });
@@ -242,7 +247,7 @@ export const searchVehiclesByHyoungNo = (hyoungNo) => async (dispatch) => {
       type: SEARCH_VEHICLES_FAILURE,
       payload: {
         error: errorMessage,
-        searchTerm: hyoungNo
+        searchTerm: normalizedHyoungNo
       },
     });
 

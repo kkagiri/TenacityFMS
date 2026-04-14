@@ -87,6 +87,7 @@ const toneClassMap = {
 const VehicleReportsPage = () => {
   const navigate = useNavigate();
   const { hasPermission } = usePermissions();
+  const canManageReportSchedules = hasPermission('_Manage_ReportSchedules');
 
   const availableVehicleReports = useMemo(() => {
     return getAllReportSources()
@@ -104,7 +105,9 @@ const VehicleReportsPage = () => {
         isCoreVehicleReport: CORE_VEHICLE_REPORT_IDS.includes(source.id),
         formats: source.supportedFormats || [],
         openRoute: reportsRoutes.engineSource(source.id),
-        scheduleRoute: `${reportsRoutes.scheduling}?source=${encodeURIComponent(source.id)}`,
+        scheduleRoute: canManageReportSchedules
+          ? `${reportsRoutes.scheduling}?source=${encodeURIComponent(source.id)}`
+          : null,
         legacyRoute: LEGACY_ROUTE_BY_SOURCE[source.id] || null,
       }))
       .sort((left, right) => {
@@ -118,7 +121,7 @@ const VehicleReportsPage = () => {
 
         return left.title.localeCompare(right.title);
       });
-  }, [hasPermission]);
+  }, [canManageReportSchedules, hasPermission]);
 
   const summary = {
     available: availableVehicleReports.length,
@@ -266,10 +269,12 @@ const VehicleReportsPage = () => {
                 <i className="fa-light fa-list"></i>
                 All report sources
               </button>
-              <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.scheduling)}>
-                <i className="fa-light fa-calendar-clock"></i>
-                Scheduling
-              </button>
+              {canManageReportSchedules && (
+                <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.scheduling)}>
+                  <i className="fa-light fa-calendar-clock"></i>
+                  Scheduling
+                </button>
+              )}
               <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.monitoring)}>
                 <i className="fa-light fa-waveform-lines"></i>
                 Monitoring

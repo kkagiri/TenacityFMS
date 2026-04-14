@@ -87,9 +87,11 @@ export class APIErrorHandler {
         // Handle authentication errors
         this._handleAuthenticationError();
         return this._createErrorResponse(
-          'Authentication required',
-          ['Please log in to continue.'],
-          'AUTHENTICATION'
+          message || 'Authentication required',
+          errors.length > 0
+            ? errors
+            : [message || 'Please log in to continue.'],
+          errorType || 'AUTHENTICATION'
         );
 
       case 403:

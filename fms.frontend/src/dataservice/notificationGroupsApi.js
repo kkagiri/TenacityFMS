@@ -1,13 +1,20 @@
 import axiosInstance from "../api/axiosInstance";
+import { getUserInfoFromToken } from "../utils/jwtUtils";
+
+const resolveActor = () => {
+  const token = localStorage.getItem("token");
+  const userInfo = getUserInfoFromToken(token);
+  return userInfo?.id || userInfo?.username || userInfo?.email || "System";
+};
 
 /**
  * API service for managing notification groups and mappings
  */
 class NotificationGroupsApi {
   constructor() {
-  // Match backend NotificationGroupsController and NotificationController policy mapping routes
-  this.basePath = "/notification/groups";
-  this.policiesBasePath = "/notifications/policies";
+    // Match backend NotificationGroupsController and NotificationController policy mapping routes
+    this.basePath = "/notifications/groups";
+    this.policiesBasePath = "/notifications/policies";
   }
 
   /**
@@ -45,6 +52,7 @@ class NotificationGroupsApi {
         description: group.description || "",
         siteId: group.siteId ?? null,
         isActive: group.isActive !== false,
+        createdBy: resolveActor(),
         // backend DTO uses string; join array if provided
         allowedDeliveryMethods: Array.isArray(group.allowedDeliveryMethods)
           ? group.allowedDeliveryMethods.join(",")
@@ -76,7 +84,9 @@ class NotificationGroupsApi {
       const payload = {
         name: group.name,
         description: group.description,
+        siteId: group.siteId ?? null,
         isActive: group.isActive,
+        updatedBy: resolveActor(),
         allowedDeliveryMethods: Array.isArray(group.allowedDeliveryMethods)
           ? group.allowedDeliveryMethods.join(",")
           : group.allowedDeliveryMethods,

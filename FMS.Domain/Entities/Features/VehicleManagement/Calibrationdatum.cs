@@ -7,7 +7,7 @@ public partial class Calibrationdatum
 {
     public int Id { get; set; }
 
-    public string? VehicleId { get; set; }
+    public int? VehicleId { get; set; }
 
     public DateTime? CalibrationDate { get; set; }
 

@@ -2,7 +2,7 @@
  * File: warningLetterService.js
  * Purpose: Wraps warning letter API calls and normalizes response payloads for vehicle-module pages.
  * Dependencies: axiosInstance
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-14
  */
 import axiosInstance from "../../../api/axiosInstance";
 
@@ -22,14 +22,69 @@ const ensureArray = (payload) => {
     return [];
 };
 
-const getMessage = (payload, fallback) =>
-    payload?.message || payload?.Message || fallback;
+const getValidationErrors = (payload) => {
+    if (Array.isArray(payload?.validationErrors)) {
+        return payload.validationErrors.filter(Boolean);
+    }
+
+    if (Array.isArray(payload?.ValidationErrors)) {
+        return payload.ValidationErrors.filter(Boolean);
+    }
+
+    return [];
+};
+
+const getMessage = (payload, fallback) => {
+    const validationErrors = getValidationErrors(payload);
+    if (validationErrors.length > 0) {
+        return validationErrors.join("\n");
+    }
+
+    return payload?.message || payload?.Message || fallback;
+};
 
 const getSuccess = (payload) =>
     payload?.isSuccess ?? payload?.success ?? payload?.IsSuccess ?? payload?.Success ?? false;
 
 const getData = (payload) =>
     payload?.data ?? payload?.Data ?? payload;
+
+const toServiceError = (error, fallback) => {
+    const payload = error?.response?.data;
+    const message = getMessage(payload, error?.message || fallback);
+    return new Error(message || fallback);
+};
+
+const normalizeWarningLetterListItem = (item = {}) => ({
+    id: item?.id ?? item?.Id ?? 0,
+    letterType: item?.letterType ?? item?.LetterType ?? null,
+    employeeId: item?.employeeId ?? item?.EmployeeId ?? null,
+    employeeName: item?.employeeName ?? item?.EmployeeName ?? "",
+    vehicleId: item?.vehicleId ?? item?.VehicleId ?? null,
+    vehicleHyoungNo: item?.vehicleHyoungNo ?? item?.VehicleHyoungNo ?? "",
+    numberPlate: item?.numberPlate ?? item?.NumberPlate ?? null,
+    siteId: item?.siteId ?? item?.SiteId ?? null,
+    siteName: item?.siteName ?? item?.SiteName ?? "",
+    letterDate: item?.letterDate ?? item?.LetterDate ?? null,
+    periodStart: item?.periodStart ?? item?.PeriodStart ?? null,
+    status: item?.status ?? item?.Status ?? null,
+    workflowStage: item?.workflowStage ?? item?.WorkflowStage ?? null,
+    emailSentAt: item?.emailSentAt ?? item?.EmailSentAt ?? null,
+    emailRecipient: item?.emailRecipient ?? item?.EmailRecipient ?? null,
+    signatureRequestRecipient: item?.signatureRequestRecipient ?? item?.SignatureRequestRecipient ?? null,
+    signatureRequestCcRecipients: item?.signatureRequestCcRecipients ?? item?.SignatureRequestCcRecipients ?? null,
+    approveLetterUploadedAt: item?.approveLetterUploadedAt ?? item?.ApproveLetterUploadedAt ?? null,
+    signatureRequestedAt: item?.signatureRequestedAt ?? item?.SignatureRequestedAt ?? null,
+    signedCopyUploadedAt: item?.signedCopyUploadedAt ?? item?.SignedCopyUploadedAt ?? null,
+    employeeAcknowledgedAt: item?.employeeAcknowledgedAt ?? item?.EmployeeAcknowledgedAt ?? null,
+});
+
+const normalizeSignatureRecipient = (item = {}) => ({
+    id: item?.id ?? item?.Id ?? "",
+    userName: item?.userName ?? item?.UserName ?? "",
+    email: item?.email ?? item?.Email ?? "",
+    isSiteAdmin: item?.isSiteAdmin ?? item?.IsSiteAdmin ?? false,
+});
 
 const buildParams = (values = {}) => {
     const params = new URLSearchParams();
@@ -65,7 +120,7 @@ export const getWarningLetters = async (filters = {}) => {
         throw new Error(getMessage(payload, "Failed to load warning letters."));
     }
 
-    return getData(payload) || [];
+    return ensureArray(getData(payload)).map(normalizeWarningLetterListItem);
 };
 
 export const getWarningLetter = async (id) => {
@@ -134,10 +189,10 @@ export const acknowledgeWarningLetter = async (id) => {
     return getData(result);
 };
 
-export const sendWarningLetterEmail = async (id, emailRecipient) => {
-    const response = await axiosInstance.post(`/warning-letters/${id}/send-email`, {
+export const sendWarningLetterEmail = async (id, emailRecipient = null) => {
+    const response = await axiosInstance.post(`/warning-letters/${id}/send-email`, emailRecipient ? {
         emailRecipient,
-    });
+    } : {});
     const result = response.data;
 
     if (!getSuccess(result)) {
@@ -170,6 +225,24 @@ export const fetchWarningLetterSignatureRecipients = async (id) => {
         throw new Error(getMessage(payload, "Failed to load site representatives."));
     }
 
+    const data = getData(payload) || {};
+
+    return {
+        siteRepresentativeGroupName: data.siteRepresentativeGroupName ?? data.SiteRepresentativeGroupName ?? "Warning Letter Site Representatives",
+        signatureCcGroupName: data.signatureCcGroupName ?? data.SignatureCcGroupName ?? "Warning Letter Signature CC",
+        siteRepresentatives: ensureArray(data.siteRepresentatives ?? data.SiteRepresentatives).map(normalizeSignatureRecipient),
+        signatureCcRecipients: ensureArray(data.signatureCcRecipients ?? data.SignatureCcRecipients).map(normalizeSignatureRecipient),
+    };
+};
+
+export const fetchWarningLetterSiteRecipients = async (siteId) => {
+    const response = await axiosInstance.get(`/warning-letters/site-recipients?siteId=${siteId}`);
+    const payload = response.data;
+
+    if (!getSuccess(payload)) {
+        throw new Error(getMessage(payload, "Failed to load site recipients."));
+    }
+
     return ensureArray(getData(payload));
 };
 
@@ -177,18 +250,44 @@ export const uploadWarningLetterSignedCopy = async (id, file) => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await axiosInstance.post(`/warning-letters/${id}/signed-copy`, formData, {
-        headers: {
-            "Content-Type": "multipart/form-data",
-        },
-    });
+    try {
+        const response = await axiosInstance.post(`/warning-letters/${id}/signed-copy`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
 
-    const result = response.data;
-    if (!getSuccess(result)) {
-        throw new Error(getMessage(result, "Failed to upload signed copy."));
+        const result = response.data;
+        if (!getSuccess(result)) {
+            throw new Error(getMessage(result, "Failed to upload signed copy."));
+        }
+
+        return getData(result);
+    } catch (error) {
+        throw toServiceError(error, "Failed to upload signed copy.");
     }
+};
 
-    return getData(result);
+export const uploadWarningLetterApproveLetter = async (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await axiosInstance.post(`/warning-letters/${id}/approve-letter`, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        const result = response.data;
+        if (!getSuccess(result)) {
+            throw new Error(getMessage(result, "Failed to upload approved letter."));
+        }
+
+        return getData(result);
+    } catch (error) {
+        throw toServiceError(error, "Failed to upload approved letter.");
+    }
 };
 
 export const downloadWarningLetterSignedCopy = async (id) => {
@@ -200,6 +299,18 @@ export const downloadWarningLetterSignedCopy = async (id) => {
     return {
         blob,
         fileName: extractFileName(response.headers, `warning-letter-${id}-signed-copy`),
+    };
+};
+
+export const downloadWarningLetterApproveLetter = async (id) => {
+    const response = await axiosInstance.get(`/warning-letters/${id}/approve-letter`, { responseType: "blob" });
+    const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: "application/octet-stream" });
+
+    return {
+        blob,
+        fileName: extractFileName(response.headers, `warning-letter-${id}-approve-letter`),
     };
 };
 

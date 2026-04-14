@@ -2,7 +2,7 @@
  * File: GetWarningLetterByIdQuery.cs
  * Purpose: Returns a detailed warning letter record by identifier.
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetter DTOs
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-11
  */
 using System.Linq;
 using System.Threading;
@@ -63,6 +63,29 @@ public class GetWarningLetterByIdQueryHandler : IRequestHandler<GetWarningLetter
                         : !string.IsNullOrWhiteSpace(uploader.UserName) && !string.IsNullOrWhiteSpace(uploader.Email)
                             ? $"{uploader.UserName} ({uploader.Email})"
                             : uploader.Email ?? uploader.UserName ?? dto.SignedCopyUploadedBy;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(warningLetter.ApproveLetterUploadedBy))
+        {
+            var uploader = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == warningLetter.ApproveLetterUploadedBy)
+                .Select(u => new { u.FirstName, u.LastName, u.UserName, u.Email })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (uploader != null)
+            {
+                var fullName = string.Join(" ", new[] { uploader.FirstName?.Trim(), uploader.LastName?.Trim() }
+                    .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                dto.ApproveLetterUploadedBy = !string.IsNullOrWhiteSpace(fullName) && !string.IsNullOrWhiteSpace(uploader.Email)
+                    ? $"{fullName} ({uploader.Email})"
+                    : !string.IsNullOrWhiteSpace(fullName)
+                        ? fullName
+                        : !string.IsNullOrWhiteSpace(uploader.UserName) && !string.IsNullOrWhiteSpace(uploader.Email)
+                            ? $"{uploader.UserName} ({uploader.Email})"
+                            : uploader.Email ?? uploader.UserName ?? dto.ApproveLetterUploadedBy;
             }
         }
 

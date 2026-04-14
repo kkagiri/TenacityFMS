@@ -15,6 +15,8 @@ import {
   Selection,
   Column,
   SearchPanel,
+  FilterRow,
+  HeaderFilter,
 } from "devextreme-react/data-grid";
 
 const UserDataList = () => {
@@ -77,12 +79,16 @@ const UserDataList = () => {
         showRowLines={true}
         allowColumnResizing={true}
         showColumnHeaders={true}
+        columnAutoWidth={true}
+        hoverStateEnabled={true}
         selectedRowKeys={normalizedSelectedUsers}
         onSelectionChanged={handleSelectionChanged}
         keyExpr="id"
       >
         <Selection mode="multiple" showCheckBoxesMode="always" selectByClick={false} />
-        <SearchPanel showSearchButton={true} />
+        <SearchPanel visible={true} width={260} placeholder="Search users..." highlightCaseSensitive={false} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
         <Column
           dataField="id"
           caption="ID"
@@ -90,8 +96,8 @@ const UserDataList = () => {
           visible={false}
           defaultSortOrder="asc"
         />
-        <Column dataField="userName" caption="Username" allowEditing={false} />
-        <Column dataField="email" caption="Email" allowEditing={false} />
+        <Column dataField="userName" caption="Username" allowEditing={false} minWidth={180} />
+        <Column dataField="email" caption="Email" allowEditing={false} minWidth={220} />
       </DataGrid>
     </div>
   );

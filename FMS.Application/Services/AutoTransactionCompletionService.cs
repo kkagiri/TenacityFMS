@@ -404,11 +404,21 @@ namespace FMS.Application.Services
                                                 verifyTransaction.TankId.Value,
                                                 verifyTransaction.DestinationTankId.Value,
                                                 verifyTransaction.Volume.Value);
+
+                                            // Only mark the transfer idempotent after the transfer ledger/save path succeeds.
+                                            await _redisDb.StringSetAsync(idempotencyKey, "1", TimeSpan.FromDays(1));
+                                        }
+                                        else
+                                        {
+                                            _logger.LogError(
+                                                "[AutoComplete] Tank transfer processing failed for transaction {Transaction}. SourceTankId={SourceTankId}, DestinationTankId={DestinationTankId}, Volume={Volume}, Error={Error}",
+                                                transaction,
+                                                verifyTransaction.TankId.Value,
+                                                verifyTransaction.DestinationTankId.Value,
+                                                verifyTransaction.Volume.Value,
+                                                transferResult.Message);
                                         }
                                     }
-
-                                    // Set Redis idempotency key after successful processing (1 day expiry)
-                                    await _redisDb.StringSetAsync(idempotencyKey, "1", TimeSpan.FromDays(1));
                                 }
                             }
                             catch (Exception historyEx)

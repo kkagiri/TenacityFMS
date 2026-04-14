@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using FMS.WebClient.Attributes;
@@ -58,6 +59,14 @@ public class VehicleDocumentsController : ControllerBase
         return StatusCode(statusCode, result);
     }
 
+    private bool CurrentUserIsAdmin()
+    {
+        return User.Claims
+            .Where(claim => claim.Type == ClaimTypes.Role)
+            .Select(claim => claim.Value)
+            .Any(role => !string.IsNullOrWhiteSpace(role) && role.Contains("admin", StringComparison.OrdinalIgnoreCase));
+    }
+
     [HttpGet]
     public async Task<ActionResult<FMSResponse<List<VehicleDocumentDto>>>> GetVehicleDocuments([FromQuery] GetVehicleDocumentsQuery query)
     {
@@ -92,14 +101,20 @@ public class VehicleDocumentsController : ControllerBase
         {
             return BadRequest("ID mismatch");
         }
+
+        string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+        updateVehicleDocumentDto.UserId = userId;
+
         var result = await _mediator.Send(new UpdateVehicleDocumentCommand(updateVehicleDocumentDto));
         return CreateResponse(result);
     }
 
     [HttpDelete("{id}")]
+    [RequirePermission(Permissions.VehicleDocuments.Delete)]
     public async Task<ActionResult<FMSResponse<bool>>> DeleteVehicleDocument(Guid id)
     {
-        var result = await _mediator.Send(new DeleteVehicleDocumentCommand(id));
+        string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+        var result = await _mediator.Send(new DeleteVehicleDocumentCommand(id, userId, CurrentUserIsAdmin()));
         return CreateResponse(result);
     }
 
@@ -198,6 +213,30 @@ public class VehicleDocumentsController : ControllerBase
     public async Task<ActionResult<FMSResponse<List<VehicleDocumentReportRowDto>>>> GetVehicleDocumentReport([FromQuery] GetVehicleDocumentReportQuery query)
     {
         var result = await _mediator.Send(query);
+        return CreateResponse(result);
+    }
+
+    [HttpPost("ocr/extract")]
+    public async Task<ActionResult<FMSResponse<DocumentOcrResultDto>>> ExtractDocumentData(IFormFile file)
+    {
+        var result = await _mediator.Send(new ExtractDocumentDataCommand(file));
+        return CreateResponse(result);
+    }
+
+    [HttpPost("ocr/bulk-extract")]
+    public async Task<ActionResult<FMSResponse<List<BulkDocumentUploadItemDto>>>> BulkExtractDocumentData([FromForm] List<IFormFile> files)
+    {
+        var result = await _mediator.Send(new BulkExtractDocumentDataCommand(files));
+        return CreateResponse(result);
+    }
+
+    [HttpPost("ocr/bulk-save")]
+    public async Task<ActionResult<FMSResponse<BulkDocumentSaveResultDto>>> BulkSaveDocuments([FromBody] BulkDocumentSaveDto bulkSaveDto)
+    {
+        string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+        bulkSaveDto.UserId = userId;
+
+        var result = await _mediator.Send(new BulkSaveDocumentsCommand(bulkSaveDto));
         return CreateResponse(result);
     }
 }

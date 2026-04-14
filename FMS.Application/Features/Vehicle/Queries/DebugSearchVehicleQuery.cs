@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using FMS.Application.Common;
+using FMS.Application.Features.Vehicle;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -37,7 +38,9 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
                 return FMSResponse<List<VehicleDTO>>.Failed ("Search term is required");
             }
 
-            var searchTerm = request.SearchTerm.ToLower ().Trim ();
+            var searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
+            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeHyoungNo(searchTerm);
+            var normalizedPlateSearchTerm = VehicleIdentifierNormalizer.NormalizeNumberPlate(searchTerm) ?? string.Empty;
             _logger.LogInformation ("DEBUG: Searching for vehicles with term: '{SearchTerm}'", searchTerm);
 
             // First, let's see what vehicles exist in the database
@@ -58,8 +61,11 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
             // Now test the search query without any complex includes
             var simpleResults = await _context.Vehicles
                 .Where (v =>
-                    v.HyoungNo.ToLower ().Contains (searchTerm) ||
-                    (v.NumberPlate != null && v.NumberPlate.ToLower ().Contains (searchTerm))
+                    v.HyoungNo.Contains (searchTerm) ||
+                    v.HyoungNo.Replace (" ", string.Empty).Replace ("\r", string.Empty).Replace ("\n", string.Empty).Contains (compactSearchTerm) ||
+                    (v.NumberPlate != null && (
+                        v.NumberPlate.Contains (normalizedPlateSearchTerm) ||
+                        v.NumberPlate.Replace (" ", string.Empty).Replace ("\r", string.Empty).Replace ("\n", string.Empty).Contains (compactSearchTerm)))
                 )
                 .Select (v => new {
                     v.VehicleId,

@@ -1,10 +1,14 @@
-//To:do Add  delete Button..
-//To:do Add Form for adding new Role
-//To:do Add a Reset button to reset values to original state..
-
+/**
+ * File: roleDetails.js
+ * Purpose: Role details workspace for editing metadata, permissions, and user assignments
+ * Dependencies: react-redux, DevExtreme accordion, roleActions, role subcomponents
+ * Last Modified: 2026-04-13
+ *
+ * Key Functions:
+ * - RoleDetails(): Loads and saves the selected role workspace with inline loading feedback
+ */
 import React, { useEffect, useState, useCallback } from "react";
 import Accordion, { Item as AccordionItem } from "devextreme-react/accordion";
-import { Button } from "devextreme-react/button";
 import notify from "devextreme/ui/notify";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -12,7 +16,6 @@ import {
   fetchRoleDetails,
   assignPermissionsToRole,
   setRolePermissions,
-  setUsers,
   clearPermissions,
   clearUsers,
   updateRole,
@@ -21,29 +24,46 @@ import {
 import RoleForm from "./roleForm";
 import PermissionTreeListNonEdit from "./../../PermissionTreeList/permissionTreeListNonEdit";
 import UserDataList from "./../../user/userdatalist";
-import LoadIndicator from "devextreme-react/load-indicator";
 
 const RoleDetails = ({ roleId }) => {
   const [saving, setSaving] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(true);
   const dispatch = useDispatch();
   const {
     roleDetails,
-    allPermissions,
     rolePermissions,
-    users,
-    allUsers,
-    loading,
-    error,
   } = useSelector((state) => state.role);
 
   const selectedUsers = useSelector((state) => state.role.selectedUsers);
 
   useEffect(() => {
-    if (roleId) {
-      // console.log('Fetching role details for role ID:', roleId);
-      dispatch(fetchRoleDetails(roleId));
-    }
+    let active = true;
+
+    const loadRoleDetails = async () => {
+      if (!roleId) {
+        if (active) {
+          setDetailLoading(false);
+        }
+        return;
+      }
+
+      if (active) {
+        setDetailLoading(true);
+      }
+
+      try {
+        await dispatch(fetchRoleDetails(roleId));
+      } finally {
+        if (active) {
+          setDetailLoading(false);
+        }
+      }
+    };
+
+    loadRoleDetails();
+
     return () => {
+      active = false;
       dispatch(clearPermissions());
       dispatch(clearUsers());
     };
@@ -57,84 +77,80 @@ const RoleDetails = ({ roleId }) => {
   );
 
   const onSaveData = async () => {
-    try {
-      setSaving(true);
-      const results = await Promise.all([
-        dispatch(updateRole(roleId, roleDetails)),
-        dispatch(assignPermissionsToRole(roleId, rolePermissions)),
-        dispatch(updateRoleForUsers(roleId, selectedUsers)),
-      ]);
+    if (roleId) {
+      try {
+        setSaving(true);
+        const results = await Promise.all([
+          dispatch(updateRole(roleId, roleDetails)),
+          dispatch(assignPermissionsToRole(roleId, rolePermissions)),
+          dispatch(updateRoleForUsers(roleId, selectedUsers)),
+        ]);
 
-      const failedResults = results.filter((result) => !result.success);
-      if (failedResults.length > 0) {
-        notify(failedResults[0].message, "error", 2000);
-      } else {
-        notify("Role updated successfully", "success", 2000);
+        const failedResults = results.filter((result) => !result.success);
+        if (failedResults.length > 0) {
+          notify(failedResults[0].message, "error", 2000);
+        } else {
+          notify("Role updated successfully", "success", 2000);
+        }
+      } catch (error) {
+        notify(error.message, "error", 2000);
+      } finally {
+        setSaving(false);
       }
-    } catch (error) {
-      notify(error.message, "error", 2000);
-    } finally {
-      setSaving(false);
     }
   };
 
-  if (loading || saving) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <LoadIndicator width={"24px"} height={"24px"} visible={true} />
-      </div>
-    );
-  }
+  const isBusy = detailLoading || saving;
 
   return (
-    <div style={{ padding: "20px" }}>
-      <Accordion collapsible={true} animationDuration={200}>
-        <AccordionItem title={`Role Details: ${roleDetails.name}`}>
-          <RoleForm
-            editData={roleDetails}
-            setRoleDetails={(e) => {
-              // e is the DevExtreme onFieldDataChanged event: { dataField, value, ... }
-              // Spread roleDetails to create a new object — never mutate state directly
-              dispatch({
-                type: "UPDATE_ROLE_DETAILS_LOCALLY",
-                payload: { ...roleDetails, [e.dataField]: e.value },
-              });
-            }}
-          />
-        </AccordionItem>
-      </Accordion>
+    <div className="role-details-panel">
+      {isBusy && (
+        <div className="role-details-panel__busy-overlay" role="status" aria-live="polite">
+          <div className="role-details-panel__busy-card">
+            <i className={`fa-light ${saving ? "fa-floppy-disk" : "fa-spinner-third fa-spin"}`} />
+            <span>{saving ? "Saving role changes..." : "Loading role details..."}</span>
+          </div>
+        </div>
+      )}
 
-      <div className="tw-mt-4">
+      <div className="role-details-panel__sections">
         <Accordion collapsible={true} animationDuration={200}>
-          <AccordionItem title="Permissions">
-            <PermissionTreeListNonEdit />
+          <AccordionItem title={`Role Details${roleDetails?.name ? `: ${roleDetails.name}` : ""}`}>
+            <RoleForm
+              editData={roleDetails}
+              setRoleDetails={(e) => {
+                dispatch({
+                  type: "UPDATE_ROLE_DETAILS_LOCALLY",
+                  payload: { ...roleDetails, [e.dataField]: e.value },
+                });
+              }}
+            />
           </AccordionItem>
         </Accordion>
-      </div>
 
-      <div className="tw-mt-4">
+        <Accordion collapsible={true} animationDuration={200}>
+          <AccordionItem title="Permissions">
+            <PermissionTreeListNonEdit onPermissionChange={handlePermissionChange} />
+          </AccordionItem>
+        </Accordion>
+
         <Accordion collapsible={true} animationDuration={200}>
           <AccordionItem title="Users">
             <UserDataList />
           </AccordionItem>
         </Accordion>
-      </div>
 
-      <div className="tw-mt-5">
-        <Button
-          icon="save"
-          width={120}
-          type="success"
-          text="Save"
-          onClick={onSaveData}
-        />
+        <div className="role-details-panel__actions">
+          <button
+            type="button"
+            className="m365-btn m365-btn--primary"
+            disabled={saving || detailLoading}
+            onClick={onSaveData}
+          >
+            <i className={`fa-light ${saving ? "fa-spinner-third fa-spin" : "fa-floppy-disk"}`} />
+            {saving ? "Saving..." : "Save changes"}
+          </button>
+        </div>
       </div>
     </div>
   );

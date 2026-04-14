@@ -21,6 +21,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import ReportsLayout from "./layout/ReportsLayout";
 import ReportsDashboard from "./ReportsDashboard";
 import ReportListPage from "./ReportListPage";
+import { usePermissions } from "../../hooks/usePermissions";
 
 // ──── NEW JSReport-first Modules ────
 import { ReportEngine } from "./engine";
@@ -44,6 +45,9 @@ import WarningLetterFormPage from "../vehicles/warningLetters/WarningLetterFormP
 import WarningLetterPreviewPage from "../vehicles/warningLetters/WarningLetterPreviewPage";
 
 const ReportsMain = () => {
+  const { hasPermission } = usePermissions();
+  const canManageReportSchedules = hasPermission("_Manage_ReportSchedules");
+
   return (
     <ReportsLayout>
       <Routes>
@@ -65,8 +69,14 @@ const ReportsMain = () => {
         <Route path="templates/designer/:templateName" element={<TemplateDesigner />} />
 
         {/* ── Scheduling (new) ── */}
-        <Route path="scheduling" element={<ReportScheduleManager />} />
-        <Route path="scheduling/new" element={<ReportScheduleManager />} />
+        <Route
+          path="scheduling"
+          element={canManageReportSchedules ? <ReportScheduleManager /> : <Navigate to="/reports/dashboard" replace />}
+        />
+        <Route
+          path="scheduling/new"
+          element={canManageReportSchedules ? <ReportScheduleManager /> : <Navigate to="/reports/dashboard" replace />}
+        />
 
         {/* ── Monitoring (new) ── */}
         <Route path="monitoring" element={<ReportMonitorDashboard />} />
@@ -76,7 +86,10 @@ const ReportsMain = () => {
         <Route path="fuel-importer/batch" element={<BatchImportPage />} />
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
         <Route path="import-management" element={<ImportManagementPage />} />
-        <Route path="scheduled-emails" element={<Navigate to="/reports/scheduling" replace />} />
+        <Route
+          path="scheduled-emails"
+          element={<Navigate to={canManageReportSchedules ? "/reports/scheduling" : "/reports/dashboard"} replace />}
+        />
 
         {/* ── Legacy routes (kept for backward compat) ── */}
         <Route path="tank-volume-history" element={<TankVolumeHistoryReport />} />

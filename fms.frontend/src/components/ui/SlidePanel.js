@@ -18,12 +18,13 @@
  *     <div>Panel content here</div>
  *   </SlidePanel>
  */
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import "./SlidePanel.scss";
 
 const SlidePanel = ({ open, onClose, title, width = 720, headerActions, panelClassName = "", children }) => {
   const [headerHeight, setHeaderHeight] = useState(0);
+  const panelRef = useRef(null);
 
   // Measure header height on mount & resize
   const measureHeader = useCallback(() => {
@@ -44,6 +45,11 @@ const SlidePanel = ({ open, onClose, title, width = 720, headerActions, panelCla
     window.addEventListener("resize", measureHeader);
     return () => window.removeEventListener("resize", measureHeader);
   }, [open, measureHeader]);
+
+  useEffect(() => {
+    if (!open || !panelRef.current) return;
+    panelRef.current.focus();
+  }, [open]);
 
   // Lock body scroll when panel is open + toggle class for DevExtreme popup z-index
   useEffect(() => {
@@ -66,8 +72,8 @@ const SlidePanel = ({ open, onClose, title, width = 720, headerActions, panelCla
     const handleKey = (e) => {
       if (e.key === "Escape") onClose?.();
     };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener("keydown", handleKey, true);
+    return () => document.removeEventListener("keydown", handleKey, true);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -92,10 +98,13 @@ const SlidePanel = ({ open, onClose, title, width = 720, headerActions, panelCla
       />
       {/* Panel */}
       <aside
+        ref={panelRef}
         className={`fms-slide-panel ${panelClassName}`.trim()}
         style={{ ...panelStyle, top: `${headerHeight}px` }}
         role="dialog"
+        aria-modal="true"
         aria-label={title || "Detail panel"}
+        tabIndex={-1}
       >
         {/* Header */}
         <div className="fms-slide-panel__header">

@@ -13,12 +13,13 @@ using FMS.Application.Features.WarningLetter.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using FMS.Application.Features.WarningLetter.Services;
 
 namespace FMS.Application.Features.WarningLetter.Queries;
 
-public record GetWarningLetterSignatureRecipientsQuery(int WarningLetterId) : IRequest<FMSResponse<List<WarningLetterSignatureRecipientDto>>>;
+public record GetWarningLetterSignatureRecipientsQuery(int WarningLetterId) : IRequest<FMSResponse<WarningLetterSignatureRecipientOptionsDto>>;
 
-public class GetWarningLetterSignatureRecipientsQueryHandler : IRequestHandler<GetWarningLetterSignatureRecipientsQuery, FMSResponse<List<WarningLetterSignatureRecipientDto>>>
+public class GetWarningLetterSignatureRecipientsQueryHandler : IRequestHandler<GetWarningLetterSignatureRecipientsQuery, FMSResponse<WarningLetterSignatureRecipientOptionsDto>>
 {
     private readonly GpsdataContext _context;
 
@@ -27,7 +28,7 @@ public class GetWarningLetterSignatureRecipientsQueryHandler : IRequestHandler<G
         _context = context;
     }
 
-    public async Task<FMSResponse<List<WarningLetterSignatureRecipientDto>>> Handle(GetWarningLetterSignatureRecipientsQuery request, CancellationToken cancellationToken)
+    public async Task<FMSResponse<WarningLetterSignatureRecipientOptionsDto>> Handle(GetWarningLetterSignatureRecipientsQuery request, CancellationToken cancellationToken)
     {
         var siteId = await _context.WarningLetters
             .AsNoTracking()
@@ -37,44 +38,11 @@ public class GetWarningLetterSignatureRecipientsQueryHandler : IRequestHandler<G
 
         if (!siteId.HasValue)
         {
-            return FMSResponse<List<WarningLetterSignatureRecipientDto>>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
+            return FMSResponse<WarningLetterSignatureRecipientOptionsDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
         }
 
-        var siteAdminIds = await _context.Sites
-            .AsNoTracking()
-            .Where(s => s.SiteAdministratorId != null)
-            .Select(s => s.SiteAdministratorId!)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+        var recipientOptions = await WarningLetterRecipientGroupResolver.GetRecipientOptionsAsync(_context, siteId.Value, cancellationToken);
 
-        var siteAdminSet = siteAdminIds.ToHashSet();
-
-        var recipients = await _context.UserSites
-            .AsNoTracking()
-            .Where(us => us.SiteId == siteId.Value)
-            .Join(
-                _context.Users.AsNoTracking().Where(u => u.IsDeleted != true && u.Email != null && u.Email != string.Empty),
-                us => us.UserId,
-                user => user.Id,
-                (us, user) => new WarningLetterSignatureRecipientDto
-                {
-                    Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    IsSiteAdmin = siteAdminSet.Contains(user.Id)
-                })
-            .GroupBy(x => new { x.Id, x.UserName, x.Email, x.IsSiteAdmin })
-            .Select(g => new WarningLetterSignatureRecipientDto
-            {
-                Id = g.Key.Id,
-                UserName = g.Key.UserName,
-                Email = g.Key.Email,
-                IsSiteAdmin = g.Key.IsSiteAdmin
-            })
-            .OrderByDescending(x => x.IsSiteAdmin)
-            .ThenBy(x => x.UserName)
-            .ToListAsync(cancellationToken);
-
-        return FMSResponse<List<WarningLetterSignatureRecipientDto>>.Success(recipients);
+        return FMSResponse<WarningLetterSignatureRecipientOptionsDto>.Success(recipientOptions);
     }
 }

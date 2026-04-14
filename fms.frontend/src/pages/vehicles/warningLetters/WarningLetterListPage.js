@@ -17,12 +17,13 @@ import DataGrid, {
 } from "devextreme-react/data-grid";
 import notify from "devextreme/ui/notify";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import SlidePanel from "../../../components/ui/SlidePanel";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { getUserId } from "../transfers/vehicleTransferFormUtils";
 import {
     acknowledgeWarningLetter,
     deleteWarningLetter,
-    finalizeWarningLetter,
     getEmployees,
     getSites,
     getWarningLetters,
@@ -30,13 +31,15 @@ import {
 import WarningLetterSettingsPanelContent from "./WarningLetterSettingsPanelContent";
 import "./WarningLetters.scss";
 
-const statusMap = {
+const workflowStageMap = {
     0: { label: "Draft", cls: "m365-badge--neutral" },
-    1: { label: "Finalized", cls: "m365-badge--primary" },
-    2: { label: "Sent", cls: "m365-badge--success" },
-    3: { label: "Acknowledged", cls: "m365-badge--success" },
-    4: { label: "Signed Copy Received", cls: "m365-badge--success" },
+    1: { label: "Approved", cls: "m365-badge--primary" },
+    2: { label: "Pending Signed", cls: "m365-badge--warning" },
+    3: { label: "Signed", cls: "m365-badge--success" },
+    4: { label: "Acknowledged", cls: "m365-badge--success" },
 };
+
+const workflowStageTickerOrder = [0, 1, 2, 3, 4];
 
 const typeMap = {
     1: "Excess Fuel",
@@ -44,16 +47,9 @@ const typeMap = {
     3: "Excess Idling",
 };
 
-const getDisplayStatus = (row) => {
-    if (row?.signedCopyUploadedAt) {
-        return { label: "Acknowledged", cls: "m365-badge--success" };
-    }
-
-    return statusMap[row?.status] || { label: row?.status || "Unknown", cls: "m365-badge--neutral" };
-};
-
 const WarningLetterListPage = () => {
     const navigate = useNavigate();
+    const currentUser = useSelector((state) => state.auth?.user || {});
     const [searchParams, setSearchParams] = useSearchParams();
     const gridRef = useRef(null);
     const { hasPermission } = usePermissions();
@@ -66,7 +62,7 @@ const WarningLetterListPage = () => {
     const [filters, setFilters] = useState({
         siteId: "",
         employeeId: searchParams.get("employeeId") || "",
-        status: "",
+        workflowStage: "",
         letterType: "",
         startDate: "",
         endDate: "",
@@ -74,9 +70,10 @@ const WarningLetterListPage = () => {
 
     const canCreate = hasPermission("_Create_WarningLetter");
     const canUpdate = hasPermission("_Update_WarningLetter");
-    const canFinalize = hasPermission("_Finalize_WarningLetter");
     const canDelete = hasPermission("_Delete_WarningLetter");
+    const canDeleteAny = hasPermission("_delete_any_letter");
     const canManageSettings = hasPermission("_Update_WarningLetter");
+    const currentUserId = String(getUserId(currentUser) || "");
 
     const loadReferenceData = useCallback(async () => {
         try {
@@ -157,20 +154,6 @@ const WarningLetterListPage = () => {
         }
     };
 
-    const handleFinalize = async (row) => {
-        if (!window.confirm(`Finalize warning letter #${row.id}?`)) {
-            return;
-        }
-
-        try {
-            await finalizeWarningLetter(row.id);
-            notify("Warning letter finalized.", "success", 2500);
-            loadLetters();
-        } catch (error) {
-            notify(error.message || "Failed to finalize warning letter.", "error", 3000);
-        }
-    };
-
     const handleAcknowledge = async (row) => {
         if (!window.confirm(`Mark warning letter #${row.id} as acknowledged?`)) {
             return;
@@ -186,7 +169,7 @@ const WarningLetterListPage = () => {
     };
 
     const renderStatus = ({ data, value }) => {
-        const item = getDisplayStatus(data) || statusMap[value] || { label: value || "Unknown", cls: "m365-badge--neutral" };
+        const item = workflowStageMap[data?.workflowStage ?? value] || { label: value || "Unknown", cls: "m365-badge--neutral" };
         return <span className={`m365-badge ${item.cls}`}>{item.label}</span>;
     };
 
@@ -200,28 +183,37 @@ const WarningLetterListPage = () => {
             <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/preview`)}>
                 Preview
             </button>
-            {canUpdate && data.status === 0 && (
+            {canUpdate && data.workflowStage === 0 && (
                 <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/edit`)}>
                     Edit
                 </button>
             )}
-            {canFinalize && data.status === 0 && (
-                <button type="button" className="m365-btn m365-btn--primary warning-letter-list__action-button" onClick={() => handleFinalize(data)}>
-                    Finalize
-                </button>
-            )}
-            {canUpdate && data.status !== 0 && data.status !== 3 && !data.signedCopyUploadedAt && (
+            {canUpdate && data.workflowStage === 3 && (
                 <button type="button" className="m365-btn m365-btn--success warning-letter-list__action-button" onClick={() => handleAcknowledge(data)}>
                     Acknowledge
                 </button>
             )}
-            {canDelete && data.status === 0 && (
+            {canDelete && (data.workflowStage === 0 || data.workflowStage === 1) && (canDeleteAny || String(data.createdBy || "") === currentUserId) && (
                 <button type="button" className="m365-btn m365-btn--danger warning-letter-list__action-button" onClick={() => handleDelete(data)}>
                     Delete
                 </button>
             )}
         </div>
     );
+
+    const stageTickerItems = workflowStageTickerOrder.map((stage) => {
+        const meta = workflowStageMap[stage];
+        const count = letters.filter((letter) => Number(letter?.workflowStage) === stage).length;
+        const isActive = filters.workflowStage !== "" && String(filters.workflowStage) === String(stage);
+
+        return {
+            stage,
+            label: meta.label,
+            badgeClass: meta.cls,
+            count,
+            isActive,
+        };
+    });
 
     return (
         <div className="warning-letter-page warning-letter-list">
@@ -275,13 +267,14 @@ const WarningLetterListPage = () => {
                         </select>
                     </label>
                     <label className="warning-letter-page__field">
-                        <span>Status</span>
-                        <select className="m365-select" value={filters.status} onChange={(event) => setFilterValue("status", event.target.value)}>
-                            <option value="">All statuses</option>
+                        <span>Stage</span>
+                        <select className="m365-select" value={filters.workflowStage} onChange={(event) => setFilterValue("workflowStage", event.target.value)}>
+                            <option value="">All stages</option>
                             <option value="0">Draft</option>
-                            <option value="1">Finalized</option>
-                            <option value="2">Sent</option>
-                            <option value="3">Acknowledged</option>
+                            <option value="1">Approved</option>
+                            <option value="2">Pending Signed</option>
+                            <option value="3">Signed</option>
+                            <option value="4">Acknowledged</option>
                         </select>
                     </label>
                     <label className="warning-letter-page__field">
@@ -304,11 +297,46 @@ const WarningLetterListPage = () => {
                 </div>
             </div>
 
+            <div className="warning-letter-page__panel warning-letter-list__ticker-panel">
+                <div className="warning-letter-list__ticker-header">
+                    <div>
+                        <span className="warning-letter-list__ticker-eyebrow">Stage Dashboard</span>
+                        <h3 className="warning-letter-list__ticker-title">Warning Letter Workflow</h3>
+                    </div>
+                    <div className="warning-letter-list__ticker-summary">
+                        <span className="warning-letter-list__ticker-summary-label">Filtered Letters</span>
+                        <strong>{letters.length}</strong>
+                    </div>
+                </div>
+
+                <div className="warning-letter-list__ticker-grid">
+                    {stageTickerItems.map((item) => (
+                        <button
+                            key={item.stage}
+                            type="button"
+                            className={`warning-letter-list__ticker-card${item.isActive ? " warning-letter-list__ticker-card--active" : ""}`}
+                            onClick={() => setFilterValue("workflowStage", item.isActive ? "" : String(item.stage))}
+                        >
+                            <div className="warning-letter-list__ticker-card-top">
+                                <span className={`m365-badge ${item.badgeClass}`}>{item.label}</span>
+                                {item.isActive && <span className="warning-letter-list__ticker-active-flag">Active Filter</span>}
+                            </div>
+                            <strong className="warning-letter-list__ticker-count">{item.count}</strong>
+                            <span className="warning-letter-list__ticker-caption">
+                                {item.isActive ? "Filter applied to current list" : "Click to focus this stage"}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="warning-letter-page__panel warning-letter-list__grid">
                 <DataGrid
+                    key={`warning-letters-grid-${letters.length}`}
                     ref={gridRef}
-                    dataSource={letters}
+                    dataSource={Array.isArray(letters) ? [...letters] : []}
                     keyExpr="id"
+                    width="100%"
                     showBorders={false}
                     rowAlternationEnabled={true}
                     columnAutoWidth={true}
@@ -330,10 +358,14 @@ const WarningLetterListPage = () => {
                     <Column dataField="employeeName" caption="Employee" minWidth={180} />
                     <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
                     <Column dataField="siteName" caption="Site" minWidth={160} />
-                    <Column dataField="status" caption="Status" cellRender={renderStatus} width={140} />
+                    <Column dataField="workflowStage" caption="Stage" cellRender={renderStatus} width={150} />
                     <Column dataField="emailRecipient" caption="Recipient" minWidth={220} />
-                    <Column dataField="emailSentAt" caption="Sent At" cellRender={renderDate} width={120} />
-                    <Column caption="Actions" width={320} allowSorting={false} allowFiltering={false} cellRender={renderActions} />
+                    <Column dataField="signatureRequestRecipient" caption="Site Representative" minWidth={180} />
+                    <Column dataField="approveLetterUploadedAt" caption="Approved At" cellRender={renderDate} width={120} />
+                    <Column dataField="signatureRequestedAt" caption="Sent At" cellRender={renderDate} width={120} />
+                    <Column dataField="signedCopyUploadedAt" caption="Signed At" cellRender={renderDate} width={120} />
+                    <Column dataField="employeeAcknowledgedAt" caption="Acknowledged At" cellRender={renderDate} width={140} />
+                    <Column caption="Actions" width={320} allowSorting={false} allowFiltering={false} cellRender={renderActions} fixed={true} fixedPosition="right" />
                 </DataGrid>
             </div>
 

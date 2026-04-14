@@ -11,6 +11,48 @@
  * - deleteVehicle(id): Deletes a vehicle
  */
 import axiosInstance from "./../../api/axiosInstance";
+
+const normalizeCompactVehicleCode = (value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.replace(/\s+/g, "").toUpperCase();
+  return normalized || "";
+};
+
+const normalizeNumberPlate = (value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim().replace(/\s+/g, " ").toUpperCase();
+  return normalized || null;
+};
+
+const normalizeVehiclePayload = (vehicleData = {}) => {
+  const normalizedPayload = { ...vehicleData };
+  const normalizedHyoungNo = normalizeCompactVehicleCode(vehicleData.hyoungNo ?? vehicleData.HyoungNo);
+  const normalizedPlate = normalizeNumberPlate(vehicleData.numberPlate ?? vehicleData.NumberPlate);
+
+  if ("hyoungNo" in normalizedPayload || (!('HyoungNo' in normalizedPayload) && normalizedHyoungNo !== undefined)) {
+    normalizedPayload.hyoungNo = normalizedHyoungNo;
+  }
+
+  if ("HyoungNo" in normalizedPayload) {
+    normalizedPayload.HyoungNo = normalizedHyoungNo;
+  }
+
+  if ("numberPlate" in normalizedPayload || (!('NumberPlate' in normalizedPayload) && normalizedPlate !== undefined)) {
+    normalizedPayload.numberPlate = normalizedPlate;
+  }
+
+  if ("NumberPlate" in normalizedPayload) {
+    normalizedPayload.NumberPlate = normalizedPlate;
+  }
+
+  return normalizedPayload;
+};
 // Action types
 export const FETCH_VEHICLES_SUCCESS = "FETCH_VEHICLES_SUCCESS";
 export const FETCH_VEHICLES_FAILURE = "FETCH_VEHICLES_FAILURE";
@@ -94,7 +136,7 @@ export const getVehicleById = (vehicleId) => async (dispatch) => {
 export const updateVehicles = (changes) => async (dispatch) => {
   try {
     const updatedVehicles = changes.map((change) => ({
-      ...change.data,
+      ...normalizeVehiclePayload(change.data),
       vehicleId: change.key,
     }));
     const response = await axiosInstance.put("/vehicle", updatedVehicles);
@@ -138,7 +180,7 @@ export const deleteVehicle = (vehicleId) => async (dispatch) => {
 
 export const updateVehicle = (vehicleId, vehicleData) => async (dispatch) => {
   try {
-    const response = await axiosInstance.put(`/vehicle/${vehicleId}`, vehicleData);
+    const response = await axiosInstance.put(`/vehicle/${vehicleId}`, normalizeVehiclePayload(vehicleData));
 
     if (response.data && response.data.success) {
       return {
@@ -161,7 +203,7 @@ export const updateVehicle = (vehicleId, vehicleData) => async (dispatch) => {
 
 export const createVehicle = (vehicleData) => async (dispatch) => {
   try {
-    const response = await axiosInstance.post('/vehicle', vehicleData);
+    const response = await axiosInstance.post('/vehicle', normalizeVehiclePayload(vehicleData));
     const apiResponse = response.data || {};
     const success = apiResponse.success ?? apiResponse.isSuccess ?? apiResponse.Success ?? true;
     const data = apiResponse.data ?? apiResponse.Data ?? apiResponse;
@@ -682,7 +724,7 @@ export const fetchVehicleConsumptionComparison = (params) => async (dispatch) =>
       openingFuelLevel: parseFloat(item.openingFuelLevel || item.OpeningFuelLevel || 0),
       closingFuelLevel: parseFloat(item.closingFuelLevel || item.ClosingFuelLevel || 0),
       isAverageKm: item.isAverageKm !== undefined ? item.isAverageKm :
-                   item.IsAverageKm !== undefined ? item.IsAverageKm : true,
+        item.IsAverageKm !== undefined ? item.IsAverageKm : true,
       employee: item.employee || item.Employee || item.driverName || item.DriverName || 'N/A',
       remarks: item.remarks || item.Remarks || '',
       rowKey: `comp-${item.vehicleId}-${item.siteId}-${item.date}-${index}`

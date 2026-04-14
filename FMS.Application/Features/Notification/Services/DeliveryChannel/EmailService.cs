@@ -41,7 +41,8 @@ namespace FMS.Application.Features.Notification.Services
             string body,
             bool isHtml = false,
             CancellationToken cancellationToken = default,
-            IReadOnlyCollection<EmailAttachmentDto>? attachments = null)
+            IReadOnlyCollection<EmailAttachmentDto>? attachments = null,
+            string? cc = null)
         {
             if (!IsConfigurationValid())
             {
@@ -66,7 +67,7 @@ namespace FMS.Application.Features.Notification.Services
                     _logger.LogInformation("Attempting to send email to {To} (attempt {Attempt}/{MaxAttempts})", to, attempt, maxAttempts);
 
                     using var smtpClient = CreateSmtpClient();
-                    using var mailMessage = CreateMailMessage(to, subject, body, isHtml, attachments);
+                    using var mailMessage = CreateMailMessage(to, subject, body, isHtml, attachments, cc);
 
                     await smtpClient.SendMailAsync(mailMessage, cancellationToken);
 
@@ -79,10 +80,10 @@ namespace FMS.Application.Features.Notification.Services
                     _logger.LogError(ex, "SMTP error sending email to {To} (attempt {Attempt}/{MaxAttempts}): {Message}",
                         to, attempt, maxAttempts, ex.Message);
 
-                    // Don't retry for authentication or configuration errors
-                    if (ex.StatusCode == SmtpStatusCode.MailboxBusy ||
-                        ex.StatusCode == SmtpStatusCode.InsufficientStorage ||
-                        ex.StatusCode == SmtpStatusCode.CommandNotImplemented)
+                    // Do not retry permanent SMTP failures such as relay denial,
+                    // invalid recipient routing, authentication/configuration problems,
+                    // or recipient mailbox rejection.
+                    if (IsPermanentSmtpFailure(ex))
                     {
                         break;
                     }
@@ -104,6 +105,25 @@ namespace FMS.Application.Features.Notification.Services
 
             _logger.LogError("Failed to send email to {To} after {MaxAttempts} attempts", to, maxAttempts);
             return false;
+        }
+
+        private static bool IsPermanentSmtpFailure(SmtpException ex)
+        {
+            if (ex.StatusCode == SmtpStatusCode.MailboxUnavailable ||
+                ex.StatusCode == SmtpStatusCode.UserNotLocalTryAlternatePath ||
+                ex.StatusCode == SmtpStatusCode.CommandNotImplemented ||
+                ex.StatusCode == SmtpStatusCode.CommandUnrecognized ||
+                ex.StatusCode == SmtpStatusCode.MustIssueStartTlsFirst ||
+                ex.StatusCode == SmtpStatusCode.ClientNotPermitted ||
+                ex.StatusCode == SmtpStatusCode.GeneralFailure)
+            {
+                return true;
+            }
+
+            return ex.Message.Contains("Unable to relay recipient", StringComparison.OrdinalIgnoreCase) ||
+                   ex.Message.Contains("relay", StringComparison.OrdinalIgnoreCase) ||
+                   ex.Message.Contains("authentication", StringComparison.OrdinalIgnoreCase) ||
+                   ex.Message.Contains("5.7.", StringComparison.OrdinalIgnoreCase);
         }
 
         private SmtpClient CreateSmtpClient()
@@ -136,7 +156,8 @@ namespace FMS.Application.Features.Notification.Services
             string subject,
             string body,
             bool isHtml,
-            IReadOnlyCollection<EmailAttachmentDto>? attachments)
+            IReadOnlyCollection<EmailAttachmentDto>? attachments,
+            string? cc)
         {
             var fromAddress = new MailAddress(_emailSettings.FromAddress, _emailSettings.FromDisplayName ?? "FMS Notifications");
 
@@ -162,6 +183,26 @@ namespace FMS.Application.Features.Notification.Services
                     catch (FormatException ex)
                     {
                         _logger.LogWarning(ex, "Invalid email address format: {Email}", trimmedRecipient);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(cc))
+            {
+                var ccRecipients = cc.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var recipient in ccRecipients)
+                {
+                    var trimmedRecipient = recipient.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmedRecipient))
+                    {
+                        try
+                        {
+                            mailMessage.CC.Add(new MailAddress(trimmedRecipient));
+                        }
+                        catch (FormatException ex)
+                        {
+                            _logger.LogWarning(ex, "Invalid CC email address format: {Email}", trimmedRecipient);
+                        }
                     }
                 }
             }

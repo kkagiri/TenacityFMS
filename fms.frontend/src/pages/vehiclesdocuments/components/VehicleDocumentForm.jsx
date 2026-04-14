@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Popup, ScrollView } from "devextreme-react";
 import { Form, SimpleItem, Label, RequiredRule, GroupItem } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
+import notify from "devextreme/ui/notify";
 import VehicleSearchableSelector from "../../../components/selectors/VehicleSearchableSelector";
+import { extractDocumentData } from "../../../dataservice/vehicleDocumentOcrApi";
 
 const VehicleDocumentForm = ({
   visible,
@@ -13,6 +15,7 @@ const VehicleDocumentForm = ({
 }) => {
   const [formData, setFormData] = useState(documentData || {});
   const [file, setFile] = useState(null);
+  const [extracting, setExtracting] = useState(false);
 
   const documentTypes = [
     { id: 0, name: "Insurance" },
@@ -31,6 +34,39 @@ const VehicleDocumentForm = ({
     const selectedFile = e.value && e.value.length > 0 ? e.value[0] : null;
     setFile(selectedFile);
     handleFieldChange('documentFile', selectedFile);
+  };
+
+  const handleExtractData = async () => {
+    if (!file) {
+      notify("Please select a document file first.", "warning", 3000);
+      return;
+    }
+    setExtracting(true);
+    try {
+      const result = await extractDocumentData(file);
+      if (result.isSuccess && result.data) {
+        const ocr = result.data;
+        const updates = { ...formData };
+        if (ocr.certificateNumber) updates.documentNumber = ocr.certificateNumber;
+        if (ocr.issuedBy) updates.issuingAuthority = ocr.issuedBy;
+        if (ocr.commencingDate) updates.issueDate = new Date(ocr.commencingDate);
+        if (ocr.expiryDate) updates.expiryDate = new Date(ocr.expiryDate);
+        if (ocr.matchedVehicleId) updates.vehicleId = ocr.matchedVehicleId;
+        if (!updates.documentType && updates.documentType !== 0) updates.documentType = 0; // Insurance
+        setFormData(updates);
+        const confidence = Math.round((ocr.confidenceScore || 0) * 100);
+        notify(`Data extracted (${confidence}% confidence). Please verify before saving.`, "success", 4000);
+        if (ocr.warnings && ocr.warnings.length > 0) {
+          notify(`Warnings: ${ocr.warnings.join(", ")}`, "warning", 5000);
+        }
+      } else {
+        notify(result.message || "Failed to extract document data.", "error", 4000);
+      }
+    } catch (err) {
+      notify(err?.response?.data?.message || "OCR extraction failed.", "error", 4000);
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleSubmit = () => {
@@ -167,6 +203,19 @@ const VehicleDocumentForm = ({
               </SimpleItem>
               <div className="tw-text-xs tw-text-gray-500 tw-mt-1">
                 Accepted formats: PDF, Images (JPG, PNG). Max size: 10MB
+              </div>
+              <div className="tw-mt-3">
+                <Button
+                  text={extracting ? "Extracting..." : "Extract Data"}
+                  icon="fa fa-light fa-wand-magic-sparkles"
+                  onClick={handleExtractData}
+                  disabled={!file || extracting}
+                  stylingMode="outlined"
+                  type="default"
+                />
+                <div className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                  Use OCR to auto-fill document fields from the uploaded file
+                </div>
               </div>
             </GroupItem>
 

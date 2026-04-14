@@ -2,7 +2,7 @@
  * File:          WarningLetterFormPage.js
  * Purpose:       Multi-step wizard for creating/editing warning letters with candidate-based metric population.
  * Dependencies:  React, react-router-dom, react-redux, DevExtreme DateBox, warningLetterService
- * Last Modified: 2026-04-09
+ * Last Modified: 2026-04-11
  *
  * Key Functions:
  * - handleLoadCandidates(): queries consumption records matching type + month
@@ -14,9 +14,12 @@ import React, { useEffect, useState } from "react";
 import DateBox from "devextreme-react/date-box";
 import notify from "devextreme/ui/notify";
 import { useNavigate, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { getUserDisplayName, getUserId } from "../transfers/vehicleTransferFormUtils";
-import EmployeeQuickAddSelect from "../shared/EmployeeQuickAddSelect";
+import EmployeeSearchableSelector from "../../../components/selectors/EmployeeSearchableSelector";
+import SlidePanel from "../../../components/ui/SlidePanel";
+import EmployeeFormPanel from "../../employees/components/EmployeeFormPanel";
+import { createEmployee, updateEmployee } from "../../../redux/actions/employeeActions";
 import {
     createWarningLetter,
     getConsumptionCandidates,
@@ -27,7 +30,6 @@ import {
     previewWarningLetterHtml,
     updateWarningLetter,
 } from "./warningLetterService";
-import EmailRecipientsInput from "../../../components/Reporting/EmailRecipientsInput";
 import "./WarningLetters.scss";
 
 const typeOptions = [
@@ -138,6 +140,21 @@ const getEmployeeSiteId = (employee) => {
 const getEmployeePosition = (employee) =>
     employee?.position || employee?.Position || "";
 
+const hasSucceeded = (response) =>
+    response?.success === true || response?.Success === true;
+
+const resolveMessage = (response, fallback) =>
+    response?.message || response?.Message || fallback;
+
+const unwrapCreatedEmployee = (response) =>
+    response?.employeeDto ||
+    response?.EmployeeDto ||
+    response?.data ||
+    response?.Data ||
+    response?.employee ||
+    response?.Employee ||
+    null;
+
 const hasEmployeePosition = (employee) =>
     Boolean(getEmployeePosition(employee).toString().trim());
 
@@ -244,12 +261,11 @@ const toPayload = (form) => {
         issuedByUserId: form.issuedByUserId,
         issuedByName: form.issuedByName.trim(),
         issuedByTitle: form.issuedByTitle.trim() || null,
-        emailRecipient: form.emailRecipient.trim() || null,
-        notes: form.notes.trim() || null,
     };
 };
 
 const WarningLetterFormPage = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const { id } = useParams();
     const currentUser = useSelector((state) => state.auth?.user || {});
@@ -268,6 +284,9 @@ const WarningLetterFormPage = () => {
     const [candidateLoading, setCandidateLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [isEmployeePanelOpen, setIsEmployeePanelOpen] = useState(false);
+    const [employeePanelMode, setEmployeePanelMode] = useState("create");
+    const [isSavingEmployee, setIsSavingEmployee] = useState(false);
 
     const [form, setForm] = useState({
         id: 0, letterType: 1, employeeId: "", vehicleId: "", siteId: "",
@@ -277,7 +296,7 @@ const WarningLetterFormPage = () => {
         fuelPrice: "", excessCost: "",
         issuedByUserId: String(getUserId(currentUser) || ""),
         issuedByName: getUserDisplayName(currentUser) || "",
-        issuedByTitle: "Fleet Manager", emailRecipient: "", notes: "",
+        issuedByTitle: "Fleet Manager",
     });
     const [settings, setSettings] = useState({
         fuelPricePerLitre: 0,
@@ -288,14 +307,8 @@ const WarningLetterFormPage = () => {
 
     const metricLabels = metricLabelsByType[Number(form.letterType)] || metricLabelsByType[1];
     const isDraft = !isEditMode || status === 0;
-    const filteredEmployees = employees.filter((employee) => {
-        if (!form.siteId) {
-            return true;
-        }
-
-        const employeeSiteId = getEmployeeSiteId(employee);
-        return employeeSiteId === null || String(employeeSiteId) === String(form.siteId);
-    });
+    const resolvedSiteId = form.siteId || selectedCandidate?.siteId || "";
+    const resolvedSiteName = getSiteName(sites, resolvedSiteId);
     const selectedEmployee = employees.find(
         (employee) => String(getEmployeeId(employee)) === String(form.employeeId)
     );
@@ -312,14 +325,14 @@ const WarningLetterFormPage = () => {
             ? "The selected employee could not be resolved from the employee list. Please select the employee again."
             : selectedEmployeeAllowed
                 ? ""
-                : `The selected employee belongs to ${getSiteName(sites, selectedEmployeeSiteId)} and is not linked to the selected vehicle/site context.`;
+                : `The selected employee belongs to ${getSiteName(sites, selectedEmployeeSiteId)} and is not currently linked to the selected vehicle/site context. Saving this warning letter will assign the vehicle and update GPSGate driver details.`;
     const selectedEmployeePositionMessage = !form.employeeId
         ? ""
         : !selectedEmployee
             ? ""
             : hasEmployeePosition(selectedEmployee)
                 ? ""
-                : "The selected employee must have a position before you can generate this warning letter. Use Edit to update the driver position.";
+                : "The selected employee must have a position before you can generate this warning letter. Update the employee position, then select the employee again.";
 
     useEffect(() => {
         Promise.all([getEmployees(), getSites()])
@@ -406,8 +419,6 @@ const WarningLetterFormPage = () => {
                     issuedByUserId: d.issuedByUserId || String(getUserId(currentUser) || ""),
                     issuedByName: d.issuedByName || getUserDisplayName(currentUser) || "",
                     issuedByTitle: d.issuedByTitle || "Fleet Manager",
-                    emailRecipient: d.emailRecipient || d.employeeEmail || "",
-                    notes: d.notes || "",
                 });
             } catch (err) {
                 notify(err.message || "Failed to load warning letter.", "error", 3000);
@@ -446,6 +457,84 @@ const WarningLetterFormPage = () => {
             };
         });
     }, [employees, isEditMode, selectedCandidate]);
+
+    const handleOpenCreateEmployee = () => {
+        setEmployeePanelMode("create");
+        setIsEmployeePanelOpen(true);
+    };
+
+    const handleOpenEditEmployee = () => {
+        if (!selectedEmployee) {
+            return;
+        }
+
+        setEmployeePanelMode("edit");
+        setIsEmployeePanelOpen(true);
+    };
+
+    const refreshEmployees = async () => {
+        const employeeList = await getEmployees();
+        setEmployees(employeeList);
+        return employeeList;
+    };
+
+    const handleCreateEmployee = async (payload) => {
+        try {
+            setIsSavingEmployee(true);
+            const response = await dispatch(createEmployee(payload));
+
+            if (!hasSucceeded(response)) {
+                throw new Error(resolveMessage(response, "Failed to create employee."));
+            }
+
+            const createdEmployee = unwrapCreatedEmployee(response);
+            const refreshedEmployees = await refreshEmployees();
+            const createdEmployeeId = Number(getEmployeeId(createdEmployee));
+
+            if (Number.isFinite(createdEmployeeId) && createdEmployeeId > 0) {
+                updateField("employeeId", String(createdEmployeeId));
+            } else if (Array.isArray(refreshedEmployees)) {
+                const matchedEmployee = refreshedEmployees.find(
+                    (employee) => normalizeEmployeeName(getEmployeeName(employee)) === normalizeEmployeeName(getEmployeeName(createdEmployee))
+                );
+
+                if (matchedEmployee) {
+                    updateField("employeeId", String(getEmployeeId(matchedEmployee)));
+                }
+            }
+
+            setIsEmployeePanelOpen(false);
+            notify("Employee created successfully.", "success", 2500);
+        } catch (error) {
+            notify(error?.message || "Failed to create employee.", "error", 3000);
+        } finally {
+            setIsSavingEmployee(false);
+        }
+    };
+
+    const handleUpdateEmployee = async (payload) => {
+        const employeeId = Number(getEmployeeId(selectedEmployee));
+        if (!Number.isFinite(employeeId) || employeeId <= 0) {
+            return;
+        }
+
+        try {
+            setIsSavingEmployee(true);
+            const response = await dispatch(updateEmployee(employeeId, payload));
+
+            if (!hasSucceeded(response)) {
+                throw new Error(resolveMessage(response, "Failed to update employee."));
+            }
+
+            await refreshEmployees();
+            setIsEmployeePanelOpen(false);
+            notify("Employee updated successfully.", "success", 2500);
+        } catch (error) {
+            notify(error?.message || "Failed to update employee.", "error", 3000);
+        } finally {
+            setIsSavingEmployee(false);
+        }
+    };
 
     const updateField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -493,10 +582,6 @@ const WarningLetterFormPage = () => {
             notify("Please assign an employee before previewing.", "warning", 2500);
             return;
         }
-        if (selectedEmployeeValidationMessage) {
-            notify(selectedEmployeeValidationMessage, "warning", 3500);
-            return;
-        }
         if (selectedEmployeePositionMessage) {
             notify(selectedEmployeePositionMessage, "warning", 3500);
             return;
@@ -516,10 +601,6 @@ const WarningLetterFormPage = () => {
     const handleSave = async (goToPreviewPage = false) => {
         if (!Number(form.employeeId)) {
             notify("Employee is required.", "warning", 2500);
-            return;
-        }
-        if (selectedEmployeeValidationMessage) {
-            notify(selectedEmployeeValidationMessage, "warning", 3500);
             return;
         }
         if (selectedEmployeePositionMessage) {
@@ -718,50 +799,58 @@ const WarningLetterFormPage = () => {
                                     Assign Employee
                                     {!form.employeeId && <span className="warning-letter-wizard__required"> *required</span>}
                                 </span>
-                                <EmployeeQuickAddSelect
-                                    employees={filteredEmployees}
-                                    sites={sites}
-                                    searchSiteId={form.siteId}
-                                    value={form.employeeId}
-                                    onValueChanged={(value) => updateField("employeeId", value ? String(value) : "")}
-                                    onEmployeesChange={setEmployees}
-                                    placeholder="Search employee by name or work number"
-                                    disabled={!isDraft || loading}
-                                    showEditButton
-                                    showHint
-                                    hintText="Search for an employee. If no match exists, use Quick Add to create one with the current site and vehicle prefilled."
-                                    panelTitle="Quick Add Employee"
-                                    addButtonText="Quick Add"
-                                    initialEmployeeDraft={{
-                                        siteId: form.siteId || selectedCandidate?.siteId || "",
-                                        vehicles: form.vehicleId || selectedCandidate?.vehicleId ? [Number(form.vehicleId || selectedCandidate?.vehicleId)] : [],
-                                    }}
-                                    renderSelectedEmployeePanel={({ selectedEmployee: currentEmployee, canEditEmployee, openEditPanel }) => {
-                                        if (!currentEmployee) {
-                                            return null;
-                                        }
+                                <div className="tw-space-y-2">
+                                    <div className="tw-flex tw-items-start tw-gap-2">
+                                        <div className="tw-min-w-0 tw-flex-1">
+                                            <EmployeeSearchableSelector
+                                                value={form.employeeId ? Number(form.employeeId) : null}
+                                                onValueChanged={(event) => updateField("employeeId", event?.value ? String(event.value) : "")}
+                                                placeholder="Search employee by name or work number"
+                                                disabled={!isDraft || loading}
+                                                width="100%"
+                                                activeOnly={true}
+                                                siteId={form.siteId || selectedCandidate?.siteId || null}
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="m365-btn m365-btn--ghost tw-shrink-0"
+                                            onClick={handleOpenEditEmployee}
+                                            disabled={!isDraft || loading || !selectedEmployee}
+                                            title="Edit selected employee"
+                                        >
+                                            <i className="fa-light fa-pen-to-square" />
+                                            Edit Employee
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="m365-btn m365-btn--ghost tw-shrink-0"
+                                            onClick={handleOpenCreateEmployee}
+                                            disabled={!isDraft || loading}
+                                        >
+                                            <i className="fa-light fa-user-plus" />
+                                            Add Employee
+                                        </button>
+                                    </div>
 
-                                        return (
-                                            <div className="warning-letter-wizard__employee-meta">
-                                                <div className="warning-letter-wizard__employee-meta-header">
-                                                    <span>Selected Employee</span>
-                                                    {canEditEmployee && (
-                                                        <button
-                                                            type="button"
-                                                            className="m365-btn m365-btn--ghost warning-letter-wizard__employee-meta-edit"
-                                                            onClick={openEditPanel}
-                                                        >
-                                                            <i className="fa-light fa-pen-to-square" /> Edit
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <strong>{getEmployeeDisplayName(currentEmployee)}</strong>
-                                                <span>Work Number: {getEmployeeWorkNumber(currentEmployee) || "Not set"}</span>
-                                                <span>Position: {getEmployeePosition(currentEmployee) || "Not set"}</span>
+                                    {isDraft && (
+                                        <span className="m365-field__hint">
+                                            Search for an employee. If no match exists, use Add Employee to create one with the current site and vehicle prefilled.
+                                        </span>
+                                    )}
+
+                                    {selectedEmployee && (
+                                        <div className="warning-letter-wizard__employee-meta">
+                                            <div className="warning-letter-wizard__employee-meta-header">
+                                                <span>Selected Employee</span>
                                             </div>
-                                        );
-                                    }}
-                                />
+                                            <strong>{getEmployeeDisplayName(selectedEmployee)}</strong>
+                                            <span>Work Number: {getEmployeeWorkNumber(selectedEmployee) || "Not set"}</span>
+                                            <span>Position: {getEmployeePosition(selectedEmployee) || "Not set"}</span>
+                                            <span>Site: {getSiteName(sites, selectedEmployeeSiteId)}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </label>
                             {!form.employeeId && (
                                 <div className="m365-info-banner m365-info-banner--warning warning-letter-wizard__employee-warn">
@@ -789,20 +878,29 @@ const WarningLetterFormPage = () => {
                                 <input className="m365-date" type="date" value={form.letterDate} onChange={(e) => updateField("letterDate", e.target.value)} disabled={!isDraft || loading} />
                             </label>
                             <label className="warning-letter-page__field">
+                                <span>Site</span>
+                                <input className="m365-input warning-letter-page__readonly-input" type="text" value={resolvedSiteName} readOnly title="Derived from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected vehicle/site context.</small>
+                            </label>
+                            <label className="warning-letter-page__field">
                                 <span>Affected Date</span>
-                                <input className="m365-date" type="date" value={form.affectedDate} onChange={(e) => updateField("affectedDate", e.target.value)} disabled={!isDraft || loading} />
+                                <input className="m365-input warning-letter-page__readonly-input" type="text" value={form.affectedDate || ""} readOnly title="Read from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected warning letter data.</small>
                             </label>
                             <label className="warning-letter-page__field">
                                 <span>{metricLabels.expectedLabel}</span>
-                                <input className="m365-input" type="number" step="0.01" value={form.expectedValue} onChange={(e) => updateField("expectedValue", e.target.value)} disabled={!isDraft || loading} />
+                                <input className="m365-input warning-letter-page__readonly-input" type="number" step="0.01" value={form.expectedValue} readOnly title="Read from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected warning letter data.</small>
                             </label>
                             <label className="warning-letter-page__field">
                                 <span>{metricLabels.actualLabel}</span>
-                                <input className="m365-input" type="number" step="0.01" value={form.actualValue} onChange={(e) => updateField("actualValue", e.target.value)} disabled={!isDraft || loading} />
+                                <input className="m365-input warning-letter-page__readonly-input" type="number" step="0.01" value={form.actualValue} readOnly title="Read from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected warning letter data.</small>
                             </label>
                             <label className="warning-letter-page__field">
                                 <span>{metricLabels.excessLabel}</span>
-                                <input className="m365-input" type="number" step="0.01" value={form.excessValue} onChange={(e) => updateField("excessValue", e.target.value)} disabled={!isDraft || loading} />
+                                <input className="m365-input warning-letter-page__readonly-input" type="number" step="0.01" value={form.excessValue} readOnly title="Read from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected warning letter data.</small>
                             </label>
                             {metricLabels.showFuelFields && (
                                 <>
@@ -818,15 +916,6 @@ const WarningLetterFormPage = () => {
                                     </label>
                                 </>
                             )}
-                            <label className="warning-letter-page__field warning-letter-page__field--wide">
-                                <span>Email Recipient</span>
-                                <EmailRecipientsInput
-                                    value={form.emailRecipient}
-                                    onChange={(value) => updateField("emailRecipient", value)}
-                                    disabled={!isDraft || loading}
-                                    placeholder="Search users or type an email address"
-                                />
-                            </label>
                             <label className="warning-letter-page__field">
                                 <span>Issued By</span>
                                 <input className="m365-input warning-letter-page__readonly-input" type="text" value={form.issuedByName} readOnly title="Configured in warning letter settings" />
@@ -839,11 +928,8 @@ const WarningLetterFormPage = () => {
                             </label>
                             <label className="warning-letter-page__field warning-letter-page__field--wide">
                                 <span>Violation Summary</span>
-                                <textarea className="m365-input warning-letter-page__textarea" value={form.violationSummary} onChange={(e) => updateField("violationSummary", e.target.value)} disabled={!isDraft || loading} />
-                            </label>
-                            <label className="warning-letter-page__field warning-letter-page__field--wide">
-                                <span>Notes</span>
-                                <textarea className="m365-input warning-letter-page__textarea" value={form.notes} onChange={(e) => updateField("notes", e.target.value)} disabled={!isDraft || loading} />
+                                <textarea className="m365-input warning-letter-page__textarea warning-letter-page__readonly-input" value={form.violationSummary} readOnly title="Read from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected warning letter data.</small>
                             </label>
                         </div>
                     </div>
@@ -893,6 +979,30 @@ const WarningLetterFormPage = () => {
                     </div>
                 </div>
             )}
+
+            <SlidePanel
+                open={isEmployeePanelOpen}
+                onClose={() => setIsEmployeePanelOpen(false)}
+                title={employeePanelMode === "edit" ? "Edit Employee" : "Quick Add Employee"}
+                width={900}
+                panelClassName="employee-quick-add-panel-shell"
+            >
+                <EmployeeFormPanel
+                    mode={employeePanelMode}
+                    employee={employeePanelMode === "edit" ? selectedEmployee : null}
+                    initialValues={{
+                        siteId: resolvedSiteId,
+                        vehicles: form.vehicleId || selectedCandidate?.vehicleId
+                            ? [Number(form.vehicleId || selectedCandidate?.vehicleId)]
+                            : [],
+                    }}
+                    sites={sites}
+                    saving={isSavingEmployee}
+                    hideSectionBorders
+                    onSubmit={employeePanelMode === "edit" ? handleUpdateEmployee : handleCreateEmployee}
+                    onClose={() => setIsEmployeePanelOpen(false)}
+                />
+            </SlidePanel>
         </div>
     );
 };

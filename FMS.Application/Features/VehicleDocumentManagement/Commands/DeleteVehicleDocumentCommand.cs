@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.VehicleDocumentManagement.Commands;
 
-public record DeleteVehicleDocumentCommand(Guid Id) : IRequest<FMSResponse<bool>>;
+public record DeleteVehicleDocumentCommand(Guid Id, string? UserId, bool IsAdmin) : IRequest<FMSResponse<bool>>;
 
 public class DeleteVehicleDocumentCommandHandler : IRequestHandler<DeleteVehicleDocumentCommand, FMSResponse<bool>>
 {
@@ -27,14 +27,29 @@ public class DeleteVehicleDocumentCommandHandler : IRequestHandler<DeleteVehicle
     {
         try
         {
-            var deletedCount = await _context.VehicleDocuments
-                .Where(vd => vd.Id == request.Id)
-                .ExecuteDeleteAsync(cancellationToken);
+            var vehicleDocument = await _context.VehicleDocuments
+                .FirstOrDefaultAsync(vd => vd.Id == request.Id, cancellationToken);
 
-            if (deletedCount == 0)
+            if (vehicleDocument == null)
             {
                 return FMSResponse<bool>.Failed("Vehicle document not found.");
             }
+
+            if (!request.IsAdmin)
+            {
+                if (string.IsNullOrWhiteSpace(request.UserId))
+                {
+                    return FMSResponse<bool>.Unauthorized(message: "User not authenticated.");
+                }
+
+                if (!string.Equals(vehicleDocument.CreatedBy, request.UserId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return FMSResponse<bool>.Forbidden(message: "Only the user who created this document or an admin can delete it.");
+                }
+            }
+
+            _context.VehicleDocuments.Remove(vehicleDocument);
+            await _context.SaveChangesAsync(cancellationToken);
 
             return FMSResponse<bool>.Success(true, "Vehicle document deleted successfully.");
         }

@@ -6,10 +6,13 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.WarningLetter.DTOs;
+using FMS.Application.Features.WarningLetter;
 using FMS.Application.Features.WarningLetter.Queries;
 using FMS.Application.Features.WarningLetter.Services;
 using FMS.Application.Services.Configuration;
@@ -22,6 +25,7 @@ using WarningLetterEntity = FMS.Domain.Entities.Features.WarningLetterManagement
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.WarningLetter.Commands;
 
@@ -35,11 +39,19 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
 {
     private readonly GpsdataContext _context;
     private readonly ISystemConfigurationService _systemConfigurationService;
+    private readonly ILogger<CreateWarningLetterCommandHandler> _logger;
+    private readonly IGPSGateDriverNameService? _driverNameService;
 
-    public CreateWarningLetterCommandHandler(GpsdataContext context, ISystemConfigurationService systemConfigurationService)
+    public CreateWarningLetterCommandHandler(
+        GpsdataContext context,
+        ISystemConfigurationService systemConfigurationService,
+        ILogger<CreateWarningLetterCommandHandler> logger,
+        IGPSGateDriverNameService? driverNameService = null)
     {
         _context = context;
         _systemConfigurationService = systemConfigurationService;
+        _logger = logger;
+        _driverNameService = driverNameService;
     }
 
     public async Task<FMSResponse<WarningLetterDto>> Handle(CreateWarningLetterCommand request, CancellationToken cancellationToken)
@@ -102,19 +114,6 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        var employeeAllowedForVehicle = await IsEmployeeAllowedForWarningLetterAsync(
-            employee.Id,
-            employee.SiteId,
-            vehicle.VehicleId,
-            vehicle.DefaultEmployeeId,
-            request.WarningLetter.SiteId,
-            cancellationToken);
-
-        if (!employeeAllowedForVehicle)
-        {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Employee does not belong to the selected site." });
-        }
-
         if (vehicle.WorkingSiteId.HasValue && vehicle.WorkingSiteId.Value != request.WarningLetter.SiteId)
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Vehicle does not belong to the selected site." });
@@ -146,14 +145,20 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             IssuedByName = resolvedIssuedByName,
             IssuedByTitle = resolvedIssuedByTitle,
             EmailRecipient = string.IsNullOrWhiteSpace(request.WarningLetter.EmailRecipient) ? employee.Email : request.WarningLetter.EmailRecipient.Trim(),
+            SignatureRequestRecipientUserId = string.IsNullOrWhiteSpace(request.WarningLetter.SignatureRequestRecipientUserId) ? null : request.WarningLetter.SignatureRequestRecipientUserId.Trim(),
+            SignatureRequestCcUserIds = JoinDelimitedValues(request.WarningLetter.SignatureRequestCcUserIds),
             Notes = string.IsNullOrWhiteSpace(request.WarningLetter.Notes) ? null : request.WarningLetter.Notes.Trim(),
             Status = global::FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterStatus.Draft,
             DateCreated = DateTime.UtcNow,
             CreatedBy = request.CreatedBy
         };
 
+        await EnsureEmployeeVehicleAssignmentAsync(vehicle, employee.Id, request.CreatedBy, cancellationToken);
+
         _context.WarningLetters.Add(warningLetter);
         await _context.SaveChangesAsync(cancellationToken);
+
+        await TryUpdateGpsGateDriverNameAsync(vehicle.VehicleId, employee.Id, cancellationToken);
 
         var response = FMSResponse<WarningLetterDto>.Success(MapToDto(warningLetter, employee, vehicle, site), "Warning letter created successfully");
         response.StatusCode = 201;
@@ -214,29 +219,71 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
         return null;
     }
 
-    private async Task<bool> IsEmployeeAllowedForWarningLetterAsync(
+    private async Task EnsureEmployeeVehicleAssignmentAsync(
+        VehicleEntity vehicle,
         int employeeId,
-        int? employeeSiteId,
-        int vehicleId,
-        int? vehicleDefaultEmployeeId,
-        int warningLetterSiteId,
+        string modifiedBy,
         CancellationToken cancellationToken)
     {
-        if (!employeeSiteId.HasValue || employeeSiteId.Value == warningLetterSiteId)
+        if (vehicle.DefaultEmployeeId != employeeId)
         {
-            return true;
+            vehicle.DefaultEmployeeId = employeeId;
+            vehicle.DateModified = DateTime.UtcNow;
+            vehicle.ModifiedBy = modifiedBy;
         }
 
-        if (vehicleDefaultEmployeeId.HasValue && vehicleDefaultEmployeeId.Value == employeeId)
-        {
-            return true;
-        }
-
-        return await _context.EmployeeVehicle
+        var assignmentExists = await _context.EmployeeVehicle
             .AsNoTracking()
             .AnyAsync(
-                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicleId,
+                employeeVehicle => employeeVehicle.EmployeeId == employeeId && employeeVehicle.VehicleId == vehicle.VehicleId,
                 cancellationToken);
+
+        if (!assignmentExists)
+        {
+            _context.EmployeeVehicle.Add(new EmployeeVehicle
+            {
+                EmployeeId = employeeId,
+                VehicleId = vehicle.VehicleId,
+            });
+        }
+    }
+
+    private async Task TryUpdateGpsGateDriverNameAsync(int vehicleId, int employeeId, CancellationToken cancellationToken)
+    {
+        if (_driverNameService == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _driverNameService.UpdateDriverNameAsync(vehicleId, employeeId, cancellationToken);
+
+            if (result.IsSuccess)
+            {
+                _logger.LogInformation(
+                    "Updated GPSGate DriverName for vehicle {VehicleId} during warning letter creation with employee {EmployeeId}: {Message}",
+                    vehicleId,
+                    employeeId,
+                    result.Message);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Failed to update GPSGate DriverName for vehicle {VehicleId} during warning letter creation with employee {EmployeeId}: {Message}",
+                    vehicleId,
+                    employeeId,
+                    result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Error updating GPSGate DriverName for vehicle {VehicleId} during warning letter creation with employee {EmployeeId}",
+                vehicleId,
+                employeeId);
+        }
     }
 
     internal static WarningLetterDto MapToDto(WarningLetterEntity entity, EmployeeEntity employee, VehicleEntity vehicle, SiteEntity site)
@@ -272,8 +319,17 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             EmailRecipient = entity.EmailRecipient,
             SignatureRequestRecipientUserId = entity.SignatureRequestRecipientUserId,
             SignatureRequestRecipient = entity.SignatureRequestRecipient,
+            SignatureRequestCcUserIds = SplitDelimitedValues(entity.SignatureRequestCcUserIds),
+            SignatureRequestCcRecipients = SplitDelimitedValues(entity.SignatureRequestCcRecipients),
             SignatureRequestedAt = entity.SignatureRequestedAt,
             SignatureRequestedBy = entity.SignatureRequestedBy,
+            ApproveLetterFileName = entity.ApproveLetterFileName,
+            ApproveLetterStoredFileName = entity.ApproveLetterStoredFileName,
+            ApproveLetterFilePath = entity.ApproveLetterFilePath,
+            ApproveLetterContentType = entity.ApproveLetterContentType,
+            ApproveLetterFileSize = entity.ApproveLetterFileSize,
+            ApproveLetterUploadedAt = entity.ApproveLetterUploadedAt,
+            ApproveLetterUploadedBy = entity.ApproveLetterUploadedBy,
             SignedCopyFileName = entity.SignedCopyFileName,
             SignedCopyStoredFileName = entity.SignedCopyStoredFileName,
             SignedCopyFilePath = entity.SignedCopyFilePath,
@@ -282,6 +338,7 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             SignedCopyUploadedAt = entity.SignedCopyUploadedAt,
             SignedCopyUploadedBy = entity.SignedCopyUploadedBy,
             Status = entity.Status,
+            WorkflowStage = WarningLetterWorkflowStageResolver.Resolve(entity),
             EmployeeAcknowledgedAt = entity.EmployeeAcknowledgedAt,
             Notes = entity.Notes,
             DateCreated = entity.DateCreated,
@@ -289,5 +346,28 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             CreatedBy = entity.CreatedBy,
             ModifiedBy = entity.ModifiedBy
         };
+    }
+
+    internal static List<string> SplitDelimitedValues(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? new List<string>()
+            : value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    }
+
+    internal static string? JoinDelimitedValues(IEnumerable<string>? values)
+    {
+        if (values == null)
+        {
+            return null;
+        }
+
+        var cleanedValues = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return cleanedValues.Count == 0 ? null : string.Join(';', cleanedValues);
     }
 }

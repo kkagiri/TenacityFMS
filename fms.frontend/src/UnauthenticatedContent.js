@@ -12,6 +12,8 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { SingleCard } from './layouts';
 import { LoginForm } from './components';
+import ConfirmEmailPage from './pages/auth/ConfirmEmailPage';
+import { buildLoginRedirectUrl } from './utils/authRedirect';
 
 const RedirectToLoginWithReturnUrl = () => {
   const location = useLocation();
@@ -19,7 +21,7 @@ const RedirectToLoginWithReturnUrl = () => {
 
   return (
     <Navigate
-      to={`/login?redirect=${encodeURIComponent(returnUrl)}`}
+      to={buildLoginRedirectUrl(returnUrl)}
       replace
     />
   );
@@ -33,6 +35,15 @@ export default function UnauthenticatedContent() {
         element={
           <SingleCard title="Sign In">
             <LoginForm />
+          </SingleCard>
+        }
+      />
+
+      <Route
+        path='/confirm-email'
+        element={
+          <SingleCard title="Confirm Email">
+            <ConfirmEmailPage />
           </SingleCard>
         }
       />

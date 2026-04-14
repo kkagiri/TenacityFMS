@@ -34,5 +34,7 @@ public class UpdateVehicleDocumentDto
     [MaxLength(1000)]
     public string? Notes { get; set; }
 
+    public string? UserId { get; set; }
+
     public IFormFile? DocumentFile { get; set; }
 }

@@ -2,6 +2,7 @@ import axiosInstance from './../../api/axiosInstance';
 import { fetchMyPermissions } from './permissionActions';
 import store from '../../store'; // Import store to check fueling status
 import { setSessionUserId, clearSessionUserId } from '../../utils/crossTabAuthSync';
+import { redirectToLoginPreservingReturnUrl } from '../../utils/authRedirect';
 import {
     LOGIN_SUCCESS,
     LOGIN_FAILURE,
@@ -36,7 +37,11 @@ export const loadUser = () => async (dispatch) => {
             // Ensure consistent property names
             userName: user.UserName || user.userName,
             email: user.Email || user.email,
-            id: user.Id || user.id
+            id: user.Id || user.id,
+            requirePasswordChangeOnFirstLogin:
+                user.RequirePasswordChangeOnFirstLogin ??
+                user.requirePasswordChangeOnFirstLogin ??
+                false,
         };
 
         console.log('✅ User data loaded successfully');
@@ -104,19 +109,31 @@ export const signIn = (username, password) => async (dispatch) => {
 
         console.log('✅ Login successful - token, refresh token, and user data received');
 
+        const normalizedUser = {
+            ...user,
+            roles: user.Roles || user.roles || [],
+            userName: user.UserName || user.userName,
+            email: user.Email || user.email,
+            id: user.Id || user.id,
+            requirePasswordChangeOnFirstLogin:
+                user.RequirePasswordChangeOnFirstLogin ??
+                user.requirePasswordChangeOnFirstLogin ??
+                false,
+        };
+
         // Mark which user is logged in (for cross-tab detection)
-        setSessionUserId(user.id || user.Id);
+        setSessionUserId(normalizedUser.id);
 
         // Dispatch success with both token and user
         dispatch({
             type: LOGIN_SUCCESS,
-            payload: { token, user }
+            payload: { token, user: normalizedUser }
         });
 
         // Also dispatch USER_LOADED to set user in state
         dispatch({
             type: USER_LOADED,
-            payload: user
+            payload: normalizedUser
         });
 
         // Fetch user permissions from backend (not from JWT)
@@ -298,7 +315,7 @@ export const logout = () => async (dispatch) => {
         console.log('🔓 Logout completed successfully');
 
         // Force reload to clear any in-memory state and return to login
-        window.location.href = '/login';
+        redirectToLoginPreservingReturnUrl();
 
     } catch (error) {
         console.error('🚨 Logout error:', error);
@@ -310,6 +327,6 @@ export const logout = () => async (dispatch) => {
         dispatch({ type: LOGOUT });
 
         // Force redirect to login page
-        window.location.href = '/login';
+        redirectToLoginPreservingReturnUrl();
     }
 };

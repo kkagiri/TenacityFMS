@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using FMS.Application.Common;
+using FMS.Application.Features.Vehicle;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -35,6 +37,8 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
 
         try
         {
+            VehicleIdentifierNormalizer.NormalizeVehicleDto(request.VehicleDTO);
+
             var existingVehicle = await _context.Vehicles.FindAsync(request.VehicleDTO.VehicleId);
             if (existingVehicle == null)
             {
@@ -68,9 +72,35 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
         }
     }
 
+    private Task<bool> HasNormalizedHyoungNoConflictAsync(string normalizedHyoungNo, int currentVehicleId, CancellationToken cancellationToken)
+    {
+        return _context.Vehicles
+            .AsNoTracking()
+            .AnyAsync(
+                vehicle =>
+                    vehicle.VehicleId != currentVehicleId &&
+                    (((vehicle.HyoungNo ?? string.Empty)
+                        .Replace(" ", string.Empty)
+                        .Replace("\r", string.Empty)
+                        .Replace("\n", string.Empty)
+                        .ToUpper()) == normalizedHyoungNo),
+                cancellationToken);
+    }
+
     private async Task<(bool IsValid, string[] Errors)> ValidateVehicleDTO(VehicleDTO vehicleDTO)
     {
         var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(vehicleDTO.HyoungNo))
+        {
+            errors.Add("Hyoung No is required");
+            return (false, errors.ToArray());
+        }
+
+        if (await HasNormalizedHyoungNoConflictAsync(vehicleDTO.HyoungNo, vehicleDTO.VehicleId, CancellationToken.None))
+        {
+            errors.Add($"Vehicle with Hyoung No {vehicleDTO.HyoungNo} already exists");
+        }
+
         if (vehicleDTO.VehicleTypeId.HasValue)
         {
             var vehicleType = await _context.Vehicletypes.FindAsync(vehicleDTO.VehicleTypeId);

@@ -2,7 +2,7 @@
  * File: EmployeeQuickAddSelect.scss
  * Purpose: Scoped styling overrides for the quick-add employee slide panel.
  * Dependencies: EmployeeFormPanel, SlidePanel
- * Last Modified: 2026-04-10
+ * Last Modified: 2026-04-11
  *
  * Key Rules:
  * - Remove section divider lines inside the quick-add panel only.
@@ -13,15 +13,24 @@
   .fms-slide-panel__body {
     display: flex;
     flex-direction: column;
-    min-height: 100%;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .employee-panel--form {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
-    min-height: 100%;
+    min-height: 0;
+    overflow: hidden;
     padding-top: 4px;
+  }
+
+  .employee-panel__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 12px;
   }
 
   .m365-flat-section {
@@ -35,10 +44,12 @@
   }
 
   .m365-panel-footer {
-    position: sticky;
-    bottom: 0;
+    position: static;
     z-index: 2;
-    margin-top: auto;
-    padding-bottom: 16px;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding: 12px 0 16px;
+    background: #ffffff;
+    border-top: 1px solid #edebe9;
   }
 }

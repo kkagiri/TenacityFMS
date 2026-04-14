@@ -1,4 +1,5 @@
 import axios from "axios";
+import { redirectToLoginPreservingReturnUrl } from "../utils/authRedirect";
 
 const HEALTH_CHECK_PATH = "v1/Health";
 const PROBE_TIMEOUT_MS = 4000;
@@ -254,6 +255,7 @@ axiosInstance.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url || "";
 
     // Handle network errors (often CORS related)
     if (error.code === "ECONNABORTED") {
@@ -284,18 +286,23 @@ axiosInstance.interceptors.response.use(
         const token = localStorage.getItem("token");
         const refreshToken = localStorage.getItem("refreshToken");
 
+        if (requestUrl.includes("/User/Login")) {
+          console.warn("🔐 Login request returned 401 - passing validation failure back to caller");
+          return Promise.reject(error);
+        }
+
         console.log("🔍 401 received - checking tokens:", {
           hasToken: !!token,
           hasRefreshToken: !!refreshToken,
-          endpoint: originalRequest.url
+          endpoint: requestUrl
         });
 
         // If this is the refresh-token endpoint failing, don't retry
-        if (originalRequest.url?.includes("/User/refresh-token")) {
+        if (requestUrl.includes("/User/refresh-token")) {
           console.error("🚫 Refresh token invalid or expired - logging out");
           localStorage.removeItem("token");
           localStorage.removeItem("refreshToken");
-          window.location.href = "/login";
+          redirectToLoginPreservingReturnUrl();
           return Promise.reject(error);
         }
 
@@ -305,7 +312,7 @@ axiosInstance.interceptors.response.use(
           console.error("💡 This usually means you logged in before refresh tokens were implemented.");
           console.error("💡 Please log out and log in again to get a fresh refresh token.");
           localStorage.removeItem("token");
-          window.location.href = "/login";
+          redirectToLoginPreservingReturnUrl();
           return Promise.reject(error);
         }
 
@@ -361,7 +368,7 @@ axiosInstance.interceptors.response.use(
               processQueue(err, null);
               localStorage.removeItem("token");
               localStorage.removeItem("refreshToken");
-              window.location.href = "/login";
+              redirectToLoginPreservingReturnUrl();
               reject(err);
             })
             .finally(() => {

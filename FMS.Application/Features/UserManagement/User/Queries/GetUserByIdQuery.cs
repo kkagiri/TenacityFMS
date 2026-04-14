@@ -12,9 +12,9 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 
-public record GetUserByIdQuery(string UserId) : IRequest<UserDetailDto>;
+public record GetUserByIdQuery(string UserId) : IRequest<UserDetailDto?>;
 
-public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDetailDto>
+public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDetailDto?>
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<GetUserByIdQueryHandler> _logger;
@@ -27,7 +27,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
         _userManager = userManager;
     }
 
-    public async Task<UserDetailDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+    public async Task<UserDetailDto?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
         try
         {
@@ -38,7 +38,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
 
             if (user == null)
             {
-                return null;
+                return (UserDetailDto?)null;
             }
 
             // Get user roles
@@ -53,8 +53,8 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
-                UserName = user.UserName,
-                Email = user.Email,
+                UserName = user.UserName ?? string.Empty,
+                Email = user.Email ?? string.Empty,
                 IsDeleted = user.IsDeleted ?? false,
                 PhoneNumber = user.PhoneNumber ?? string.Empty,
                 MasterRFIDTag = user.MasterRFIDTag ?? 0,
@@ -66,6 +66,8 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
 
                 // Location Validation Settings
                 BypassLocationValidation = user.BypassLocationValidation,
+
+                RequirePasswordChangeOnFirstLogin = user.RequirePasswordChangeOnFirstLogin,
 
                 // Department Information
                 DepartmentId = user.DepartmentId,

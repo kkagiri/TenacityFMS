@@ -6,7 +6,7 @@
  *
  * Key Functions/Components:
  * - CreateUserPanel(props): Slide-in panel with flat M365 form
- *   Fields: username, email, password, confirm password, role, department
+ *   Fields: username, email, role, department, onboarding options
  */
 import React, { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
@@ -19,10 +19,11 @@ const EMPTY_FORM = {
     lastName: '',
     userName: '',
     email: '',
-    password: '',
-    confirmPassword: '',
     roleName: '',
     departmentId: null,
+    sendOnboardingEmail: true,
+    requireEmailConfirmation: true,
+    requirePasswordChangeOnFirstLogin: true,
 };
 
 const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departments = [] }) => {
@@ -39,11 +40,12 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
     const validate = () => {
         const e = {};
         if (!form.userName.trim()) e.userName = 'Username is required';
-        if (!form.email.trim()) e.email = 'Email is required';
-        if (!form.password) e.password = 'Password is required';
+        if ((form.sendOnboardingEmail || form.requireEmailConfirmation) && !form.email.trim()) {
+            e.email = 'Email is required when onboarding email or email confirmation is enabled';
+        }
         if (!form.roleName) e.roleName = 'Role is required';
-        if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
-            e.confirmPassword = 'Passwords do not match';
+        if (form.requireEmailConfirmation && !form.sendOnboardingEmail) {
+            e.requireEmailConfirmation = 'Email confirmation requires onboarding email to be enabled';
         }
         return e;
     };
@@ -56,16 +58,27 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
         }
         try {
             setLoading(true);
-            await dispatch(createUser({
+            const response = await dispatch(createUser({
                 FirstName: form.firstName || null,
                 LastName: form.lastName || null,
-                Email: form.email,
+                Email: form.email.trim() || null,
                 Username: form.userName,
-                Password: form.password,
                 RoleName: form.roleName,
                 DepartmentId: form.departmentId,
+                SendOnboardingEmail: form.sendOnboardingEmail,
+                RequireEmailConfirmation: form.requireEmailConfirmation,
+                RequirePasswordChangeOnFirstLogin: form.requirePasswordChangeOnFirstLogin,
             }));
-            notify('User created successfully', 'success', 3000);
+            const resultData = response?.data || response?.Data || null;
+            const temporaryPassword = resultData?.temporaryPassword || resultData?.TemporaryPassword || null;
+            const onboardingEmailSent = resultData?.onboardingEmailSent ?? resultData?.OnboardingEmailSent ?? false;
+
+            if (temporaryPassword && !onboardingEmailSent) {
+                window.alert(`User created successfully. Share this temporary password with the user: ${temporaryPassword}`);
+                notify('User created successfully. Temporary password generated for manual sharing.', 'success', 4000);
+            } else {
+                notify('User created successfully. Onboarding instructions have been applied.', 'success', 4000);
+            }
             setForm(EMPTY_FORM);
             setErrors({});
             onSuccess?.();
@@ -85,6 +98,31 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
         }
     };
 
+    const handleCheckboxChange = useCallback((field, checked) => {
+        setForm((prev) => {
+            if (field === 'sendOnboardingEmail' && !checked) {
+                return {
+                    ...prev,
+                    sendOnboardingEmail: false,
+                    requireEmailConfirmation: false,
+                };
+            }
+
+            return {
+                ...prev,
+                [field]: checked,
+            };
+        });
+
+        if (errors[field] || (field === 'sendOnboardingEmail' && errors.requireEmailConfirmation)) {
+            setErrors((prev) => ({
+                ...prev,
+                [field]: null,
+                requireEmailConfirmation: null,
+            }));
+        }
+    }, [errors]);
+
     if (!visible) return null;
 
     return (
@@ -92,6 +130,13 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Scrollable form body */}
                 <div className="m365-panel-body">
+                    <div className="m365-info-banner">
+                        <i className="fa-light fa-circle-info m365-info-banner__icon" />
+                        <span className="m365-info-banner__text">
+                            A temporary password is always generated automatically. You can choose whether to email it, require email confirmation, and force a password change on first login.
+                        </span>
+                    </div>
+
                     {/* First name */}
                     <div className="m365-field">
                         <label className="m365-field__label">First name</label>
@@ -134,7 +179,7 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
 
                     {/* Email */}
                     <div className="m365-field">
-                        <label className="m365-field__label m365-field__label--required">Email</label>
+                        <label className={`m365-field__label${form.sendOnboardingEmail || form.requireEmailConfirmation ? ' m365-field__label--required' : ''}`}>Email</label>
                         <input
                             className={`m365-input${errors.email ? ' m365-input--error' : ''}`}
                             type="email"
@@ -147,34 +192,41 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
                         {errors.email && <span className="m365-field__error">{errors.email}</span>}
                     </div>
 
-                    {/* Password */}
                     <div className="m365-field">
-                        <label className="m365-field__label m365-field__label--required">Password</label>
-                        <input
-                            className={`m365-input${errors.password ? ' m365-input--error' : ''}`}
-                            type="password"
-                            value={form.password}
-                            onChange={(e) => handleChange('password', e.target.value)}
-                            placeholder="Minimum 6 characters"
-                            autoComplete="new-password"
-                            disabled={loading}
-                        />
-                        {errors.password && <span className="m365-field__error">{errors.password}</span>}
-                    </div>
-
-                    {/* Confirm Password */}
-                    <div className="m365-field">
-                        <label className="m365-field__label m365-field__label--required">Confirm password</label>
-                        <input
-                            className={`m365-input${errors.confirmPassword ? ' m365-input--error' : ''}`}
-                            type="password"
-                            value={form.confirmPassword}
-                            onChange={(e) => handleChange('confirmPassword', e.target.value)}
-                            placeholder="Re-enter password"
-                            autoComplete="new-password"
-                            disabled={loading}
-                        />
-                        {errors.confirmPassword && <span className="m365-field__error">{errors.confirmPassword}</span>}
+                        <label className="m365-field__label">Onboarding Options</label>
+                        <div className="tw-flex tw-flex-col tw-gap-3">
+                            <label className="tw-inline-flex tw-items-start tw-gap-2 tw-text-[13px] tw-text-[#201f1e]">
+                                <input
+                                    type="checkbox"
+                                    checked={form.sendOnboardingEmail}
+                                    onChange={(e) => handleCheckboxChange('sendOnboardingEmail', e.target.checked)}
+                                    disabled={loading}
+                                />
+                                <span>Send onboarding email with temporary password</span>
+                            </label>
+                            <label className="tw-inline-flex tw-items-start tw-gap-2 tw-text-[13px] tw-text-[#201f1e]">
+                                <input
+                                    type="checkbox"
+                                    checked={form.requireEmailConfirmation}
+                                    onChange={(e) => handleCheckboxChange('requireEmailConfirmation', e.target.checked)}
+                                    disabled={loading || !form.sendOnboardingEmail}
+                                />
+                                <span>Require email confirmation before login</span>
+                            </label>
+                            <label className="tw-inline-flex tw-items-start tw-gap-2 tw-text-[13px] tw-text-[#201f1e]">
+                                <input
+                                    type="checkbox"
+                                    checked={form.requirePasswordChangeOnFirstLogin}
+                                    onChange={(e) => handleCheckboxChange('requirePasswordChangeOnFirstLogin', e.target.checked)}
+                                    disabled={loading}
+                                />
+                                <span>Force password change on first login</span>
+                            </label>
+                        </div>
+                        {errors.requireEmailConfirmation && <span className="m365-field__error">{errors.requireEmailConfirmation}</span>}
+                        {!form.sendOnboardingEmail && (
+                            <span className="m365-field__hint">The temporary password will be shown after creation so you can share it manually.</span>
+                        )}
                     </div>
 
                     {/* Role */}

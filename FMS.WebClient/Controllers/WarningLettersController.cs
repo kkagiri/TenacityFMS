@@ -2,10 +2,11 @@
  * File: WarningLettersController.cs
  * Purpose: Exposes warning letter CRUD and filtered list endpoints.
  * Dependencies: MediatR, BaseApiController, warning letter commands/queries, permission attributes
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-11
  */
 using System;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.WarningLetter;
 using FMS.Application.Features.WarningLetter.Commands;
 using FMS.Application.Features.WarningLetter.DTOs;
 using FMS.Application.Features.WarningLetter.Queries;
@@ -43,6 +44,7 @@ public class WarningLettersController : BaseApiController
         [FromQuery] int? vehicleId,
         [FromQuery] WarningLetterType? letterType,
         [FromQuery] WarningLetterStatus? status,
+        [FromQuery] WarningLetterWorkflowStage? workflowStage,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
     {
@@ -53,6 +55,7 @@ public class WarningLettersController : BaseApiController
             VehicleId = vehicleId,
             LetterType = letterType,
             Status = status,
+            WorkflowStage = workflowStage,
             StartDate = startDate,
             EndDate = endDate
         });
@@ -93,6 +96,18 @@ public class WarningLettersController : BaseApiController
         }
 
         var result = await _mediator.Send(new GetWarningLettersQuery { VehicleId = vehicleId });
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("site-recipients")]
+    public async Task<IActionResult> GetSiteRecipients([FromQuery] int siteId)
+    {
+        if (siteId <= 0)
+        {
+            return BadRequest("Invalid site ID");
+        }
+
+        var result = await _mediator.Send(new GetWarningLetterSiteRecipientsQuery(siteId));
         return StatusCode(result.StatusCode, result);
     }
 
@@ -170,7 +185,22 @@ public class WarningLettersController : BaseApiController
             return BadRequest("Invalid warning letter ID");
         }
 
-        var result = await _mediator.Send(new DeleteWarningLetterCommand(id));
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var canDeleteAny = User.HasClaim("permissions", Permissions.WarningLetter.DeleteAny);
+        var result = await _mediator.Send(new DeleteWarningLetterCommand(id, userId, canDeleteAny));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("reset-workflow-artifacts")]
+    [RequirePermission(Permissions.WarningLetter.Delete)]
+    public async Task<IActionResult> ResetWorkflowArtifacts()
+    {
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _mediator.Send(new ResetWarningLetterWorkflowArtifactsCommand(userId));
         return StatusCode(result.StatusCode, result);
     }
 
@@ -370,7 +400,7 @@ public class WarningLettersController : BaseApiController
     }
 
     [HttpPost("{id:int}/signed-copy")]
-    [RequirePermission(Permissions.WarningLetter.Update)]
+    [RequirePermission(Permissions.WarningLetter.UploadSignedCopy)]
     public async Task<IActionResult> UploadSignedCopy(int id, [FromForm] IFormFile file)
     {
         if (id <= 0)
@@ -392,6 +422,29 @@ public class WarningLettersController : BaseApiController
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpPost("{id:int}/approve-letter")]
+    [RequirePermission(Permissions.WarningLetter.Update)]
+    public async Task<IActionResult> UploadApproveLetter(int id, [FromForm] IFormFile file)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file provided.");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _warningLetterService.UploadApproveLetterAsync(id, file, userId);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpGet("{id:int}/signed-copy")]
     public async Task<IActionResult> DownloadSignedCopy(int id)
     {
@@ -401,6 +454,23 @@ public class WarningLettersController : BaseApiController
         }
 
         var result = await _warningLetterService.GetSignedCopyAsync(id);
+        if (!result.IsSuccess || result.Data == null)
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
+    }
+
+    [HttpGet("{id:int}/approve-letter")]
+    public async Task<IActionResult> DownloadApproveLetter(int id)
+    {
+        if (id <= 0)
+        {
+            return BadRequest("Invalid warning letter ID");
+        }
+
+        var result = await _warningLetterService.GetApproveLetterAsync(id);
         if (!result.IsSuccess || result.Data == null)
         {
             return StatusCode(result.StatusCode, result);

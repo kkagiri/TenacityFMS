@@ -2,7 +2,7 @@
  * File: WarningLetter.cs
  * Purpose: Stores draft and issued employee warning letters for fleet compliance violations.
  * Dependencies: Employee, Vehicle, Site, User, WarningLetterType, WarningLetterStatus
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-11
  */
 using System;
 
@@ -32,8 +32,17 @@ public class WarningLetter
     public string? EmailRecipient { get; set; }
     public string? SignatureRequestRecipientUserId { get; set; }
     public string? SignatureRequestRecipient { get; set; }
+    public string? SignatureRequestCcUserIds { get; set; }
+    public string? SignatureRequestCcRecipients { get; set; }
     public DateTime? SignatureRequestedAt { get; set; }
     public string? SignatureRequestedBy { get; set; }
+    public string? ApproveLetterFileName { get; set; }
+    public string? ApproveLetterStoredFileName { get; set; }
+    public string? ApproveLetterFilePath { get; set; }
+    public string? ApproveLetterContentType { get; set; }
+    public long? ApproveLetterFileSize { get; set; }
+    public DateTime? ApproveLetterUploadedAt { get; set; }
+    public string? ApproveLetterUploadedBy { get; set; }
     public string? SignedCopyFileName { get; set; }
     public string? SignedCopyStoredFileName { get; set; }
     public string? SignedCopyFilePath { get; set; }

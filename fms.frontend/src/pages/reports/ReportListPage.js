@@ -41,6 +41,7 @@ const getCategoryColor = (category) =>
 const ReportListPage = () => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
+    const canManageReportSchedules = hasPermission('_Manage_ReportSchedules');
     const [searchParams] = useSearchParams();
     const initialView = searchParams.get('view') === 'gallery' ? 'gallery' : 'list';
     const [viewMode, setViewMode] = useState(initialView);
@@ -125,14 +126,16 @@ const ReportListPage = () => {
                 stylingMode="text"
                 onClick={() => goToEngine(cellInfo.data.id)}
             />
-            <Button
-                icon="fa-light fa-calendar-plus"
-                hint="Schedule Report"
-                stylingMode="text"
-                onClick={() => navigate(`${reportsRoutes.scheduling}?source=${encodeURIComponent(cellInfo.data.id)}`)}
-            />
+            {canManageReportSchedules && (
+                <Button
+                    icon="fa-light fa-calendar-plus"
+                    hint="Schedule Report"
+                    stylingMode="text"
+                    onClick={() => navigate(`${reportsRoutes.scheduling}?source=${encodeURIComponent(cellInfo.data.id)}`)}
+                />
+            )}
         </div>
-    ), [navigate, goToEngine]);
+    ), [canManageReportSchedules, navigate, goToEngine]);
 
     // ── Tile renderer ─────────────────────────────────────
     const renderTile = (report) => {

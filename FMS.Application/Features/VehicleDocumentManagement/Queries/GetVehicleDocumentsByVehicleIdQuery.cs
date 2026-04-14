@@ -45,6 +45,7 @@ public class GetVehicleDocumentsByVehicleIdQueryHandler : IRequestHandler<GetVeh
             }
 
             var documentDtos = rows.ToDtos();
+            await documentDtos.ApplyCreatedByDisplayAsync(_context, cancellationToken);
 
             return FMSResponse<List<VehicleDocumentDto>>.Success(documentDtos, "Documents retrieved successfully");
         }

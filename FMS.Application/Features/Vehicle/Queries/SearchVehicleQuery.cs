@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using FMS.Application.Common;
+using FMS.Application.Features.Vehicle;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -72,9 +73,11 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             }
 
             var searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
+            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeHyoungNo(searchTerm);
+            var normalizedPlateSearchTerm = VehicleIdentifierNormalizer.NormalizeNumberPlate(searchTerm) ?? string.Empty;
             var limit = request.Limit ?? 10;
 
-            if (searchTerm.Length < 2)
+            if (searchTerm.Length < 2 && compactSearchTerm.Length < 2)
             {
                 return FMSResponse<List<VehicleDTO>>.Failed("Search term does not contain enough latin1-compatible characters for search");
             }
@@ -95,20 +98,23 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             // Case-insensitive by default due to MySQL collation
             if (!string.IsNullOrWhiteSpace(request.VehicleType))
             {
+                var vehicleTypeFilter = request.VehicleType!;
                 query = query.Where(v => v.VehicleType != null &&
-                    v.VehicleType.Name.Contains(request.VehicleType));
+                    (v.VehicleType.Name ?? string.Empty).Contains(vehicleTypeFilter));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Manufacturer))
             {
+                var manufacturerFilter = request.Manufacturer!;
                 query = query.Where(v => v.VehicleManufacturer != null &&
-                    v.VehicleManufacturer.Name.Contains(request.Manufacturer));
+                    (v.VehicleManufacturer.Name ?? string.Empty).Contains(manufacturerFilter));
             }
 
             if (!string.IsNullOrWhiteSpace(request.Model))
             {
+                var modelFilter = request.Model!;
                 query = query.Where(v => v.VehicleModel != null &&
-                    v.VehicleModel.Name.Contains(request.Model));
+                    (v.VehicleModel.Name ?? string.Empty).Contains(modelFilter));
             }
 
             // Use EF.Functions.Like for better MySQL performance with indexes
@@ -117,7 +123,10 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             // Use contains search to match anywhere in the vehicle identifier
             query = query.Where(v =>
                 v.HyoungNo.Contains(searchTerm) ||
-                (v.NumberPlate != null && v.NumberPlate.Contains(searchTerm)));
+                v.HyoungNo.Replace(" ", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Contains(compactSearchTerm) ||
+                (v.NumberPlate != null && (
+                    v.NumberPlate.Contains(normalizedPlateSearchTerm) ||
+                    v.NumberPlate.Replace(" ", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Contains(compactSearchTerm))));
 
             // Include only essential navigation properties for list view
             query = query

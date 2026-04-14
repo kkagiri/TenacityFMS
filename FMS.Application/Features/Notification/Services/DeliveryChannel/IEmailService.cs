@@ -22,7 +22,8 @@ namespace FMS.Application.Features.Notification.Services
             string body,
             bool isHtml = false,
             CancellationToken cancellationToken = default,
-            IReadOnlyCollection<EmailAttachmentDto>? attachments = null);
+            IReadOnlyCollection<EmailAttachmentDto>? attachments = null,
+            string? cc = null);
 
         /// <summary>
         /// Check if email configuration is valid

@@ -2,7 +2,7 @@
  * File: WarningLetterConfiguration.cs
  * Purpose: Maps WarningLetter fields and relationships to the MySQL schema.
  * Dependencies: EF Core, WarningLetter, Employee, Vehicle, Site, User
- * Last Modified: 2026-04-06
+ * Last Modified: 2026-04-11
  */
 using System;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
@@ -118,6 +118,14 @@ public class WarningLetterConfiguration : EntityTypeConfiguration<WarningLetter>
                 .HasMaxLength(255)
                 .HasColumnName("SignatureRequestRecipient");
 
+            builder.Property(e => e.SignatureRequestCcUserIds)
+                .HasColumnType("text")
+                .HasColumnName("SignatureRequestCcUserIds");
+
+            builder.Property(e => e.SignatureRequestCcRecipients)
+                .HasColumnType("text")
+                .HasColumnName("SignatureRequestCcRecipients");
+
             builder.Property(e => e.SignatureRequestedAt)
                 .HasColumnType("datetime")
                 .HasColumnName("SignatureRequestedAt");
@@ -125,6 +133,36 @@ public class WarningLetterConfiguration : EntityTypeConfiguration<WarningLetter>
             builder.Property(e => e.SignatureRequestedBy)
                 .HasMaxLength(100)
                 .HasColumnName("SignatureRequestedBy")
+                .UseCollation("utf8mb4_general_ci")
+                .HasCharSet("utf8mb4");
+
+            builder.Property(e => e.ApproveLetterFileName)
+                .HasMaxLength(255)
+                .HasColumnName("ApproveLetterFileName");
+
+            builder.Property(e => e.ApproveLetterStoredFileName)
+                .HasMaxLength(255)
+                .HasColumnName("ApproveLetterStoredFileName");
+
+            builder.Property(e => e.ApproveLetterFilePath)
+                .HasMaxLength(500)
+                .HasColumnName("ApproveLetterFilePath");
+
+            builder.Property(e => e.ApproveLetterContentType)
+                .HasMaxLength(100)
+                .HasColumnName("ApproveLetterContentType");
+
+            builder.Property(e => e.ApproveLetterFileSize)
+                .HasColumnType("bigint(20)")
+                .HasColumnName("ApproveLetterFileSize");
+
+            builder.Property(e => e.ApproveLetterUploadedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("ApproveLetterUploadedAt");
+
+            builder.Property(e => e.ApproveLetterUploadedBy)
+                .HasMaxLength(100)
+                .HasColumnName("ApproveLetterUploadedBy")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 

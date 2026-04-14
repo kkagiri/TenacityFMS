@@ -2,7 +2,7 @@
  * File: EmployeeFormPanel.js
  * Purpose: Side-panel form used for creating and editing employee records.
  * Dependencies: react, devextreme-react/tag-box, devextreme/data/custom_store, vehicle search API
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-04-11
  *
  * Props:
  * - mode: "create" | "edit"
@@ -125,10 +125,13 @@ const EmployeeFormPanel = ({
         position: employee.position || "",
         employeestatus: employee.employeestatus || "Active",
         siteId:
-          employee.siteId === undefined || employee.siteId === null
-            ? ""
+          employee.siteId === undefined || employee.siteId === null || employee.siteId === ""
+            ? buildInitialForm(initialValues).siteId
             : String(employee.siteId),
-        vehicles: normalizeVehicleIds(employee.vehicles),
+        vehicles:
+          normalizeVehicleIds(employee.vehicles).length > 0
+            ? normalizeVehicleIds(employee.vehicles)
+            : buildInitialForm(initialValues).vehicles,
       });
       setErrors({});
       setDuplicateState(EMPTY_DUPLICATE_STATE);
@@ -319,166 +322,168 @@ const EmployeeFormPanel = ({
 
   return (
     <div className="employee-panel employee-panel--form">
-      <div className={sectionClassName} style={sectionStyle ?? { marginTop: 0, paddingTop: 0, borderTop: "none" }}>
-        <h3 className="m365-flat-section__title" style={sectionTitleStyle}>Employee Information</h3>
-        <div className="employee-form-grid">
-          <div className="m365-field">
-            <label className="m365-field__label m365-field__label--required">
-              Full Name
-            </label>
-            <input
-              type="text"
-              className={`m365-input${errors.fullName ? " m365-input--error" : ""}`}
-              value={form.fullName}
-              onChange={(event) => setField("fullName", event.target.value)}
-              maxLength={200}
-              placeholder="Enter employee full name"
-              autoComplete="off"
-            />
-            {errors.fullName && <span className="m365-field__error">{errors.fullName}</span>}
+      <div className="employee-panel__content">
+        <div className={sectionClassName} style={sectionStyle ?? { marginTop: 0, paddingTop: 0, borderTop: "none" }}>
+          <h3 className="m365-flat-section__title" style={sectionTitleStyle}>Employee Information</h3>
+          <div className="employee-form-grid">
+            <div className="m365-field">
+              <label className="m365-field__label m365-field__label--required">
+                Full Name
+              </label>
+              <input
+                type="text"
+                className={`m365-input${errors.fullName ? " m365-input--error" : ""}`}
+                value={form.fullName}
+                onChange={(event) => setField("fullName", event.target.value)}
+                maxLength={200}
+                placeholder="Enter employee full name"
+                autoComplete="off"
+              />
+              {errors.fullName && <span className="m365-field__error">{errors.fullName}</span>}
+            </div>
+
+            <div className="m365-field">
+              <label className="m365-field__label">Phone Number</label>
+              <input
+                type="text"
+                className="m365-input"
+                value={form.employeephoneNumber}
+                onChange={(event) =>
+                  setField("employeephoneNumber", event.target.value)
+                }
+                maxLength={40}
+                placeholder="Enter phone number"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="m365-field">
+              <label className="m365-field__label">Work Number</label>
+              <input
+                type="text"
+                className={`m365-input${errors.employeeWorkNo || duplicateState.hasWorkNumberConflict ? " m365-input--error" : ""}`}
+                value={form.employeeWorkNo}
+                onChange={(event) => setField("employeeWorkNo", event.target.value)}
+                maxLength={60}
+                placeholder="Enter work number"
+                autoComplete="off"
+              />
+              {errors.employeeWorkNo && <span className="m365-field__error">{errors.employeeWorkNo}</span>}
+              {!errors.employeeWorkNo && duplicateState.hasWorkNumberConflict && (
+                <span className="m365-field__error">This work number already exists for the selected site.</span>
+              )}
+            </div>
+
+            <div className="m365-field">
+              <label className="m365-field__label">Position</label>
+              <select
+                className="m365-select"
+                value={form.position}
+                onChange={(event) => setField("position", event.target.value)}
+              >
+                <option value="">Select position</option>
+                {availablePositionOptions.map((position) => (
+                  <option key={position.id} value={position.name}>
+                    {position.name}
+                  </option>
+                ))}
+              </select>
+              <span className="m365-field__hint">Positions are loaded from employee position master data.</span>
+            </div>
+
+            <div className="m365-field">
+              <label className="m365-field__label">Status</label>
+              <select
+                className="m365-select"
+                value={form.employeestatus}
+                onChange={(event) => setField("employeestatus", event.target.value)}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="m365-field">
-            <label className="m365-field__label">Phone Number</label>
-            <input
-              type="text"
-              className="m365-input"
-              value={form.employeephoneNumber}
-              onChange={(event) =>
-                setField("employeephoneNumber", event.target.value)
-              }
-              maxLength={40}
-              placeholder="Enter phone number"
-              autoComplete="off"
-            />
-          </div>
+          {duplicateState.hasNameWarning && (
+            <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 12 }}>
+              <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+              <div className="m365-info-banner__content">
+                <span className="m365-info-banner__text">
+                  Matching employee name found for this site. Review before saving.
+                </span>
+                <span className="m365-field__hint">
+                  {duplicateState.nameMatches
+                    .map((match) => `${match.fullName}${match.employeeWorkNo ? ` (${match.employeeWorkNo})` : ""}`)
+                    .join(", ")}
+                </span>
+              </div>
+            </div>
+          )}
 
-          <div className="m365-field">
-            <label className="m365-field__label">Work Number</label>
-            <input
-              type="text"
-              className={`m365-input${errors.employeeWorkNo || duplicateState.hasWorkNumberConflict ? " m365-input--error" : ""}`}
-              value={form.employeeWorkNo}
-              onChange={(event) => setField("employeeWorkNo", event.target.value)}
-              maxLength={60}
-              placeholder="Enter work number"
-              autoComplete="off"
-            />
-            {errors.employeeWorkNo && <span className="m365-field__error">{errors.employeeWorkNo}</span>}
-            {!errors.employeeWorkNo && duplicateState.hasWorkNumberConflict && (
-              <span className="m365-field__error">This work number already exists for the selected site.</span>
-            )}
-          </div>
-
-          <div className="m365-field">
-            <label className="m365-field__label">Position</label>
-            <select
-              className="m365-select"
-              value={form.position}
-              onChange={(event) => setField("position", event.target.value)}
-            >
-              <option value="">Select position</option>
-              {availablePositionOptions.map((position) => (
-                <option key={position.id} value={position.name}>
-                  {position.name}
-                </option>
-              ))}
-            </select>
-            <span className="m365-field__hint">Positions are loaded from employee position master data.</span>
-          </div>
-
-          <div className="m365-field">
-            <label className="m365-field__label">Status</label>
-            <select
-              className="m365-select"
-              value={form.employeestatus}
-              onChange={(event) => setField("employeestatus", event.target.value)}
-            >
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
+          {duplicateState.hasWorkNumberConflict && (
+            <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 12 }}>
+              <i className="fa-light fa-ban m365-info-banner__icon" />
+              <div className="m365-info-banner__content">
+                <span className="m365-info-banner__text">
+                  This work number is already assigned to another employee in the selected site.
+                </span>
+                <span className="m365-field__hint">
+                  {duplicateState.workNumberMatches
+                    .map((match) => `${match.fullName}${match.employeestatus ? ` - ${match.employeestatus}` : ""}`)
+                    .join(", ")}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {duplicateState.hasNameWarning && (
-          <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 12 }}>
-            <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
-            <div className="m365-info-banner__content">
-              <span className="m365-info-banner__text">
-                Matching employee name found for this site. Review before saving.
-              </span>
+        <div className={sectionClassName} style={sectionStyle}>
+          <h3 className="m365-flat-section__title" style={sectionTitleStyle}>Assignment</h3>
+          <div className="employee-form-grid">
+            <div className="m365-field">
+              <label className="m365-field__label m365-field__label--required">Site</label>
+              <select
+                className={`m365-select${errors.siteId ? " m365-input--error" : ""}`}
+                value={form.siteId}
+                onChange={(event) => setField("siteId", event.target.value)}
+              >
+                <option value="">Select site</option>
+                {(sites || []).map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name}
+                  </option>
+                ))}
+              </select>
+              {errors.siteId && <span className="m365-field__error">{errors.siteId}</span>}
+            </div>
+
+            <div className="m365-field">
+              <label className="m365-field__label">Default Vehicles</label>
+              <TagBox
+                dataSource={vehicleStore}
+                value={vehicleValues}
+                valueExpr="vehicleId"
+                displayExpr={toVehicleDisplay}
+                searchEnabled
+                minSearchLength={2}
+                showDataBeforeSearch={false}
+                showSelectionControls
+                applyValueMode="useButtons"
+                showClearButton
+                maxDisplayedTags={5}
+                searchExpr={["hyoungNo", "numberPlate"]}
+                noDataText="Type at least 2 characters to search vehicles"
+                onValueChanged={(event) => setField("vehicles", event.value || [])}
+              />
               <span className="m365-field__hint">
-                {duplicateState.nameMatches
-                  .map((match) => `${match.fullName}${match.employeeWorkNo ? ` (${match.employeeWorkNo})` : ""}`)
-                  .join(", ")}
+                {duplicateState.isChecking
+                  ? "Checking for duplicate employee records..."
+                  : "Search vehicles by Hyoung No or plate. Results load from server."}
               </span>
             </div>
-          </div>
-        )}
-
-        {duplicateState.hasWorkNumberConflict && (
-          <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 12 }}>
-            <i className="fa-light fa-ban m365-info-banner__icon" />
-            <div className="m365-info-banner__content">
-              <span className="m365-info-banner__text">
-                This work number is already assigned to another employee in the selected site.
-              </span>
-              <span className="m365-field__hint">
-                {duplicateState.workNumberMatches
-                  .map((match) => `${match.fullName}${match.employeestatus ? ` - ${match.employeestatus}` : ""}`)
-                  .join(", ")}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className={sectionClassName} style={sectionStyle}>
-        <h3 className="m365-flat-section__title" style={sectionTitleStyle}>Assignment</h3>
-        <div className="employee-form-grid">
-          <div className="m365-field">
-            <label className="m365-field__label m365-field__label--required">Site</label>
-            <select
-              className={`m365-select${errors.siteId ? " m365-input--error" : ""}`}
-              value={form.siteId}
-              onChange={(event) => setField("siteId", event.target.value)}
-            >
-              <option value="">Select site</option>
-              {(sites || []).map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </select>
-            {errors.siteId && <span className="m365-field__error">{errors.siteId}</span>}
-          </div>
-
-          <div className="m365-field">
-            <label className="m365-field__label">Default Vehicles</label>
-            <TagBox
-              dataSource={vehicleStore}
-              value={vehicleValues}
-              valueExpr="vehicleId"
-              displayExpr={toVehicleDisplay}
-              searchEnabled
-              minSearchLength={2}
-              showDataBeforeSearch={false}
-              showSelectionControls
-              applyValueMode="useButtons"
-              showClearButton
-              maxDisplayedTags={5}
-              searchExpr={["hyoungNo", "numberPlate"]}
-              noDataText="Type at least 2 characters to search vehicles"
-              onValueChanged={(event) => setField("vehicles", event.value || [])}
-            />
-            <span className="m365-field__hint">
-              {duplicateState.isChecking
-                ? "Checking for duplicate employee records..."
-                : "Search vehicles by Hyoung No or plate. Results load from server."}
-            </span>
           </div>
         </div>
       </div>
