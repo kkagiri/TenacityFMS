@@ -147,7 +147,7 @@ const ReportsLayout = ({ children }) => {
   const canSeeScheduling = hasPermission('_Manage_ReportSchedules');
   const canSeeMonitoring = hasAnyPermission(['_Read_Reporting', '_Manage_ReportTemplates']);
   const canSeeDataManagement = hasPermission('_Manage_FuelImport');
-  const canSeeWarningLetters = hasAnyPermission(['_Read_WarningLetter', '_Create_WarningLetter', '_Update_WarningLetter']);
+  const canSeeWarningLetters = hasPermission('_Read_WarningLetter');
 
   // ── Navigation Items ──
 
