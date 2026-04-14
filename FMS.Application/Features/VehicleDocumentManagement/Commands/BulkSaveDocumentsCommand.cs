@@ -17,6 +17,7 @@ using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -71,6 +72,21 @@ public class BulkSaveDocumentsCommandHandler : IRequestHandler<BulkSaveDocuments
                     continue;
                 }
 
+                var normalizedDocumentNumber = (item.DocumentNumber ?? string.Empty).Trim();
+                var duplicateExists = await _context.VehicleDocuments.AnyAsync(
+                    document => document.VehicleId == item.VehicleId
+                        && document.DocumentType == VehicleDocumentType.Insurance
+                        && document.DocumentNumber == normalizedDocumentNumber,
+                    cancellationToken);
+
+                if (duplicateExists)
+                {
+                    result.FailedCount++;
+                    result.Errors.Add($"A vehicle insurance document already exists for vehicle {item.VehicleId} with document number '{normalizedDocumentNumber}'.");
+                    _ocrService.CleanupTempFile(item.FileToken);
+                    continue;
+                }
+
                 // Upload from temp to permanent storage
                 var uploadDirectory = $"vehicle-documents/{item.VehicleId}";
                 var originalFileName = Path.GetFileName(tempFilePath);
@@ -89,7 +105,7 @@ public class BulkSaveDocumentsCommandHandler : IRequestHandler<BulkSaveDocuments
                     item.VehicleId,
                     VehicleDocumentType.Insurance,
                     complianceCategory,
-                    item.DocumentNumber,
+                    normalizedDocumentNumber,
                     item.IssueDate,
                     item.ExpiryDate,
                     item.AlertLeadDays,

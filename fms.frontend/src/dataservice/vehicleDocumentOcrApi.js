@@ -30,11 +30,12 @@ export const extractDocumentData = async (file) => {
  * @param {File[]} files - Array of PDF or image files.
  * @returns {Promise} API response with List<BulkDocumentUploadItemDto>
  */
-export const bulkExtractDocumentData = async (files) => {
+export const bulkExtractDocumentData = async (files, onUploadProgress) => {
     const formData = new FormData();
     files.forEach((file) => formData.append("files", file));
     const response = await axiosInstance.post("/vehicledocuments/ocr/bulk-extract", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress,
     });
     return response.data;
 };

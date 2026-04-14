@@ -27,6 +27,8 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
   const [extractedItems, setExtractedItems] = useState([]);
   const [selectedTokens, setSelectedTokens] = useState(new Set());
   const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState(0);
+  const [extractStatus, setExtractStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState(null);
 
@@ -37,6 +39,8 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
     setExtractedItems([]);
     setSelectedTokens(new Set());
     setExtracting(false);
+    setExtractProgress(0);
+    setExtractStatus("");
     setSaving(false);
     setSaveResult(null);
   }, []);
@@ -62,10 +66,23 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
       return true;
     });
     if (validFiles.length === 0) return;
+
     setFiles((prev) => {
+      if (prev.length >= 5) {
+        notify("Maximum 5 files allowed per bulk upload.", "warning", 3000);
+        return prev;
+      }
+
       const existingNames = new Set(prev.map((f) => f.name + f.size));
       const deduped = validFiles.filter((f) => !existingNames.has(f.name + f.size));
-      return [...prev, ...deduped];
+      const availableSlots = Math.max(0, 5 - prev.length);
+      const limited = deduped.slice(0, availableSlots);
+
+      if (deduped.length > availableSlots) {
+        notify("Only 5 files can be uploaded at a time.", "warning", 3000);
+      }
+
+      return [...prev, ...limited];
     });
   }, []);
 
@@ -107,13 +124,26 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
       notify("Please select files first.", "warning", 3000);
       return;
     }
-    if (files.length > 20) {
-      notify("Maximum 20 files allowed per batch.", "warning", 3000);
+    if (files.length > 5) {
+      notify("Maximum 5 files allowed per batch.", "warning", 3000);
       return;
     }
     setExtracting(true);
+    setExtractProgress(0);
+    setExtractStatus("Uploading files...");
     try {
-      const result = await bulkExtractDocumentData(files);
+      const result = await bulkExtractDocumentData(files, (event) => {
+        if (!event?.total) {
+          return;
+        }
+
+        const percent = Math.min(90, Math.round((event.loaded / event.total) * 90));
+        setExtractProgress(percent);
+      });
+
+      setExtractStatus("Processing OCR extraction...");
+      setExtractProgress(100);
+
       if (result.isSuccess && result.data) {
         const items = result.data.map((item) => ({
           ...item,
@@ -136,6 +166,10 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
       notify(err?.response?.data?.message || "Bulk extraction failed.", "error", 4000);
     } finally {
       setExtracting(false);
+      setTimeout(() => {
+        setExtractProgress(0);
+        setExtractStatus("");
+      }, 500);
     }
   };
 
@@ -216,7 +250,7 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
           <i className="fa-light fa-cloud-arrow-up tw-text-lg" style={{ color: "#0078d4" }} />
           <h3 className="tw-text-base tw-font-semibold tw-text-gray-800">Select Document Files</h3>
         </div>
-        <p className="tw-text-sm tw-text-gray-500">Upload up to 20 PDF or image files. OCR will extract insurance data and match vehicles automatically.</p>
+        <p className="tw-text-sm tw-text-gray-500">Upload up to 5 PDF or image files. OCR will extract insurance data and match vehicles automatically.</p>
       </div>
 
       {/* Hidden native file input */}
@@ -246,9 +280,24 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
           {dragging ? "Drop files here" : "Drag & drop files here"}
         </p>
         <p className="tw-text-xs tw-mt-1" style={{ color: "#605e5c" }}>
-          or click to browse — PDF and images, max 10MB each
+          or click to browse — PDF and images, max 10MB each, up to 5 files
         </p>
       </div>
+
+      {extracting && (
+        <div className="tw-mt-4 tw-rounded-lg tw-border tw-p-4" style={{ borderColor: "#edebe9", background: "#fff" }}>
+          <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+            <span className="tw-text-sm tw-font-semibold" style={{ color: "#201f1e" }}>{extractStatus || "Extracting..."}</span>
+            <span className="tw-text-sm" style={{ color: "#605e5c" }}>{extractProgress}%</span>
+          </div>
+          <div className="tw-h-2 tw-w-full tw-overflow-hidden tw-rounded-full" style={{ background: "#edebe9" }}>
+            <div
+              className="tw-h-full tw-rounded-full tw-transition-all tw-duration-300"
+              style={{ width: `${extractProgress}%`, background: "#0078d4" }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* File list */}
       {files.length > 0 && (
@@ -286,7 +335,7 @@ const BulkDocumentUpload = ({ visible, onHide, onSaved }) => {
         <button type="button" className="m365-btn m365-btn--ghost" onClick={handleClose}>Cancel</button>
         <button type="button" className="m365-btn m365-btn--primary" onClick={handleExtract} disabled={files.length === 0 || extracting}>
           <i className="fa-light fa-wand-magic-sparkles tw-mr-1" />
-          {extracting ? "Extracting..." : "Extract & Match"}
+          {extracting ? `${extractProgress}%` : "Extract & Match"}
         </button>
       </div>
     </div>

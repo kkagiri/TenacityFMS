@@ -36,6 +36,7 @@ public class DocumentOcrService : IDocumentOcrService
     private readonly string _tessLanguage;
     private readonly string _tempDirectory;
     private readonly string _debugDirectory;
+    private readonly string _metadataDirectory;
     private readonly ConcurrentDictionary<string, TempFileInfo> _tempFiles = new();
 
     public DocumentOcrService(ILogger<DocumentOcrService> logger, IConfiguration configuration)
@@ -45,6 +46,7 @@ public class DocumentOcrService : IDocumentOcrService
         _tessLanguage = configuration["Ocr:Language"] ?? "eng";
         _tempDirectory = Path.Combine(Path.GetTempPath(), "FMS_OCR_Temp");
         _debugDirectory = Path.Combine(_tempDirectory, "debug");
+        _metadataDirectory = Path.Combine(_tempDirectory, "metadata");
 
         if (!Directory.Exists(_tempDirectory))
         {
@@ -54,6 +56,11 @@ public class DocumentOcrService : IDocumentOcrService
         if (!Directory.Exists(_debugDirectory))
         {
             Directory.CreateDirectory(_debugDirectory);
+        }
+
+        if (!Directory.Exists(_metadataDirectory))
+        {
+            Directory.CreateDirectory(_metadataDirectory);
         }
     }
 
@@ -121,6 +128,7 @@ public class DocumentOcrService : IDocumentOcrService
         var extension = Path.GetExtension(file.FileName) ?? ".pdf";
         var tempFileName = $"{token}{extension}";
         var tempFilePath = Path.Combine(_tempDirectory, tempFileName);
+        var metadataPath = GetMetadataPath(token);
 
         using (var stream = new FileStream(tempFilePath, FileMode.Create))
         {
@@ -135,6 +143,16 @@ public class DocumentOcrService : IDocumentOcrService
             CreatedAt = DateTime.UtcNow
         };
 
+        var metadata = new TempFileInfo
+        {
+            FilePath = tempFilePath,
+            OriginalFileName = file.FileName,
+            ContentType = file.ContentType,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await File.WriteAllTextAsync(metadataPath, System.Text.Json.JsonSerializer.Serialize(metadata));
+
         return token;
     }
 
@@ -144,6 +162,23 @@ public class DocumentOcrService : IDocumentOcrService
         {
             return info.FilePath;
         }
+
+        var metadata = ReadTempFileInfo(fileToken);
+        if (metadata != null && File.Exists(metadata.FilePath))
+        {
+            _tempFiles[fileToken] = metadata;
+            return metadata.FilePath;
+        }
+
+        var matchedFile = Directory
+            .EnumerateFiles(_tempDirectory, $"{fileToken}.*", SearchOption.TopDirectoryOnly)
+            .FirstOrDefault(path => !string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(matchedFile) && File.Exists(matchedFile))
+        {
+            return matchedFile;
+        }
+
         return null;
     }
 
@@ -157,11 +192,65 @@ public class DocumentOcrService : IDocumentOcrService
                 {
                     File.Delete(info.FilePath);
                 }
+
+                var metadataPath = GetMetadataPath(fileToken);
+                if (File.Exists(metadataPath))
+                {
+                    File.Delete(metadataPath);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to cleanup temp file {FilePath}", info.FilePath);
             }
+
+            return;
+        }
+
+        try
+        {
+            var tempFilePath = GetTempFilePath(fileToken);
+            if (!string.IsNullOrWhiteSpace(tempFilePath) && File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+
+            var metadataPath = GetMetadataPath(fileToken);
+            if (File.Exists(metadataPath))
+            {
+                File.Delete(metadataPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to cleanup temp file for token {FileToken}", fileToken);
+        }
+    }
+
+    private string GetMetadataPath(string fileToken) => Path.Combine(_metadataDirectory, $"{fileToken}.json");
+
+    private TempFileInfo? ReadTempFileInfo(string fileToken)
+    {
+        try
+        {
+            var metadataPath = GetMetadataPath(fileToken);
+            if (!File.Exists(metadataPath))
+            {
+                return null;
+            }
+
+            var json = File.ReadAllText(metadataPath);
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return null;
+            }
+
+            return System.Text.Json.JsonSerializer.Deserialize<TempFileInfo>(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to read OCR temp file metadata for token {FileToken}", fileToken);
+            return null;
         }
     }
 
