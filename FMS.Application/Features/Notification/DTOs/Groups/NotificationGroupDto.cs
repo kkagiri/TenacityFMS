@@ -22,5 +22,8 @@ namespace FMS.Application.Features.Notification.DTOs.Groups {
         public int GroupId { get; set; }
         public string MemberType { get; set; } = null!; // User | Role
         public string MemberId { get; set; } = null!; // User.Id or Role.Id
+        public string? Name { get; set; }
+        public string? Email { get; set; }
+        public string? Role { get; set; }
     }
 }

@@ -218,11 +218,40 @@ namespace FMS.Application.Features.Notification.Services.Groups {
                     .Where (m => m.GroupId == groupId)
                     .ToListAsync (cancellationToken);
 
+                List<string> userMemberIds = members
+                    .Where (m => string.Equals (m.MemberType, "User", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace (m.MemberId))
+                    .Select (m => m.MemberId)
+                    .Distinct ()
+                    .ToList ();
+
+                Dictionary<string, (string Name, string Email)> userLookup = await _context.Users
+                    .Where (u => userMemberIds.Contains (u.Id))
+                    .Select (u => new {
+                        u.Id,
+                        u.FirstName,
+                        u.LastName,
+                        u.UserName,
+                        u.Email
+                    })
+                    .ToDictionaryAsync (
+                        u => u.Id,
+                        u => (
+                            string.Join (" ", new[] { u.FirstName, u.LastName }.Where (part => !string.IsNullOrWhiteSpace (part))).Trim () switch {
+                                var fullName when !string.IsNullOrWhiteSpace (fullName) => fullName,
+                                _ => u.UserName ?? u.Email ?? u.Id
+                            },
+                            u.Email ?? string.Empty
+                        ),
+                        cancellationToken);
+
                 List<GroupMemberDto> memberDtos = members.Select (m => new GroupMemberDto {
                     Id = m.Id,
-                        GroupId = m.GroupId,
-                        MemberType = m.MemberType,
-                        MemberId = m.MemberId
+                    GroupId = m.GroupId,
+                    MemberType = m.MemberType,
+                    MemberId = m.MemberId,
+                    Name = userLookup.TryGetValue (m.MemberId, out var userInfo) ? userInfo.Name : m.MemberId,
+                    Email = userLookup.TryGetValue (m.MemberId, out userInfo) ? userInfo.Email : string.Empty,
+                    Role = string.Empty
                 }).ToList ();
 
                 return FMSResponse<List<GroupMemberDto>>.Success (memberDtos, "Group members retrieved successfully");

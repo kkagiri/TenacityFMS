@@ -159,6 +159,9 @@ const WarningLetterPreviewPage = () => {
             id: member.id,
             memberType: member.memberType,
             memberId: (member.memberId || "").trim(),
+            name: member.name || "",
+            email: member.email || "",
+            role: member.role || "",
         }));
 
         const userMap = new Map((usersSource || []).map((user) => [String(user.id), user]));
@@ -176,9 +179,23 @@ const WarningLetterPreviewPage = () => {
                         role: matchedUser.role,
                     };
                 }
+
+                if (member.name || member.email || member.role) {
+                    return {
+                        ...member,
+                        name: member.name || member.memberId,
+                        email: member.email || "",
+                        role: member.role || "",
+                    };
+                }
             }
 
-            return { ...member, name: member.memberId, email: "", role: "" };
+            return {
+                ...member,
+                name: member.name || member.memberId,
+                email: member.email || "",
+                role: member.role || "",
+            };
         });
     }, []);
 
