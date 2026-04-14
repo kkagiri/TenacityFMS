@@ -5,6 +5,7 @@
  * Last Modified: 2026-04-14
  */
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,7 +41,7 @@ public class DeleteWarningLetterCommandHandler : IRequestHandler<DeleteWarningLe
 
         if (string.IsNullOrWhiteSpace(request.RequestedBy))
         {
-            return FMSResponse.ValidationFailed(new[] { "RequestedBy is required." });
+            return FMSResponse.ValidationFailed(new List<string> { "RequestedBy is required." });
         }
 
         var isCreator = string.Equals(warningLetter.CreatedBy, request.RequestedBy, StringComparison.OrdinalIgnoreCase);
