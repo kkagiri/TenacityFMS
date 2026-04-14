@@ -1,4 +1,5 @@
 ﻿using FMS.Domain.Entities;
+using FMS.Application.CommonInterface;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
@@ -18,12 +19,14 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
         private readonly ILogger<AssignUserRoleCommandHandler> _logger;
+        private readonly IPermissionAuthorizationService _permissionAuthorizationService;
 
-        public AssignUserRoleCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<AssignUserRoleCommandHandler> logger)
+        public AssignUserRoleCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<AssignUserRoleCommandHandler> logger, IPermissionAuthorizationService permissionAuthorizationService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _logger = logger;
+            _permissionAuthorizationService = permissionAuthorizationService;
         }
         public async Task<bool> Handle(AssignUserRoleCommand request, CancellationToken cancellationToken)
         {
@@ -46,6 +49,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
                 {
                     throw new Exception("Failed to assign role");
                 }
+
+                _permissionAuthorizationService.InvalidateUserPermissions(user.Id);
 
                 return true;
             }

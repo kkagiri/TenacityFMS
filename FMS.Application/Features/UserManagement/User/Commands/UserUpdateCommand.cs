@@ -1,4 +1,5 @@
 ﻿using FMS.Domain.Entities;
+using FMS.Application.CommonInterface;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
@@ -31,17 +32,20 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         private readonly RoleManager<Role> _roleManager;
         private readonly GpsdataContext _context;
         private readonly ILogger<UserUpdateCommandHandler> _logger;
+        private readonly IPermissionAuthorizationService _permissionAuthorizationService;
 
         public UserUpdateCommandHandler(
             UserManager<User> userManager,
             RoleManager<Role> roleManager,
             GpsdataContext context,
-            ILogger<UserUpdateCommandHandler> logger)
+            ILogger<UserUpdateCommandHandler> logger,
+            IPermissionAuthorizationService permissionAuthorizationService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _context = context;
             _logger = logger;
+            _permissionAuthorizationService = permissionAuthorizationService;
         }
 
         public async Task<bool> Handle(UserUpdateCommand request, CancellationToken cancellationToken)
@@ -114,6 +118,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
                         throw new Exception(string.Join("; ", roleAdditionResult.Errors.Select(e => e.Description)));
                     }
                 }
+
+                _permissionAuthorizationService.InvalidateUserPermissions(user.Id);
                 return true;
 
 

@@ -79,7 +79,8 @@ namespace FMS.Infrastructure.Services
             // Check cache first
             var cacheKey = $"UserPermissions_{userId}";
 
-            if (_cache.TryGetValue(cacheKey, out List<string> cachedPermissions))
+            if (_cache.TryGetValue(cacheKey, out var cachedPermissionsObject)
+                && cachedPermissionsObject is List<string> cachedPermissions)
             {
                 _logger.LogDebug("Retrieved permissions from cache for user {UserId}", userId);
                 return cachedPermissions;
@@ -135,10 +136,46 @@ namespace FMS.Infrastructure.Services
             return permissionNames.All(p => userPermissions.Contains(p));
         }
 
+        public void InvalidateUserPermissions(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return;
+            }
+
+            var cacheKey = $"UserPermissions_{userId}";
+            _cache.Remove(cacheKey);
+            _logger.LogInformation("Invalidated permission cache for user {UserId}", userId);
+        }
+
+        public async Task InvalidateRolePermissionsAsync(string roleId)
+        {
+            if (string.IsNullOrWhiteSpace(roleId))
+            {
+                return;
+            }
+
+            var userIds = await _context.UserRoles
+                .Where(ur => ur.RoleId == roleId)
+                .Select(ur => ur.UserId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var userId in userIds)
+            {
+                InvalidateUserPermissions(userId);
+            }
+
+            _logger.LogInformation(
+                "Invalidated permission cache for {Count} users in role {RoleId}",
+                userIds.Count,
+                roleId);
+        }
+
         /// <summary>
         /// Get the current user's ID from HttpContext
         /// </summary>
-        private string GetCurrentUserId()
+        private string? GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;
             if (user == null)
@@ -146,9 +183,11 @@ namespace FMS.Infrastructure.Services
                 return null;
             }
 
-            return user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                   ?? user.FindFirst("sub")?.Value
-                   ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+            var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? user.FindFirst("sub")?.Value
+                ?? user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
+            return string.IsNullOrWhiteSpace(userId) ? null : userId;
         }
     }
 }

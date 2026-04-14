@@ -50,5 +50,17 @@ namespace FMS.Application.CommonInterface
         /// <param name="permissionNames">List of permission names</param>
         /// <returns>True if user has all permissions</returns>
         Task<bool> HasAllPermissionsAsync(params string[] permissionNames);
+
+        /// <summary>
+        /// Removes the cached permission set for a specific user.
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        void InvalidateUserPermissions(string userId);
+
+        /// <summary>
+        /// Removes cached permission sets for all users currently assigned to a role.
+        /// </summary>
+        /// <param name="roleId">Role ID</param>
+        Task InvalidateRolePermissionsAsync(string roleId);
     }
 }
