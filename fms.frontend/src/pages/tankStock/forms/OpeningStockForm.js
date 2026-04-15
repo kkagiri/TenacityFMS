@@ -132,6 +132,31 @@ const OpeningStockForm = ({
   const [backendError, setBackendError] = useState(null);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
 
+  const selectedTank = useMemo(
+    () => tanksAvailable.find((tank) => tank.id === formData.tankId) || null,
+    [tanksAvailable, formData.tankId]
+  );
+
+  const normalizedProbePhysicalStockSource = useMemo(() => {
+    if (!selectedTank?.probePhysicalStockUpdateSource) {
+      return "";
+    }
+
+    return String(selectedTank.probePhysicalStockUpdateSource)
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, "-");
+  }, [selectedTank?.probePhysicalStockUpdateSource]);
+
+  const canUseLatestProbeReading = Boolean(
+    selectedTank &&
+    selectedTank.usePtsProbeReadings &&
+    selectedTank.probeNumber &&
+    formData.physicalStockValue != null &&
+    (!normalizedProbePhysicalStockSource ||
+      normalizedProbePhysicalStockSource === "upload-status")
+  );
+
   // ✅ FIX #1: Load sites and tanks on mount
   useEffect(() => {
     const sitesReady = sitesAvailable.length > 0;
@@ -376,6 +401,36 @@ const OpeningStockForm = ({
     setValidationErrors((prev) => ({ ...prev, amount: null }));
     setBackendError(null);
   };
+
+  const handleUseLatestProbeReading = useCallback(() => {
+    if (!canUseLatestProbeReading || formData.physicalStockValue == null) {
+      showNotification(
+        "No saved PTS probe reading is available for this tank.",
+        "warning",
+        4000
+      );
+      return;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      amount: formData.physicalStockValue,
+    }));
+    setValidationErrors((prev) => ({ ...prev, amount: null }));
+    setBackendError(null);
+
+    showNotification(
+      `Loaded latest saved PTS probe volume: ${Number(
+        formData.physicalStockValue
+      ).toLocaleString()} L`,
+      "success",
+      3000
+    );
+  }, [
+    canUseLatestProbeReading,
+    formData.physicalStockValue,
+    showNotification,
+  ]);
 
   // Validation logic
   const validateForm = useCallback(() => {
@@ -771,14 +826,26 @@ const OpeningStockForm = ({
                 <label className="m365-field__label">
                   Current Physical Stock Value (Last Recorded)
                 </label>
-                <div
-                  className="m365-input"
-                  style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
-                >
-                  {formData.physicalStockValue != null
-                    ? Number(formData.physicalStockValue).toLocaleString() +
-                    " L"
-                    : "No physical reading available"}
+                <div>
+                  <div
+                    className="m365-input"
+                    style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
+                  >
+                    {formData.physicalStockValue != null
+                      ? Number(formData.physicalStockValue).toLocaleString() +
+                      " L"
+                      : "No physical reading available"}
+                  </div>
+                  {selectedTank?.lastPhysicalStockUpdate && (
+                    <div style={{ marginTop: 6, fontSize: 12, color: "#605e5c" }}>
+                      Saved {new Date(
+                        selectedTank.lastPhysicalStockUpdate
+                      ).toLocaleString()}
+                      {selectedTank?.physicalStockSource
+                        ? ` via ${selectedTank.physicalStockSource}`
+                        : ""}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -790,6 +857,27 @@ const OpeningStockForm = ({
           <label className="m365-field__label">
             Physical Stock Amount (Liters)
           </label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, color: "#605e5c" }}>
+              {selectedTank?.usePtsProbeReadings && selectedTank?.probeNumber
+                ? "You can load the latest saved calibrated volume from the tank's PTS probe reading."
+                : "Manual entry only until this tank is linked to a PTS probe."}
+            </span>
+            <button
+              type="button"
+              className="m365-btn m365-btn--ghost"
+              onClick={handleUseLatestProbeReading}
+              disabled={!canUseLatestProbeReading}
+              title={
+                canUseLatestProbeReading
+                  ? "Use latest saved PTS probe volume"
+                  : "PTS probe reading is not available for this tank"
+              }
+            >
+              <i className="fa-light fa-satellite-dish" style={{ marginRight: 8 }} />
+              Use Latest Saved PTS Probe Volume
+            </button>
+          </div>
           <NumberBox
             showSpinButtons={true}
             value={formData.amount || null}

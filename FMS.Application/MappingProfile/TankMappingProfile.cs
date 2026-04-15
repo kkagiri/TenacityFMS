@@ -19,6 +19,8 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.SiteName, opt => opt.MapFrom(src => src.Site.Name))
                 .ForMember(dest => dest.UseBookKeeping, opt => opt.MapFrom(src => src.UseBookKeeping.HasValue && src.UseBookKeeping.Value != 0))
                 .ForMember(dest => dest.HasAutomaticBookKeeping, opt => opt.MapFrom(src => src.HasAutomaticBookKeeping.HasValue && src.HasAutomaticBookKeeping.Value != 0))
+                .ForMember(dest => dest.LastStockUpdate, opt => opt.MapFrom(src => EnsureUtc(src.LastStockUpdate)))
+                .ForMember(dest => dest.LastPhysicalStockUpdate, opt => opt.MapFrom(src => EnsureNullableUtc(src.LastPhysicalStockUpdate)))
                 .ForMember(dest => dest.TankType, opt => opt.MapFrom(src => src.TankType.ToString()))
                 .ForMember(dest => dest.LinkedVehicleName, opt => opt.MapFrom(src =>
                     src.LinkedVehicle != null
@@ -34,7 +36,10 @@ namespace FMS.Application.MappingProfile
                 .ReverseMap();
 
             CreateMap<TankTransfer, TankTransferDTO>()
-                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.TransferDate.Value.ToString("yyyy-MM-ddTHH:mm:ssZ")))
+                .ForMember(dest => dest.Date, opt => opt.MapFrom(src =>
+                    src.TransferDate != null
+                        ? DateTime.SpecifyKind(src.TransferDate ?? default, DateTimeKind.Utc)
+                        : (DateTime?)null))
                 .ReverseMap();
 
             CreateMap<TankVolumeHistory, TankVolumeHistoryDTO>()
@@ -60,6 +65,23 @@ namespace FMS.Application.MappingProfile
                 return TankType.Stationary;
 
             return Enum.TryParse<TankType>(tankType, out var result) ? result : TankType.Stationary;
+        }
+
+        private static DateTime EnsureUtc(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Utc
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        }
+
+        private static DateTime? EnsureNullableUtc(DateTime? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            return EnsureUtc(value.Value);
         }
     }
 }
