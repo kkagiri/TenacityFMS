@@ -6,7 +6,7 @@
  * Last Modified: 2026-03-04
  *
  * Key Features:
- * - Direct edit of VolumeChange value (admin only)
+ * - Direct edit of transaction value (volume change or absolute stock baseline)
  * - Triggers volume history recalculation after update
  * - Shows transaction details for context
  */
@@ -66,6 +66,9 @@ export const EditTransactionDialog = ({
 
   // Determine if editable
   const isEditable = transaction && !NON_EDITABLE_TYPES.includes(transaction.changeReason);
+  const isAbsoluteVolumeEdit = transaction && (
+    transaction.changeReason === 0 || transaction.changeReason === 1
+  );
 
   // Get tank name
   const tankName = tanks?.find(t => t.id === transaction?.tankId)?.name || 'Unknown';
@@ -74,12 +77,12 @@ export const EditTransactionDialog = ({
   // Initialize form when dialog opens
   useEffect(() => {
     if (visible && transaction) {
-      setVolumeChange(transaction.volumeChange || 0);
+      setVolumeChange(isAbsoluteVolumeEdit ? (transaction.newVolume || 0) : (transaction.volumeChange || 0));
       setUpdateReason('');
       setRecalculateHistory(true);
       setIsUpdating(false);
     }
-  }, [visible, transaction]);
+  }, [visible, transaction, isAbsoluteVolumeEdit]);
 
   // Safe close function - delays to avoid React/DevExtreme conflicts
   const safeClose = useCallback((successCallback) => {
@@ -131,6 +134,7 @@ export const EditTransactionDialog = ({
       const result = await transactionEditService.updateTransaction({
         transactionId: transaction.id,
         volumeChange: volumeChange,
+        newVolume: isAbsoluteVolumeEdit ? volumeChange : undefined,
         recalculateHistory: recalculateHistory,
         updateReason: updateReason.trim()
       });
@@ -175,10 +179,13 @@ export const EditTransactionDialog = ({
         });
       }
     }
-  }, [transaction, volumeChange, updateReason, recalculateHistory, onSuccess, safeClose, isUpdating]);
+  }, [transaction, volumeChange, isAbsoluteVolumeEdit, updateReason, recalculateHistory, onSuccess, safeClose, isUpdating]);
 
   // Calculate volume difference
-  const volumeDiff = volumeChange - (transaction?.volumeChange || 0);
+  const originalEditableValue = isAbsoluteVolumeEdit
+    ? (transaction?.newVolume || 0)
+    : (transaction?.volumeChange || 0);
+  const volumeDiff = volumeChange - originalEditableValue;
 
   return (
     <SlidePanel
@@ -246,10 +253,10 @@ export const EditTransactionDialog = ({
                 </div>
               </div>
 
-              {/* Volume Change Input */}
+              {/* Transaction Value Input */}
               <div className="tw-mb-4">
                 <label className="tw-block tw-text-sm tw-font-medium tw-mb-1" style={{ color: 'var(--fms-text-primary, #374151)' }}>
-                  Volume Change (Liters) <span className="tw-text-red-500">*</span>
+                  {isAbsoluteVolumeEdit ? 'Recorded Stock Volume (Liters)' : 'Volume Change (Liters)'} <span className="tw-text-red-500">*</span>
                 </label>
                 <NumberBox
                   value={volumeChange}
@@ -261,7 +268,7 @@ export const EditTransactionDialog = ({
                 />
                 <div className="tw-flex tw-justify-between tw-mt-1 tw-text-xs">
                   <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>
-                    Original: {(transaction?.volumeChange || 0).toLocaleString()} L
+                    Original: {originalEditableValue.toLocaleString()} L
                   </span>
                   {volumeDiff !== 0 && (
                     <span className={volumeDiff > 0 ? 'tw-text-green-600' : 'tw-text-red-600'}>
@@ -269,6 +276,11 @@ export const EditTransactionDialog = ({
                     </span>
                   )}
                 </div>
+                {isAbsoluteVolumeEdit && (
+                  <div className="tw-mt-1 tw-text-xs" style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>
+                    Opening and closing stock entries use the absolute tank volume, not a delta.
+                  </div>
+                )}
               </div>
 
               {/* Recalculate Checkbox */}

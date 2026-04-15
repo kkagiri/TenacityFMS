@@ -127,9 +127,18 @@ export const createTankStock = (tankStock) => async (dispatch) => {
   }
 };
 
-export const updateTankStock = (id, tankStock) => async (dispatch) => {
+export const updateTankStock = (id, tankStock, options = {}) => async (dispatch) => {
   try {
-    const response = await axiosInstance.put(`/tankstock/${id}`, tankStock);
+    const queryParams = new URLSearchParams();
+    if (options.processHistory) {
+      queryParams.append('processHistory', 'true');
+    }
+
+    const url = queryParams.toString()
+      ? `/tankstock/${id}?${queryParams.toString()}`
+      : `/tankstock/${id}`;
+
+    const response = await axiosInstance.put(url, tankStock);
     dispatch({ type: UPDATE_TANK_STOCK_SUCCESS, payload: response.data });
   } catch (error) {
     dispatch({ type: UPDATE_TANK_STOCK_FAILURE, payload: error.message });

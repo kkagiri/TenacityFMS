@@ -8,12 +8,14 @@ import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import Form, { SimpleItem, GroupItem, Label, RequiredRule } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
+import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import './DeliveryForm.scss';
 
 const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
   const tanks = useSelector((state) => state.tank.tanks);
   const suppliers = useSelector((state) => state.supplier?.suppliers || []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form data state - managed by DevExtreme Form component
   // eslint-disable-next-line no-unused-vars
@@ -50,8 +52,10 @@ const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
     }));
   }, [suppliers]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+    if (e?.preventDefault) {
+      e.preventDefault();
+    }
 
     // Validation
     if (!formData.tankId) {
@@ -80,15 +84,23 @@ const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
     }
 
     // Auto-populate product from tank if not provided
+    const payload = {
+      ...formData,
+    };
+
     if (!formData.product && formData.tankId) {
       const selectedTank = tanks.find((t) => t.tankId === formData.tankId);
       if (selectedTank) {
-        formData.product = selectedTank.product;
+        payload.product = selectedTank.product;
       }
     }
 
-    // Submit
-    onSubmit(formData);
+    try {
+      setIsSubmitting(true);
+      await Promise.resolve(onSubmit(payload));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -264,13 +276,21 @@ const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
         )}
       </Form>
 
+      {isSubmitting && (
+        <div className="delivery-form__posting-indicator">
+          <LoadIndicator width={20} height={20} visible={true} />
+          <span>Posting delivery...</span>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
-        <Button text="Cancel" onClick={onCancel} stylingMode="outlined" />
+        <Button text="Cancel" onClick={onCancel} stylingMode="outlined" disabled={isSubmitting} />
         <Button
-          text={isEditMode ? 'Update Delivery' : 'Create Delivery'}
+          text={isSubmitting ? 'Posting...' : isEditMode ? 'Update Delivery' : 'Create Delivery'}
           onClick={handleSubmit}
           type="default"
+          disabled={isSubmitting}
         />
       </div>
 

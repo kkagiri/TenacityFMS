@@ -171,6 +171,28 @@ const TankStockTable = () => {
     loadData();
   }, [loadData]);
 
+  const shouldProcessHistoryForUpdate = useCallback((record) => {
+    const entryType = (record?.entryType || '').toLowerCase();
+    if (entryType !== 'openingstock' && entryType !== 'closingstock') {
+      return false;
+    }
+
+    if (!record?.entryDate) {
+      return false;
+    }
+
+    const entryDate = new Date(record.entryDate);
+    if (Number.isNaN(entryDate.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    entryDate.setHours(0, 0, 0, 0);
+
+    return entryDate < today;
+  }, []);
+
   // Handle row insertion
   const handleRowInserting = useCallback(async (e) => {
     try {
@@ -217,7 +239,12 @@ const TankStockTable = () => {
         ...e.newData
       };
 
-      const response = await axiosInstance.put(`/tankstock/${e.key}`, updatedRecord);
+      const shouldProcessHistory = shouldProcessHistoryForUpdate(updatedRecord);
+      const requestUrl = shouldProcessHistory
+        ? `/tankstock/${e.key}?processHistory=true`
+        : `/tankstock/${e.key}`;
+
+      const response = await axiosInstance.put(requestUrl, updatedRecord);
 
       if (response.status === 200) {
         notify({
@@ -236,7 +263,7 @@ const TankStockTable = () => {
       });
       e.cancel = true; // Cancel the update operation
     }
-  }, [loadData]);
+  }, [loadData, shouldProcessHistoryForUpdate]);
 
   // Handle row removal
   const handleRowRemoving = useCallback(async (e) => {

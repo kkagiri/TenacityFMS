@@ -21,6 +21,7 @@ import {
   updateRole,
   updateRoleForUsers,
 } from "../../../redux/actions/roleActions";
+import { fetchMyPermissions } from "../../../redux/actions/permissionActions";
 import RoleForm from "./roleForm";
 import PermissionTreeListNonEdit from "./../../PermissionTreeList/permissionTreeListNonEdit";
 import UserDataList from "./../../user/userdatalist";
@@ -90,6 +91,7 @@ const RoleDetails = ({ roleId }) => {
         if (failedResults.length > 0) {
           notify(failedResults[0].message, "error", 2000);
         } else {
+          await dispatch(fetchMyPermissions());
           notify("Role updated successfully", "success", 2000);
         }
       } catch (error) {

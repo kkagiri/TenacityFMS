@@ -86,11 +86,22 @@ export class TankStockService extends BaseService {
    * Update tank stock entry
    * @param {number} id - Tank stock ID
    * @param {Object} tankStock - Updated tank stock data
+   * @param {Object} [options] - Update options
+   * @param {boolean} [options.processHistory] - Recalculate linked tank volume history
    * @returns {Promise<FMSResponse<TankStock>>}
    */
-  async updateTankStock(id, tankStock) {
+  async updateTankStock(id, tankStock, options = {}) {
     try {
-      const result = await this.put(`${this.baseUrl}/${id}`, tankStock);
+      const queryParams = new URLSearchParams();
+      if (options.processHistory) {
+        queryParams.append('processHistory', 'true');
+      }
+
+      const url = queryParams.toString()
+        ? `${this.baseUrl}/${id}?${queryParams.toString()}`
+        : `${this.baseUrl}/${id}`;
+
+      const result = await this.put(url, tankStock);
 
       // Clear related caches
       this.clearCachePattern('tank-stocks-');

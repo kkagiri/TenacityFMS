@@ -119,6 +119,7 @@ const TankTransferForm = ({
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showSourceTankInfo, setShowSourceTankInfo] = useState(false);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+  const [backendError, setBackendError] = useState(null);
 
   useEffect(() => {
     if (formData.transferType !== "InterTank" || !formData.sourceSiteId) {
@@ -547,6 +548,7 @@ const TankTransferForm = ({
   // Handle form submission
   const handleSubmit = useCallback(async () => {
     setHasAttemptedSubmit(true);
+    setBackendError(null);
     const errors = validateForm();
     setValidationErrors(errors);
 
@@ -590,6 +592,9 @@ const TankTransferForm = ({
           onSubmit(formData);
         }
       } else {
+        setBackendError({
+          message: response.message || "Failed to create tank transfer",
+        });
         showNotification(
           response.message || "Failed to create tank transfer",
           "error",
@@ -598,6 +603,12 @@ const TankTransferForm = ({
       }
     } catch (error) {
       console.error("Error creating tank transfer:", error);
+      setBackendError({
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "An unexpected error occurred",
+      });
       showNotification("An unexpected error occurred", "error", 3000);
     } finally {
       setIsSubmitting(false);
@@ -942,6 +953,27 @@ const TankTransferForm = ({
           </div>
         )}
 
+        {backendError && (
+          <div className="m365-info-banner m365-info-banner--error">
+            <i className="fa-light fa-triangle-exclamation m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Tank Transfer Error</strong>
+              </span>
+              <span className="m365-info-banner__text" style={{ display: "block", marginTop: 4 }}>
+                {backendError.message || "An error occurred"}
+              </span>
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setBackendError(null)}
+              title="Dismiss"
+            >
+              <i className="fa-light fa-xmark"></i>
+            </button>
+          </div>
+        )}
+
         {isValidating && (
           <div className="m365-info-banner">
             <LoadIndicator width={"20px"} height={"20px"} visible={true} />
@@ -975,6 +1007,15 @@ const TankTransferForm = ({
         )}
 
       </div>
+
+      {isSubmitting && (
+        <div className="m365-info-banner" style={{ alignItems: "center" }}>
+          <LoadIndicator width={20} height={20} visible={true} />
+          <div className="m365-info-banner__content">
+            <span className="m365-info-banner__text">Posting transfer...</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Form Actions ───────────────────────────────── */}
       <div className="m365-form-actions">

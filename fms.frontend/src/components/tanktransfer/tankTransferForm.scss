@@ -1,24 +1,43 @@
 .tank-transfer-form {
+    .dx-texteditor-input::placeholder {
+      color: transparent !important;
+      opacity: 0 !important;
+    }
+
+    &__loading {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      background-color: #eff6ff;
+      color: #1d4ed8;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
     .dx-fieldset {
       margin-bottom: 20px;
     }
-  
+
     .dx-field-item-label-text {
       font-weight: bold;
     }
-  
+
     .dx-form-group-caption {
       font-size: 16px;
       font-weight: bold;
       margin-bottom: 10px;
     }
-  
+
     .button-container {
       margin-top: 20px;
       display: flex;
       justify-content: flex-end;
     }
-  
+
     .submit-button {
       padding: 10px 20px;
       background-color: #4caf50;
@@ -27,7 +46,7 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 16px;
-  
+
       &:disabled {
         background-color: #cccccc;
         cursor: not-allowed;

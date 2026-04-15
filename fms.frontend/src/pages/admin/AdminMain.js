@@ -40,10 +40,22 @@ import EmployeePositionManagementPage from "./employeePositions/EmployeePosition
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
 
+const LEGACY_ADMIN_ACCESS_PERMISSIONS = [
+  "_Manage_Users",
+  "_Manage_Roles",
+  "_Manage_Site",
+  "_Manage_ATG",
+  "_Manage_NotificationPolicy",
+  "_Manage_NotificationGroups",
+  "_Manage_NotificationEmailConfig",
+  "_Manage_NotificationPreferences",
+  "_Manage_LocationValidation"
+];
+
 const AdminMain = () => {
   const location = useLocation();
-  const { hasPermission, permissionsLoaded } = usePermissions();
-  const canAccessAdmin = hasPermission(WEB_APP_PERMISSIONS.ADMIN);
+  const { hasPermission, hasAnyPermission, permissionsLoaded } = usePermissions();
+  const canAccessAdmin = hasPermission(WEB_APP_PERMISSIONS.ADMIN) || hasAnyPermission(LEGACY_ADMIN_ACCESS_PERMISSIONS);
 
   if (!permissionsLoaded) {
     return null;

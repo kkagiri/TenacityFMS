@@ -95,6 +95,14 @@ div[id*="tooltip"] {
   z-index: 99999 !important;
 }
 
+/* Ensure DevExtreme toast notifications render above slide panels and drawers */
+.dx-toast-stack,
+.dx-toast-stack .dx-toast-wrapper,
+.dx-overlay-wrapper.dx-toast,
+.dx-toast-content {
+  z-index: 110000 !important;
+}
+
 /* DevExtreme popup z-index override for chart tooltips */
 .dx-popup-wrapper .dx-chart-tooltip,
 .dx-overlay .dx-chart-tooltip {

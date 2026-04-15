@@ -520,6 +520,11 @@
       color: var(--m365-text) !important;
       font-family: var(--m365-font) !important;
       padding: 0 10px !important;
+
+      &::placeholder {
+        color: transparent !important;
+        opacity: 0 !important;
+      }
     }
 
     .dx-placeholder::before {

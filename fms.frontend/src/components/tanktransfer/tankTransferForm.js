@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Form, SimpleItem, GroupItem, RequiredRule } from 'devextreme-react/form';
+import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import { fetchSitebyUserId } from '../../redux/actions/siteActions';
 import { fetchTanks } from '../../redux/actions/tankActions';
 import './tankTransferForm.scss';
 
-const TankTransferForm = ({updateFormData, isLoading  }) => {
+const TankTransferForm = ({ updateFormData, isLoading }) => {
     const [localFormData, setLocalFormData] = useState({});
 
     const dispatch = useDispatch();
@@ -27,7 +28,7 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
         const updatedData = { ...localFormData, [e.dataField]: e.value };
         setLocalFormData(updatedData);
         updateFormData(updatedData);
-      };
+    };
 
     useEffect(() => {
         dispatch(fetchSitebyUserId());
@@ -56,17 +57,23 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
         setDestinationTanks(tanksForSite);
     }, [tanks]);
 
-  
 
-    
+
+
     return (
-        <ScrollView className='tank-transfer-form'>       
-             <Form 
-             formData={localFormData}  
+        <ScrollView className='tank-transfer-form'>
+            {isLoading && (
+                <div className='tank-transfer-form__loading'>
+                    <LoadIndicator width={20} height={20} visible={true} />
+                    <span>Posting transfer...</span>
+                </div>
+            )}
+            <Form
+                formData={localFormData}
                 readOnly={isLoading} showColonAfterLabel={true} labelLocation="top"
-                 onFieldDataChanged={handleChange} >
-               
-            <SimpleItem dataField="date" editorType="dxDateBox"
+                onFieldDataChanged={handleChange} >
+
+                <SimpleItem dataField="date" editorType="dxDateBox"
                     editorOptions={{
                         max: new Date().toISOString(),
                         displayFormat: "yyyy-MM-dd HH:mm",
@@ -81,7 +88,7 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
                             valueExpr: 'id',
                             onValueChanged: handleSourceSiteChange,
                             placeholder: 'Select Source Site',
-                            
+
                         }} />
                     <SimpleItem dataField="sourceTankId" editorType="dxSelectBox"
                         editorOptions={{
@@ -110,13 +117,13 @@ const TankTransferForm = ({updateFormData, isLoading  }) => {
                             disabled: !formData.destinationSiteId
                         }} />
                 </GroupItem>
-                <SimpleItem dataField="amount" editorType="dxNumberBox" 
+                <SimpleItem dataField="amount" editorType="dxNumberBox"
                     editorOptions={{
                         placeholder: 'Enter Transfer Amount'
                     }} />
-             
+
             </Form>
-            
+
         </ScrollView>
     );
 };

@@ -47,7 +47,7 @@ try {
 /**
  * Hook for managing transaction data loading and filtering
  */
-export const useTransactionData = () => {
+export const useTransactionData = (enabled = true) => {
   const dispatch = useDispatch();
 
   // Get shared filters from header
@@ -99,6 +99,10 @@ export const useTransactionData = () => {
 
   // Initialize data
   useEffect(() => {
+    if (!enabled || isInitialized) {
+      return;
+    }
+
     if (!isInitialized) {
       console.log('Initializing TransactionHub...');
       dispatch(fetchTanks());
@@ -109,25 +113,25 @@ export const useTransactionData = () => {
       dispatch(fetchTankVolumeHistoryFiltered(currentFilters));
       setIsInitialized(true);
     }
-  }, [dispatch, isInitialized, currentFilters]);
+  }, [dispatch, enabled, isInitialized, currentFilters]);
 
   // React to header filter changes
   useEffect(() => {
-    if (isInitialized) {
+    if (enabled && isInitialized) {
       console.log('Header filters changed, reloading data with:', currentFilters);
       dispatch(fetchTankVolumeHistoryFiltered(currentFilters));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds, isInitialized]);
+  }, [enabled, headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds, isInitialized]);
 
   // React to GPS toggle changes
   useEffect(() => {
-    if (isInitialized) {
+    if (enabled && isInitialized) {
       console.log('[GPS Volume] Toggle changed, reloading data with includeGpsData:', showGpsVolume);
       dispatch(fetchTankVolumeHistoryFiltered(currentFilters));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showGpsVolume, isInitialized]);
+  }, [enabled, showGpsVolume, isInitialized]);
 
   // Apply filters
   const handleApplyFilters = useCallback(async () => {

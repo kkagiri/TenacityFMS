@@ -174,6 +174,7 @@ class TransactionEditService {
    * @param {Object} updateData - The update data
    * @param {number} updateData.transactionId - The TankVolumeHistory ID
    * @param {number} updateData.volumeChange - The new volume change value
+  * @param {number} [updateData.newVolume] - The new absolute stock value for opening/closing entries
    * @param {string} updateData.timestamp - The new timestamp (optional)
    * @param {boolean} updateData.recalculateHistory - Whether to recalculate volume history
    * @param {string} updateData.updatedBy - User ID who made the update
@@ -182,7 +183,7 @@ class TransactionEditService {
    */
   async updateTransaction(updateData) {
     try {
-      const { transactionId, volumeChange, recalculateHistory = true, updateReason } = updateData;
+      const { transactionId, volumeChange, newVolume, recalculateHistory = true, updateReason } = updateData;
 
       if (!transactionId) {
         throw new Error('Invalid transactionId: must be provided');
@@ -196,6 +197,7 @@ class TransactionEditService {
 
       const response = await axiosInstance.put(`/tankvolumehistory/${transactionId}`, {
         volumeChange,
+        newVolume,
         recalculateHistory,
         updateReason
       });

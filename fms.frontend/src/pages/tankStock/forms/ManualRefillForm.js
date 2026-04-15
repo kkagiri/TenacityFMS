@@ -70,6 +70,7 @@ const ManualRefillForm = ({
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+  const [backendError, setBackendError] = useState(null);
 
   // ✅ REF to guard against double submissions (refs update synchronously unlike state)
   const isSubmittingRef = useRef(false);
@@ -173,6 +174,7 @@ const ManualRefillForm = ({
         siteId: siteId,
         tankId: null,
       }));
+      setBackendError(null);
 
       // ✅ Update shared context when site changes
       updateSiteId(siteId);
@@ -237,6 +239,7 @@ const ManualRefillForm = ({
         tankId: tankId,
       };
       setFormData(updatedData);
+      setBackendError(null);
 
       // Clear validation errors for this field
       setValidationErrors((prev) => ({ ...prev, tankId: null }));
@@ -268,6 +271,7 @@ const ManualRefillForm = ({
         date: newDate,
       };
       setFormData(updatedData);
+      setBackendError(null);
 
       // ✅ Update shared context when date changes
       updateDate(newDate);
@@ -315,6 +319,7 @@ const ManualRefillForm = ({
         };
         return updatedData;
       });
+      setBackendError(null);
 
       // Clear validation errors for this field
       setValidationErrors((prev) => ({ ...prev, [field]: null }));
@@ -404,6 +409,7 @@ const ManualRefillForm = ({
     }
 
     setHasAttemptedSubmit(true);
+    setBackendError(null);
     const errors = validateForm();
     setValidationErrors(errors);
 
@@ -440,10 +446,17 @@ const ManualRefillForm = ({
         // Handle failure case
         const errorMessage =
           result?.message || "Failed to record manual refill";
+        setBackendError({ message: errorMessage });
         showNotification(errorMessage, "error");
       }
     } catch (error) {
       console.error("Error creating manual refill:", error);
+      setBackendError({
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to record manual refill",
+      });
       showNotification("Failed to record manual refill", "error");
     } finally {
       // ✅ Reset both ref and state
@@ -468,6 +481,7 @@ const ManualRefillForm = ({
     }
 
     setHasAttemptedSubmit(true);
+    setBackendError(null);
     const errors = validateForm();
     setValidationErrors(errors);
 
@@ -504,10 +518,17 @@ const ManualRefillForm = ({
         // Handle failure case - don't clear form, let user fix the issue
         const errorMessage =
           result?.message || "Failed to record manual refill";
+        setBackendError({ message: errorMessage });
         showNotification(errorMessage, "error");
       }
     } catch (error) {
       console.error("Error creating manual refill:", error);
+      setBackendError({
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to record manual refill",
+      });
       showNotification("Failed to record manual refill", "error");
     } finally {
       // ✅ Reset both ref and state
@@ -815,7 +836,38 @@ const ManualRefillForm = ({
             </div>
           </div>
         )}
+
+        {backendError && (
+          <div className="m365-info-banner m365-info-banner--error" style={{ margin: '0 0 16px' }}>
+            <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Manual Fuel Refill Error</strong>
+              </span>
+              <span className="m365-info-banner__text" style={{ display: 'block', marginTop: '4px' }}>
+                {backendError.message || 'An error occurred'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="m365-info-banner__dismiss"
+              onClick={() => setBackendError(null)}
+              title="Dismiss"
+            >
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
       </div>
+
+      {isSubmitting && (
+        <div className="m365-info-banner" style={{ alignItems: "center" }}>
+          <LoadIndicator height={20} width={20} />
+          <div className="m365-info-banner__content">
+            <span className="m365-info-banner__text">Posting manual fuel refill...</span>
+          </div>
+        </div>
+      )}
 
       {/* Footer actions */}
       <div className="m365-form-actions">

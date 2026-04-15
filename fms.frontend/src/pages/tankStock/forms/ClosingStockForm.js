@@ -123,6 +123,7 @@ const ClosingStockForm = ({
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showVolumeHistory, setShowVolumeHistory] = useState(true);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+  const [backendError, setBackendError] = useState(null);
 
   // Future records validation hook
   const {
@@ -495,6 +496,7 @@ const ClosingStockForm = ({
   // Handle form submission and close
   const handleSubmit = useCallback(async () => {
     setHasAttemptedSubmit(true);
+    setBackendError(null);
     const errors = validateForm();
     setValidationErrors(errors);
 
@@ -563,6 +565,9 @@ const ClosingStockForm = ({
             if (onCancel) onCancel();
             if (onSubmit) onSubmit(formData);
           } else {
+            setBackendError({
+              message: retryResponse.message || "Failed to create closing stock",
+            });
             showNotification(
               retryResponse.message || "Failed to create closing stock",
               "error",
@@ -571,6 +576,9 @@ const ClosingStockForm = ({
           }
         }
       } else {
+        setBackendError({
+          message: response.message || "Failed to create closing stock",
+        });
         showNotification(
           response.message || "Failed to create closing stock",
           "error",
@@ -579,6 +587,12 @@ const ClosingStockForm = ({
       }
     } catch (error) {
       console.error("Error creating closing stock:", error);
+      setBackendError({
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "An unexpected error occurred",
+      });
       showNotification("An unexpected error occurred", "error", 3000);
     } finally {
       setIsSubmitting(false);
@@ -597,6 +611,7 @@ const ClosingStockForm = ({
   // Handle save and new entry
   const handleSaveAndNew = useCallback(async () => {
     setHasAttemptedSubmit(true);
+    setBackendError(null);
     const errors = validateForm();
     setValidationErrors(errors);
 
@@ -661,6 +676,9 @@ const ClosingStockForm = ({
             resetValidation();
             clearFormData();
           } else {
+            setBackendError({
+              message: retryResponse.message || "Failed to create closing stock",
+            });
             showNotification(
               retryResponse.message || "Failed to create closing stock",
               "error",
@@ -669,6 +687,9 @@ const ClosingStockForm = ({
           }
         }
       } else {
+        setBackendError({
+          message: response.message || "Failed to create closing stock",
+        });
         showNotification(
           response.message || "Failed to create closing stock",
           "error",
@@ -677,6 +698,12 @@ const ClosingStockForm = ({
       }
     } catch (error) {
       console.error("Error creating closing stock:", error);
+      setBackendError({
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "An unexpected error occurred",
+      });
       showNotification("An unexpected error occurred", "error", 3000);
     } finally {
       setIsSubmitting(false);
@@ -1069,6 +1096,27 @@ const ClosingStockForm = ({
           </>
         )}
 
+        {backendError && (
+          <div className="m365-info-banner m365-info-banner--error">
+            <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Closing Stock Error</strong>
+              </span>
+              <span className="m365-info-banner__text" style={{ display: "block", marginTop: 4 }}>
+                {backendError.message || "An error occurred"}
+              </span>
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setBackendError(null)}
+              title="Close error message"
+            >
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
+
         {/* Tank Volume History Section */}
         {formData.siteId > 0 &&
           formData.tankId > 0 &&
@@ -1192,6 +1240,17 @@ const ClosingStockForm = ({
           )}
 
       </div>
+
+      {isSubmitting && (
+        <div className="m365-info-banner" style={{ alignItems: "center" }}>
+          <LoadIndicator height={20} width={20} />
+          <div className="m365-info-banner__content">
+            <span className="m365-info-banner__text">
+              Posting closing stock...
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Form Actions */}
       <div className="m365-form-actions">

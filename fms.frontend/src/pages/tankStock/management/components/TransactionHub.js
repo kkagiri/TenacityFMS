@@ -107,7 +107,7 @@ const TransactionHub = () => {
     handleApplyFilters,
     handleRefresh,
     handleClearFilters,
-  } = useTransactionData();
+  } = useTransactionData(canReadTankVolumeHistory);
 
   // Use extracted hook for delete functionality
   const {

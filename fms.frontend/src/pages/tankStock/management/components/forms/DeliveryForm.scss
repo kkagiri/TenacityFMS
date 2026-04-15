@@ -32,4 +32,23 @@
   .dx-datebox {
     width: 100%;
   }
+
+  .dx-texteditor-input::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+
+  &__posting-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 8px 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    font-size: 14px;
+    font-weight: 500;
+  }
 }

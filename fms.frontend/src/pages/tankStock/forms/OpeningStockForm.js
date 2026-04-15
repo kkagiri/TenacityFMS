@@ -1045,6 +1045,17 @@ const OpeningStockForm = ({
         )}
       </div>
 
+      {isSubmitting && (
+        <div className="m365-info-banner" style={{ alignItems: "center" }}>
+          <LoadIndicator height={20} width={20} />
+          <div className="m365-info-banner__content">
+            <span className="m365-info-banner__text">
+              Posting opening stock...
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Form Actions */}
       <div className="m365-form-actions">
         <button

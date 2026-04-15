@@ -14,6 +14,18 @@ import "./AppDrawer.scss";
 import { usePermissions } from "../../hooks/usePermissions";
 import { WEB_APP_PERMISSIONS } from "../../constants/webAppPermissions";
 
+const LEGACY_ADMIN_ACCESS_PERMISSIONS = [
+  "_Manage_Users",
+  "_Manage_Roles",
+  "_Manage_Site",
+  "_Manage_ATG",
+  "_Manage_NotificationPolicy",
+  "_Manage_NotificationGroups",
+  "_Manage_NotificationEmailConfig",
+  "_Manage_NotificationPreferences",
+  "_Manage_LocationValidation"
+];
+
 const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const navigate = useNavigate();
   const drawerRef = useRef(null);
@@ -93,7 +105,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       route: "/admin",
       color: "#005a70",
       webAppPermission: WEB_APP_PERMISSIONS.ADMIN,
-      legacyPermissions: []
+      legacyPermissions: LEGACY_ADMIN_ACCESS_PERMISSIONS
     },
 
     {

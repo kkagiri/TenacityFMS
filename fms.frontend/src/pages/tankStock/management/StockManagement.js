@@ -31,6 +31,7 @@ const StockManagement = () => {
   const { dateRange } = useStockFilters();
   const { hasPermission } = usePermissions();
   const isAdmin = hasPermission('_Update_TankStock');
+  const canReadTankVolumeHistory = hasPermission('_Read_TankVolumeHistory');
 
   const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
@@ -43,15 +44,15 @@ const StockManagement = () => {
 
   //Cursor - Tab data
   const allTabData = useMemo(() => [
-    { key: 'transactionHub', text: "Transaction Hub", icon: "fa-light fa-exchange-alt", path: 'transaction-hub' },
+    { key: 'transactionHub', text: "Transaction Hub", icon: "fa-light fa-exchange-alt", path: 'transaction-hub', visible: canReadTankVolumeHistory },
     { key: 'deliveryManagement', text: "Delivery Management", icon: "fa-light fa-truck-container", path: 'delivery-management' },
     { key: 'dispensingVolumes', text: "Dispensing Volumes", icon: "fa-light fa-tint", path: 'dispensing-volumes', adminOnly: true },
     { key: 'bulkImport', text: "Bulk Import", icon: "fa-light fa-file-upload", path: 'bulk-import', adminOnly: true },
     { key: 'tankStockTable', text: "Tank Stock Table", icon: "fa-light fa-table", path: 'tank-stock-table', adminOnly: true },
-  ], []);
+  ], [canReadTankVolumeHistory]);
 
   const tabData = useMemo(
-    () => allTabData.filter((tab) => !tab.adminOnly || isAdmin),
+    () => allTabData.filter((tab) => (tab.visible !== false) && (!tab.adminOnly || isAdmin)),
     [allTabData, isAdmin]
   );
 

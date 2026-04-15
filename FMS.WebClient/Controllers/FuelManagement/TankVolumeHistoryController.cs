@@ -27,6 +27,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using FMS.WebClient.Attributes;
@@ -413,22 +414,75 @@ namespace FMS.WebClient.Controllers
                 string? updatedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 // Get the transaction
-                var context = HttpContext.RequestServices.GetService<GpsdataContext>();
+                var httpContext = HttpContext;
+                if (httpContext == null)
+                    return BadRequest("Request services are unavailable");
+
+                var services = httpContext.RequestServices;
+                var context = services.GetRequiredService<GpsdataContext>();
                 var transaction = await context.TankVolumeHistories
                     .FirstOrDefaultAsync(t => t.Id == id && (t.IsDeleted != true));
 
                 if (transaction == null)
                     return NotFound($"Transaction with ID {id} not found");
 
-                // Update the volume change
+                var requestedNewVolume = request.NewVolume ?? request.VolumeChange;
+
+                // Update the transaction based on its semantic type.
                 var oldVolumeChange = transaction.VolumeChange;
-                transaction.VolumeChange = request.VolumeChange;
+                var oldNewVolume = transaction.NewVolume;
+
+                if (transaction.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                {
+                    transaction.NewVolume = requestedNewVolume;
+                    transaction.VolumeChange = 0;
+
+                    if (transaction.ReferenceId.HasValue)
+                    {
+                        var linkedTankStock = await context.Tankstocks
+                            .FirstOrDefaultAsync(ts => ts.EntryId == transaction.ReferenceId.Value && !ts.IsDeleted);
+
+                        if (linkedTankStock != null)
+                        {
+                            linkedTankStock.ManualOpeningLevel = requestedNewVolume;
+                        }
+                    }
+                }
+                else if (transaction.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                {
+                    var previousTransaction = await context.TankVolumeHistories
+                        .Where(t => t.TankId == transaction.TankId &&
+                                    t.Id != transaction.Id &&
+                                    t.Timestamp < transaction.Timestamp &&
+                                    (t.IsDeleted != true))
+                        .OrderByDescending(t => t.Timestamp)
+                        .ThenByDescending(t => t.Id)
+                        .FirstOrDefaultAsync();
+
+                    transaction.NewVolume = requestedNewVolume;
+                    transaction.VolumeChange = requestedNewVolume - (previousTransaction?.NewVolume ?? 0m);
+
+                    if (transaction.ReferenceId.HasValue)
+                    {
+                        var linkedTankStock = await context.Tankstocks
+                            .FirstOrDefaultAsync(ts => ts.EntryId == transaction.ReferenceId.Value && !ts.IsDeleted);
+
+                        if (linkedTankStock != null)
+                        {
+                            linkedTankStock.ManualClosingLevel = requestedNewVolume;
+                        }
+                    }
+                }
+                else
+                {
+                    transaction.VolumeChange = request.VolumeChange;
+                }
 
                 // Log the change (optional - add audit trail)
                 var logger = HttpContext.RequestServices.GetService<ILogger<TankVolumeHistoryController>>();
                 logger?.LogInformation(
-                    "Transaction {TransactionId} updated by {UserId}. VolumeChange: {OldValue} -> {NewValue}. Reason: {Reason}",
-                    id, updatedBy, oldVolumeChange, request.VolumeChange, request.UpdateReason);
+                    "Transaction {TransactionId} updated by {UserId}. VolumeChange: {OldValue} -> {NewValue}, NewVolume: {OldNewVolume} -> {NewNewVolume}. Reason: {Reason}",
+                    id, updatedBy, oldVolumeChange, transaction.VolumeChange, oldNewVolume, transaction.NewVolume, request.UpdateReason);
 
                 await context.SaveChangesAsync();
 
@@ -458,7 +512,9 @@ namespace FMS.WebClient.Controllers
                     message = "Transaction updated successfully",
                     transactionId = id,
                     oldVolumeChange = oldVolumeChange,
-                    newVolumeChange = request.VolumeChange,
+                    newVolumeChange = transaction.VolumeChange,
+                    oldNewVolume = oldNewVolume,
+                    newNewVolume = transaction.NewVolume,
                     recalculated = request.RecalculateHistory
                 });
             }
@@ -475,6 +531,7 @@ namespace FMS.WebClient.Controllers
     public class UpdateTransactionRequest
     {
         public decimal VolumeChange { get; set; }
+        public decimal? NewVolume { get; set; }
         public bool RecalculateHistory { get; set; } = true;
         public string UpdateReason { get; set; } = string.Empty;
     }

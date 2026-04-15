@@ -1,8 +1,12 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Features.FMS.TankStock;
+using FMS.Domain.Entities;
+using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -26,12 +30,14 @@ public class UpdateTankStockCommandHandler : IRequestHandler<UpdateTankStockComm
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateTankStockCommandHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly IMediator _mediator;
 
-    public UpdateTankStockCommandHandler(GpsdataContext context, ILogger<UpdateTankStockCommandHandler> logger, IMapper mapper)
+    public UpdateTankStockCommandHandler(GpsdataContext context, ILogger<UpdateTankStockCommandHandler> logger, IMapper mapper, IMediator mediator)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
+        _mediator = mediator;
     }
 
     public async Task<bool> Handle(UpdateTankStockCommand request, CancellationToken cancellationToken)
@@ -87,6 +93,8 @@ public class UpdateTankStockCommandHandler : IRequestHandler<UpdateTankStockComm
             // Store old values for logging
             var oldEntryType = tankStock.EntryType;
             var oldManualAmount = tankStock.ManualAmount;
+            var oldManualOpeningLevel = tankStock.ManualOpeningLevel;
+            var oldManualClosingLevel = tankStock.ManualClosingLevel;
 
             // Map DTO to entity
             _mapper.Map(request.TankStockDTO, tankStock);
@@ -94,25 +102,48 @@ public class UpdateTankStockCommandHandler : IRequestHandler<UpdateTankStockComm
             // Optional: Process TankVolumeHistory updates if requested
             if (request.ProcessHistory)
             {
+                var earliestAffectedTimestamp = await SyncLinkedVolumeHistoryAsync(tankStock, cancellationToken);
+
                 _logger.LogInformation(
-                    "Processing TankVolumeHistory updates for updated TankStock entry {EntryId}. " +
-                    "This feature is currently not implemented - TankStock updates do not automatically update TankVolumeHistory. " +
-                    "Old values: EntryType={OldEntryType}, Amount={OldAmount}. " +
-                    "New values: EntryType={NewEntryType}, Amount={NewAmount}.",
+                    "Processed TankVolumeHistory updates for TankStock entry {EntryId}. " +
+                    "Old values: EntryType={OldEntryType}, Amount={OldAmount}, Opening={OldOpening}, Closing={OldClosing}. " +
+                    "New values: EntryType={NewEntryType}, Amount={NewAmount}, Opening={NewOpening}, Closing={NewClosing}. " +
+                    "EarliestAffectedTimestamp={EarliestAffectedTimestamp}",
                     request.Id,
                     oldEntryType,
                     oldManualAmount,
+                    oldManualOpeningLevel,
+                    oldManualClosingLevel,
                     tankStock.EntryType,
-                    tankStock.ManualAmount);
+                    tankStock.ManualAmount,
+                    tankStock.ManualOpeningLevel,
+                    tankStock.ManualClosingLevel,
+                    earliestAffectedTimestamp);
 
-                // TODO: Implement optional TankVolumeHistory processing
-                // This would involve:
-                // 1. Finding related TankVolumeHistory record by ReferenceId/ReferenceType
-                // 2. Updating it or creating a new entry
-                // 3. Triggering recalculation of subsequent balances if historical edit
+                await _context.SaveChangesAsync(cancellationToken);
+
+                if (earliestAffectedTimestamp.HasValue)
+                {
+                    var recalcResult = await _mediator.Send(
+                        new UpdateTankVolumeHistoryCommand(
+                            tankStock.TankId,
+                            earliestAffectedTimestamp.Value,
+                            IsHistoricalUpdate: true,
+                            UpdateTankCurrentStock: true),
+                        cancellationToken);
+
+                    if (!recalcResult.Success)
+                    {
+                        throw new InvalidOperationException(
+                            $"Tank stock updated, but tank volume history recalculation failed: {recalcResult.Message}");
+                    }
+                }
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            if (!request.ProcessHistory)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             _logger.LogInformation(
                 "Tank stock entry {EntryId} updated successfully. ProcessHistory: {ProcessHistory}",
@@ -126,5 +157,67 @@ public class UpdateTankStockCommandHandler : IRequestHandler<UpdateTankStockComm
             _logger.LogError(ex, "Error updating tank stock");
             throw;
         }
+    }
+
+    private async Task<DateTime?> SyncLinkedVolumeHistoryAsync(Tankstock tankStock, CancellationToken cancellationToken)
+    {
+        var linkedHistoryRecords = await _context.TankVolumeHistories
+            .Where(history => history.ReferenceId == tankStock.EntryId && (history.IsDeleted != true))
+            .ToListAsync(cancellationToken);
+
+        if (!linkedHistoryRecords.Any())
+        {
+            _logger.LogWarning(
+                "ProcessHistory requested for TankStock entry {EntryId}, but no linked TankVolumeHistory rows were found.",
+                tankStock.EntryId);
+            return null;
+        }
+
+        DateTime? earliestAffectedTimestamp = null;
+
+        var openingHistory = linkedHistoryRecords
+            .FirstOrDefault(history => history.ChangeReason == VolumeChangeReasonEnum.OpeningStock);
+
+        if (openingHistory != null && tankStock.ManualOpeningLevel.HasValue)
+        {
+            openingHistory.TankId = tankStock.TankId;
+            openingHistory.Timestamp = tankStock.EntryDate;
+            openingHistory.NewVolume = tankStock.ManualOpeningLevel.Value;
+            openingHistory.VolumeChange = 0m;
+            openingHistory.RecordedBy = tankStock.RecordedBy;
+
+            earliestAffectedTimestamp = openingHistory.Timestamp;
+        }
+
+        var closingHistory = linkedHistoryRecords
+            .FirstOrDefault(history => history.ChangeReason == VolumeChangeReasonEnum.ClosingStock);
+
+        if (closingHistory != null && tankStock.ManualClosingLevel.HasValue)
+        {
+            var openingTimestamp = openingHistory?.Timestamp ?? tankStock.EntryDate;
+            var closingTimestamp = openingTimestamp.AddHours(23).AddMinutes(50);
+
+            var previousTransaction = await _context.TankVolumeHistories
+                .Where(history => history.TankId == tankStock.TankId &&
+                                  history.Id != closingHistory.Id &&
+                                  history.Timestamp < closingTimestamp &&
+                                  (history.IsDeleted != true))
+                .OrderByDescending(history => history.Timestamp)
+                .ThenByDescending(history => history.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            closingHistory.TankId = tankStock.TankId;
+            closingHistory.Timestamp = closingTimestamp;
+            closingHistory.NewVolume = tankStock.ManualClosingLevel.Value;
+            closingHistory.VolumeChange = tankStock.ManualClosingLevel.Value - (previousTransaction?.NewVolume ?? 0m);
+            closingHistory.RecordedBy = tankStock.RecordedBy;
+
+            if (!earliestAffectedTimestamp.HasValue || closingHistory.Timestamp < earliestAffectedTimestamp.Value)
+            {
+                earliestAffectedTimestamp = closingHistory.Timestamp;
+            }
+        }
+
+        return earliestAffectedTimestamp;
     }
 }
