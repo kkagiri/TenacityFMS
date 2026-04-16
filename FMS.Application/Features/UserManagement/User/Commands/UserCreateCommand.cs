@@ -43,6 +43,7 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
     private const string TemporaryPasswordPrefix = "Hyoung";
     private const string PasswordLetters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     private const string PasswordSpecialCharacters = "!@#$%^&*";
+    private const string DevelopmentEnvironmentName = "Development";
 
     private readonly IConfiguration _configuration;
     private readonly GpsdataContext _context;
@@ -110,6 +111,11 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
             if (request.RequireEmailConfirmation && !request.SendOnboardingEmail)
             {
                 validationErrors.Add("Email confirmation cannot be required when onboarding email is disabled.");
+            }
+
+            if (request.RequireEmailConfirmation && IsDevelopmentEnvironment())
+            {
+                validationErrors.Add("Email-confirmed user creation is disabled in Development. Create the user from production so the confirmation email uses the production URL.");
             }
 
             // Validate DepartmentId if provided
@@ -256,13 +262,23 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
         return $@"
 <div style=""font-family:Segoe UI, Arial, sans-serif; color:#201f1e; line-height:1.6;"">
     <p>Hello {safeName},</p>
-    <p>Your Hyoung FMS account has been created. Use the temporary password below{(string.IsNullOrWhiteSpace(confirmationLink) ? string.Empty : ", then confirm your email before signing in") }.</p>
+    <p>Your Hyoung FMS account has been created. Use the temporary password below{(string.IsNullOrWhiteSpace(confirmationLink) ? string.Empty : ", then confirm your email before signing in")}.</p>
     <p><strong>Username:</strong> {safeUserName}<br />
          <strong>Temporary password:</strong> {safePassword}</p>
     {confirmationSection}
     {passwordChangeSection}
     <p>If you did not expect this account, please contact your administrator.</p>
 </div>";
+    }
+
+    private bool IsDevelopmentEnvironment()
+    {
+        var environmentName = _configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? _configuration["DOTNET_ENVIRONMENT"]
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        return string.Equals(environmentName, DevelopmentEnvironmentName, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GenerateTemporaryPassword()

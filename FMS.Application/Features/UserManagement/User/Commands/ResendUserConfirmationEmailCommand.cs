@@ -29,6 +29,8 @@ public record ResendUserConfirmationEmailCommand(string UserId) : IRequest<FMSRe
 
 public class ResendUserConfirmationEmailCommandHandler : IRequestHandler<ResendUserConfirmationEmailCommand, FMSResponse<bool>>
 {
+    private const string DevelopmentEnvironmentName = "Development";
+
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
     private readonly ILogger<ResendUserConfirmationEmailCommandHandler> _logger;
@@ -70,6 +72,11 @@ public class ResendUserConfirmationEmailCommandHandler : IRequestHandler<ResendU
             if (string.IsNullOrWhiteSpace(normalizedEmail))
             {
                 return FMSResponse<bool>.ValidationFailed(new List<string> { "This user does not have an email address." });
+            }
+
+            if (IsDevelopmentEnvironment())
+            {
+                return FMSResponse<bool>.ValidationFailed(new List<string> { "Resending confirmation emails is disabled in Development. Use production so the confirmation email uses the production URL." });
             }
 
             var confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -123,5 +130,15 @@ public class ResendUserConfirmationEmailCommandHandler : IRequestHandler<ResendU
     <p><a href=""{safeLink}"">Confirm your email address</a></p>
     <p>If you did not expect this account, please contact your administrator.</p>
 </div>";
+    }
+
+    private bool IsDevelopmentEnvironment()
+    {
+        var environmentName = _configuration["ASPNETCORE_ENVIRONMENT"]
+            ?? _configuration["DOTNET_ENVIRONMENT"]
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+
+        return string.Equals(environmentName, DevelopmentEnvironmentName, StringComparison.OrdinalIgnoreCase);
     }
 }
