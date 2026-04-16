@@ -151,6 +151,24 @@ const normalizeText = (value, fallback = '-') => {
     return cleaned || fallback;
 };
 
+const formatWarningLetterTypeName = (value) => {
+    const normalized = normalizeText(value, 'Unknown');
+
+    switch (normalized.toLowerCase()) {
+        case 'excessfuelconsumption':
+        case 'excess fuel consumption':
+            return 'Excess Fuel';
+        case 'excessivespeed':
+        case 'excessive speed':
+            return 'Excessive Speed';
+        case 'excessiveidling':
+        case 'excessive idling':
+            return 'Excessive Idling';
+        default:
+            return normalized.replace(/([a-z])([A-Z])/g, '$1 $2');
+    }
+};
+
 const findRecordCollection = (input) => {
     if (Array.isArray(input)) {
         return { records: input, container: null };
@@ -1858,6 +1876,187 @@ const mapVehicleDocumentCompliance = (rawRecords) => {
     };
 };
 
+const mapWarningLetterAnalytics = (rawRecords, container) => {
+    const rawAnalytics = container?.analytics || container?.Analytics || {};
+
+    const mapped = rawRecords.map((record, index) => ({
+        rowNumber: index + 1,
+        letterTypeName: formatWarningLetterTypeName(getValue(record, ['letterTypeName'])),
+        employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
+        vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
+        numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
+        vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
+        siteName: normalizeText(getValue(record, ['siteName']), '-'),
+        letterDate: formatDate(getValue(record, ['letterDate'])),
+        letterDateFormatted: formatDate(getValue(record, ['letterDate'])),
+        periodStart: formatDate(getValue(record, ['periodStart'])),
+        periodEnd: formatDate(getValue(record, ['periodEnd'])),
+        workflowStageName: normalizeText(getValue(record, ['workflowStageName']), '-'),
+        excessCost: numberOrZero(getValue(record, ['excessCost'])),
+        excessCostFormatted: formatNumber(numberOrZero(getValue(record, ['excessCost']))),
+        excessValue: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
+        expectedValue: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
+        actualValue: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
+        violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
+    }));
+
+    const stageBreakdown = (rawAnalytics.stageBreakdown || rawAnalytics.StageBreakdown || []).map((item) => ({
+        stage: normalizeText(getValue(item, ['stage']), '-'),
+        count: numberOrZero(getValue(item, ['count'])),
+    }));
+
+    const letterTypeBreakdown = (rawAnalytics.letterTypeBreakdown || rawAnalytics.LetterTypeBreakdown || []).map((item) => ({
+        letterType: formatWarningLetterTypeName(getValue(item, ['letterType'])),
+        count: numberOrZero(getValue(item, ['count'])),
+    }));
+
+    const monthlyTrend = (rawAnalytics.monthlyTrend || rawAnalytics.MonthlyTrend || []).map((item) => ({
+        month: normalizeText(getValue(item, ['month']), '-'),
+        count: numberOrZero(getValue(item, ['count'])),
+    }));
+
+    const deductionBySite = (rawAnalytics.deductionBySite || rawAnalytics.DeductionBySite || []).map((item) => ({
+        name: normalizeText(getValue(item, ['name']), '-'),
+        totalExcessCost: numberOrZero(getValue(item, ['totalExcessCost'])),
+        totalExcessCostFormatted: formatNumber(numberOrZero(getValue(item, ['totalExcessCost']))),
+    }));
+
+    const deductionByVehicleType = (rawAnalytics.deductionByVehicleType || rawAnalytics.DeductionByVehicleType || []).map((item) => ({
+        name: normalizeText(getValue(item, ['name']), '-'),
+        totalExcessCost: numberOrZero(getValue(item, ['totalExcessCost'])),
+        totalExcessCostFormatted: formatNumber(numberOrZero(getValue(item, ['totalExcessCost']))),
+    }));
+
+    const averageDaysBetweenStages = (rawAnalytics.averageDaysBetweenStages || rawAnalytics.AverageDaysBetweenStages || []).map((item) => ({
+        transition: normalizeText(getValue(item, ['transition']), '-'),
+        averageDays: roundTo(numberOrZero(getValue(item, ['averageDays'])), 1),
+    }));
+
+    const employeeRankingBase = (rawAnalytics.employeeRanking || rawAnalytics.EmployeeRanking || []).map((item) => ({
+        employeeName: normalizeText(getValue(item, ['employeeName']), '-'),
+        warningCount: numberOrZero(getValue(item, ['warningCount'])),
+        totalDeduction: numberOrZero(getValue(item, ['totalDeduction'])),
+        totalDeductionFormatted: formatNumber(numberOrZero(getValue(item, ['totalDeduction']))),
+    }));
+
+    const maxWarningCount = employeeRankingBase.reduce((max, item) => Math.max(max, item.warningCount), 0) || 1;
+    const employeeRanking = employeeRankingBase.map((item) => ({
+        ...item,
+        widthPercent: Math.max(8, Math.round((item.warningCount / maxWarningCount) * 100)),
+    }));
+
+    const lastWarningByEmployee = (rawAnalytics.lastWarningByEmployee || rawAnalytics.LastWarningByEmployee || []).map((item) => ({
+        employeeName: normalizeText(getValue(item, ['employeeName']), '-'),
+        lastLetterDate: formatDate(getValue(item, ['lastLetterDate'])),
+        lastLetterDateFormatted: formatDate(getValue(item, ['lastLetterDate'])),
+        letterType: formatWarningLetterTypeName(getValue(item, ['letterType'])),
+    }));
+
+    const employeeWithMostWarningsRaw = rawAnalytics.employeeWithMostWarnings || rawAnalytics.EmployeeWithMostWarnings || null;
+    const employeeWithMostWarnings = employeeWithMostWarningsRaw
+        ? {
+            employeeName: normalizeText(getValue(employeeWithMostWarningsRaw, ['employeeName']), '-'),
+            count: numberOrZero(getValue(employeeWithMostWarningsRaw, ['count'])),
+        }
+        : { employeeName: '-', count: 0 };
+
+    const analytics = {
+        totalLetters: numberOrZero(rawAnalytics.totalLetters) || mapped.length,
+        totalDeductions: numberOrZero(rawAnalytics.totalDeductions),
+        totalDeductionsFormatted: formatNumber(numberOrZero(rawAnalytics.totalDeductions)),
+        avgDaysToAcknowledge: roundTo(numberOrZero(rawAnalytics.avgDaysToAcknowledge), 1),
+        uniqueEmployees: numberOrZero(rawAnalytics.uniqueEmployees),
+        stageBreakdown,
+        letterTypeBreakdown,
+        monthlyTrend,
+        deductionBySite,
+        deductionByVehicleType,
+        averageDaysBetweenStages,
+        employeeRanking,
+        employeeWithMostWarnings,
+        lastWarningByEmployee,
+    };
+
+    const chartData = {
+        stageBreakdown: {
+            labels: stageBreakdown.map((item) => item.stage),
+            data: stageBreakdown.map((item) => item.count),
+        },
+        letterTypeBreakdown: {
+            labels: letterTypeBreakdown.map((item) => item.letterType),
+            data: letterTypeBreakdown.map((item) => item.count),
+        },
+        monthlyTrend: {
+            labels: monthlyTrend.map((item) => item.month),
+            data: monthlyTrend.map((item) => item.count),
+        },
+        deductionBySite: {
+            labels: deductionBySite.map((item) => item.name),
+            data: deductionBySite.map((item) => item.totalExcessCost),
+        },
+        deductionByVehicleType: {
+            labels: deductionByVehicleType.map((item) => item.name),
+            data: deductionByVehicleType.map((item) => item.totalExcessCost),
+        },
+    };
+
+    return {
+        records: mapped,
+        analyticsJson: JSON.stringify(chartData),
+        analytics,
+        summary: {
+            totalRecords: mapped.length,
+            totalLetters: numberOrZero(analytics.totalLetters) || mapped.length,
+            totalDeductions: formatNumber(numberOrZero(analytics.totalDeductions)),
+            avgDaysToAcknowledge: roundTo(numberOrZero(analytics.avgDaysToAcknowledge), 1),
+            uniqueEmployees: numberOrZero(analytics.uniqueEmployees),
+        },
+    };
+};
+
+const mapWarningLetterCandidates = (rawRecords, container) => {
+    const summary = container?.summary || container?.Summary || {};
+
+    const mapped = rawRecords.map((record, index) => ({
+        rowNumber: index + 1,
+        rowNum: index + 1,
+        letterTypeName: formatWarningLetterTypeName(getValue(record, ['letterTypeName'])),
+        metricDate: normalizeText(getValue(record, ['metricDate']), '-'),
+        period: normalizeText(getValue(record, ['period']), '-'),
+        siteName: normalizeText(getValue(record, ['siteName']), '-'),
+        vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
+        numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
+        vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
+        employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
+        expectedValue: numberOrZero(getValue(record, ['expectedValue'])),
+        actualValue: numberOrZero(getValue(record, ['actualValue'])),
+        excessValue: numberOrZero(getValue(record, ['excessValue'])),
+        expectedFormatted: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
+        actualFormatted: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
+        excessFormatted: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
+        fuelPrice: getValue(record, ['fuelPrice']),
+        excessCost: getValue(record, ['excessCost']),
+        fuelPriceFormatted: getValue(record, ['fuelPrice']) != null ? formatNumber(numberOrZero(getValue(record, ['fuelPrice']))) : '-',
+        excessCostFormatted: getValue(record, ['excessCost']) != null ? formatNumber(numberOrZero(getValue(record, ['excessCost']))) : '-',
+        violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
+        hasExistingLetter: Boolean(getValue(record, ['hasExistingLetter'])),
+    }));
+
+    return {
+        records: mapped,
+        summary: {
+            totalRecords: mapped.length,
+            totalCandidates: numberOrZero(summary.totalCandidates) || mapped.length,
+            excessFuelCount: numberOrZero(summary.excessFuelCount),
+            excessiveSpeedCount: numberOrZero(summary.excessiveSpeedCount),
+            excessiveIdlingCount: numberOrZero(summary.excessiveIdlingCount),
+            uniqueSites: numberOrZero(summary.uniqueSites),
+            uniqueVehicles: numberOrZero(summary.uniqueVehicles),
+            uniqueEmployees: numberOrZero(summary.uniqueEmployees),
+        },
+    };
+};
+
 const transformBySource = (sourceId, rawRecords, container, queryParams) => {
     switch (sourceId) {
         case 'fuel-refill':
@@ -1890,6 +2089,10 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
             return mapVehicleTripAnalysis(rawRecords, queryParams);
         case 'live-trip-operations':
             return mapLiveTripOperations(container || rawRecords, container, queryParams);
+        case 'warning-letter-analytics':
+            return mapWarningLetterAnalytics(rawRecords, container);
+        case 'warning-letter-candidates':
+            return mapWarningLetterCandidates(rawRecords, container);
         default:
             return {
                 records: mapDefaultRecords(rawRecords),

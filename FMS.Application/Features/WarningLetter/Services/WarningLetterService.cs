@@ -506,7 +506,8 @@ public class WarningLetterService : IWarningLetterService
         var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
         var relativePath = await SaveUploadedDocumentToDiskAsync(warningLetterId.ToString(), storedFileName, file, cancellationToken);
 
-        bundle.WarningLetter.SignedCopyFileName = Path.GetFileName(file.FileName);
+        var signedCopyReferenceFileName = $"{BuildReferenceNumber(bundle.WarningLetter)}-SignedCopy{extension.ToLowerInvariant()}";
+        bundle.WarningLetter.SignedCopyFileName = signedCopyReferenceFileName;
         bundle.WarningLetter.SignedCopyStoredFileName = storedFileName;
         bundle.WarningLetter.SignedCopyFilePath = relativePath;
         bundle.WarningLetter.SignedCopyContentType = string.IsNullOrWhiteSpace(file.ContentType) ? ResolveImageMimeType(extension) : file.ContentType;
@@ -569,7 +570,8 @@ public class WarningLetterService : IWarningLetterService
         var storedFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
         var relativePath = await SaveUploadedDocumentToDiskAsync(Path.Combine(ApproveLetterFolder, warningLetterId.ToString()), storedFileName, file, cancellationToken);
 
-        bundle.WarningLetter.ApproveLetterFileName = Path.GetFileName(file.FileName);
+        var approveLetterReferenceFileName = $"{BuildReferenceNumber(bundle.WarningLetter)}-ApproveLetter{extension.ToLowerInvariant()}";
+        bundle.WarningLetter.ApproveLetterFileName = approveLetterReferenceFileName;
         bundle.WarningLetter.ApproveLetterStoredFileName = storedFileName;
         bundle.WarningLetter.ApproveLetterFilePath = relativePath;
         bundle.WarningLetter.ApproveLetterContentType = string.IsNullOrWhiteSpace(file.ContentType) ? ResolveImageMimeType(extension) : file.ContentType;

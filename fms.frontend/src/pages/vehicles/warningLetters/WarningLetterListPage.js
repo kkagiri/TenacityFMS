@@ -10,6 +10,7 @@ import DataGrid, {
     SearchPanel,
     HeaderFilter,
     FilterRow,
+    Export,
     Paging,
     Pager,
     LoadPanel,
@@ -324,6 +325,8 @@ const WarningLetterListPage = () => {
     const renderDate = ({ value }) =>
         value ? new Date(value).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-";
 
+    const renderCreatedBy = ({ data }) => data?.createdByName || data?.createdBy || "-";
+
     const renderActions = ({ data }) => (
         <div className="warning-letter-list__actions">
             <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/preview`)}>
@@ -540,6 +543,7 @@ const WarningLetterListPage = () => {
                     noDataText="No warning letters found"
                 >
                     <LoadPanel enabled={loading} />
+                    <Export enabled={true} fileName={`warning-letters-${new Date().toISOString().split("T")[0]}`} />
                     <SearchPanel visible={true} width={240} placeholder="Search warning letters" />
                     <HeaderFilter visible={true} />
                     <FilterRow visible={true} />
@@ -554,8 +558,8 @@ const WarningLetterListPage = () => {
                     <Column dataField="employeeName" caption="Employee" minWidth={180} />
                     <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
                     <Column dataField="siteName" caption="Site" minWidth={160} />
+                    <Column caption="Created By" minWidth={180} cellRender={renderCreatedBy} />
                     <Column dataField="workflowStage" caption="Stage" cellRender={renderStatus} width={150} />
-                    <Column dataField="emailRecipient" caption="Recipient" minWidth={220} />
                     <Column dataField="signatureRequestRecipient" caption="Site Representative" minWidth={180} />
                     <Column dataField="approveLetterUploadedAt" caption="Approved At" cellRender={renderDate} width={120} />
                     <Column dataField="signatureRequestedAt" caption="Sent At" cellRender={renderDate} width={120} />

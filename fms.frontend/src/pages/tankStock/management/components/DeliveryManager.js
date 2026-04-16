@@ -263,23 +263,24 @@ const DeliveryManager = () => {
     if (selectedSiteIds && selectedSiteIds.length > 1) {
       const tankIdsForSites = tanks
         .filter((t) => selectedSiteIds.includes(t.siteId))
-        .map((t) => t.tankId);
+        .map((t) => t.id ?? t.tankId)
+        .filter((tankId) => tankId != null);
       filtered = filtered.filter((d) => tankIdsForSites.includes(d.tankId));
     }
 
     // Enrich with lookup data
     return filtered.map((delivery) => {
-      const tank = tanks.find((t) => t.tankId === delivery.tankId);
+      const tank = tanks.find((t) => (t.id ?? t.tankId) === delivery.tankId);
       const site = tank ? sites.find((s) => s.id === tank.siteId) : null;
       const supplier = suppliers.find((s) => s.id === delivery.supplierId);
 
       return {
         ...delivery,
-        tankName: tank?.tankNumber || `Tank ${delivery.tankId}`,
-        siteName: site?.siteName || 'Unknown',
+        tankName: tank?.name || tank?.tankNumber || `Tank ${delivery.tankId}`,
+        siteName: site?.name || site?.siteName || 'Unknown',
         siteId: tank?.siteId,
         supplierName: supplier?.name || 'Unknown',
-        product: tank?.product || delivery.product,
+        product: tank?.fuelGradeName || tank?.product || delivery.product,
       };
     });
   }, [deliveries, tanks, sites, suppliers, selectedTankIds, selectedSiteIds]);
@@ -302,7 +303,6 @@ const DeliveryManager = () => {
             onClick={() => handleDeleteDelivery(data.data.id)}
             hint="Delete delivery"
             stylingMode="text"
-            type="danger"
           />
         )}
       </div>

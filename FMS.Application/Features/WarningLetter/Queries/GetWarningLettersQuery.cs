@@ -131,6 +131,7 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
                 SignatureRequestedAt = w.SignatureRequestedAt,
                 SignedCopyUploadedAt = w.SignedCopyUploadedAt,
                 EmployeeAcknowledgedAt = w.EmployeeAcknowledgedAt,
+                CreatedByName = w.CreatedByNavigation.UserName,
                 CreatedBy = w.CreatedBy
             })
             .ToListAsync(cancellationToken);

@@ -10,6 +10,7 @@ namespace FMS.Application.Dtos.UserManagement
         public string? LastName { get; set; }
         public string? UserName { get; set; }
         public string? Email { get; set; }
+        public bool EmailConfirmed { get; set; }
         public bool IsDeleted { get; set; }
         public string? PhoneNumber { get; set; }
         public int MasterRFIDTag { get; set; }

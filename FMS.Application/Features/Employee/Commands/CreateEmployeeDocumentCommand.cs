@@ -11,6 +11,7 @@ using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.Employee.DTOs;
+using FMS.Application.Features.Employee.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -44,6 +45,8 @@ public class CreateEmployeeDocumentCommandHandler : IRequestHandler<CreateEmploy
     {
         try
         {
+            await EmployeeDocumentSchemaGuard.EnsureTableExistsAsync(_context, _logger, cancellationToken);
+
             var dto = request.CreateEmployeeDocumentDto;
             var employee = await _context.Employees
                 .FirstOrDefaultAsync(item => item.Id == dto.EmployeeId, cancellationToken);

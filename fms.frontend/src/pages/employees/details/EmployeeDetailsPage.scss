@@ -183,6 +183,47 @@
   gap: 12px;
 }
 
+.employee-warning-letters {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__toolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--m365-text-secondary);
+  }
+
+  &__toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .edp-header-card {
@@ -213,5 +254,16 @@
 
   .employee-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .employee-warning-letters {
+    &__toolbar {
+      flex-direction: column;
+    }
+
+    &__toolbar-actions,
+    &__actions {
+      width: 100%;
+    }
   }
 }

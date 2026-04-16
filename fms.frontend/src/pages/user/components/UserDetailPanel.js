@@ -22,6 +22,7 @@ import {
     fetchAllSites,
     fetchUserSites,
     updateUserSites,
+    resendUserConfirmationEmail,
 } from '../../../redux/actions/userActions';
 import UserAvatar from './UserAvatar';
 import UserStatusBadge from './UserStatusBadge';
@@ -58,6 +59,7 @@ const UserDetailPanel = ({
     const [editMode, setEditMode] = useState(false);
     const [editValues, setEditValues] = useState({});
     const [saving, setSaving] = useState(false);
+    const [resendingConfirmation, setResendingConfirmation] = useState(false);
 
     // Activities
     const [activities, setActivities] = useState([]);
@@ -146,6 +148,7 @@ const UserDetailPanel = ({
         : 'User';
     const userEmail = user?.email || user?.Email || '';
     const isActive = user ? !user.isDeleted : true;
+    const isEmailConfirmed = (user?.emailConfirmed ?? user?.EmailConfirmed) === true;
 
     // ── Action handlers ───────────────────────────────────────────────────
     const handleToggleActive = useCallback(async () => {
@@ -170,6 +173,20 @@ const UserDetailPanel = ({
     const handleDelete = useCallback(() => {
         notify('Use deactivate to disable user access', 'info', 3000);
     }, []);
+
+    const handleResendConfirmationEmail = useCallback(async () => {
+        if (!userId || !userEmail || isEmailConfirmed) return;
+
+        setResendingConfirmation(true);
+        try {
+            const response = await dispatch(resendUserConfirmationEmail(userId));
+            notify(response?.message || 'Confirmation email sent successfully', 'success', 3000);
+        } catch (err) {
+            notify(err.message || 'Failed to resend confirmation email', 'error', 3000);
+        } finally {
+            setResendingConfirmation(false);
+        }
+    }, [dispatch, isEmailConfirmed, userEmail, userId]);
 
     // ── Edit mode ─────────────────────────────────────────────────────────
     const startEdit = useCallback(() => {
@@ -330,6 +347,32 @@ const UserDetailPanel = ({
                 <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Email</span>
                     <span className="m365-info-cell__value">{userEmail || '—'}</span>
+                </div>
+                <div className="m365-info-cell user-detail-info-cell">
+                    <span className="m365-info-cell__label">Email confirmation</span>
+                    <span className="m365-info-cell__value">
+                        {userEmail ? (
+                            isEmailConfirmed ? (
+                                <span style={{ color: 'var(--m365-success)' }}>
+                                    <i className="fa-light fa-circle-check" style={{ marginRight: 4 }} />Confirmed
+                                </span>
+                            ) : (
+                                <span style={{ color: 'var(--m365-warning)' }}>
+                                    <i className="fa-light fa-clock" style={{ marginRight: 4 }} />Pending confirmation
+                                </span>
+                            )
+                        ) : 'No email set'}
+                    </span>
+                    {!isEmailConfirmed && !!userEmail && canManage && (
+                        <button
+                            className="m365-info-cell__link"
+                            onClick={handleResendConfirmationEmail}
+                            disabled={resendingConfirmation}
+                            type="button"
+                        >
+                            {resendingConfirmation ? 'Sending confirmation...' : 'Resend confirmation email'}
+                        </button>
+                    )}
                 </div>
                 <div className="m365-info-cell user-detail-info-cell">
                     <span className="m365-info-cell__label">Phone</span>

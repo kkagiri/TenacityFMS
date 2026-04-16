@@ -40,6 +40,7 @@ public class GetEmployeePositionsQueryHandler(GpsdataContext context) : IRequest
                 Description = position.Description ?? string.Empty,
                 SortOrder = position.SortOrder,
                 IsActive = position.IsActive,
+                AssignedEmployeeCount = context.Employees.Count(employee => employee.Position == position.Name),
             })
             .ToListAsync(cancellationToken);
     }

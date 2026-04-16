@@ -9,7 +9,7 @@
  * - ReportParameterForm: Renders parameter controls from source definition
  */
 
-import React, { useMemo, useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useCallback, useEffect, useState, useRef, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DateBox } from 'devextreme-react/date-box';
 import { TagBox } from 'devextreme-react/tag-box';
@@ -24,6 +24,8 @@ import { fetchPTSDeviceList } from '../../../redux/actions/ptsActions/ptsDeviceA
 import { fetchSuppliers } from '../../../redux/actions/SupplierActions';
 import { fetchIssueCategories, fetchIssueStatuses } from '../../../redux/actions/issueTrackerActions';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import { quickSearchVehicles } from '../../../redux/actions/vehicleSearchActions';
+import { quickSearchEmployees } from '../../../redux/actions/employeeActions';
 
 const LIGHT_VEHICLE_TYPE_NAMES = new Set([
     'STAFF BUS',
@@ -39,6 +41,116 @@ const normalizeVehicleTypeName = (value) => String(value || '')
     .trim()
     .toUpperCase()
     .replace(/\s+/g, ' ');
+
+const SEARCHABLE_LOOKUP_SOURCES = new Set(['searchableVehicles', 'searchableEmployees']);
+
+const normalizeSearchableVehicleResults = (items) => {
+    const raw = Array.isArray(items)
+        ? items
+        : Array.isArray(items?.data)
+            ? items.data
+            : Array.isArray(items?.Data)
+                ? items.Data
+                : [];
+
+    return raw
+        .map((vehicle) => ({
+            id: vehicle.vehicleId || vehicle.id,
+            name: vehicle.hyoungNo || vehicle.vehicleName || vehicle.name || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId || vehicle.id}`,
+        }))
+        .filter((vehicle) => vehicle.id);
+};
+
+const normalizeSearchableEmployeeResults = (items) => {
+    const raw = Array.isArray(items)
+        ? items
+        : Array.isArray(items?.data)
+            ? items.data
+            : Array.isArray(items?.Data)
+                ? items.Data
+                : [];
+
+    return raw
+        .map((employee) => ({
+            id: employee.employeeId || employee.id,
+            name: employee.fullName || employee.name || employee.employeeName || employee.userName || `Employee ${employee.employeeId || employee.id}`,
+        }))
+        .filter((employee) => employee.id);
+};
+
+const mergeLookupItems = (items, preservedItems = []) => {
+    const merged = [...preservedItems, ...items];
+    const seen = new Set();
+
+    return merged.filter((item) => {
+        const id = item?.id;
+        if (!id || seen.has(id)) {
+            return false;
+        }
+
+        seen.add(id);
+        return true;
+    });
+};
+
+/**
+ * Isolated searchable TagBox component — owns its own search/data state
+ * so that search results don't cause the parent form to re-render.
+ */
+const SearchableTagBox = memo(({ param, value, onChange }) => {
+    const [items, setItems] = useState([]);
+    const itemsRef = useRef(items);
+    itemsRef.current = items;
+
+    const selectedValues = Array.isArray(value)
+        ? value
+        : (value !== null && value !== undefined && value !== '' ? [value] : []);
+
+    const handleSearch = useCallback(async (e) => {
+        const term = e?.event?.target?.value || '';
+        const currentItems = itemsRef.current;
+        const preserved = currentItems.filter((item) => selectedValues.includes(item.id));
+
+        if (!term || term.trim().length < 2) {
+            setItems(preserved);
+            return;
+        }
+
+        try {
+            if (param.lookupSource === 'searchableVehicles') {
+                const result = await quickSearchVehicles(term.trim(), 50);
+                setItems(mergeLookupItems(normalizeSearchableVehicleResults(result?.data || result), preserved));
+            } else if (param.lookupSource === 'searchableEmployees') {
+                const result = await quickSearchEmployees(term.trim(), 50);
+                setItems(mergeLookupItems(normalizeSearchableEmployeeResults(result?.data || result), preserved));
+            }
+        } catch {
+            setItems(preserved);
+        }
+    }, [param.lookupSource, selectedValues]);
+
+    return (
+        <TagBox
+            value={selectedValues}
+            dataSource={items}
+            valueExpr="id"
+            displayExpr="name"
+            onValueChanged={(e) => onChange(param.key, e.value)}
+            placeholder={param.placeholder || 'Type at least 2 characters to search...'}
+            showClearButton={!param.required}
+            searchEnabled={true}
+            searchTimeout={300}
+            minSearchLength={2}
+            showSelectionControls={false}
+            applyValueMode="instantly"
+            hideSelectedItems={false}
+            multiline={true}
+            maxDisplayedTags={3}
+            noDataText="Type at least 2 characters to search"
+            onInput={handleSearch}
+        />
+    );
+});
 
 /**
  * Maps lookupSource keys to Redux state selectors and dispatch actions.
@@ -208,7 +320,7 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
     const neededLookups = useMemo(() => {
         const set = new Set();
         effectiveParameters.forEach((p) => {
-            if (p.type === 'lookup' && p.lookupSource) {
+            if (p.type === 'lookup' && p.lookupSource && !SEARCHABLE_LOOKUP_SOURCES.has(p.lookupSource)) {
                 set.add(p.lookupSource);
             }
         });
@@ -274,11 +386,16 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
 
     const handleChange = useCallback(
         (key, value) => {
+            const param = effectiveParameters.find((item) => item.key === key);
+            const normalizedValue = param?.multiSelect === false && Array.isArray(value)
+                ? (value[0] ?? null)
+                : value;
+
             if (onFilterChange) {
-                onFilterChange(key, value);
+                onFilterChange(key, normalizedValue);
             }
         },
-        [onFilterChange]
+        [effectiveParameters, onFilterChange]
     );
 
     /**
@@ -320,6 +437,16 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                     );
 
                 case 'lookup': {
+                    if (SEARCHABLE_LOOKUP_SOURCES.has(param.lookupSource)) {
+                        return (
+                            <SearchableTagBox
+                                param={param}
+                                value={value}
+                                onChange={handleChange}
+                            />
+                        );
+                    }
+
                     const data = getFilteredLookupData(param);
 
                     if (param.multiSelect === false) {
@@ -357,18 +484,24 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                 }
 
                 case 'select':
-                    return (
-                        <SelectBox
-                            value={value !== undefined ? value : null}
-                            dataSource={param.options || []}
-                            valueExpr={param.valueExpr || 'id'}
-                            displayExpr={param.displayExpr || 'name'}
-                            onValueChanged={(e) => handleChange(param.key, e.value)}
-                            placeholder={param.placeholder || 'Select...'}
-                            showClearButton={!param.required}
-                            searchEnabled={false}
-                        />
-                    );
+                    {
+                        const options = param.options || [];
+                        const inferredValueExpr = param.valueExpr || (options.some((item) => Object.prototype.hasOwnProperty.call(item, 'value')) ? 'value' : 'id');
+                        const inferredDisplayExpr = param.displayExpr || (options.some((item) => Object.prototype.hasOwnProperty.call(item, 'label')) ? 'label' : 'name');
+
+                        return (
+                            <SelectBox
+                                value={value !== undefined ? value : null}
+                                dataSource={options}
+                                valueExpr={inferredValueExpr}
+                                displayExpr={inferredDisplayExpr}
+                                onValueChanged={(e) => handleChange(param.key, e.value)}
+                                placeholder={param.placeholder || 'Select...'}
+                                showClearButton={!param.required}
+                                searchEnabled={false}
+                            />
+                        );
+                    }
 
                 case 'number':
                     return (

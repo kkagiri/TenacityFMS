@@ -9,12 +9,14 @@
  * - ImportManagementPage: Full page with header, tabs, filters, file list, detail panel
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import SlidePanel from "../../../components/ui/SlidePanel";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { getFileTrackerRows } from "../../../api/importManagementApi";
 import useImportManagement from "./hooks/useImportManagement";
 import ImportFileDetailPanel from "./ImportFileDetailPanel";
 import AutoImportSettingsPanel from "./AutoImportSettingsPanel";
+import ImportFileRowsPopup from "./ImportFileRowsPopup";
 import "./_ImportManagement.scss";
 
 // ── Status badge mapping ──
@@ -111,6 +113,13 @@ const ImportManagementPage = () => {
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [showOnDemandConfirm, setShowOnDemandConfirm] = useState(false);
     const [forceReprocess, setForceReprocess] = useState(false);
+    const [rowPopupFile, setRowPopupFile] = useState(null);
+    const [rowPopupViewMode, setRowPopupViewMode] = useState("imported");
+    const [rowPopupRows, setRowPopupRows] = useState([]);
+    const [rowPopupLoading, setRowPopupLoading] = useState(false);
+    const [rowPopupError, setRowPopupError] = useState(null);
+    const [rowPopupNote, setRowPopupNote] = useState("");
+    const [rowPopupTotalCount, setRowPopupTotalCount] = useState(0);
     const { hasPermission } = usePermissions();
     const canManageImport = hasPermission("_Manage_FuelImport");
 
@@ -139,6 +148,65 @@ const ImportManagementPage = () => {
             console.warn("On-demand test failed:", result.message);
         }
     }, [handleOnDemandTest, forceReprocess]);
+
+    const loadFileRows = useCallback(async (fileId, viewMode) => {
+        setRowPopupLoading(true);
+        setRowPopupError(null);
+
+        try {
+            const response = await getFileTrackerRows(fileId, { viewMode });
+            if (response?.isSuccess) {
+                const data = response.data || {};
+                setRowPopupRows(data.rows || []);
+                setRowPopupNote(data.note || "");
+                setRowPopupTotalCount(data.totalCount || 0);
+                return;
+            }
+
+            setRowPopupRows([]);
+            setRowPopupNote("");
+            setRowPopupTotalCount(0);
+            setRowPopupError(response?.message || "Failed to load row details.");
+        } catch (err) {
+            console.error("Error fetching file tracker rows:", err);
+            setRowPopupRows([]);
+            setRowPopupNote("");
+            setRowPopupTotalCount(0);
+            setRowPopupError(err.message || "Failed to load row details.");
+        } finally {
+            setRowPopupLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!rowPopupFile?.id) {
+            return;
+        }
+
+        loadFileRows(rowPopupFile.id, rowPopupViewMode);
+    }, [rowPopupFile, rowPopupViewMode, loadFileRows]);
+
+    const handleOpenRowsPopup = useCallback((file, event) => {
+        if (event) {
+            event.stopPropagation();
+        }
+
+        setRowPopupFile(file);
+        setRowPopupViewMode("imported");
+        setRowPopupRows([]);
+        setRowPopupError(null);
+        setRowPopupNote("");
+        setRowPopupTotalCount(0);
+    }, []);
+
+    const handleCloseRowsPopup = useCallback(() => {
+        setRowPopupFile(null);
+        setRowPopupRows([]);
+        setRowPopupError(null);
+        setRowPopupNote("");
+        setRowPopupTotalCount(0);
+        setRowPopupLoading(false);
+    }, []);
 
     // ── Tab count helper ──
     const getTabCount = (tabId) => {
@@ -311,7 +379,7 @@ const ImportManagementPage = () => {
                             {renderSortIcon(col.key)}
                         </div>
                     ))}
-                    <div className="import-mgmt__col-header" style={{ width: 60 }}>
+                    <div className="import-mgmt__col-header" style={{ width: 96 }}>
                         {/* Actions */}
                     </div>
                 </div>
@@ -370,7 +438,14 @@ const ImportManagementPage = () => {
                                         {formatDateShort(file.updatedAt)}
                                     </div>
                                     {/* Actions */}
-                                    <div className="import-mgmt__cell" style={{ width: 60, justifyContent: "center" }}>
+                                    <div className="import-mgmt__cell" style={{ width: 96, justifyContent: "center", gap: 6 }}>
+                                        <button
+                                            className="m365-icon-btn"
+                                            title="View imported data rows"
+                                            onClick={(e) => handleOpenRowsPopup(file, e)}
+                                        >
+                                            <i className="fa-light fa-table" />
+                                        </button>
                                         {file.canRetry && (
                                             <button
                                                 className="m365-icon-btn"
@@ -430,6 +505,18 @@ const ImportManagementPage = () => {
                     retrying={retryingId === selectedFile?.id}
                 />
             </SlidePanel>
+
+            <ImportFileRowsPopup
+                file={rowPopupFile}
+                viewMode={rowPopupViewMode}
+                onViewModeChange={setRowPopupViewMode}
+                rows={rowPopupRows}
+                loading={rowPopupLoading}
+                error={rowPopupError}
+                note={rowPopupNote}
+                totalCount={rowPopupTotalCount}
+                onHiding={handleCloseRowsPopup}
+            />
 
             {/* ── On-Demand Import Confirmation ── */}
             {showOnDemandConfirm && (

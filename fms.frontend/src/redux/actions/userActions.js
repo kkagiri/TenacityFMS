@@ -200,6 +200,22 @@ export const updateUser = (userId, userData) => async (dispatch) => {
     }
 };
 
+export const resendUserConfirmationEmail = (userId) => async () => {
+    try {
+        const response = await axiosInstance.post(`/user/${userId}/resend-confirmation-email`);
+        return response.data;
+    } catch (error) {
+        const message =
+            error?.response?.data?.message ||
+            (Array.isArray(error?.response?.data?.validationErrors) && error.response.data.validationErrors.length > 0
+                ? error.response.data.validationErrors.join('; ')
+                : null) ||
+            error?.message ||
+            'Error resending confirmation email';
+        throw new Error(message);
+    }
+};
+
 /**
  * Change the currently authenticated user's own password.
  * Calls PUT /api/v1/user/change-password — no admin permission required.

@@ -416,6 +416,36 @@ namespace FMS.WebClient.Controllers.Reporting
         }
 
         /// <summary>
+        /// Get row-level data for a tracked import file.
+        /// </summary>
+        [HttpGet("auto-import/files/{id}/rows")]
+        public async Task<IActionResult> GetFileTrackerRows(
+            int id,
+            [FromQuery] string viewMode = "imported")
+        {
+            try
+            {
+                var result = await _mediator.Send(new GetFileTrackerRowsQuery
+                {
+                    FileTrackerId = id,
+                    ViewMode = viewMode,
+                });
+
+                if (!result.IsSuccess)
+                {
+                    return NotFound(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching import rows for file tracker {Id}", id);
+                return StatusCode(500, FMSResponse<object>.Failed("Failed to fetch import rows."));
+            }
+        }
+
+        /// <summary>
         /// Clear (delete) file tracker log records. Excludes records with Processing status.
         /// </summary>
         [HttpDelete("auto-import/files")]

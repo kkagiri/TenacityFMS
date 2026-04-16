@@ -269,8 +269,12 @@ const ReportEngine = () => {
                 const dd = String(val.getDate()).padStart(2, '0');
                 params[paramName] = `${yyyy}-${mm}-${dd}`;
             } else if (Array.isArray(val)) {
-                // Keep arrays as-is — fetchReportData handles repeated key serialization
-                if (val.length > 0) {
+                if (p.multiSelect === false) {
+                    if (val.length > 0 && val[0] !== null && val[0] !== undefined && val[0] !== '') {
+                        params[paramName] = val[0];
+                    }
+                } else if (val.length > 0) {
+                    // Keep arrays as-is — fetchReportData handles repeated key serialization
                     params[paramName] = val;
                 }
                 // If empty array, don't send param (means "all")
@@ -393,6 +397,7 @@ const ReportEngine = () => {
         const useUnifiedBackendPath =
             activeSource?.id === 'tank-volume-history' ||
             activeSource?.id === 'transaction-history-summary' ||
+            activeSource?.id === 'warning-letter-candidates' ||
             activeSource?.id === 'monthly-fleet-report' ||
             activeSource?.id === 'weekly-fleet-report';
 

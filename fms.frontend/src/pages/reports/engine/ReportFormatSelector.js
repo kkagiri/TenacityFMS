@@ -11,8 +11,6 @@ import './ReportFormatSelector.scss';
 const FORMAT_OPTIONS = [
     { value: 'html', label: 'HTML', icon: 'fa-light fa-globe' },
     { value: 'pdf', label: 'PDF', icon: 'fa-light fa-file-pdf' },
-    { value: 'excel', label: 'Excel', icon: 'fa-light fa-file-excel' },
-    { value: 'csv', label: 'CSV', icon: 'fa-light fa-file-csv' },
 ];
 
 const ReportFormatSelector = ({ supportedFormats = [], selectedFormat, onFormatChange }) => {

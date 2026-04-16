@@ -21,6 +21,7 @@ import {
   fetctTankbySiteId,
 } from "../../../redux/actions/tankActions";
 import { createOpeningStock } from "../../../redux/actions/tankStockAction";
+import axiosInstance from "../../../api/axiosInstance";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
@@ -131,6 +132,8 @@ const OpeningStockForm = ({
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [backendError, setBackendError] = useState(null);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+  const [probeSnapshot, setProbeSnapshot] = useState(null);
+  const [isProbeSnapshotLoading, setIsProbeSnapshotLoading] = useState(false);
 
   const selectedTank = useMemo(
     () => tanksAvailable.find((tank) => tank.id === formData.tankId) || null,
@@ -148,14 +151,119 @@ const OpeningStockForm = ({
       .replace(/_/g, "-");
   }, [selectedTank?.probePhysicalStockUpdateSource]);
 
+  const isHistoricalSelectedDate = useMemo(() => {
+    if (!formData.date) {
+      return false;
+    }
+
+    const selectedDate = new Date(formData.date);
+    if (Number.isNaN(selectedDate.getTime())) {
+      return false;
+    }
+
+    const selectedDay = new Date(selectedDate);
+    const today = new Date();
+    selectedDay.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return selectedDay < today;
+  }, [formData.date]);
+
+  const displayedPhysicalStockValue = isHistoricalSelectedDate
+    ? probeSnapshot?.productVolume ?? null
+    : formData.physicalStockValue;
+
+  const displayedPhysicalStockTimestamp = isHistoricalSelectedDate
+    ? probeSnapshot?.dateTime ?? null
+    : selectedTank?.lastPhysicalStockUpdate ?? null;
+
+  const displayedPhysicalStockSource = isHistoricalSelectedDate
+    ? probeSnapshot?.source ?? null
+    : selectedTank?.physicalStockSource ?? null;
+
+  const displayedPhysicalStockLabel = isHistoricalSelectedDate
+    ? "Physical Stock Value Near Selected Time"
+    : "Current Physical Stock Value (Last Recorded)";
+
   const canUseLatestProbeReading = Boolean(
     selectedTank &&
     selectedTank.usePtsProbeReadings &&
     selectedTank.probeNumber &&
-    formData.physicalStockValue != null &&
+    displayedPhysicalStockValue != null &&
     (!normalizedProbePhysicalStockSource ||
       normalizedProbePhysicalStockSource === "upload-status")
   );
+
+  const loadHistoricalProbeSnapshot = useCallback(async () => {
+    if (
+      !selectedTank ||
+      !selectedTank.usePtsProbeReadings ||
+      !selectedTank.probeNumber ||
+      (normalizedProbePhysicalStockSource &&
+        normalizedProbePhysicalStockSource !== "upload-status") ||
+      !formData.date ||
+      !isHistoricalSelectedDate
+    ) {
+      setProbeSnapshot(null);
+      return;
+    }
+
+    const selectedDate = new Date(formData.date);
+    if (Number.isNaN(selectedDate.getTime())) {
+      setProbeSnapshot(null);
+      return;
+    }
+
+    const startDate = new Date(selectedDate);
+    startDate.setHours(0, 0, 0, 0);
+
+    setIsProbeSnapshotLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        "/tankstock/upload-status-readings/history",
+        {
+          params: {
+            tankId: selectedTank.id,
+            startDate: startDate.toISOString(),
+            endDate: selectedDate.toISOString(),
+          },
+        }
+      );
+
+      const payload = response.data?.data ?? response.data?.Data ?? [];
+      const readings = Array.isArray(payload) ? payload : [];
+      const latestReading = readings.length > 0 ? readings[readings.length - 1] : null;
+      const productVolume = latestReading?.productVolume ?? latestReading?.ProductVolume ?? null;
+
+      if (productVolume == null) {
+        setProbeSnapshot(null);
+        return;
+      }
+
+      setProbeSnapshot({
+        productVolume,
+        dateTime: latestReading?.dateTime ?? latestReading?.DateTime ?? null,
+        source: latestReading?.source ?? latestReading?.Source ?? "PTS UploadStatus",
+      });
+    } catch (error) {
+      console.error(
+        "OpeningStockForm - Error loading historical probe snapshot:",
+        error
+      );
+      setProbeSnapshot(null);
+    } finally {
+      setIsProbeSnapshotLoading(false);
+    }
+  }, [
+    formData.date,
+    isHistoricalSelectedDate,
+    normalizedProbePhysicalStockSource,
+    selectedTank,
+  ]);
+
+  useEffect(() => {
+    loadHistoricalProbeSnapshot();
+  }, [loadHistoricalProbeSnapshot]);
 
   // ✅ FIX #1: Load sites and tanks on mount
   useEffect(() => {
@@ -403,7 +511,7 @@ const OpeningStockForm = ({
   };
 
   const handleUseLatestProbeReading = useCallback(() => {
-    if (!canUseLatestProbeReading || formData.physicalStockValue == null) {
+    if (!canUseLatestProbeReading || displayedPhysicalStockValue == null) {
       showNotification(
         "No saved PTS probe reading is available for this tank.",
         "warning",
@@ -414,21 +522,21 @@ const OpeningStockForm = ({
 
     setFormData((prev) => ({
       ...prev,
-      amount: formData.physicalStockValue,
+      amount: displayedPhysicalStockValue,
     }));
     setValidationErrors((prev) => ({ ...prev, amount: null }));
     setBackendError(null);
 
     showNotification(
       `Loaded latest saved PTS probe volume: ${Number(
-        formData.physicalStockValue
+        displayedPhysicalStockValue
       ).toLocaleString()} L`,
       "success",
       3000
     );
   }, [
     canUseLatestProbeReading,
-    formData.physicalStockValue,
+    displayedPhysicalStockValue,
     showNotification,
   ]);
 
@@ -700,7 +808,7 @@ const OpeningStockForm = ({
             </div>
           )}
 
-        {loading && (
+        {(loading || isProbeSnapshotLoading) && (
           <div
             style={{
               display: "flex",
@@ -824,25 +932,25 @@ const OpeningStockForm = ({
             {formData.tankId && (
               <div className="m365-field">
                 <label className="m365-field__label">
-                  Current Physical Stock Value (Last Recorded)
+                  {displayedPhysicalStockLabel}
                 </label>
                 <div>
                   <div
                     className="m365-input"
                     style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
                   >
-                    {formData.physicalStockValue != null
-                      ? Number(formData.physicalStockValue).toLocaleString() +
+                    {displayedPhysicalStockValue != null
+                      ? Number(displayedPhysicalStockValue).toLocaleString() +
                       " L"
                       : "No physical reading available"}
                   </div>
-                  {selectedTank?.lastPhysicalStockUpdate && (
+                  {displayedPhysicalStockTimestamp && (
                     <div style={{ marginTop: 6, fontSize: 12, color: "#605e5c" }}>
                       Saved {new Date(
-                        selectedTank.lastPhysicalStockUpdate
+                        displayedPhysicalStockTimestamp
                       ).toLocaleString()}
-                      {selectedTank?.physicalStockSource
-                        ? ` via ${selectedTank.physicalStockSource}`
+                      {displayedPhysicalStockSource
+                        ? ` via ${displayedPhysicalStockSource}`
                         : ""}
                     </div>
                   )}
@@ -860,7 +968,9 @@ const OpeningStockForm = ({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, color: "#605e5c" }}>
               {selectedTank?.usePtsProbeReadings && selectedTank?.probeNumber
-                ? "You can load the latest saved calibrated volume from the tank's PTS probe reading."
+                ? isHistoricalSelectedDate
+                  ? "You can load the latest saved calibrated volume from UploadStatus history up to the selected date and time."
+                  : "You can load the latest saved calibrated volume from the tank's PTS probe reading."
                 : "Manual entry only until this tank is linked to a PTS probe."}
             </span>
             <button

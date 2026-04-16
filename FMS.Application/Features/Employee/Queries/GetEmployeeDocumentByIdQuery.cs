@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.Employee.DTOs;
+using FMS.Application.Features.Employee.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,8 @@ public class GetEmployeeDocumentByIdQueryHandler : IRequestHandler<GetEmployeeDo
 
     public async Task<FMSResponse<EmployeeDocumentDto>> Handle(GetEmployeeDocumentByIdQuery request, CancellationToken cancellationToken)
     {
+        await EmployeeDocumentSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken: cancellationToken);
+
         var document = await _context.EmployeeDocuments
             .AsNoTracking()
             .Include(item => item.Employee)

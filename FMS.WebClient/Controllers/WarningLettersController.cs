@@ -478,4 +478,56 @@ public class WarningLettersController : BaseApiController
 
         return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
     }
+
+    /// <summary>
+    /// Returns warning letter analytics report data with server-side aggregations.
+    /// </summary>
+    [HttpGet("report/data")]
+    public async Task<IActionResult> GetReportData(
+        [FromQuery] int? siteId,
+        [FromQuery] int[]? vehicleId,
+        [FromQuery] int? vehicleTypeId,
+        [FromQuery] int[]? employeeId,
+        [FromQuery] WarningLetterType? letterType,
+        [FromQuery] WarningLetterWorkflowStage? workflowStage,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var result = await _mediator.Send(new GetWarningLetterReportQuery
+        {
+            SiteId = siteId,
+            VehicleIds = vehicleId?.Where(id => id > 0).Distinct().ToList(),
+            VehicleTypeId = vehicleTypeId,
+            EmployeeIds = employeeId?.Where(id => id > 0).Distinct().ToList(),
+            LetterType = letterType,
+            WorkflowStage = workflowStage,
+            StartDate = startDate,
+            EndDate = endDate,
+        });
+        return StatusCode(result.StatusCode, result);
+    }
+
+    /// <summary>
+    /// Returns warning letter candidates (not generated) report data.
+    /// </summary>
+    [HttpGet("report/candidates-data")]
+    public async Task<IActionResult> GetCandidatesReportData(
+        [FromQuery] int? siteId,
+        [FromQuery] int[]? vehicleId,
+        [FromQuery] int? vehicleTypeId,
+        [FromQuery] int[]? employeeId,
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var result = await _mediator.Send(new GetWarningLetterCandidatesReportQuery
+        {
+            SiteId = siteId,
+            VehicleIds = vehicleId?.Where(id => id > 0).Distinct().ToList(),
+            VehicleTypeId = vehicleTypeId,
+            EmployeeIds = employeeId?.Where(id => id > 0).Distinct().ToList(),
+            StartDate = startDate,
+            EndDate = endDate,
+        });
+        return StatusCode(result.StatusCode, result);
+    }
 }

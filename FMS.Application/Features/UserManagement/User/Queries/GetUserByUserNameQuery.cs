@@ -47,8 +47,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                     Id = user.Id,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    UserName = user.UserName,
-                    Email = user.Email,
+                    UserName = user.UserName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
+                    EmailConfirmed = user.EmailConfirmed,
                     Roles = roles.ToList(),
                     MasterTag = masterTag?.Name ?? string.Empty
                 };
@@ -64,15 +65,16 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
 
 public class UserDto
 {
-    public string Id { get; set; }
+    public string? Id { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
-    public string UserName { get; set; }
-    public string Email { get; set; }
-    public List<string> Roles { get; set; }
-    public string MasterTag { get; set; }
+    public string? UserName { get; set; }
+    public string? Email { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public List<string> Roles { get; set; } = new();
+    public string MasterTag { get; set; } = string.Empty;
     public int? DepartmentId { get; set; }
-    public string DepartmentName { get; set; }
+    public string? DepartmentName { get; set; }
     public bool? IsDeleted { get; set; }
     public DateTime? LastLogin { get; set; }
 }

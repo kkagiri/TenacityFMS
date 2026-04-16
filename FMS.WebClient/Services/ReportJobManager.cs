@@ -1,4 +1,4 @@
-﻿/**
+/**
  * File: ReportJobManager.cs
  * Purpose: In-memory manager for async report generation jobs.
  *          Orchestrates data fetching (via MediatR), PDF/Excel rendering (via JsReport),
@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -26,8 +27,10 @@ using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Services;
 using FMS.Application.Features.VehicleDocumentManagement.Queries;
+using FMS.Application.Features.WarningLetter.Queries;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -466,6 +469,12 @@ namespace FMS.WebClient.Services
                 case "vehicle-document-compliance":
                     return await FetchVehicleDocumentComplianceData(mediator, request, ct);
 
+                case "warning-letter-candidates":
+                    return await FetchWarningLetterCandidatesData(mediator, request, ct);
+
+                case "warning-letter-analytics":
+                    return await FetchWarningLetterAnalyticsData(mediator, request, ct);
+
                 default:
                     if (ScheduledReportPayloadBuilder.CanHandle(request.SourceId))
                     {
@@ -736,6 +745,191 @@ namespace FMS.WebClient.Services
             };
         }
 
+
+        private async Task<object> FetchWarningLetterCandidatesData(
+            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
+        {
+            var query = new GetWarningLetterCandidatesReportQuery
+            {
+                SiteId = GetIntParam(request.Parameters, "siteId"),
+                VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
+                VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
+                EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
+                StartDate = GetDateParam(request.Parameters, "startDate"),
+                EndDate = GetDateParam(request.Parameters, "endDate"),
+            };
+
+            var result = await mediator.Send(query, ct);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                _logger.LogWarning("WarningLetterCandidates query failed for report job: {Msg}", result.Message);
+                return null;
+            }
+
+            var dto = result.Data;
+            var records = dto.Records
+                .Select((r, index) => new
+                {
+                    rowNumber = index + 1,
+                    rowNum = index + 1,
+                    r.ConsumptionId,
+                    letterType = r.LetterTypeName,
+                    letterTypeName = r.LetterTypeName,
+                    metricDate = r.MetricDate,
+                    period = r.Period,
+                    siteName = string.IsNullOrWhiteSpace(r.SiteName) ? "-" : r.SiteName,
+                    vehicleHyoungNo = string.IsNullOrWhiteSpace(r.VehicleHyoungNo) ? "-" : r.VehicleHyoungNo,
+                    numberPlate = string.IsNullOrWhiteSpace(r.NumberPlate) ? "-" : r.NumberPlate,
+                    vehicleTypeName = string.IsNullOrWhiteSpace(r.VehicleTypeName) ? "-" : r.VehicleTypeName,
+                    employeeName = string.IsNullOrWhiteSpace(r.EmployeeName) ? "-" : r.EmployeeName,
+                    expectedValue = r.ExpectedValue,
+                    actualValue = r.ActualValue,
+                    excessValue = r.ExcessValue,
+                    expectedFormatted = FormatWarningLetterExpectedMetric(r.ExpectedValue, r.LetterType),
+                    actualFormatted = FormatWarningLetterActualMetric(r.ActualValue, r.LetterType),
+                    excessFormatted = FormatWarningLetterExcessMetric(r.ExcessValue, r.LetterType),
+                    fuelPrice = r.FuelPrice,
+                    fuelPriceFormatted = r.FuelPrice.HasValue
+                        ? r.FuelPrice.Value.ToString("N2", CultureInfo.InvariantCulture)
+                        : "-",
+                    excessCost = r.ExcessCost,
+                    excessCostFormatted = r.ExcessCost.HasValue
+                        ? r.ExcessCost.Value.ToString("N2", CultureInfo.InvariantCulture)
+                        : "-",
+                    violationSummary = r.ViolationSummary,
+                })
+                .ToList();
+
+            return new
+            {
+                reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
+                    ? BuildDefaultReportTitle(request.SourceId)
+                    : request.ReportTitle,
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "System",
+                reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                records,
+                data = records,
+                items = records,
+                transactions = records,
+                summary = new
+                {
+                    totalRecords = records.Count,
+                    totalCandidates = dto.Summary.TotalCandidates,
+                    excessFuelCount = dto.Summary.ExcessFuelCount,
+                    excessiveSpeedCount = dto.Summary.ExcessiveSpeedCount,
+                    excessiveIdlingCount = dto.Summary.ExcessiveIdlingCount,
+                    uniqueSites = dto.Summary.UniqueSites,
+                    uniqueVehicles = dto.Summary.UniqueVehicles,
+                    uniqueEmployees = dto.Summary.UniqueEmployees,
+                },
+            };
+        }
+
+        private static string FormatWarningLetterExpectedMetric(decimal value, WarningLetterType letterType)
+            => letterType switch
+            {
+                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/l",
+                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
+                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
+                _ => value.ToString("N2", CultureInfo.InvariantCulture)
+            };
+
+        private static string FormatWarningLetterActualMetric(decimal value, WarningLetterType letterType)
+            => letterType switch
+            {
+                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/l",
+                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
+                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
+                _ => value.ToString("N2", CultureInfo.InvariantCulture)
+            };
+
+        private static string FormatWarningLetterExcessMetric(decimal value, WarningLetterType letterType)
+            => letterType switch
+            {
+                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} l",
+                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
+                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
+                _ => value.ToString("N2", CultureInfo.InvariantCulture)
+            };
+
+        private async Task<object> FetchWarningLetterAnalyticsData(
+            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
+        {
+            var letterTypeParam = GetIntParam(request.Parameters, "letterType");
+            var workflowStageParam = GetIntParam(request.Parameters, "workflowStage");
+
+            var query = new GetWarningLetterReportQuery
+            {
+                SiteId = GetIntParam(request.Parameters, "siteId"),
+                VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
+                VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
+                EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
+                LetterType = letterTypeParam.HasValue
+                    && Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), letterTypeParam.Value)
+                    ? (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType?)letterTypeParam.Value
+                    : null,
+                WorkflowStage = workflowStageParam.HasValue
+                    && Enum.IsDefined(typeof(FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage), workflowStageParam.Value)
+                    ? (FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage)workflowStageParam.Value
+                    : null,
+                StartDate = GetDateParam(request.Parameters, "startDate"),
+                EndDate = GetDateParam(request.Parameters, "endDate"),
+            };
+
+            var result = await mediator.Send(query, ct);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                _logger.LogWarning("WarningLetterAnalytics query failed for report job: {Msg}", result.Message);
+                return null;
+            }
+
+            var dto = result.Data;
+            var records = dto.Records
+                .Select((r, index) => new
+                {
+                    rowNumber = index + 1,
+                    r.Id,
+                    letterType = r.LetterTypeName,
+                    employeeName = string.IsNullOrWhiteSpace(r.EmployeeName) ? "-" : r.EmployeeName,
+                    vehicleHyoungNo = string.IsNullOrWhiteSpace(r.VehicleHyoungNo) ? "-" : r.VehicleHyoungNo,
+                    numberPlate = string.IsNullOrWhiteSpace(r.NumberPlate) ? "-" : r.NumberPlate,
+                    vehicleTypeName = string.IsNullOrWhiteSpace(r.VehicleTypeName) ? "-" : r.VehicleTypeName,
+                    siteName = string.IsNullOrWhiteSpace(r.SiteName) ? "-" : r.SiteName,
+                    letterDate = r.LetterDate.ToString("dd MMM yyyy"),
+                    periodStart = r.PeriodStart.ToString("dd MMM yyyy"),
+                    periodEnd = r.PeriodEnd.ToString("dd MMM yyyy"),
+                    workflowStage = r.WorkflowStageName,
+                    excessCost = r.ExcessCost ?? 0m,
+                    excessValue = r.ExcessValue ?? 0m,
+                    expectedValue = r.ExpectedValue ?? 0m,
+                    actualValue = r.ActualValue ?? 0m,
+                    violationSummary = r.ViolationSummary,
+                })
+                .ToList();
+
+            return new
+            {
+                reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
+                    ? BuildDefaultReportTitle(request.SourceId)
+                    : request.ReportTitle,
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "System",
+                reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                records,
+                data = records,
+                items = records,
+                transactions = records,
+                analytics = dto.Analytics,
+                summary = new
+                {
+                    totalRecords = records.Count,
+                    totalLetters = dto.Analytics.TotalLetters,
+                    totalDeductions = dto.Analytics.TotalDeductions,
+                    uniqueEmployees = dto.Analytics.UniqueEmployees,
+                },
+            };
+        }
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         //  Helpers

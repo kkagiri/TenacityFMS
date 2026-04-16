@@ -255,7 +255,6 @@ public static class FmsServiceCollectionExtensions
                 mySql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
                 mySql.CommandTimeout(60);
             })
-            .EnableSensitiveDataLogging()
             .LogTo(msg =>
             {
                 if (msg.Contains("Executed DbCommand"))
@@ -264,6 +263,11 @@ public static class FmsServiceCollectionExtensions
                 }
             }, LogLevel.Information)
             .EnableDetailedErrors();
+
+                if (env.IsDevelopment())
+                {
+                    opt.EnableSensitiveDataLogging();
+                }
         });
 
         // Register IDbContextFactory for services that need to create independent DbContext instances

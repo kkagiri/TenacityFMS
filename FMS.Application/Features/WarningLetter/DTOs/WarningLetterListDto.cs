@@ -33,5 +33,6 @@ public class WarningLetterListDto
     public DateTime? SignatureRequestedAt { get; set; }
     public DateTime? SignedCopyUploadedAt { get; set; }
     public DateTime? EmployeeAcknowledgedAt { get; set; }
+    public string? CreatedByName { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
 }

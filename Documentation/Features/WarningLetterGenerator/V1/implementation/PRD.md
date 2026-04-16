@@ -1,565 +1,406 @@
-# Warning Letter Generator — Product Requirements Document
+# Warning Letter Generator: As-Is Implementation Review
 
-**Version:** 1.0
-**Date:** 2025-07-24
-**Status:** Draft
+**Version:** 1.1  
+**Date:** 2026-04-16  
+**Status:** Implemented with operational dependencies  
 **Domain:** Employee Discipline / Fleet Compliance
-**Module Location (Backend):** `FMS.Application/Features/WarningLetter/`
-**Module Location (Frontend):** `fms.frontend/src/pages/vehicles/warning-letters/`
+
+**Primary implementation areas reviewed**
+
+- `FMS.Application/Features/WarningLetter/*`
+- `FMS.WebClient/Controllers/WarningLettersController.cs`
+- `fms.frontend/src/pages/vehicles/warningLetters/*`
+- `fms.frontend/src/pages/reports/ReportsMain.js`
+- `fms.frontend/src/pages/employees/details/components/EmployeeWarningLettersWorkspace.js`
+- `fms.frontend/src/pages/notifications/recipients/RecipientManagement.js`
 
 ---
 
-## 1. Feature Overview
+## 1. Purpose
 
-The Warning Letter Generator automates the creation, preview, PDF generation, and email delivery of formal warning letters to employees for fleet-related violations. Letters follow the official H. Young & Co. letterhead format and replace the current manual paper-based process.
-
-### 1.1 Letter Types
-
-| ID | Type | Trigger Data Source |
-|----|------|---------------------|
-| 1 | **Excess Fuel Consumption** | `Vehicleconsumption.FuelLost > 0` over configurable period |
-| 2 | **Excessive Speed** | `Vehicleconsumption.MaxSpeed > threshold` |
-| 3 | **Excessive Idling** | `Vehicleconsumption.EngHours` exceeding norms for distance |
-
-### 1.2 Letter Workflow
-
-```
-Select Violation Record(s) → Generate Letter → Preview PDF → (Optional Edit) → Save → Email to Employee → View in History
-```
+This document records the warning-letter feature as it exists in the codebase today. It is not a future-state design document. It reflects the current backend, frontend, notification, and document-handling behavior that is already wired into FMS.
 
 ---
 
-## 2. Visual Reference
+## 2. Current Status Summary
 
-The letter template replicates the physical H. Young & Co. warning letter format:
+### Implemented
 
-- **Letterhead**: H. Young & Co. (EA) Ltd logo + company details
-- **Title**: "WARNING LETTER" (bold, centered, red underline)
-- **Body**: Formal address, violation details, remedial instruction, consequence warning
-- **Signature Block**: Issuing officer name, title, date
-- **Acknowledgement Block**: Employee signature line
+1. Warning letters are implemented as a dedicated feature under `FMS.Application/Features/WarningLetter/` with CQRS commands, queries, DTOs, services, templates, and workflow-stage resolution.
+2. The API supports draft creation, update, delete, finalize, preview HTML, PDF generation/download, email sending, signature request, approved-letter upload, signed-copy upload, acknowledgment, settings management, and reporting endpoints.
+3. The reports workspace exposes a full warning-letter register, a multi-step creation/edit wizard, and a preview/workflow page.
+4. The employee details workspace exposes employee-scoped warning-letter history and actions.
+5. Generated PDFs, approved-letter uploads, and signed-copy uploads are all supported and stored separately.
+6. Uploads are PDF-only and are validated against the QR/reference embedded on page 1 of the official warning-letter PDF.
+7. Signature requests integrate with the notification system and site-specific recipient groups.
+8. Signed-copy upload triggers issuer notification and email delivery with the signed copy attached.
+9. Draft creation aligns vehicle-to-employee assignment and attempts GPSGate driver-name synchronization when the driver-name service is available.
 
----
+### Current Operational Caveats
 
-## 3. Data Model
-
-### 3.1 New Entity: `WarningLetter`
-
-| Column | Type | Nullable | Description |
-|--------|------|----------|-------------|
-| `Id` | `int` | PK | Auto-increment |
-| `LetterType` | `int` | No | 1=ExcessFuel, 2=ExcessiveSpeed, 3=ExcessiveIdling |
-| `EmployeeId` | `int` | No | FK → `employees.Id` |
-| `VehicleId` | `int` | No | FK → `vehicles.VehicleId` |
-| `SiteId` | `int` | No | FK → `sites.Id` |
-| `LetterDate` | `DateTime` | No | Date printed on letter |
-| `PeriodStart` | `DateTime` | No | Violation period start |
-| `PeriodEnd` | `DateTime` | No | Violation period end |
-| `ViolationSummary` | `string(2000)` | No | Generated text describing the violation |
-| `ExpectedValue` | `decimal` | Yes | Expected consumption/speed/hours |
-| `ActualValue` | `decimal` | Yes | Measured consumption/speed/hours |
-| `ExcessValue` | `decimal` | Yes | Difference (actual - expected) |
-| `FuelPrice` | `decimal` | Yes | Fuel price at time of letter (for cost calc) |
-| `ExcessCost` | `decimal` | Yes | Monetary value of excess (fuel type only) |
-| `IssuedByUserId` | `string` | No | FK → `users.Id` — the manager |
-| `IssuedByName` | `string(200)` | No | Denormalized name for PDF |
-| `IssuedByTitle` | `string(200)` | Yes | "Fleet Manager", "Site Supervisor", etc. |
-| `PdfFilePath` | `string(500)` | Yes | Path to generated PDF |
-| `EmailSentAt` | `DateTime` | Yes | When email was delivered |
-| `EmailRecipient` | `string(255)` | Yes | Email address used |
-| `Status` | `int` | No | 0=Draft, 1=Finalized, 2=Sent, 3=Acknowledged |
-| `EmployeeAcknowledgedAt` | `DateTime` | Yes | When employee signed/acknowledged |
-| `Notes` | `string(1000)` | Yes | Internal notes |
-| `DateCreated` | `DateTime` | No | |
-| `DateModified` | `DateTime` | Yes | |
-| `CreatedBy` | `string` | No | |
-| `ModifiedBy` | `string` | Yes | |
-
-**Indexes:**
-- `IX_WarningLetter_EmployeeId` on `EmployeeId`
-- `IX_WarningLetter_VehicleId` on `VehicleId`
-- `IX_WarningLetter_SiteId_LetterDate` on `(SiteId, LetterDate)`
-
-### 3.2 Employee Entity Additions
-
-| New Column | Type | Nullable | Description |
-|------------|------|----------|-------------|
-| `Trade` | `string(100)` | Yes | Job title / trade designation (e.g., "Driver", "Operator") |
-| `Email` | `string(255)` | Yes | Employee email address |
-
-### 3.3 Enum: `WarningLetterType`
-
-```csharp
-public enum WarningLetterType
-{
-    ExcessFuelConsumption = 1,
-    ExcessiveSpeed = 2,
-    ExcessiveIdling = 3
-}
-```
-
-### 3.4 Enum: `WarningLetterStatus`
-
-```csharp
-public enum WarningLetterStatus
-{
-    Draft = 0,
-    Finalized = 1,
-    Sent = 2,
-    Acknowledged = 3
-}
-```
+1. The primary settings UX is a slide panel opened from the list page. `WarningLetterSettingsPage.js` is now only a legacy wrapper around the same panel content.
+2. Approved-letter upload is protected by `_Update_WarningLetter`; there is no separate approve-letter upload permission constant.
+3. The candidate query reads `WarningLetter:ExcessFuelThresholdPercent`, but the current excess-fuel filter still uses a fixed `FuelLost > 4` condition.
+4. The feature lives physically under `src/pages/vehicles/warningLetters`, but the active route surface is under the reports module: `/reports/warning-letters/*`.
 
 ---
 
-## 4. Template Placeholders
+## 3. Verified Lifecycle
 
-The HTML template uses Handlebars syntax consistent with existing report templates.
+### 3.1 Status Values
 
-| Placeholder | Source | Example |
-|-------------|--------|---------|
-| `{{letterDate}}` | `WarningLetter.LetterDate` | "24th July 2025" |
-| `{{employeeName}}` | `Employee.FullName` | "John Mwangi" |
-| `{{employeeWorkNo}}` | `Employee.EmployeeWorkNo` | "EMP-0142" |
-| `{{trade}}` | `Employee.Trade` | "Driver" |
-| `{{hyoungNo}}` | `Vehicle.HyoungNo` | "HY-1234" |
-| `{{numberPlate}}` | `Vehicle.NumberPlate` | "KBZ 456X" |
-| `{{vehicleType}}` | `VehicleType.Name` | "Truck" |
-| `{{siteName}}` | `Site.Name` | "Nairobi Depot" |
-| `{{periodStart}}` | `WarningLetter.PeriodStart` | "1st June 2025" |
-| `{{periodEnd}}` | `WarningLetter.PeriodEnd` | "30th June 2025" |
-| `{{expectedAverage}}` | `WarningLetter.ExpectedValue` | "4.5 km/l" |
-| `{{actualAverage}}` | `WarningLetter.ActualValue` | "3.2 km/l" |
-| `{{fuelLost}}` | `WarningLetter.ExcessValue` | "180.5 litres" |
-| `{{fuelPrice}}` | `WarningLetter.FuelPrice` | "KES 150.00" |
-| `{{excessCost}}` | `WarningLetter.ExcessCost` | "KES 27,075.00" |
-| `{{maxSpeed}}` | `Vehicleconsumption.MaxSpeed` | "120 km/h" |
-| `{{speedLimit}}` | Configurable threshold | "80 km/h" |
-| `{{issuedByName}}` | `WarningLetter.IssuedByName` | "James Ochieng" |
-| `{{issuedByTitle}}` | `WarningLetter.IssuedByTitle` | "Fleet Manager" |
-| `{{companyName}}` | Site/System config | "H. Young & Co. (EA) Ltd" |
+| Status Enum | Value | Meaning |
+|---|---:|---|
+| `Draft` | 0 | Initial editable record |
+| `Finalized` | 1 | Finalized draft or approved-letter uploaded |
+| `Sent` | 2 | Email sent or signature request sent |
+| `Acknowledged` | 3 | Employee acknowledgment recorded |
+| `SignedCopyReceived` | 4 | Signed copy uploaded |
 
----
+### 3.2 Workflow Stages Shown in UI
 
-## 5. API Design
+Workflow stages are resolved dynamically from timestamps and status using `WarningLetterWorkflowStageResolver`.
 
-### 5.1 Endpoints
+| Workflow Stage | Value | Resolution Rule |
+|---|---:|---|
+| `Draft` | 0 | No approved letter, no signature request, no signed copy, no acknowledgment |
+| `Approved` | 1 | `ApproveLetterUploadedAt` has value |
+| `PendingSigned` | 2 | `SignatureRequestedAt` has value and no signed copy |
+| `Signed` | 3 | `SignedCopyUploadedAt` has value |
+| `Acknowledged` | 4 | `EmployeeAcknowledgedAt` has value or `Status == Acknowledged` |
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/api/v1/warning-letters` | List all letters (filtered by site, employee, vehicle, type, status, date range) |
-| `GET` | `/api/v1/warning-letters/{id}` | Get single letter by ID |
-| `GET` | `/api/v1/warning-letters/employee/{employeeId}` | Letters for specific employee |
-| `GET` | `/api/v1/warning-letters/vehicle/{vehicleId}` | Letters for specific vehicle |
-| `POST` | `/api/v1/warning-letters` | Create draft warning letter |
-| `POST` | `/api/v1/warning-letters/{id}/generate-pdf` | Generate PDF from template |
-| `POST` | `/api/v1/warning-letters/{id}/send-email` | Email PDF to employee |
-| `PUT` | `/api/v1/warning-letters/{id}` | Update draft letter |
-| `PUT` | `/api/v1/warning-letters/{id}/finalize` | Lock letter (Draft → Finalized) |
-| `PUT` | `/api/v1/warning-letters/{id}/acknowledge` | Mark as acknowledged |
-| `DELETE` | `/api/v1/warning-letters/{id}` | Delete draft letter only |
-| `GET` | `/api/v1/warning-letters/{id}/pdf` | Download generated PDF |
-| `POST` | `/api/v1/warning-letters/preview` | Preview PDF without saving |
-| `GET` | `/api/v1/warning-letters/consumption-candidates` | Get consumption records eligible for warning (excess fuel) |
+### 3.3 Transition Coverage
 
-### 5.2 CQRS Structure
+| Transition | Backend Support | Frontend Support | Notes |
+|---|---|---|---|
+| Create draft | Yes | Yes | `POST /api/v1/warning-letters` and wizard step flow |
+| Update draft | Yes | Yes | Draft edit page uses `PUT /{id}` |
+| Draft -> Finalized | Yes | Yes | Explicit finalize endpoint |
+| Finalized -> Approved stage | Yes | Yes | Achieved by uploading approved PDF |
+| Approved -> Pending Signed | Yes | Yes | Signature request requires approved letter first |
+| Pending Signed -> Signed | Yes | Yes | Signed-copy upload sets `Status = SignedCopyReceived` |
+| Signed -> Acknowledged | Yes | Yes | Acknowledge action available after signed stage |
+| Delete draft/early workflow item | Yes | Yes | Delete is allowed in list/workspace for draft/approved-stage records subject to ownership/permission |
 
-```
-FMS.Application/Features/WarningLetter/
-├── Commands/
-│   ├── CreateWarningLetterCommand.cs
-│   ├── CreateWarningLetterCommandHandler.cs
-│   ├── UpdateWarningLetterCommand.cs
-│   ├── UpdateWarningLetterCommandHandler.cs
-│   ├── DeleteWarningLetterCommand.cs
-│   ├── DeleteWarningLetterCommandHandler.cs
-│   ├── FinalizeWarningLetterCommand.cs
-│   ├── FinalizeWarningLetterCommandHandler.cs
-│   ├── GenerateWarningLetterPdfCommand.cs
-│   ├── GenerateWarningLetterPdfCommandHandler.cs
-│   ├── SendWarningLetterEmailCommand.cs
-│   ├── SendWarningLetterEmailCommandHandler.cs
-│   └── AcknowledgeWarningLetterCommand.cs
-│   └── AcknowledgeWarningLetterCommandHandler.cs
-├── Queries/
-│   ├── GetWarningLettersQuery.cs
-│   ├── GetWarningLettersQueryHandler.cs
-│   ├── GetWarningLetterByIdQuery.cs
-│   ├── GetWarningLetterByIdQueryHandler.cs
-│   ├── GetWarningLettersByEmployeeQuery.cs
-│   ├── GetWarningLettersByEmployeeQueryHandler.cs
-│   ├── GetWarningLettersByVehicleQuery.cs
-│   ├── GetWarningLettersByVehicleQueryHandler.cs
-│   ├── GetConsumptionCandidatesQuery.cs
-│   └── GetConsumptionCandidatesQueryHandler.cs
-├── DTOs/
-│   ├── WarningLetterDto.cs
-│   ├── CreateWarningLetterDto.cs
-│   ├── UpdateWarningLetterDto.cs
-│   ├── WarningLetterListDto.cs
-│   ├── ConsumptionCandidateDto.cs
-│   └── WarningLetterPreviewDto.cs
-├── Services/
-│   ├── IWarningLetterService.cs
-│   └── WarningLetterService.cs        # Template rendering + PDF generation
-├── Templates/
-│   └── WarningLetterHtmlTemplates.cs   # HTML templates per letter type
-└── Validators/
-    ├── CreateWarningLetterValidator.cs
-    └── UpdateWarningLetterValidator.cs
-```
+### 3.4 Effective Document Priority
+
+When a user requests the warning-letter PDF, the service returns documents in this order:
+
+1. Signed copy, if present.
+2. Approved letter upload, if present.
+3. Previously generated PDF on disk, if present.
+4. Newly generated PDF as a fallback.
+
+This means the preview/download surface eventually becomes the signed operational document, not just the original generated PDF.
 
 ---
 
-## 6. Frontend Design (M365 Admin Center Fluent)
+## 4. Backend Surface
 
-### 6.1 Entry Points
+### 4.1 Core Data Model
 
-**Vehicle Module** — New route `/vehicles/warning-letters`:
-- Accessible from vehicle sidebar nav
-- Shows letters filtered to the selected vehicle context
+The primary entity is `FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetter` stored in table `warning_letter`.
 
-**Employee Module (future)** — Tab on employee detail page showing letter history
+Key persisted areas used by the current workflow:
 
-### 6.2 Page: Warning Letter List
+- Core identity and scope: `EmployeeId`, `VehicleId`, `SiteId`, `LetterType`, `LetterDate`, `PeriodStart`, `PeriodEnd`
+- Violation metrics: `ExpectedValue`, `ActualValue`, `ExcessValue`, `FuelPrice`, `ExcessCost`, `ViolationSummary`
+- Issuer metadata: `IssuedByUserId`, `IssuedByName`, `IssuedByTitle`
+- Email workflow: `EmailSentAt`, `EmailRecipient`
+- Signature workflow: `SignatureRequestedAt`, `SignatureRequestedBy`, `SignatureRequestRecipientUserId`, `SignatureRequestRecipient`, `SignatureRequestCcUserIds`, `SignatureRequestCcRecipients`
+- Approved-letter upload track: `ApproveLetter*`
+- Signed-copy upload track: `SignedCopy*`
+- Acknowledgment: `EmployeeAcknowledgedAt`
+- Generated PDF cache: `PdfFilePath`
+- Audit: `DateCreated`, `DateModified`, `CreatedBy`, `ModifiedBy`, `Notes`
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ ⚠ Warning Letters                                    [142]     │
-│                                       [+ New Letter] [Refresh] │
-├─────────────────────────────────────────────────────────────────┤
-│ [All Types ▾] [All Sites ▾] [All Status ▾] [Date Range] [🔍]  │
-├─────────────────────────────────────────────────────────────────┤
-│ ┌─ Tabs ──────────────────────────────────────────────────────┐ │
-│ │ All (142)  │  Draft (23)  │  Finalized (45)  │  Sent (74)  │ │
-│ └─────────────────────────────────────────────────────────────┘ │
-│                                                                 │
-│  Employee       │ Vehicle  │ Type          │ Date     │ Status  │
-│  ─────────────────────────────────────────────────────────────  │
-│  John Mwangi    │ HY-1234  │ Excess Fuel   │ 24 Jul   │ ● Sent │
-│  Jane Wanjiku   │ HY-5678  │ Excess Speed  │ 23 Jul   │ ○ Draft│
-│  ...                                                            │
-└─────────────────────────────────────────────────────────────────┘
+### 4.2 Draft Creation Side Effects
+
+`CreateWarningLetterCommandHandler` does more than insert a letter record.
+
+1. It validates employee, vehicle, site, issuing user, employee position, and site/vehicle alignment.
+2. It auto-resolves issuer name/title from system configuration when configured.
+3. It derives the violation summary when the caller does not supply one.
+4. It auto-calculates `ExcessCost` when possible.
+5. It assigns the selected employee as the vehicle default employee when needed.
+6. It creates an `EmployeeVehicle` link if one does not exist.
+7. It attempts GPSGate driver-name synchronization through `IGPSGateDriverNameService` when that dependency is registered.
+
+### 4.3 Candidate Sourcing
+
+Warning-letter candidates are built from `Vehicleconsumption` rows.
+
+| Letter Type | Current Candidate Logic |
+|---|---|
+| Excess Fuel Consumption | Returns records where `FuelLost > 4` |
+| Excessive Speed | Returns records where `MaxSpeed > configured speed threshold` |
+| Excessive Idling | Returns records where `EngHours > configured idling threshold` |
+
+Additional current behavior:
+
+1. Candidates can be filtered by site, vehicle, employee, and date range.
+2. Duplicate candidates are suppressed when an existing warning letter of the same type already overlaps the same vehicle/date window.
+3. The handler loads `WarningLetter:ExcessFuelThresholdPercent`, but that value is not yet applied in the live fuel-candidate filter.
+
+---
+
+## 5. Current API Surface
+
+Base route: `/api/v1/warning-letters`
+
+### 5.1 Register, Details, and Settings
+
+| Method | Route | Purpose | Primary Permission |
+|---|---|---|---|
+| `GET` | `/` | Filtered register | `_Read_WarningLetter` |
+| `GET` | `/{id}` | Single letter detail | `_Read_WarningLetter` |
+| `GET` | `/employee/{employeeId}` | Employee-scoped register | `_Read_WarningLetter` |
+| `GET` | `/vehicle/{vehicleId}` | Vehicle-scoped register | `_Read_WarningLetter` |
+| `GET` | `/settings` | Load settings | `_Read_WarningLetter` |
+| `PUT` | `/settings` | Persist settings | `_Update_WarningLetter` |
+| `GET` | `/site-recipients` | Site recipient lookup | `_Read_WarningLetter` |
+| `GET` | `/{id}/signature-recipients` | Load signature-recipient options | `_Read_WarningLetter` |
+
+### 5.2 Draft and Workflow Commands
+
+| Method | Route | Purpose | Primary Permission |
+|---|---|---|---|
+| `POST` | `/` | Create draft | `_Create_WarningLetter` |
+| `PUT` | `/{id}` | Update draft | `_Update_WarningLetter` |
+| `DELETE` | `/{id}` | Delete letter | `_Delete_WarningLetter` |
+| `POST` | `/reset-workflow-artifacts` | Reset workflow artifacts | `_Delete_WarningLetter` |
+| `PUT` | `/{id}/finalize` | Finalize draft | `_Finalize_WarningLetter` |
+| `PUT` | `/{id}/acknowledge` | Mark acknowledged | `_Update_WarningLetter` |
+
+### 5.3 Preview, PDF, Email, and Uploads
+
+| Method | Route | Purpose | Primary Permission |
+|---|---|---|---|
+| `POST` | `/preview` | Render preview HTML before save | `_Create_WarningLetter` |
+| `GET` | `/{id}/html` | Render saved HTML | `_Read_WarningLetter` |
+| `POST` | `/{id}/generate-pdf` | Generate and return PDF | `_Generate_WarningLetter_PDF` |
+| `GET` | `/{id}/pdf` | Download current effective document | `_Generate_WarningLetter_PDF` |
+| `POST` | `/{id}/send-email` | Email warning letter | `_Send_WarningLetter` |
+| `POST` | `/{id}/request-signature` | Send signature request to site representative | `_Send_WarningLetter` |
+| `POST` | `/{id}/approve-letter` | Upload approved PDF | `_Update_WarningLetter` |
+| `GET` | `/{id}/approve-letter` | Download approved PDF | `_Read_WarningLetter` |
+| `POST` | `/{id}/signed-copy` | Upload signed PDF | `_UploadSignedCopy_WarningLetter` |
+| `GET` | `/{id}/signed-copy` | Download signed PDF | `_Read_WarningLetter` |
+
+### 5.4 Reporting Endpoints
+
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/consumption-candidates` | Candidate rows for letter generation |
+| `GET` | `/report/data` | Warning-letter analytics dataset |
+| `GET` | `/report/candidates-data` | Candidate-report dataset |
+
+---
+
+## 6. Document Generation and Upload Validation
+
+### 6.1 Template and Reference Generation
+
+The service builds a template model that includes:
+
+- Employee, vehicle, site, and issuer labels
+- Warning sequence label (`1st`, `2nd`, `3rd`, or `LAST`)
+- Metric labels and remedial wording by letter type
+- Generated-by metadata
+- A QR code generated from the letter reference
+
+Reference format:
+
+```text
+WL-{SiteId}-{LetterYear}-{IdOrPreview}
 ```
 
-- **Design**: M365 flat data grid with status badges
-- **Row actions**: View PDF, Send Email, Delete (draft only)
-- **Status badges**: Draft (neutral tint), Finalized (blue tint), Sent (green tint), Acknowledged (purple tint)
+Examples:
 
-### 6.3 Page: Create/Edit Warning Letter
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ ← Back    New Warning Letter                     [Save Draft]  │
-│                                                  [Preview PDF] │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Letter Type    [Excess Fuel Consumption ▾]                     │
-│                                                                 │
-│  ── Employee & Vehicle ──────────────────────────────────────── │
-│  Site           [Nairobi Depot ▾]                               │
-│  Employee       [🔍 Search employee...          ]               │
-│  Vehicle        [🔍 Search vehicle...           ]               │
-│                                                                 │
-│  ── Violation Period ────────────────────────────────────────── │
-│  From           [01/06/2025]    To    [30/06/2025]              │
-│                                                                 │
-│  ── Violation Details (auto-populated from consumption) ─────── │
-│  Expected Avg   [4.5 km/l    ]                                  │
-│  Actual Avg     [3.2 km/l    ] (read-only, from data)           │
-│  Fuel Lost      [180.5 litres] (read-only, calculated)          │
-│  Fuel Price     [KES 150.00  ]                                  │
-│  Excess Cost    [KES 27,075  ] (read-only, calculated)          │
-│                                                                 │
-│  ── Issuing Officer ─────────────────────────────────────────── │
-│  Name           [James Ochieng    ]  (from logged-in user)      │
-│  Title          [Fleet Manager    ]                              │
-│                                                                 │
-│  ── Additional Notes ────────────────────────────────────────── │
-│  [                                                             ]│
-│  [                                                             ]│
-│                                                                 │
-│                            [Cancel]  [Save Draft]  [Preview]    │
-└─────────────────────────────────────────────────────────────────┘
+```text
+WL-7-2026-00012
+WL-7-2026-PREVIEW
 ```
 
-- **Auto-populate**: When employee + vehicle + period are selected, query consumption data and fill violation details
-- **Fuel Price**: Defaults to latest `PumpTransaction.Price` or site default; editable
-- **Excess Cost**: `FuelLost × FuelPrice` — calculated, read-only
-- **Issuing Officer**: Pre-filled from JWT claims, editable
+### 6.2 Stored Document Paths
 
-### 6.4 Page: PDF Preview
+| Artifact | Current Storage |
+|---|---|
+| Generated PDFs | `C:\FMSData\reports\warning-letters\{year}\` |
+| Uploaded approved letters | `C:\FMSData\uploads\warning-letters\approve\{warningLetterId}\` |
+| Uploaded signed copies | `C:\FMSData\uploads\warning-letters\{warningLetterId}\` |
+| Letterhead logo | `C:\FMSData\reports\branding\letterhead-logo.png` |
 
-Full-page PDF preview using browser's built-in PDF viewer (`<iframe>` or `<embed>`). Actions:
-- **Finalize** — locks the letter
-- **Send Email** — sends to employee email (if available) with PDF attachment
-- **Download** — direct PDF download
-- **Print** — browser print dialog
+### 6.3 Upload Validation Rules
 
-### 6.5 Frontend File Structure
+Both approved-letter and signed-copy uploads currently enforce the following rules:
 
-```
-fms.frontend/src/pages/vehicles/warning-letters/
-├── WarningLetterListPage.js          # List with filters and tabs
-├── WarningLetterFormPage.js          # Create/Edit form
-├── WarningLetterPreviewPage.js       # PDF preview + actions
-├── components/
-│   ├── WarningLetterStatusBadge.js   # Status indicator
-│   ├── ConsumptionCandidateSelector.js # Pick violation records
-│   └── ViolationDetailsSummary.js    # Auto-populated violation card
-├── hooks/
-│   └── useWarningLetterData.js       # Data fetching hook
-└── warningLetterRoutes.js            # Route definitions
-```
+1. File must be present.
+2. File extension must be `.pdf`.
+3. A QR code must be readable from page 1 of the uploaded PDF.
+4. The QR payload must resolve to the warning letter's expected reference number.
+5. Older multiline QR payloads are accepted if they include a `Reference:` line.
 
----
+### 6.4 Workflow Preconditions
 
-## 7. PDF Generation
-
-### 7.1 Pipeline
-
-Reuse existing HTML → PDF infrastructure:
-
-1. **Template**: `WarningLetterHtmlTemplates.cs` → Handlebars HTML per letter type
-2. **Data Binding**: `WarningLetterService.cs` builds `ExpandoObject` from entity data
-3. **Rendering**: jsreport Handlebars → HTML string
-4. **PDF Conversion**: `JsReportService.ConvertHtmlToPdfAsync()` → PuppeteerSharp
-5. **Storage**: Save to `C:\FMSData\reports\warning-letters\{year}\{letterId}.pdf`
-
-### 7.2 Page Setup
-
-| Property | Value |
-|----------|-------|
-| Format | A4 |
-| Margins | Top: 20mm, Bottom: 25mm, Left: 20mm, Right: 20mm |
-| Header | Company letterhead (logo + address) |
-| Footer | "This is a computer-generated letter" + page number |
-
-### 7.3 Template Sections (Excess Fuel type)
-
-1. **Letterhead** — Company logo, address, contact details
-2. **Date & Reference** — Letter date, reference number (WL-{SiteCode}-{Year}-{Sequence})
-3. **Recipient Block** — Employee name, work no, trade, site
-4. **Subject Line** — "RE: WARNING – EXCESS FUEL CONSUMPTION"
-5. **Body Paragraph 1** — States the violation period and vehicle
-6. **Data Table** — Expected vs. Actual consumption, fuel lost, cost
-7. **Body Paragraph 2** — Remedial instruction (improve driving habits, report mechanical issues)
-8. **Consequence Warning** — States escalation path (verbal → written → final → termination)
-9. **Signature Block** — Issuer name, title, signature line
-10. **Acknowledgement** — Employee name, signature line, date line
+| Action | Current Guardrails |
+|---|---|
+| Send email | Letter cannot still be in `Draft` |
+| Request signature | Approved letter must already be uploaded |
+| Request signature | Letter cannot already be acknowledged |
+| Upload approved letter | Must happen before signature request, signed-copy upload, or acknowledgment |
+| Upload signed copy | Approved letter and signature request must already exist |
+| Upload signed copy | Letter cannot already be acknowledged |
 
 ---
 
-## 8. Email Integration
+## 7. Frontend Surface
 
-### 8.1 Send Flow
+### 7.1 Active Routes
 
-```csharp
-// Uses existing IEmailService
-await _emailService.SendEmailAsync(
-    to: employee.Email,
-    subject: $"Warning Letter - {letterType} - {vehicle.HyoungNo}",
-    body: emailBodyHtml,  // Summary email with letter attached
-    isHtml: true,
-    cancellationToken: ct,
-    attachments: new List<EmailAttachmentDto>
-    {
-        new EmailAttachmentDto
-        {
-            FileName = $"Warning-Letter-{letter.Id}.pdf",
-            ContentType = "application/pdf",
-            Content = pdfBytes
-        }
-    }
-);
-```
+The warning-letter pages are mounted through `ReportsMain.js`.
 
-### 8.2 Email Body
+| Route | Component |
+|---|---|
+| `/reports/warning-letters` | `WarningLetterListPage` |
+| `/reports/warning-letters/new` | `WarningLetterFormPage` |
+| `/reports/warning-letters/:id/edit` | `WarningLetterFormPage` |
+| `/reports/warning-letters/:id/preview` | `WarningLetterPreviewPage` |
 
-A brief HTML email (not the full letter) stating:
-- "Please find attached a warning letter regarding [violation type]"
-- Vehicle reference
-- Period covered
-- Instructions to acknowledge receipt
+### 7.2 List Workspace
 
----
+`WarningLetterListPage` currently provides:
 
-## 9. Permissions
+1. Filters for site, employee, workflow stage, letter type, and date range.
+2. Employee quick search tied to query-string persistence.
+3. Draft, approved, pending-signed, signed, and acknowledged stage badges.
+4. Row actions for preview, edit, acknowledge, and delete based on permissions and workflow state.
+5. A slide-panel settings editor using `WarningLetterSettingsPanelContent`.
 
-| Permission Constant | Description |
-|---------------------|-------------|
-| `_Read_WarningLetter` | View warning letters list and details |
-| `_Create_WarningLetter` | Create new draft letters |
-| `_Update_WarningLetter` | Edit draft letters |
-| `_Delete_WarningLetter` | Delete draft letters |
-| `_Finalize_WarningLetter` | Lock and finalize letters |
-| `_Send_WarningLetter` | Send letters via email |
-| `_Generate_WarningLetter_PDF` | Generate/download PDFs |
+### 7.3 Create/Edit Wizard
 
----
+`WarningLetterFormPage` is a four-step flow:
 
-## 10. Fuel Price Resolution
+1. Select type and month.
+2. Load and select a candidate record.
+3. Review and edit letter details.
+4. Generate preview HTML.
 
-Since no dedicated fuel price entity exists, use this fallback chain:
+Current wizard behavior includes:
 
-1. **User-provided** — Editable field on the form (highest priority)
-2. **Latest PumpTransaction.Price** — Most recent transaction for the vehicle's site
-3. **AlertConfigurationConstants default** — Hardcoded 150 KES (last resort)
+- Candidate-driven prefill of expected, actual, excess, and summary values.
+- Excess-cost calculation from excess fuel and fuel price.
+- Employee-position validation before preview/save.
+- Auto-fill from warning-letter settings.
+- Draft creation and update against the live API.
 
-Future enhancement: Add a `FuelPriceConfiguration` settings table per site.
+### 7.4 Preview and Workflow Page
+
+`WarningLetterPreviewPage` currently supports:
+
+1. PDF preview loading and regeneration.
+2. Email sending.
+3. Signature request with site representative selection and CC selection.
+4. Approved-letter upload/download.
+5. Signed-copy upload/download.
+6. Acknowledge action.
+7. Recipient-group inspection/editing for sites that need warning-letter recipient configuration.
+
+### 7.5 Employee Workspace
+
+`EmployeeWarningLettersWorkspace` exposes employee-scoped warning-letter history inside the employee details page. It provides preview, draft edit, acknowledge, delete, refresh, and navigation into the full reports workspace.
 
 ---
 
-## 11. Configuration
+## 8. Notification and Recipient Groups
 
-### System Settings (future `SystemConfiguration` or `appsettings.json`)
+### 8.1 Required Group Names
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `WarningLetter:PdfStoragePath` | `C:\FMSData\reports\warning-letters` | PDF file storage |
-| `WarningLetter:SpeedThresholdKmh` | `80` | Max speed before triggering speed warning |
-| `WarningLetter:IdlingThresholdHours` | `2.0` | Max idle hours per shift |
-| `WarningLetter:DefaultFuelPriceKES` | `150.00` | Fallback fuel price |
-| `WarningLetter:ExcessFuelThresholdPercent` | `15` | % over expected before eligible for warning |
+The feature depends on these exact notification-group display names:
 
----
+- `Warning Letter Site Representatives`
+- `Warning Letter Signature CC`
 
-## 12. Task List
+These names are shared by:
 
-### Phase 1 — Domain & Infrastructure
+1. `WarningLetterRecipientGroupResolver` on the backend.
+2. `RecipientManagement.js` in the frontend warning-letter group tooling.
+3. The preview page recipient-selection UX.
 
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 1.1 | Create `WarningLetterType` enum | `FMS.Domain/Entities/Features/WarningLetter/WarningLetterType.cs` | 0.5h |
-| 1.2 | Create `WarningLetterStatus` enum | `FMS.Domain/Entities/Features/WarningLetter/WarningLetterStatus.cs` | 0.5h |
-| 1.3 | Create `WarningLetter` entity | `FMS.Domain/Entities/Features/WarningLetter/WarningLetter.cs` | 1h |
-| 1.4 | Add `Trade` and `Email` columns to `Employee` entity | `FMS.Domain/Entities/Features/Employee/Employee.cs` | 0.5h |
-| 1.5 | Create `WarningLetterConfiguration` (EF config) | `FMS.Persistence/EntityConfigurations/WarningLetterConfiguration.cs` | 1h |
-| 1.6 | Update `EmployeeConfiguration` for new columns | `FMS.Persistence/EntityConfigurations/EmployeeConfiguration.cs` | 0.5h |
-| 1.7 | Register `DbSet<WarningLetter>` in `GpsdataContext` | `FMS.Persistence/DataAccess/GpsdataContext.cs` | 0.5h |
-| 1.8 | Generate MySQL migration script | `Documentation/Features/WarningLetterGenerator/V1/implementation/database/` | 1h |
-| 1.9 | Add navigation property `WarningLetters` to `Employee` and `Vehicle` | Employee.cs, Vehicle.cs | 0.5h |
+### 8.2 Current Notification Behavior
 
-### Phase 2 — Application Layer (CQRS)
+| Trigger | Recipients | Delivery |
+|---|---|---|
+| Signature request | Selected site representative | System + Email |
+| Signature request | Selected CC users | Email CC |
+| Signed copy uploaded | Issuer | System |
+| Signed copy uploaded | Issuer with email configured | Email + signed-copy attachment |
 
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 2.1 | Create `WarningLetterDto` | `FMS.Application/Features/WarningLetter/DTOs/WarningLetterDto.cs` | 0.5h |
-| 2.2 | Create `CreateWarningLetterDto` | `FMS.Application/Features/WarningLetter/DTOs/CreateWarningLetterDto.cs` | 0.5h |
-| 2.3 | Create `UpdateWarningLetterDto` | `FMS.Application/Features/WarningLetter/DTOs/UpdateWarningLetterDto.cs` | 0.5h |
-| 2.4 | Create `WarningLetterListDto` | `FMS.Application/Features/WarningLetter/DTOs/WarningLetterListDto.cs` | 0.5h |
-| 2.5 | Create `ConsumptionCandidateDto` | `FMS.Application/Features/WarningLetter/DTOs/ConsumptionCandidateDto.cs` | 0.5h |
-| 2.6 | Create `CreateWarningLetterCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 2h |
-| 2.7 | Create `UpdateWarningLetterCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 1.5h |
-| 2.8 | Create `DeleteWarningLetterCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 1h |
-| 2.9 | Create `FinalizeWarningLetterCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 1h |
-| 2.10 | Create `GenerateWarningLetterPdfCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 3h |
-| 2.11 | Create `SendWarningLetterEmailCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 2h |
-| 2.12 | Create `AcknowledgeWarningLetterCommand` + Handler | `FMS.Application/Features/WarningLetter/Commands/` | 1h |
-| 2.13 | Create `GetWarningLettersQuery` + Handler | `FMS.Application/Features/WarningLetter/Queries/` | 1.5h |
-| 2.14 | Create `GetWarningLetterByIdQuery` + Handler | `FMS.Application/Features/WarningLetter/Queries/` | 1h |
-| 2.15 | Create `GetWarningLettersByEmployeeQuery` + Handler | `FMS.Application/Features/WarningLetter/Queries/` | 1h |
-| 2.16 | Create `GetWarningLettersByVehicleQuery` + Handler | `FMS.Application/Features/WarningLetter/Queries/` | 1h |
-| 2.17 | Create `GetConsumptionCandidatesQuery` + Handler | `FMS.Application/Features/WarningLetter/Queries/` | 2h |
-| 2.18 | Create `CreateWarningLetterValidator` | `FMS.Application/Features/WarningLetter/Validators/` | 1h |
-| 2.19 | Create AutoMapper profile for WarningLetter | `FMS.Application/MappingProfile/` | 0.5h |
+### 8.3 Deep Link / Admin Support
 
-### Phase 3 — Template & PDF Service
-
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 3.1 | Create `WarningLetterHtmlTemplates.cs` — Excess Fuel template | `FMS.Application/Features/WarningLetter/Templates/` | 3h |
-| 3.2 | Create Excessive Speed template | Same file or separate | 2h |
-| 3.3 | Create Excessive Idling template | Same file or separate | 2h |
-| 3.4 | Create `IWarningLetterService` interface | `FMS.Application/Features/WarningLetter/Services/` | 0.5h |
-| 3.5 | Create `WarningLetterService` — template rendering + data binding | `FMS.Application/Features/WarningLetter/Services/` | 4h |
-| 3.6 | Integrate with `JsReportService.ConvertHtmlToPdfAsync` for PDF output | WarningLetterService.cs | 2h |
-| 3.7 | Add PDF storage path configuration to `appsettings.json` | `FMS.WebClient/appsettings.json` | 0.5h |
-
-### Phase 4 — API Controller
-
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 4.1 | Create `WarningLettersController` with all endpoints | `FMS.WebClient/Controllers/WarningLettersController.cs` | 3h |
-| 4.2 | Add permission constants | `Permissions.cs` | 0.5h |
-| 4.3 | Register `IWarningLetterService` in DI | `FMS.WebClient/Extensions/FmsServiceCollectionExtensions.cs` | 0.5h |
-
-### Phase 5 — Frontend
-
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 5.1 | Create `warningLetterService.js` — API client | `fms.frontend/src/api/` | 1h |
-| 5.2 | Create `warningLetterSlice.js` — Redux state | `fms.frontend/src/redux/` | 2h |
-| 5.3 | Create `WarningLetterListPage.js` — list + filters + tabs | `fms.frontend/src/pages/vehicles/warning-letters/` | 4h |
-| 5.4 | Create `WarningLetterFormPage.js` — create/edit form | Same folder | 5h |
-| 5.5 | Create `WarningLetterPreviewPage.js` — PDF preview | Same folder | 2h |
-| 5.6 | Create `WarningLetterStatusBadge.js` | `components/` subfolder | 1h |
-| 5.7 | Create `ConsumptionCandidateSelector.js` — pick violation records | `components/` subfolder | 3h |
-| 5.8 | Create `ViolationDetailsSummary.js` — auto-populated card | `components/` subfolder | 1.5h |
-| 5.9 | Create `useWarningLetterData.js` hook | `hooks/` subfolder | 1h |
-| 5.10 | Create `warningLetterRoutes.js` + integrate into Vehicle routes | routes file + VehicleMain.js | 1h |
-| 5.11 | Create `WarningLetterList.scss` | Same folder | 1h |
-| 5.12 | Create `WarningLetterForm.scss` | Same folder | 1h |
-| 5.13 | Add "Warning Letters" to vehicle sidebar navigation | VehicleMain.js or layout | 0.5h |
-
-### Phase 6 — Database & Navigation
-
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 6.1 | Insert `navigationitems` record for Warning Letters | SQL script | 0.5h |
-| 6.2 | Assign permissions to roles | SQL script | 0.5h |
-| 6.3 | Run EF migration or manual schema update | Migration | 1h |
-
-### Phase 7 — Testing
-
-| # | Task | Files | Estimate |
-|---|------|-------|----------|
-| 7.1 | Unit tests for `WarningLetterService` (template rendering) | `FMS.Testing/` | 3h |
-| 7.2 | Unit tests for Create/Update command handlers | `FMS.Testing/` | 2h |
-| 7.3 | Unit tests for consumption candidate query | `FMS.Testing/` | 1.5h |
-| 7.4 | Integration test — end-to-end PDF generation | `FMS.Testing/` | 2h |
+The notification-recipient management page includes a dedicated warning-letter tab and site-aware group setup experience. That page can be used to ensure the required groups exist and to manage their members per site.
 
 ---
 
-## 13. Summary
+## 9. Settings and Configuration Keys
 
-| Metric | Value |
-|--------|-------|
-| **Total Tasks** | 52 |
-| **Backend Tasks** | 32 |
-| **Frontend Tasks** | 13 |
-| **Database Tasks** | 4 |
-| **Testing Tasks** | 4 |
-| **Estimated Total** | ~75 hours |
-| **New Entity** | 1 (WarningLetter) |
-| **Modified Entities** | 1 (Employee +2 columns) |
-| **New Enums** | 2 (WarningLetterType, WarningLetterStatus) |
-| **API Endpoints** | 14 |
-| **Frontend Pages** | 3 |
-| **Letter Types** | 3 |
+### 9.1 Keys Actively Used by Settings or Rendering
 
----
+| Key | Current Use |
+|---|---|
+| `WarningLetter:FuelPricePerLitre` | Default fuel price for excess-fuel letters |
+| `WarningLetter:IssuerName` | Fixed issuer name override |
+| `WarningLetter:IssuerTitle` | Fixed issuer title override |
+| `WarningLetter:MaxWarningCountBeforeLast` | Sequence threshold that switches subject to `LAST WARNING LETTER` |
+| `WarningLetter:PdfStoragePath` | Optional override for generated-PDF base path |
+| `IssueTracker:FrontendBaseUrl` | Base URL used when building preview links in signature-request emails |
 
-## 14. Dependencies & Risks
+### 9.2 Keys Used by Candidate and Report Queries
 
-| Risk | Mitigation |
-|------|------------|
-| Employee entity lacks `Email` field | Add column; until populated, email send disabled with clear UI message |
-| Employee entity lacks `Trade` field | Add column; letters show "N/A" until populated |
-| No fuel price entity | Use editable form field with smart defaults (latest PumpTransaction.Price) |
-| Letterhead logo not available at all sites | Graceful fallback to text-only header (existing `BuildHtmlBlock` pattern) |
-| Domain layer modification required (Employee) | Minimal addition — 2 nullable string columns, no breaking changes |
+| Key | Current Use |
+|---|---|
+| `WarningLetter:SpeedThresholdKmh` | Speed candidate threshold |
+| `WarningLetter:IdlingThresholdHours` | Idling candidate threshold |
+| `WarningLetter:ExcessFuelThresholdPercent` | Loaded by candidate/report code, but not applied in the current fuel-candidate filter |
 
 ---
 
-## 15. Out of Scope (V1)
+## 10. Permissions and Access
 
-- Bulk letter generation (batch select multiple employees/vehicles)
-- Letter template designer (edit HTML via UI)
-- Digital signature capture
-- Escalation tracking (1st warning → 2nd → final)
-- Mobile app integration
-- Integration with HR systems
-- Automatic letter generation via scheduled rules/alerts
+Current permission constants under `PermissionConstants.WarningLetter`:
 
-These may be considered for V2 based on user feedback.
+| Permission | Current Use |
+|---|---|
+| `_Read_WarningLetter` | Read register/detail/settings |
+| `_Create_WarningLetter` | Draft creation and preview |
+| `_Update_WarningLetter` | Draft update, acknowledgment, settings update, approve-letter upload |
+| `_UploadSignedCopy_WarningLetter` | Signed-copy upload |
+| `_Delete_WarningLetter` | Delete and workflow reset |
+| `_delete_any_letter` | Delete records not created by current user |
+| `_Finalize_WarningLetter` | Finalize draft |
+| `_Send_WarningLetter` | Email send and signature request |
+| `_Generate_WarningLetter_PDF` | Generate/download effective PDF |
+
+The included database script `database/011_warning_letter_human_resource_full_access.sql` grants Human Resource access to the warning-letter feature, including create, update, send, finalize, PDF, signed-copy upload, and supporting read permissions.
+
+---
+
+## 11. Current Gaps and Follow-Up Items
+
+### Verified Gaps
+
+1. `WarningLetter:ExcessFuelThresholdPercent` is loaded but not applied in `GetWarningLetterConsumptionCandidatesQuery` for live fuel-candidate filtering.
+2. Documentation and folder naming still use `WarningLetterGenerator`, while the implemented feature namespace and code roots use `WarningLetter`.
+3. The standalone settings page is no longer the primary UX path; operationally, the list-page slide panel is the active settings surface.
+
+### Low-Risk Clarifications Worth Keeping in Mind
+
+1. The effective PDF download is intentionally workflow-aware and may return a signed or approved upload instead of the originally generated PDF.
+2. Signed-copy upload has a dedicated permission; approved-letter upload does not.
+3. Signature requests depend on site notification-group membership, not arbitrary user selection.
+
+---
+
+## 12. Conclusion
+
+The warning-letter feature is fully present in the live application as an operational workflow, not a placeholder module. The current implementation covers candidate discovery, draft creation, PDF generation, QR-protected document uploads, signature routing, acknowledgment, settings management, employee-scoped history, and analytics endpoints. The remaining work is mostly around cleanup and alignment, not core feature delivery.

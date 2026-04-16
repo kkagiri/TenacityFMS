@@ -1,6 +1,6 @@
 /**
  * File: EmployeeDetailsPage.js
- * Purpose: Shows employee profile information with consumption, refill, and vehicle-change history tabs.
+ * Purpose: Shows employee profile information with consumption, refill, vehicle-change, document, and warning-letter tabs.
  *          Follows M365 Admin Center design system (SKILL.md).
  * Dependencies: axios instance, redux site/vehicle actions, DevExtreme DataGrid.
  * Last Modified: 2026-03-02
@@ -34,7 +34,21 @@ import { fetchpermissionbyUserId } from "../../../redux/actions/permissionAction
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import EmployeeDocumentsWorkspace from "./components/EmployeeDocumentsWorkspace";
+import EmployeeWarningLettersWorkspace from "./components/EmployeeWarningLettersWorkspace";
 import "./EmployeeDetailsPage.scss";
+
+const baseTabItems = [
+  { key: "consumption", label: "Consumption History", icon: "fa-light fa-chart-column" },
+  { key: "refill", label: "Fuel Refill History", icon: "fa-light fa-gas-pump" },
+  { key: "vehicle-change", label: "Vehicle Change History", icon: "fa-light fa-right-left" },
+  { key: "documents", label: "Documents", icon: "fa-light fa-folder-open" },
+  { key: "warning-letters", label: "Warning Letters", icon: "fa-light fa-triangle-exclamation" },
+];
+
+const getAvailableTabItems = (canReadWarningLetters) =>
+  baseTabItems.filter(
+    (tab) => tab.key !== "warning-letters" || canReadWarningLetters
+  );
 
 const toDateInputValue = (date) => date.toISOString().split("T")[0];
 
@@ -55,13 +69,6 @@ const parseDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 };
-
-const TAB_ITEMS = [
-  { key: "consumption", label: "Consumption History", icon: "fa-light fa-chart-column" },
-  { key: "refill", label: "Fuel Refill History", icon: "fa-light fa-gas-pump" },
-  { key: "vehicle-change", label: "Vehicle Change History", icon: "fa-light fa-right-left" },
-  { key: "documents", label: "Documents", icon: "fa-light fa-folder-open" },
-];
 
 const employeeStatusOptions = ["Active", "Terminated"];
 
@@ -93,7 +100,7 @@ const EmployeeDetailsPage = () => {
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [selectedTab, setSelectedTab] = useState(() => {
     const queryTab = new URLSearchParams(window.location.search).get("tab");
-    return TAB_ITEMS.some((tab) => tab.key === queryTab) ? queryTab : "consumption";
+    return baseTabItems.some((tab) => tab.key === queryTab) ? queryTab : "consumption";
   });
   const [fromDate, setFromDate] = useState(
     toDateInputValue(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
@@ -207,13 +214,17 @@ const EmployeeDetailsPage = () => {
 
   useEffect(() => {
     const queryTab = new URLSearchParams(location.search).get("tab");
-    if (queryTab && TAB_ITEMS.some((tab) => tab.key === queryTab)) {
+    const availableTabItems = getAvailableTabItems(
+      permissions.includes("_Read_WarningLetter")
+    );
+
+    if (queryTab && availableTabItems.some((tab) => tab.key === queryTab)) {
       setSelectedTab(queryTab);
       return;
     }
 
     setSelectedTab("consumption");
-  }, [location.search]);
+  }, [location.search, permissions]);
 
   const handleTabChange = useCallback(
     (nextTab) => {
@@ -448,6 +459,10 @@ const EmployeeDetailsPage = () => {
   const canEditEmployee = permissions.includes("_Edit_Employee");
   const canDeleteEmployee = permissions.includes("_Delete_Employee");
   const canReadWarningLetters = permissions.includes("_Read_WarningLetter");
+  const tabItems = useMemo(
+    () => getAvailableTabItems(canReadWarningLetters),
+    [canReadWarningLetters]
+  );
 
   const handleEditEmployee = useCallback(() => {
     if (!canEditEmployee) {
@@ -655,7 +670,7 @@ const EmployeeDetailsPage = () => {
       {/* ── M365 Tabs ── */}
       <div className="edp-tabbed-card">
         <div className="m365-tabs">
-          {TAB_ITEMS.map((tab) => (
+          {tabItems.map((tab) => (
             <button
               key={tab.key}
               className={`m365-tab${selectedTab === tab.key ? " m365-tab--active" : ""}`}
@@ -774,6 +789,10 @@ const EmployeeDetailsPage = () => {
 
               {selectedTab === "documents" && (
                 <EmployeeDocumentsWorkspace employeeId={employeeId} employee={employee} />
+              )}
+
+              {selectedTab === "warning-letters" && canReadWarningLetters && (
+                <EmployeeWarningLettersWorkspace employeeId={employeeId} employee={employee} />
               )}
             </>
           )}

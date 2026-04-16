@@ -10,6 +10,8 @@
 import React from "react";
 import DataGrid, {
     Column,
+    FilterRow,
+    HeaderFilter,
     Pager,
     Paging,
     SearchPanel,
@@ -123,6 +125,8 @@ const WarningLetterCandidateGrid = ({
                 }}
             >
                 <SearchPanel visible={true} width={280} placeholder="Search candidates" />
+                <HeaderFilter visible={true} />
+                <FilterRow visible={true} />
                 <Paging defaultPageSize={10} />
                 <Pager
                     visible={true}

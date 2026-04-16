@@ -128,7 +128,20 @@ namespace FMS.WebClient.Controllers
             if (id <= 0) return BadRequest("Invalid ID");
 
             var result = await _mediator.Send(new DeleteEmployeePositionCommand(id));
-            if (!result.Success) return BadRequest(result.Message);
+            if (!result.Success) return BadRequest(result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}/position")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Edit)]
+        public async Task<IActionResult> RemoveEmployeePositionAssignment(int id)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var result = await _mediator.Send(new RemoveEmployeePositionAssignmentCommand(id));
+            if (!result.Success) return BadRequest(result);
 
             return Ok(result);
         }

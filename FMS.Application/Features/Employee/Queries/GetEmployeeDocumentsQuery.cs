@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.Employee.DTOs;
+using FMS.Application.Features.Employee.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +33,8 @@ public class GetEmployeeDocumentsQueryHandler : IRequestHandler<GetEmployeeDocum
 
     public async Task<FMSResponse<List<EmployeeDocumentDto>>> Handle(GetEmployeeDocumentsQuery request, CancellationToken cancellationToken)
     {
+        await EmployeeDocumentSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken: cancellationToken);
+
         var employeeExists = await _context.Employees
             .AsNoTracking()
             .AnyAsync(employee => employee.Id == request.EmployeeId, cancellationToken);

@@ -122,6 +122,21 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
     // ── Submitting ──
     const [submitting, setSubmitting] = useState(false);
 
+    const normalizeFiltersForSource = useCallback((source, candidateFilters = {}) => {
+        if (!source || !candidateFilters || typeof candidateFilters !== 'object') {
+            return candidateFilters || {};
+        }
+
+        const normalized = { ...candidateFilters };
+        source.parameters.forEach((param) => {
+            if (param.multiSelect === false && Array.isArray(normalized[param.key])) {
+                normalized[param.key] = normalized[param.key][0] ?? null;
+            }
+        });
+
+        return normalized;
+    }, []);
+
     // ── Effects ──────────────────────────────────────────────────────────────
 
     // Sync initialSourceId when panel opens (create mode)
@@ -138,14 +153,23 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                 setDayOfMonth(initialValues.scheduleDayOfMonth || 1);
                 setSelectedFormat((initialValues.outputFormat || 'pdf').toLowerCase());
                 setRecipients(Array.isArray(initialValues.recipientEmails) ? initialValues.recipientEmails : []);
-                setFilters(initialValues.filters || {});
+                const matchingSource = allSources.find((source) => source.id === (initialValues.reportSourceId || '')) || null;
+                setFilters(normalizeFiltersForSource(matchingSource, initialValues.filters || {}));
                 setOffsetDays(initialValues.offsetDays ?? 1);
                 setWindowDays(initialValues.windowDays ?? 1);
             } else {
                 setSelectedSourceId(initialSourceId || '');
             }
         }
-    }, [open, mode, initialValues, initialSourceId]);
+    }, [open, mode, initialValues, initialSourceId, allSources, normalizeFiltersForSource]);
+
+    useEffect(() => {
+        if (!activeSource) {
+            return;
+        }
+
+        setFilters((current) => normalizeFiltersForSource(activeSource, current));
+    }, [activeSource, normalizeFiltersForSource]);
 
     // Auto-set schedule name from source (create mode only)
     useEffect(() => {

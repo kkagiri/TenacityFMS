@@ -285,6 +285,7 @@ const WarningLetterFormPage = () => {
     const [candidateLoading, setCandidateLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [vehicleDisplayName, setVehicleDisplayName] = useState("");
     const [isEmployeePanelOpen, setIsEmployeePanelOpen] = useState(false);
     const [employeePanelMode, setEmployeePanelMode] = useState("create");
     const [isSavingEmployee, setIsSavingEmployee] = useState(false);
@@ -310,6 +311,7 @@ const WarningLetterFormPage = () => {
     const isDraft = !isEditMode || status === 0;
     const resolvedSiteId = form.siteId || selectedCandidate?.siteId || "";
     const resolvedSiteName = getSiteName(sites, resolvedSiteId);
+    const resolvedVehicleName = vehicleDisplayName || (form.vehicleId ? `Vehicle #${form.vehicleId}` : "");
     const selectedEmployee = employees.find(
         (employee) => String(getEmployeeId(employee)) === String(form.employeeId)
     );
@@ -417,6 +419,7 @@ const WarningLetterFormPage = () => {
                 if (cancelled) return;
                 setStatus(d.status ?? 0);
                 setLetterType(d.letterType);
+                setVehicleDisplayName(d.vehicleHyoungNo || d.numberPlate || d.vehicleName || "");
                 setForm({
                     id: d.id, letterType: d.letterType,
                     employeeId: String(d.employeeId || ""), vehicleId: String(d.vehicleId || ""),
@@ -572,6 +575,7 @@ const WarningLetterFormPage = () => {
     const handleSelectCandidate = (c) => {
         if (c.hasExistingLetter) return;
         setSelectedCandidate(c);
+        setVehicleDisplayName(c.vehicleHyoungNo || c.numberPlate || "");
         const resolvedEmployeeId = resolveCandidateEmployeeSelection(c, employees);
         setForm((prev) => ({
             ...prev,
@@ -857,6 +861,11 @@ const WarningLetterFormPage = () => {
                                 <span>Site</span>
                                 <input className="m365-input warning-letter-page__readonly-input" type="text" value={resolvedSiteName} readOnly title="Derived from the selected warning letter candidate or saved warning letter context" />
                                 <small className="warning-letter-page__field-hint">Read from the selected vehicle/site context.</small>
+                            </label>
+                            <label className="warning-letter-page__field">
+                                <span>Vehicle</span>
+                                <input className="m365-input warning-letter-page__readonly-input" type="text" value={resolvedVehicleName} readOnly title="Derived from the selected warning letter candidate or saved warning letter context" />
+                                <small className="warning-letter-page__field-hint">Read from the selected vehicle context.</small>
                             </label>
                             <label className="warning-letter-page__field">
                                 <span>Affected Date</span>

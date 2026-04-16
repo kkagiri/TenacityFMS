@@ -6,6 +6,9 @@
  */
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using FMS.Application.Features.Employee.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -29,10 +32,27 @@ public class DeleteEmployeePositionCommandHandler(GpsdataContext context) : IReq
             return new DeleteEmployeePositionResponse(false, $"Position {request.Id} not found.");
         }
 
-        var inUse = await context.Employees.AnyAsync(employee => employee.Position == entity.Name, cancellationToken);
-        if (inUse)
+        var assignedEmployees = await context.Employees
+            .AsNoTracking()
+            .Where(employee => employee.Position == entity.Name)
+            .OrderBy(employee => employee.FullName)
+            .Select(employee => new AssignedEmployeePositionDto
+            {
+                Id = employee.Id,
+                FullName = employee.FullName ?? string.Empty,
+                EmployeeWorkNo = employee.EmployeeWorkNo ?? string.Empty,
+                Employeestatus = employee.Employeestatus ?? string.Empty,
+            })
+            .ToListAsync(cancellationToken);
+
+        if (assignedEmployees.Count > 0)
         {
-            return new DeleteEmployeePositionResponse(false, "This position is assigned to one or more employees and cannot be deleted.");
+            return new DeleteEmployeePositionResponse(
+                false,
+                "This position is assigned to one or more employees and cannot be deleted.",
+                assignedEmployees.Count,
+                assignedEmployees
+            );
         }
 
         context.EmployeePositions.Remove(entity);
@@ -42,4 +62,9 @@ public class DeleteEmployeePositionCommandHandler(GpsdataContext context) : IReq
     }
 }
 
-public record DeleteEmployeePositionResponse(bool Success, string Message);
+public record DeleteEmployeePositionResponse(
+    bool Success,
+    string Message,
+    int AssignedEmployeeCount = 0,
+    IReadOnlyList<AssignedEmployeePositionDto>? AssignedEmployees = null
+);

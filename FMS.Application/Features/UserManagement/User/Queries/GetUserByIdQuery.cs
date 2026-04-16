@@ -55,6 +55,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
                 LastName = user.LastName,
                 UserName = user.UserName ?? string.Empty,
                 Email = user.Email ?? string.Empty,
+                EmailConfirmed = user.EmailConfirmed,
                 IsDeleted = user.IsDeleted ?? false,
                 PhoneNumber = user.PhoneNumber ?? string.Empty,
                 MasterRFIDTag = user.MasterRFIDTag ?? 0,

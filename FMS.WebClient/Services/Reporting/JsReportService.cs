@@ -533,6 +533,17 @@ namespace FMS.WebClient.Services.Reporting
                     return ms.ToArray();
                 }
 
+                if (root.TryGetProperty("records", out var warningLetterCandidateRows) &&
+                    warningLetterCandidateRows.ValueKind == JsonValueKind.Array &&
+                    warningLetterCandidateRows.GetArrayLength() > 0 &&
+                    warningLetterCandidateRows[0].TryGetProperty("letterTypeName", out _))
+                {
+                    BuildWarningLetterCandidatesSheet(wb, root, warningLetterCandidateRows);
+                    using var ms = new MemoryStream();
+                    wb.SaveAs(ms);
+                    return ms.ToArray();
+                }
+
                 // ── Flat transactions array ───────────────────────────────────────
                 if (root.TryGetProperty("transactions", out var flatTxns) &&
                     flatTxns.ValueKind == JsonValueKind.Array)
@@ -793,6 +804,47 @@ namespace FMS.WebClient.Services.Reporting
                 }
                 row++;
             }
+            ws.Columns().AdjustToContents();
+        }
+
+        private static void BuildWarningLetterCandidatesSheet(XLWorkbook wb, JsonElement root, JsonElement rows)
+        {
+            var ws = wb.Worksheets.Add("Candidates");
+            int row = 1;
+
+            ws.Cell(row, 1).Value = GetStr(root, "reportTitle");
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Font.FontSize = 14;
+            ws.Range(row, 1, row, 11).Merge();
+            row++;
+
+            ws.Cell(row, 1).Value = $"Generated: {GetStr(root, "generatedAt")}";
+            ws.Range(row, 1, row, 11).Merge();
+            row += 2;
+
+            ApplyHeaderRow(ws, row, new[]
+            {
+                "#", "Date", "Type", "Employee Name (Work No)", "Vehicle", "Vehicle Type", "Site",
+                "Expected", "Actual", "Excess", "Amount (KES)"
+            });
+            row++;
+
+            foreach (var candidate in rows.EnumerateArray())
+            {
+                ws.Cell(row, 1).Value = GetStr(candidate, "rowNum");
+                ws.Cell(row, 2).Value = GetStr(candidate, "metricDate");
+                ws.Cell(row, 3).Value = GetStr(candidate, "letterTypeName");
+                ws.Cell(row, 4).Value = GetStr(candidate, "employeeName");
+                ws.Cell(row, 5).Value = GetStr(candidate, "vehicleHyoungNo");
+                ws.Cell(row, 6).Value = GetStr(candidate, "vehicleTypeName");
+                ws.Cell(row, 7).Value = GetStr(candidate, "siteName");
+                ws.Cell(row, 8).Value = GetStr(candidate, "expectedFormatted");
+                ws.Cell(row, 9).Value = GetStr(candidate, "actualFormatted");
+                ws.Cell(row, 10).Value = GetStr(candidate, "excessFormatted");
+                ws.Cell(row, 11).Value = GetStr(candidate, "excessCostFormatted");
+                row++;
+            }
+
             ws.Columns().AdjustToContents();
         }
 

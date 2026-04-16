@@ -254,6 +254,26 @@ public class UserController : ControllerBase
         return Ok(FMSResponse<bool>.Success(true, "Email confirmed successfully. You can now sign in."));
     }
 
+    [HttpPost("{id}/resend-confirmation-email")]
+    [RequirePermission(Permissions.Admin.Users)]
+    public async Task<IActionResult> ResendConfirmationEmail(string id)
+    {
+        var result = await _mediator.Send(new ResendUserConfirmationEmailCommand(id));
+
+        if (result.IsSuccess)
+        {
+            return Ok(result);
+        }
+
+        return result.ErrorType switch
+        {
+            ErrorType.Validation => BadRequest(result),
+            ErrorType.NotFound => NotFound(result),
+            ErrorType.SystemError => StatusCode(StatusCodes.Status500InternalServerError, result),
+            _ => BadRequest(result)
+        };
+    }
+
     [HttpGet("details")]
     public async Task<IActionResult> GetUserDetails()
     {

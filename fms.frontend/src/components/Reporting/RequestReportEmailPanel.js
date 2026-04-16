@@ -236,7 +236,13 @@ const RequestReportEmailPanel = ({ open, onClose, initialSourceId = '' }) => {
                 const dd = String(val.getDate()).padStart(2, '0');
                 params[paramName] = `${yyyy}-${mm}-${dd}`;
             } else if (Array.isArray(val)) {
-                if (val.length > 0) params[paramName] = val.join(',');
+                if (p.multiSelect === false) {
+                    if (val.length > 0 && val[0] !== null && val[0] !== undefined && val[0] !== '') {
+                        params[paramName] = String(val[0]);
+                    }
+                } else if (val.length > 0) {
+                    params[paramName] = val.join(',');
+                }
             } else if (val !== null && val !== undefined && val !== '') {
                 params[paramName] = String(val);
             }

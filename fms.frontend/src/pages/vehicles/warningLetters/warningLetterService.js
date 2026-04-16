@@ -77,6 +77,8 @@ const normalizeWarningLetterListItem = (item = {}) => ({
     signatureRequestedAt: item?.signatureRequestedAt ?? item?.SignatureRequestedAt ?? null,
     signedCopyUploadedAt: item?.signedCopyUploadedAt ?? item?.SignedCopyUploadedAt ?? null,
     employeeAcknowledgedAt: item?.employeeAcknowledgedAt ?? item?.EmployeeAcknowledgedAt ?? null,
+    createdByName: item?.createdByName ?? item?.CreatedByName ?? "",
+    createdBy: item?.createdBy ?? item?.CreatedBy ?? "",
 });
 
 const normalizeSignatureRecipient = (item = {}) => ({
@@ -157,14 +159,18 @@ export const updateWarningLetter = async (id, payload) => {
 };
 
 export const deleteWarningLetter = async (id) => {
-    const response = await axiosInstance.delete(`/warning-letters/${id}`);
-    const result = response.data;
+    try {
+        const response = await axiosInstance.delete(`/warning-letters/${id}`);
+        const result = response.data;
 
-    if (!getSuccess(result)) {
-        throw new Error(getMessage(result, "Failed to delete warning letter."));
+        if (!getSuccess(result)) {
+            throw new Error(getMessage(result, "Failed to delete warning letter."));
+        }
+
+        return result;
+    } catch (error) {
+        throw toServiceError(error, "Failed to delete warning letter.");
     }
-
-    return result;
 };
 
 export const finalizeWarningLetter = async (id) => {

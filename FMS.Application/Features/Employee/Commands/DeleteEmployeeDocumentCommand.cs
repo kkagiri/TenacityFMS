@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface;
+using FMS.Application.Features.Employee.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,8 @@ public class DeleteEmployeeDocumentCommandHandler : IRequestHandler<DeleteEmploy
     {
         try
         {
+            await EmployeeDocumentSchemaGuard.EnsureTableExistsAsync(_context, _logger, cancellationToken);
+
             var document = await _context.EmployeeDocuments
                 .FirstOrDefaultAsync(item => item.Id == request.Id, cancellationToken);
 

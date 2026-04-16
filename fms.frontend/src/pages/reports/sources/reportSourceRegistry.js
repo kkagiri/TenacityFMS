@@ -31,6 +31,8 @@ import tankLevelDetail from './tankLevelDetail';
 import alarmReport from './alarmReport';
 import storageReceivedVsDispensed from './storageReceivedVsDispensed';
 import vehicleDocumentCompliance from './vehicleDocumentCompliance';
+import warningLetterAnalytics from './warningLetterAnalytics';
+import warningLetterCandidates from './warningLetterCandidates';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -72,6 +74,8 @@ const builtInSources = [
     alarmReport,
     storageReceivedVsDispensed,
     vehicleDocumentCompliance,
+    warningLetterAnalytics,
+    warningLetterCandidates,
 ];
 
 builtInSources.forEach((source) => {

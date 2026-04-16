@@ -2,7 +2,7 @@
  * File: employeePage.js
  * Purpose: Employee list page with Microsoft-style grid and side-panel CRUD workflow.
  * Dependencies: redux employee/site/permission actions, DevExtreme DataGrid and toolbar components.
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-04-15
  *
  * Key Components:
  * - EmployeePage(): Manages employee listing, side-panel add/edit/view, export, and refresh operations.
@@ -18,9 +18,12 @@ import {
 } from "../../redux/actions/employeeActions";
 import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
+import { fetchVehicleList } from "../../redux/actions/vehicleActions";
 import DataGrid, {
   Column,
   Export,
+  FilterRow,
+  HeaderFilter,
   Item as TItems,
   LoadPanel,
   Pager,
@@ -30,7 +33,6 @@ import DataGrid, {
   Toolbar,
 } from "devextreme-react/data-grid";
 import Button from "devextreme-react/button";
-import TextBox from "devextreme-react/text-box";
 import notify from "devextreme/ui/notify";
 import LoadIndicator from "devextreme-react/load-indicator";
 import { jsPDF } from "jspdf";
@@ -67,9 +69,9 @@ const EmployeePage = () => {
   const permissions = useSelector((state) => state.permission?.permissions || []);
   const user = useSelector((state) => state.auth?.user);
   const sites = useSelector((state) => state.site?.sites || []);
+  const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
 
   const [activeOnly, setActiveOnly] = useState(true);
-  const [quickSearchTerm, setQuickSearchTerm] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -117,6 +119,14 @@ const EmployeePage = () => {
   }, [fetchData]);
 
   useEffect(() => {
+    if (!vehicles.length) {
+      dispatch(fetchVehicleList()).catch(() => {
+        notify("Failed to load vehicle references for employee assignments.", "warning", 3000);
+      });
+    }
+  }, [dispatch, vehicles.length]);
+
+  useEffect(() => {
     if (location.hash !== "#add-employee") return;
     if (!canCreate) {
       notify("You do not have permission to add employees.", "warning", 2500);
@@ -134,12 +144,6 @@ const EmployeePage = () => {
     fetchData();
     gridRef.current?.instance?.refresh();
   }, [fetchData]);
-
-  const handleQuickSearchChanged = useCallback((event) => {
-    const value = event.value || "";
-    setQuickSearchTerm(value);
-    gridRef.current?.instance?.searchByText(value);
-  }, []);
 
   const handleOpenDetails = useCallback((employee) => {
     if (!employee) return;
@@ -323,26 +327,63 @@ const EmployeePage = () => {
 
   const renderVehiclesCell = useCallback(
     (cell) => {
-      const values = toVehiclesArray(cell.data?.vehicles);
-      if (!values.length) return <span className="employee-grid__muted">-</span>;
-
-      const text = values
-        .map((value) => {
-          if (typeof value === "object" && value !== null) {
-            return (
-              value.hyoungNo ||
-              value.numberPlate ||
-              value.vehicleName ||
-              value.name ||
-              `Vehicle #${value.vehicleId || value.id || "-"}`
-            );
-          }
-          return `Vehicle #${value}`;
-        })
-        .join(", ");
+      const text = cell.value || "";
+      if (!text) return <span className="employee-grid__muted">-</span>;
       return <span title={text}>{text}</span>;
     },
     []
+  );
+
+  const vehicleMap = useMemo(() => {
+    const result = new Map();
+    (vehicles || []).forEach((vehicle) => {
+      const vehicleId = vehicle?.vehicleId ?? vehicle?.id;
+      if (vehicleId === undefined || vehicleId === null) return;
+      result.set(
+        String(vehicleId),
+        vehicle?.hyoungNo || vehicle?.HyoungNo || vehicle?.numberPlate || vehicle?.vehicleName || vehicle?.name || null
+      );
+    });
+    return result;
+  }, [vehicles]);
+
+  const resolveVehicleLabel = useCallback(
+    (value) => {
+      if (typeof value === "object" && value !== null) {
+        const vehicleId = value.vehicleId ?? value.id;
+        return (
+          value.hyoungNo ||
+          value.HyoungNo ||
+          value.vehicleHyoungNo ||
+          value.numberPlate ||
+          value.vehicleName ||
+          value.name ||
+          (vehicleId !== undefined && vehicleId !== null
+            ? vehicleMap.get(String(vehicleId)) || `Vehicle #${vehicleId}`
+            : "")
+        );
+      }
+
+      if (value === undefined || value === null || value === "") {
+        return "";
+      }
+
+      return vehicleMap.get(String(value)) || `Vehicle #${value}`;
+    },
+    [vehicleMap]
+  );
+
+  const getVehicleDisplayText = useCallback(
+    (row) => {
+      const values = toVehiclesArray(row?.vehicles);
+      if (!values.length) return "";
+
+      return values
+        .map(resolveVehicleLabel)
+        .filter(Boolean)
+        .join(", ");
+    },
+    [resolveVehicleLabel]
   );
 
   const employeeStats = useMemo(() => {
@@ -452,20 +493,13 @@ const EmployeePage = () => {
             showPageSizeSelector={true}
             allowedPageSizes={[10, 20, 50, 100]}
           />
-          <SearchPanel visible={false} />
+          <SearchPanel visible={true} width={260} placeholder="Search employees..." />
+          <HeaderFilter visible={true} />
+          <FilterRow visible={true} />
           <Sorting mode="multiple" />
 
           <Toolbar>
-            <TItems location="before" locateInMenu="auto">
-              <TextBox
-                value={quickSearchTerm}
-                width={280}
-                mode="search"
-                showClearButton={true}
-                placeholder="Quick employee search..."
-                onValueChanged={handleQuickSearchChanged}
-              />
-            </TItems>
+            <TItems name="searchPanel" location="before" locateInMenu="auto" />
 
             <TItems location="after" locateInMenu="auto">
               <label
@@ -493,7 +527,13 @@ const EmployeePage = () => {
           <Column dataField="employeeWorkNo" caption="Work No" minWidth={120} />
           <Column dataField="position" caption="Position" minWidth={160} />
           <Column dataField="employeestatus" caption="Status" minWidth={120} />
-          <Column dataField="vehicles" caption="Default Vehicles" minWidth={260} cellRender={renderVehiclesCell} />
+          <Column
+            dataField="vehicles"
+            caption="Default Vehicles"
+            minWidth={260}
+            calculateCellValue={getVehicleDisplayText}
+            cellRender={renderVehiclesCell}
+          />
           <Column
             dataField="siteId"
             caption="Site"

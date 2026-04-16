@@ -72,6 +72,10 @@ namespace FMS.WebClient.Services.Reporting
 
         public static string ConsumptionByRefills() => ConsumptionByRefillsHtmlTemplate.Get();
 
+        public static string WarningLetterAnalytics() => WarningLetterAnalyticsHtmlTemplate.Get();
+
+        public static string WarningLetterCandidates() => WarningLetterCandidatesHtmlTemplate.Get();
+
         // â”€â”€â”€ Generic Template Builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private static string BuildGenericTemplate(string title, string color,
