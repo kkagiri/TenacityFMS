@@ -1,6 +1,9 @@
 import axiosInstance from "../../api/axiosInstance";
 
 const normalizeSearchTerm = (value) => typeof value === "string" ? value.trim() : value;
+const resolveSuccess = (result) => Boolean(result?.success ?? result?.Success ?? result?.isSuccess ?? result?.IsSuccess);
+const resolveData = (result) => result?.data || result?.Data || [];
+const resolveMessage = (result) => result?.message || result?.Message || '';
 
 // Action types for vehicle search
 export const SEARCH_VEHICLES_REQUEST = "SEARCH_VEHICLES_REQUEST";
@@ -26,9 +29,9 @@ export const searchVehicles = (searchTerm, filters = {}) => async (dispatch) => 
     console.log('Search vehicles response:', result); // Debug log
 
     // Handle both camelCase and PascalCase properties
-    const isSuccess = result.isSuccess || result.IsSuccess;
-    const data = result.data || result.Data || [];
-    const message = result.message || result.Message || '';
+    const isSuccess = resolveSuccess(result);
+    const data = resolveData(result);
+    const message = resolveMessage(result);
 
     if (isSuccess) {
       dispatch({
@@ -95,27 +98,27 @@ export const advancedVehicleSearch = (criteria) => async (dispatch) => {
     });
 
     const result = response.data;
-    if (result.isSuccess) {
+    if (resolveSuccess(result)) {
       dispatch({
         type: SEARCH_VEHICLES_SUCCESS,
-        payload: result.data
+        payload: resolveData(result)
       });
 
       return {
         success: true,
-        data: result.data,
-        message: result.message
+        data: resolveData(result),
+        message: resolveMessage(result)
       };
     } else {
       dispatch({
         type: SEARCH_VEHICLES_FAILURE,
-        payload: result.message
+        payload: resolveMessage(result)
       });
 
       return {
         success: false,
         data: [],
-        message: result.message
+        message: resolveMessage(result)
       };
     }
   } catch (error) {
@@ -155,8 +158,8 @@ export const quickSearchVehicles = async (searchTerm, limit = 10) => {
     console.log('Quick search response:', response.data); // Debug log
 
     // Handle both camelCase (data) and PascalCase (Data) properties
-    const responseData = response.data.data || response.data.Data || [];
-    const isSuccess = response.data.isSuccess || response.data.IsSuccess;
+    const responseData = resolveData(response.data);
+    const isSuccess = resolveSuccess(response.data);
 
     if (isSuccess) {
       return {
@@ -167,7 +170,7 @@ export const quickSearchVehicles = async (searchTerm, limit = 10) => {
       return {
         success: false,
         data: [],
-        error: response.data.message || response.data.Message || 'Search failed'
+        error: resolveMessage(response.data) || 'Search failed'
       };
     }
   } catch (error) {

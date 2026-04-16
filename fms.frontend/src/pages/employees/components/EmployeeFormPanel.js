@@ -14,6 +14,7 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import TagBox from "devextreme-react/tag-box";
+import SelectBox from "devextreme-react/select-box";
 import CustomStore from "devextreme/data/custom_store";
 import axiosInstance from "../../../api/axiosInstance";
 import { checkEmployeeDuplicates, fetchEmployeePositions } from "../../../redux/actions/employeeActions";
@@ -56,6 +57,20 @@ const normalizeVehicleIds = (value) => {
       typeof item === "object" && item !== null ? item.vehicleId : item
     )
     .filter((item) => item !== undefined && item !== null);
+};
+
+const mergeVehicleIds = (...collections) => {
+  const seen = new Set();
+
+  return collections.flatMap((collection) => normalizeVehicleIds(collection)).filter((item) => {
+    const key = String(item);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
 };
 
 const arraysEqual = (left, right) => {
@@ -118,6 +133,8 @@ const EmployeeFormPanel = ({
 
   useEffect(() => {
     if (mode === "edit" && employee) {
+      const initialForm = buildInitialForm(initialValues);
+
       setForm({
         fullName: employee.fullName || "",
         employeephoneNumber: employee.employeephoneNumber || "",
@@ -126,12 +143,9 @@ const EmployeeFormPanel = ({
         employeestatus: employee.employeestatus || "Active",
         siteId:
           employee.siteId === undefined || employee.siteId === null || employee.siteId === ""
-            ? buildInitialForm(initialValues).siteId
+            ? initialForm.siteId
             : String(employee.siteId),
-        vehicles:
-          normalizeVehicleIds(employee.vehicles).length > 0
-            ? normalizeVehicleIds(employee.vehicles)
-            : buildInitialForm(initialValues).vehicles,
+        vehicles: mergeVehicleIds(initialForm.vehicles, employee.vehicles),
       });
       setErrors({});
       setDuplicateState(EMPTY_DUPLICATE_STATE);
@@ -376,18 +390,27 @@ const EmployeeFormPanel = ({
 
             <div className="m365-field">
               <label className="m365-field__label">Position</label>
-              <select
-                className="m365-select"
+              <SelectBox
+                dataSource={availablePositionOptions}
                 value={form.position}
-                onChange={(event) => setField("position", event.target.value)}
-              >
-                <option value="">Select position</option>
-                {availablePositionOptions.map((position) => (
-                  <option key={position.id} value={position.name}>
-                    {position.name}
-                  </option>
-                ))}
-              </select>
+                valueExpr="name"
+                displayExpr="name"
+                onValueChanged={(event) => setField("position", event.value || "")}
+                placeholder="Select position"
+                searchEnabled
+                searchExpr="name"
+                showClearButton
+                acceptCustomValue
+                onCustomItemCreating={(event) => {
+                  event.customItem = {
+                    id: `custom-${event.text}`,
+                    name: event.text,
+                    isActive: false,
+                  };
+                }}
+                height={34}
+                stylingMode="outlined"
+              />
               <span className="m365-field__hint">Positions are loaded from employee position master data.</span>
             </div>
 
@@ -445,18 +468,21 @@ const EmployeeFormPanel = ({
           <div className="employee-form-grid">
             <div className="m365-field">
               <label className="m365-field__label m365-field__label--required">Site</label>
-              <select
-                className={`m365-select${errors.siteId ? " m365-input--error" : ""}`}
+              <SelectBox
+                dataSource={sites || []}
                 value={form.siteId}
-                onChange={(event) => setField("siteId", event.target.value)}
-              >
-                <option value="">Select site</option>
-                {(sites || []).map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.name}
-                  </option>
-                ))}
-              </select>
+                valueExpr="id"
+                displayExpr="name"
+                onValueChanged={(event) => setField("siteId", event.value === null || event.value === undefined ? "" : String(event.value))}
+                placeholder="Select site"
+                searchEnabled
+                searchExpr="name"
+                showClearButton
+                stylingMode="outlined"
+                height={34}
+                inputAttr={errors.siteId ? { "aria-invalid": true } : undefined}
+                elementAttr={errors.siteId ? { class: "m365-input--error" } : undefined}
+              />
               {errors.siteId && <span className="m365-field__error">{errors.siteId}</span>}
             </div>
 
