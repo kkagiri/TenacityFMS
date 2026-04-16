@@ -24,12 +24,46 @@ const VIEW_OPTIONS = [
     { value: "whole-date", label: "Whole Date Scope" },
 ];
 
+const parseBusinessDateTime = (value) => {
+    if (!value) {
+        return null;
+    }
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        const dateTimeMatch = trimmed.match(
+            /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,7}))?)?)?$/
+        );
+
+        if (dateTimeMatch) {
+            const [, year, month, day, hour = "00", minute = "00", second = "00", fraction = "0"] = dateTimeMatch;
+            const milliseconds = Number(fraction.padEnd(3, "0").slice(0, 3));
+            return new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                Number(hour),
+                Number(minute),
+                Number(second),
+                milliseconds
+            );
+        }
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatDateTime = (value) => {
     if (!value) {
         return "-";
     }
 
-    const date = new Date(value);
+    const date = parseBusinessDateTime(value);
     if (Number.isNaN(date.getTime())) {
         return value;
     }

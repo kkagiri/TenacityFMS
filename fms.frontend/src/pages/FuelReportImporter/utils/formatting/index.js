@@ -53,21 +53,31 @@ export const formatDate = (excelDate) => {
 };
 
 /**
+ * Formats a date value using local calendar parts (YYYY-MM-DD).
+ * This preserves Excel/business dates without shifting them through UTC.
+ * @param {number|Date|string} value - Date-like value to format
+ * @returns {string|null} Local date string or null when invalid
+ */
+export const toLocalDateString = (value) => {
+  const date = formatDate(value);
+  if (!date) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Converts a date value to ISO date string (YYYY-MM-DD) or returns today's date
  * @param {*} value - Date value to convert
  * @returns {string} ISO date string
  */
 export const toIsoDateOrToday = (value) => {
-  if (!value) {
-    return new Date().toISOString().split("T")[0];
-  }
-
-  const date = formatDate(value);
-  if (date) {
-    return date.toISOString().split("T")[0];
-  }
-
-  return new Date().toISOString().split("T")[0];
+  return toLocalDateString(value) || toLocalDateString(new Date());
 };
 
 /**

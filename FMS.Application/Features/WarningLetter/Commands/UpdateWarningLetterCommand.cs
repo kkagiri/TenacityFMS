@@ -120,11 +120,6 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        if (vehicle.WorkingSiteId.HasValue && vehicle.WorkingSiteId.Value != request.WarningLetter.SiteId)
-        {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Vehicle does not belong to the selected site." });
-        }
-
         warningLetter.LetterType = request.WarningLetter.LetterType;
         warningLetter.EmployeeId = request.WarningLetter.EmployeeId;
         warningLetter.VehicleId = request.WarningLetter.VehicleId;

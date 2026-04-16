@@ -126,36 +126,48 @@ export const getWarningLetters = async (filters = {}) => {
 };
 
 export const getWarningLetter = async (id) => {
-    const response = await axiosInstance.get(`/warning-letters/${id}`);
-    const payload = response.data;
+    try {
+        const response = await axiosInstance.get(`/warning-letters/${id}`);
+        const payload = response.data;
 
-    if (!getSuccess(payload)) {
-        throw new Error(getMessage(payload, "Failed to load warning letter."));
+        if (!getSuccess(payload)) {
+            throw new Error(getMessage(payload, "Failed to load warning letter."));
+        }
+
+        return getData(payload);
+    } catch (error) {
+        throw toServiceError(error, "Failed to load warning letter.");
     }
-
-    return getData(payload);
 };
 
 export const createWarningLetter = async (payload) => {
-    const response = await axiosInstance.post("/warning-letters", payload);
-    const result = response.data;
+    try {
+        const response = await axiosInstance.post("/warning-letters", payload);
+        const result = response.data;
 
-    if (!getSuccess(result)) {
-        throw new Error(getMessage(result, "Failed to create warning letter."));
+        if (!getSuccess(result)) {
+            throw new Error(getMessage(result, "Failed to create warning letter."));
+        }
+
+        return getData(result);
+    } catch (error) {
+        throw toServiceError(error, "Failed to create warning letter.");
     }
-
-    return getData(result);
 };
 
 export const updateWarningLetter = async (id, payload) => {
-    const response = await axiosInstance.put(`/warning-letters/${id}`, payload);
-    const result = response.data;
+    try {
+        const response = await axiosInstance.put(`/warning-letters/${id}`, payload);
+        const result = response.data;
 
-    if (!getSuccess(result)) {
-        throw new Error(getMessage(result, "Failed to update warning letter."));
+        if (!getSuccess(result)) {
+            throw new Error(getMessage(result, "Failed to update warning letter."));
+        }
+
+        return getData(result);
+    } catch (error) {
+        throw toServiceError(error, "Failed to update warning letter.");
     }
-
-    return getData(result);
 };
 
 export const deleteWarningLetter = async (id) => {
@@ -321,12 +333,16 @@ export const downloadWarningLetterApproveLetter = async (id) => {
 };
 
 export const previewWarningLetterHtml = async (payload) => {
-    const response = await axiosInstance.post("/warning-letters/preview", payload, {
-        responseType: "text",
-        transformResponse: [(value) => value],
-    });
+    try {
+        const response = await axiosInstance.post("/warning-letters/preview", payload, {
+            responseType: "text",
+            transformResponse: [(value) => value],
+        });
 
-    return response.data;
+        return response.data;
+    } catch (error) {
+        throw toServiceError(error, "Failed to generate warning letter preview.");
+    }
 };
 
 export const fetchWarningLetterHtml = async (id) => {
@@ -358,14 +374,18 @@ export const fetchWarningLetterPdf = async (id, generate = false) => {
 };
 
 export const getWarningLetterSettings = async () => {
-    const response = await axiosInstance.get(`/warning-letters/settings`);
-    const payload = response.data;
+    try {
+        const response = await axiosInstance.get(`/warning-letters/settings`);
+        const payload = response.data;
 
-    if (!getSuccess(payload)) {
-        throw new Error(getMessage(payload, "Failed to load warning letter settings."));
+        if (!getSuccess(payload)) {
+            throw new Error(getMessage(payload, "Failed to load warning letter settings."));
+        }
+
+        return getData(payload) || {};
+    } catch (error) {
+        throw toServiceError(error, "Failed to load warning letter settings.");
     }
-
-    return getData(payload) || {};
 };
 
 export const updateWarningLetterSettings = async (settings) => {
@@ -380,16 +400,20 @@ export const updateWarningLetterSettings = async (settings) => {
 };
 
 export const getConsumptionCandidates = async (filters) => {
-    const params = buildParams(filters);
-    const suffix = params.toString() ? `?${params.toString()}` : "";
-    const response = await axiosInstance.get(`/warning-letters/consumption-candidates${suffix}`);
-    const payload = response.data;
+    try {
+        const params = buildParams(filters);
+        const suffix = params.toString() ? `?${params.toString()}` : "";
+        const response = await axiosInstance.get(`/warning-letters/consumption-candidates${suffix}`);
+        const payload = response.data;
 
-    if (!getSuccess(payload)) {
-        throw new Error(getMessage(payload, "Failed to load warning letter candidates."));
+        if (!getSuccess(payload)) {
+            throw new Error(getMessage(payload, "Failed to load warning letter candidates."));
+        }
+
+        return getData(payload) || [];
+    } catch (error) {
+        throw toServiceError(error, "Failed to load warning letter candidates.");
     }
-
-    return getData(payload) || [];
 };
 
 export const getSites = async () => {

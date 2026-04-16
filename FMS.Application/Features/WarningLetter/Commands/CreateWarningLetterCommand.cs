@@ -114,11 +114,6 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_ISSUER_NOT_FOUND", "Issuing user not found");
         }
 
-        if (vehicle.WorkingSiteId.HasValue && vehicle.WorkingSiteId.Value != request.WarningLetter.SiteId)
-        {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Vehicle does not belong to the selected site." });
-        }
-
         var fuelPrice = request.WarningLetter.FuelPrice;
         if (request.WarningLetter.LetterType == WarningLetterType.ExcessFuelConsumption)
         {

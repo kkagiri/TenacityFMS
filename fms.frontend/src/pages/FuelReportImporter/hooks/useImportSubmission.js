@@ -11,6 +11,7 @@ import {
   retryFuelReportExcludingDuplicates,
 } from "../../../redux/actions/fuelReportActions";
 import { safeResetAllNotifications } from "../../../redux/actions/notificationActions";
+import { toLocalDateString } from "../utils/formatting";
 
 /**
  * Hook for import submission functionality
@@ -112,17 +113,11 @@ const useImportSubmission = ({
       // Format data for submission
       const dataToSubmit = dataToProcess.map((row, index) => {
         // Format date to YYYY-MM-DD string
-        let formattedDate = null;
-        if (row.date) {
-          const date = new Date(row.date);
-          if (!isNaN(date.getTime())) {
-            formattedDate = date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
-          }
-        }
+        let formattedDate = toLocalDateString(row.date);
 
         // If date is still null, provide a default value
         if (!formattedDate) {
-          formattedDate = new Date().toISOString().split("T")[0];
+          formattedDate = toLocalDateString(new Date());
         }
 
         // Ensure vehicleId and siteId are valid numbers
@@ -226,8 +221,7 @@ const useImportSubmission = ({
 
     // Show message about retrying without duplicates
     showToast(
-      `Retrying import with ${
-        dataToProcess.length - duplicateErrors.length
+      `Retrying import with ${dataToProcess.length - duplicateErrors.length
       } records, excluding duplicates.`,
       "info"
     );

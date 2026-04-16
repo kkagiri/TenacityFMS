@@ -19,6 +19,38 @@ import "./NotificationHistory.scss";
 
 const PAGE_SIZE = 25;
 
+const parseImportRecordDateTime = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const dateTimeMatch = trimmed.match(
+      /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,7}))?)?)?$/
+    );
+
+    if (dateTimeMatch) {
+      const [, year, month, day, hour = "00", minute = "00", second = "00", fraction = "0"] = dateTimeMatch;
+      const milliseconds = Number(fraction.padEnd(3, "0").slice(0, 3));
+      return new Date(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second),
+        milliseconds
+      );
+    }
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatDateTime = (value) => {
   if (!value) return "—";
   const d = new Date(value);
@@ -73,7 +105,18 @@ const getLatestRecordDisplay = (notification) => {
   const latestRecord = getLatestRecord(notification);
   if (!latestRecord) return "—";
 
-  const recordDate = formatDateTime(latestRecord.RecordDate || latestRecord.recordDate);
+  const recordDateValue = latestRecord.RecordDate || latestRecord.recordDate;
+  const recordDate = (() => {
+    const parsedDate = parseImportRecordDateTime(recordDateValue);
+    if (!parsedDate) return "—";
+    return parsedDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  })();
   const vehicleLabel = latestRecord.VehicleLabel || latestRecord.vehicleLabel || "Unknown Vehicle";
   const siteLabel = latestRecord.SiteLabel || latestRecord.siteLabel || "Unknown Site";
   const shift = latestRecord.Shift || latestRecord.shift || "Unknown Shift";
@@ -598,7 +641,18 @@ const NotificationHistory = () => {
                       <div className="nh-import-grid nh-import-grid--compact">
                         <div className="nh-import-cell">
                           <span className="nh-import-cell__label">Record Date</span>
-                          <span className="nh-import-cell__value">{formatDateTime(selectedLatestRecord.RecordDate || selectedLatestRecord.recordDate)}</span>
+                          <span className="nh-import-cell__value">{(() => {
+                            const parsedDate = parseImportRecordDateTime(selectedLatestRecord.RecordDate || selectedLatestRecord.recordDate);
+                            if (!parsedDate) return "—";
+
+                            return parsedDate.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                          })()}</span>
                         </div>
                         <div className="nh-import-cell">
                           <span className="nh-import-cell__label">Vehicle</span>

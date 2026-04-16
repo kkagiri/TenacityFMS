@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo } from "react";
+import { toLocalDateString } from "../utils/formatting";
 
 /**
  * Hook for grid validation and interaction
@@ -81,20 +82,20 @@ const useValidation = ({
 
       const cellStyle = error
         ? {
-            color: isDuplicate ? "#9f1239" : "#dc2626",
-            fontWeight: "bold",
-            backgroundColor: isDuplicate
-              ? "rgba(255, 228, 230, 0.7)"
-              : "rgba(254, 243, 199, 0.5)",
-            border: isDuplicate ? "1px solid #be185d" : "1px solid #f59e0b",
-            padding: "2px 4px",
-            borderRadius: "2px",
-          }
+          color: isDuplicate ? "#9f1239" : "#dc2626",
+          fontWeight: "bold",
+          backgroundColor: isDuplicate
+            ? "rgba(255, 228, 230, 0.7)"
+            : "rgba(254, 243, 199, 0.5)",
+          border: isDuplicate ? "1px solid #be185d" : "1px solid #f59e0b",
+          padding: "2px 4px",
+          borderRadius: "2px",
+        }
         : isRowFixed
-        ? {
+          ? {
             backgroundColor: "rgba(209, 250, 229, 0.3)",
           }
-        : {};
+          : {};
 
       const errorMessage = error?.message || "";
 
@@ -149,9 +150,8 @@ const useValidation = ({
           {error && (
             <span className="tw-absolute tw-right-1 tw-top-1/2 tw--translate-y-1/2 tw-text-red-500 tw-opacity-80">
               <i
-                className={`fa-solid ${
-                  isDuplicate ? "fa-copy" : "fa-circle-exclamation"
-                } tw-text-xs`}
+                className={`fa-solid ${isDuplicate ? "fa-copy" : "fa-circle-exclamation"
+                  } tw-text-xs`}
               />
             </span>
           )}
@@ -450,7 +450,8 @@ const useValidation = ({
       const changedRow = updatedParsedData[changedRowIndex];
       if (!changedRow || !changedRow.vehicleId || !changedRow.date) return [];
 
-      const dateStr = new Date(changedRow.date).toISOString().split("T")[0];
+      const dateStr = toLocalDateString(changedRow.date);
+      if (!dateStr) return [];
       const groupKey = `${changedRow.vehicleId}_${dateStr}`;
 
       // Find all rows with same vehicle and date
@@ -458,7 +459,7 @@ const useValidation = ({
         .map((row, index) => ({ row, index }))
         .filter(({ row }) => {
           if (!row.vehicleId || !row.date) return false;
-          const rowDateStr = new Date(row.date).toISOString().split("T")[0];
+          const rowDateStr = toLocalDateString(row.date);
           return (
             row.vehicleId === changedRow.vehicleId && rowDateStr === dateStr
           );

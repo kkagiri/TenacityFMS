@@ -21,22 +21,52 @@ const STATUS_CONFIG = {
     Processing: { badge: "m365-badge--primary", label: "Processing", iconBg: "#deecf9", iconColor: "#0078d4" },
 };
 
+const parseBusinessDateTime = (value) => {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        const dateTimeMatch = trimmed.match(
+            /^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,7}))?)?)?$/
+        );
+
+        if (dateTimeMatch) {
+            const [, year, month, day, hour = "00", minute = "00", second = "00", fraction = "0"] = dateTimeMatch;
+            const milliseconds = Number(fraction.padEnd(3, "0").slice(0, 3));
+            return new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                Number(hour),
+                Number(minute),
+                Number(second),
+                milliseconds
+            );
+        }
+    }
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatDate = (dateStr) => {
     if (!dateStr) return "—";
     try {
-        // Ensure UTC dates from the API are parsed correctly
-        // .NET DateTime serializes without 'Z' — append it so JS interprets as UTC
-        let isoStr = dateStr;
-        if (typeof isoStr === "string" && !isoStr.endsWith("Z") && !isoStr.includes("+")) {
-            isoStr += "Z";
+        const parsedDate = parseBusinessDateTime(dateStr);
+        if (!parsedDate) {
+            return dateStr;
         }
-        return new Date(isoStr).toLocaleString("en-GB", {
+
+        return parsedDate.toLocaleString("en-GB", {
             day: "2-digit",
             month: "short",
             year: "numeric",
             hour: "2-digit",
             minute: "2-digit",
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         });
     } catch {
         return dateStr;
