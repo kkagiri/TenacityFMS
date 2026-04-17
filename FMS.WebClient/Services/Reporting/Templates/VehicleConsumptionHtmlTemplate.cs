@@ -86,6 +86,39 @@ namespace FMS.WebClient.Services.Reporting
         .summary-card .value { font-size: 22px; font-weight: 800; color: var(--text-strong); line-height: 1.1; margin-bottom: 4px; letter-spacing: -0.4px; }
         .summary-card .label { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
 
+        .site-section { margin-bottom: 18px; }
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            background: #F9FAFB;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+        .site-title { font-size: 14px; font-weight: 800; color: var(--text-strong); }
+        .site-meta { font-size: 10.5px; color: var(--text-muted); }
+        .unit-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .unit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--primary-light);
+            border-bottom: 1px solid var(--border);
+        }
+        .unit-title { font-size: 12px; font-weight: 800; color: var(--primary-dark); }
+        .unit-meta { font-size: 10.5px; color: var(--text-muted); }
+
         .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
         .data-table thead th {
@@ -147,16 +180,40 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
         <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
         <div class=""summary-card card-warning""><div class=""value"">{{summary.totalCost}}</div><div class=""label"">Total Cost</div></div>
-        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg km/l</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">{{avgConsumptionLabel}}</div></div>
     </div>{{/if}}
-    <div class=""table-wrapper"">
-    {{#if records}}
-    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th><th class=""text-right"">Cost</th></tr></thead>
-        <tbody>{{#each records}}<tr>
-            <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{vehicleType}}</td><td>{{siteName}}</td>
-            <td class=""text-right text-success font-bold"">{{volume}}</td><td class=""text-right"">{{distance}}</td><td class=""text-right font-bold"">{{consumption}}</td><td class=""text-right"">{{cost}}</td>
-        </tr>{{/each}}</tbody></table>{{/if}}
-    </div>
+    {{#if siteGroups}}
+        {{#each siteGroups}}
+        <div class=""site-section"">
+            <div class=""site-header"">
+                <div class=""site-title"">{{siteName}}</div>
+                <div class=""site-meta"">{{summary.totalVehicles}} vehicles • {{summary.totalVolume}} L</div>
+            </div>
+            {{#each unitGroups}}
+            <div class=""unit-section"">
+                <div class=""unit-header"">
+                    <div class=""unit-title"">{{unitLabel}}</div>
+                    <div class=""unit-meta"">{{summary.totalVehicles}} vehicles • {{summary.totalDistanceDisplay}} • {{summary.avgConsumptionDisplay}}</div>
+                </div>
+                <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">{{distanceHeader}}</th><th class=""text-right"">{{consumptionHeader}}</th><th class=""text-right"">Cost</th></tr></thead>
+                    <tbody>{{#each records}}<tr>
+                        <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{vehicleType}}</td><td>{{siteName}}</td>
+                        <td class=""text-right text-success font-bold"">{{volume}}</td><td class=""text-right"">{{distance}}</td><td class=""text-right font-bold"">{{consumption}}</td><td class=""text-right"">{{cost}}</td>
+                    </tr>{{/each}}</tbody></table>
+            </div>
+            {{/each}}
+        </div>
+        {{/each}}
+    {{else}}
+        <div class=""table-wrapper"">
+        {{#if records}}
+        <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">{{distanceHeader}}</th><th class=""text-right"">{{consumptionHeader}}</th><th class=""text-right"">Cost</th></tr></thead>
+            <tbody>{{#each records}}<tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{vehicleType}}</td><td>{{siteName}}</td>
+                <td class=""text-right text-success font-bold"">{{volume}}</td><td class=""text-right"">{{distance}}</td><td class=""text-right font-bold"">{{consumption}}</td><td class=""text-right"">{{cost}}</td>
+            </tr>{{/each}}</tbody></table>{{/if}}
+        </div>
+    {{/if}}
     {{#unless records}}{{#unless transactions}}{{#unless data}}
     <div class=""empty-state""><p>No vehicle consumption data found for the selected criteria.</p></div>
     {{/unless}}{{/unless}}{{/unless}}

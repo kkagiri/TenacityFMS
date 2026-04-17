@@ -181,7 +181,17 @@ namespace FMS.Application.Features.PTS.Services
 
         private async Task ProcessIdleStatusAsync(string deviceId, IdleStatus idleStatus)
         {
-            if (idleStatus.Ids == null || !idleStatus.Ids.Any())
+            System.Collections.Generic.List<int?> pumpIds = idleStatus.Ids ?? new System.Collections.Generic.List<int?>();
+            if (!pumpIds.Any())
+            {
+                return;
+            }
+
+            System.Collections.Generic.List<int> lastTransactions = idleStatus.LastTransactions ?? new System.Collections.Generic.List<int>();
+            System.Collections.Generic.List<decimal> lastVolumes = idleStatus.LastVolumes ?? new System.Collections.Generic.List<decimal>();
+            System.Collections.Generic.List<decimal> lastAmounts = idleStatus.LastAmounts ?? new System.Collections.Generic.List<decimal>();
+
+            if (!lastTransactions.Any() || !lastVolumes.Any() || !lastAmounts.Any())
             {
                 return;
             }
@@ -189,30 +199,30 @@ namespace FMS.Application.Features.PTS.Services
             _logger.LogDebug(
                 "[UploadStatus] IDLE ANALYSIS - Processing IdleStatus for device {DeviceId} with {Count} pumps",
                 deviceId,
-                idleStatus.Ids.Count);
+                pumpIds.Count);
 
-            for (int i = 0; i < idleStatus.Ids.Count; i++)
+            var maxCount = new[]
             {
-                var pumpIdNullable = idleStatus.Ids[i];
-                if (!pumpIdNullable.HasValue)
+                pumpIds.Count,
+                lastTransactions.Count,
+                lastVolumes.Count,
+                lastAmounts.Count
+            }.Min();
+
+            for (int i = 0; i < maxCount; i++)
+            {
+                if (pumpIds[i] is not int pumpId)
                 {
                     continue;
                 }
 
-                if (idleStatus.LastTransactions?.Count <= i
-                    || idleStatus.LastVolumes?.Count <= i
-                    || idleStatus.LastAmounts?.Count <= i)
-                {
-                    continue;
-                }
-
-                var transactionId = idleStatus.LastTransactions[i];
-                var volume = idleStatus.LastVolumes[i];
-                var amount = idleStatus.LastAmounts[i];
+                var transactionId = lastTransactions[i];
+                var volume = lastVolumes[i];
+                var amount = lastAmounts[i];
 
                 if (transactionId > 0 && (volume > 0 || amount > 0))
                 {
-                    await CheckIfTransactionJustCompletedAsync(deviceId, pumpIdNullable.Value, transactionId, volume, amount);
+                    await CheckIfTransactionJustCompletedAsync(deviceId, pumpId, transactionId, volume, amount);
                 }
             }
         }

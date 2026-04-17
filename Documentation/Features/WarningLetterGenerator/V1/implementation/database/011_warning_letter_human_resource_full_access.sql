@@ -13,6 +13,7 @@ WHERE @humanResourceRoleId IS NOT NULL
       '_Read_WarningLetter',
       '_Create_WarningLetter',
       '_Update_WarningLetter',
+      '_UploadApproveLetter_WarningLetter',
       '_Delete_WarningLetter',
       '_delete_any_letter',
       '_Finalize_WarningLetter',

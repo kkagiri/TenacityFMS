@@ -20,12 +20,4 @@ public interface IVehicleTripGeofenceDetectionService
         DateTime fromUtc,
         DateTime toUtc,
         CancellationToken cancellationToken = default);
-
-    Task<GeofenceDetectionPreviewDTO> PreviewDetectionAsync(
-        VehicleEntity vehicle,
-        DateTime fromUtc,
-        DateTime toUtc,
-        VehicleTripGeofenceDetectionOptions? overrideOptions = null,
-        int? geofenceGroupId = null,
-        CancellationToken cancellationToken = default);
 }

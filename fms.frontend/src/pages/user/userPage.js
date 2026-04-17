@@ -90,6 +90,18 @@ const UserPage = () => {
         }
     }, [dispatch]);
 
+    const handleCreateUserSuccess = useCallback(async ({ createdUserId } = {}) => {
+        await loadData();
+
+        if (!createdUserId) {
+            return;
+        }
+
+        setDetailUserId(createdUserId);
+        setDetailInitialTab('sites');
+        setDetailPanelVisible(true);
+    }, [loadData]);
+
     useEffect(() => { loadData(); }, [loadData]);
 
     // â”€â”€ Navigation helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -244,7 +256,7 @@ const UserPage = () => {
             <CreateUserPanel
                 visible={isCreatePopupVisible}
                 onHide={() => setCreatePopupVisible(false)}
-                onSuccess={loadData}
+                onSuccess={handleCreateUserSuccess}
                 roleOptions={roleOptions}
                 departments={activeDepartments}
             />

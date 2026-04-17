@@ -648,10 +648,10 @@ const VehicleTripsPage = () => {
 
                             <div className="tw-flex tw-flex-wrap tw-gap-2">
                                 <Button
-                                    text="Cluster preview"
-                                    icon="fa-light fa-chart-scatter-bubble"
+                                    text="Analyze in tracking"
+                                    icon="fa-light fa-location-dot"
                                     stylingMode="outlined"
-                                    onClick={() => navigate(vehicleRoutes.tripClusterPreview)}
+                                    onClick={() => navigate(vehicleRoutes.tracking)}
                                 />
                                 <Button
                                     text="Trip settings"

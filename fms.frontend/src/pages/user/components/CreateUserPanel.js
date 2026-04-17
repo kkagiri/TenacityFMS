@@ -26,6 +26,20 @@ const EMPTY_FORM = {
     requirePasswordChangeOnFirstLogin: true,
 };
 
+const resolveCreatedUserId = (response) => {
+    const payload = response?.data ?? response?.Data ?? response;
+
+    if (typeof payload === 'string' || typeof payload === 'number') {
+        return payload;
+    }
+
+    return payload?.userId
+        || payload?.UserId
+        || payload?.id
+        || payload?.Id
+        || null;
+};
+
 const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departments = [] }) => {
     const dispatch = useDispatch();
     const [form, setForm] = useState(EMPTY_FORM);
@@ -70,6 +84,7 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
                 RequirePasswordChangeOnFirstLogin: form.requirePasswordChangeOnFirstLogin,
             }));
             const resultData = response?.data || response?.Data || null;
+            const createdUserId = resolveCreatedUserId(response);
             const temporaryPassword = resultData?.temporaryPassword || resultData?.TemporaryPassword || null;
             const onboardingEmailSent = resultData?.onboardingEmailSent ?? resultData?.OnboardingEmailSent ?? false;
 
@@ -81,7 +96,7 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
             }
             setForm(EMPTY_FORM);
             setErrors({});
-            onSuccess?.();
+            await onSuccess?.({ createdUserId, response });
             onHide?.();
         } catch (error) {
             notify(error.message || 'Failed to create user', 'error', 3000);

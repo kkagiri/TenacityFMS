@@ -78,6 +78,13 @@ export const PANEL_REGISTRY = {
         component: 'trackgraph',
         enableClose: true,
     },
+    tripanalysis: {
+        id: 'tripanalysis',
+        label: 'Trip Analysis',
+        icon: 'fa-light fa-wave-pulse',
+        component: 'tripanalysis',
+        enableClose: true,
+    },
 };
 
 /**

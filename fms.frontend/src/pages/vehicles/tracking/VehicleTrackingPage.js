@@ -18,6 +18,7 @@ import VehicleTrackingDashboardPanel from './components/dock/VehicleTrackingDash
 import VehicleTrackingGeofencePanel from './components/geofence/VehicleTrackingGeofencePanel';
 import VehicleTrackingGeofenceWorkspacePanel from './components/geofence/VehicleTrackingGeofenceWorkspacePanel';
 import VehicleTrackingTripPanel, { VehicleTrackingTripContent } from './components/trips/VehicleTrackingTripPanel';
+import VehicleTrackingTripAnalysisPanel from './components/trips/VehicleTrackingTripAnalysisPanel';
 import VehicleTrackingTracksPanel from './components/tracks/VehicleTrackingTracksPanel';
 import VehicleTrackingTrackPointsPanel from './components/tracks/VehicleTrackingTrackPointsPanel';
 import VehicleTrackingGraphPanel from './components/tracks/VehicleTrackingGraphPanel';
@@ -226,6 +227,12 @@ const VehicleTrackingPage = () => {
                 vehicleLabel={trackedVehiclesLabel}
                 onPointClick={handleGraphPointClick}
                 isLoading={isTrackPointsLoading}
+            />
+        ),
+        tripanalysis: (
+            <VehicleTrackingTripAnalysisPanel
+                trackedVehicles={trackedVehicles}
+                activeTrackPoints={activeTrackPoints}
             />
         ),
     }), [

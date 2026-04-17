@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Mail;
 using System.Threading;
 using System.Threading.Tasks;
 using Docnet.Core;
@@ -373,20 +374,27 @@ public class WarningLetterService : IWarningLetterService
 
         if (!string.IsNullOrWhiteSpace(selectedUserId) && selectedUser == null)
         {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"The selected site representative is not configured in recipient group '{recipientOptions.SiteRepresentativeGroupName}'." });
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "The selected site representative is no longer assigned to this site." });
         }
 
-        if (selectedUser == null || string.IsNullOrWhiteSpace(selectedUser.Email))
+        var recipient = !string.IsNullOrWhiteSpace(request?.EmailRecipient)
+            ? request.EmailRecipient.Trim()
+            : selectedUser?.Email?.Trim() ?? bundle.WarningLetter.SignatureRequestRecipient?.Trim() ?? string.Empty;
+
+        if (selectedUser != null && string.IsNullOrWhiteSpace(selectedUser.Email))
         {
-            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"Select a configured site representative from recipient group '{recipientOptions.SiteRepresentativeGroupName}'." });
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "The selected site representative does not have an email address." });
         }
 
-        var recipient = selectedUser.Email;
+        if (string.IsNullOrWhiteSpace(recipient) || !IsValidEmailAddress(recipient))
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "Provide a valid signature recipient email address." });
+        }
 
         var ccRecipientUserIds = (request?.CcRecipientUserIds ?? new List<string>())
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
-            .Where(value => !string.Equals(value, selectedUser.Id, StringComparison.OrdinalIgnoreCase))
+            .Where(value => selectedUser == null || !string.Equals(value, selectedUser.Id, StringComparison.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -432,7 +440,7 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDto>.Failed("Failed to send signature request email.");
         }
 
-        bundle.WarningLetter.SignatureRequestRecipientUserId = selectedUser.Id;
+        bundle.WarningLetter.SignatureRequestRecipientUserId = selectedUser?.Id;
         bundle.WarningLetter.SignatureRequestRecipient = recipient;
         bundle.WarningLetter.SignatureRequestCcUserIds = JoinDelimitedValues(ccRecipientIds);
         bundle.WarningLetter.SignatureRequestCcRecipients = JoinDelimitedValues(ccRecipientEmails);
@@ -457,6 +465,78 @@ public class WarningLetterService : IWarningLetterService
         return FMSResponse<WarningLetterDto>.Success(
             Commands.CreateWarningLetterCommandHandler.MapToDto(bundle.WarningLetter, bundle.Employee, bundle.Vehicle, bundle.Site),
             "Signature request sent successfully.");
+    }
+
+    public async Task<FMSResponse<BulkSignatureResultDto>> BulkRequestSignatureAsync(string modifiedBy, BulkRequestWarningLetterSignatureDto request, CancellationToken cancellationToken = default)
+    {
+        if (request == null || request.WarningLetterIds == null || request.WarningLetterIds.Count == 0)
+        {
+            return FMSResponse<BulkSignatureResultDto>.ValidationFailed(new List<string> { "At least one warning letter must be selected." });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SignatureRecipientUserId) && string.IsNullOrWhiteSpace(request.EmailRecipient))
+        {
+            return FMSResponse<BulkSignatureResultDto>.ValidationFailed(new List<string> { "A signature recipient must be selected." });
+        }
+
+        var distinctIds = request.WarningLetterIds.Distinct().ToList();
+        var result = new BulkSignatureResultDto
+        {
+            TotalRequested = distinctIds.Count,
+            Results = new List<BulkSignatureItemResultDto>()
+        };
+
+        foreach (var warningLetterId in distinctIds)
+        {
+            var itemRequest = new RequestWarningLetterSignatureDto
+            {
+                SignatureRecipientUserId = request.SignatureRecipientUserId,
+                EmailRecipient = request.EmailRecipient,
+                CcRecipientUserIds = request.CcRecipientUserIds ?? new List<string>()
+            };
+
+            var singleResult = await RequestSignatureAsync(warningLetterId, modifiedBy, itemRequest, cancellationToken);
+
+            if (singleResult.IsSuccess)
+            {
+                result.SuccessCount++;
+                result.Results.Add(new BulkSignatureItemResultDto
+                {
+                    WarningLetterId = warningLetterId,
+                    Success = true
+                });
+            }
+            else
+            {
+                result.FailedCount++;
+                result.Results.Add(new BulkSignatureItemResultDto
+                {
+                    WarningLetterId = warningLetterId,
+                    Success = false,
+                    ErrorMessage = singleResult.Message
+                });
+            }
+        }
+
+        var message = result.FailedCount == 0
+            ? $"Signature requests sent successfully for all {result.SuccessCount} letter(s)."
+            : $"Signature requests completed: {result.SuccessCount} succeeded, {result.FailedCount} failed.";
+
+        _logger.LogInformation("Bulk signature request completed: {SuccessCount}/{TotalRequested} succeeded", result.SuccessCount, result.TotalRequested);
+        return FMSResponse<BulkSignatureResultDto>.Success(result, message);
+    }
+
+    private static bool IsValidEmailAddress(string emailAddress)
+    {
+        try
+        {
+            var parsedAddress = new MailAddress(emailAddress);
+            return string.Equals(parsedAddress.Address, emailAddress, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public async Task<FMSResponse<WarningLetterDto>> UploadSignedCopyAsync(int warningLetterId, IFormFile file, string uploadedBy, CancellationToken cancellationToken = default)

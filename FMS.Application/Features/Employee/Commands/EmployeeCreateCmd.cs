@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Employee.Services;
 using FMS.Application.Features.FMS.Employee;
 using FMS.Domain.Entities;
@@ -33,12 +34,18 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeeCreateCmdHandler> _logger;
+        private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
 
-        public EmployeeCreateCmdHandler(GpsdataContext context, IMapper mapper, ILogger<EmployeeCreateCmdHandler> logger)
+        public EmployeeCreateCmdHandler(
+            GpsdataContext context,
+            IMapper mapper,
+            ILogger<EmployeeCreateCmdHandler> logger,
+            IGPSGateDriverNameService? gpsGateDriverNameService = null)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            _gpsGateDriverNameService = gpsGateDriverNameService;
         }
 
         public async Task<EmployeeCreateResponse> Handle(EmployeeCreateCmd request, CancellationToken cancellationToken)
@@ -144,12 +151,71 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 _context.Employees.Add(employee);
                 await _context.SaveChangesAsync(cancellationToken);
 
+                await TrySyncAssignedVehiclesToGpsGateAsync(
+                    employee.Id,
+                    normalizedFullName,
+                    requestedVehicleIds,
+                    cancellationToken);
+
                 return new EmployeeCreateResponse(true, "Employee created successfully", _mapper.Map<EmployeeDto>(employee));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating employee");
                 throw new Exception(ex.Message);
+            }
+        }
+
+        private async Task TrySyncAssignedVehiclesToGpsGateAsync(
+            int employeeId,
+            string employeeFullName,
+            IReadOnlyCollection<int> vehicleIds,
+            CancellationToken cancellationToken)
+        {
+            if (_gpsGateDriverNameService == null || vehicleIds.Count == 0)
+            {
+                return;
+            }
+
+            var gpsEnabledVehicleIds = await _context.Vehicles
+                .Where(vehicle => vehicleIds.Contains(vehicle.VehicleId) && vehicle.HasGPSInstalled == 1)
+                .Select(vehicle => vehicle.VehicleId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var vehicleId in gpsEnabledVehicleIds)
+            {
+                try
+                {
+                    var result = await _gpsGateDriverNameService.UpdateDriverNameAsync(
+                        vehicleId,
+                        employeeId,
+                        cancellationToken);
+
+                    if (result.IsSuccess)
+                    {
+                        _logger.LogInformation(
+                            "Updated GPSGate DriverName for vehicle {VehicleId} after employee create for employee {EmployeeId}",
+                            vehicleId,
+                            employeeId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Failed to update GPSGate DriverName for vehicle {VehicleId} after employee create for employee {EmployeeId}: {Message}",
+                            vehicleId,
+                            employeeId,
+                            result.Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Error updating GPSGate DriverName for vehicle {VehicleId} after employee create for employee {EmployeeId} ({EmployeeName})",
+                        vehicleId,
+                        employeeId,
+                        employeeFullName);
+                }
             }
         }
     }

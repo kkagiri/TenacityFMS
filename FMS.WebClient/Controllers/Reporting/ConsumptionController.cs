@@ -122,6 +122,7 @@ namespace FMS.WebClient.Controllers
             [FromQuery] string? hyoungNo = null,
             [FromQuery] int? vehicleId = null,
             [FromQuery] int? siteId = null,
+            [FromQuery] List<int>? siteIds = null,
             [FromQuery] int? driverId = null,
             [FromQuery] bool? averageKmL = null)
         {
@@ -136,6 +137,16 @@ namespace FMS.WebClient.Controllers
 
             try
             {
+                var normalizedSiteIds = (siteIds ?? new List<int>())
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (siteId.HasValue && siteId.Value > 0 && !normalizedSiteIds.Contains(siteId.Value))
+                {
+                    normalizedSiteIds.Add(siteId.Value);
+                }
+
                 // Use the new filtered query handler for better performance
                 var query = new GetVehicleConsumptionManualRefillQueryFiltered(
                     _startDate,
@@ -145,6 +156,7 @@ namespace FMS.WebClient.Controllers
                     hyoungNo,
                     vehicleId,
                     siteId,
+                    normalizedSiteIds,
                     driverId,
                     averageKmL
                 );
@@ -162,6 +174,110 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error retrieving filtered consumption data");
                 return StatusCode(500, new { message = "Error retrieving filtered consumption data", details = ex.Message });
+            }
+        }
+
+        [HttpGet("gpsFiltered")]
+        public async Task<IActionResult> GetGpsConsumptionFiltered(
+            [FromQuery] string startDate,
+            [FromQuery] string endDate,
+            [FromQuery] int? vehicleTypeId = null,
+            [FromQuery] int? vehicleId = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] List<int>? siteIds = null,
+            [FromQuery] bool? averageKmL = null)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            try
+            {
+                var normalizedSiteIds = (siteIds ?? new List<int>())
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (siteId.HasValue && siteId.Value > 0 && !normalizedSiteIds.Contains(siteId.Value))
+                {
+                    normalizedSiteIds.Add(siteId.Value);
+                }
+
+                var query = new GetVehicleConsumptionGpsQueryFiltered(
+                    _startDate,
+                    _endDate,
+                    vehicleTypeId,
+                    vehicleId,
+                    siteId,
+                    normalizedSiteIds,
+                    averageKmL
+                );
+
+                var results = await _mediator.Send(query);
+
+                _logger.LogInformation(
+                    "GPS consumption data retrieved successfully. " +
+                    "Date range: {StartDate} to {EndDate}, Results: {Count}",
+                    _startDate, _endDate, results?.Count ?? 0);
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving GPS consumption data");
+                return StatusCode(500, new { message = "Error retrieving GPS consumption data", details = ex.Message });
+            }
+        }
+
+        [HttpGet("gpsAnalytics")]
+        public async Task<IActionResult> GetGpsConsumptionAnalytics(
+            [FromQuery] string startDate,
+            [FromQuery] string endDate,
+            [FromQuery] int? vehicleTypeId = null,
+            [FromQuery] int? vehicleId = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] List<int>? siteIds = null)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            try
+            {
+                var normalizedSiteIds = (siteIds ?? new List<int>())
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (siteId.HasValue && siteId.Value > 0 && !normalizedSiteIds.Contains(siteId.Value))
+                {
+                    normalizedSiteIds.Add(siteId.Value);
+                }
+
+                var query = new GetGpsConsumptionAnalyticsQuery(
+                    _startDate,
+                    _endDate,
+                    vehicleTypeId,
+                    vehicleId,
+                    siteId,
+                    normalizedSiteIds
+                );
+
+                var result = await _mediator.Send(query);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving GPS consumption analytics");
+                return StatusCode(500, new { message = "Error retrieving GPS consumption analytics", details = ex.Message });
             }
         }
 

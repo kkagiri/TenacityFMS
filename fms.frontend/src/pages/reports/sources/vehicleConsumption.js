@@ -8,7 +8,7 @@
 const vehicleConsumption = {
     id: 'vehicle-consumption',
     name: 'Vehicle Consumption',
-    description: 'Fuel consumption analysis per vehicle over a date range, grouped by site and vehicle type.',
+    description: 'Fuel consumption analysis per vehicle based on fuel dispensed, not GPS data, over a date range and grouped by site and vehicle type.',
     category: 'Fuel Management',
     categoryIcon: 'fa-light fa-gas-pump',
     icon: 'fa-light fa-truck-fast',
@@ -39,12 +39,14 @@ const vehicleConsumption = {
         },
         {
             key: 'siteId',
+            queryParam: 'siteIds',
             label: 'Site',
             type: 'lookup',
             lookupSource: 'sites',
             valueExpr: 'id',
             displayExpr: 'name',
             required: false,
+            multiSelect: true,
             placeholder: 'All Sites',
         },
         {

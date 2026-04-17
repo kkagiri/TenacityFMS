@@ -118,63 +118,8 @@ export const reconcileVehicleTrips = async ({ vehicleId, fromUtc, toUtc, preview
   return unwrapResponse(response, "Trip reconciliation failed");
 };
 
-export const previewClusterDetection = async ({ vehicleId, fromUtc, toUtc, settings }) => {
-  if (!vehicleId) {
-    throw new Error("Vehicle is required for cluster detection preview");
-  }
-
-  const payload = {
-    vehicleId: Number(vehicleId),
-    fromUtc,
-    toUtc,
-  };
-
-  if (settings) {
-    if (settings.stopSpeedThresholdKph != null) payload.stopSpeedThresholdKph = Number(settings.stopSpeedThresholdKph);
-    if (settings.minimumStopDurationMinutes != null) payload.minimumStopDurationMinutes = Number(settings.minimumStopDurationMinutes);
-    if (settings.minimumTripDistanceKm != null) payload.minimumTripDistanceKm = Number(settings.minimumTripDistanceKm);
-    if (settings.minimumTripDurationMinutes != null) payload.minimumTripDurationMinutes = Number(settings.minimumTripDurationMinutes);
-    if (settings.clusterRadiusMeters != null) payload.clusterRadiusMeters = Number(settings.clusterRadiusMeters);
-    if (settings.maxTrackPoints != null) payload.maxTrackPoints = Number(settings.maxTrackPoints);
-  }
-
-  const response = await axiosInstance.post("/vehicletrips/cluster/preview", payload);
-
-  return unwrapResponse(response, "Cluster detection preview failed");
-};
-
-export const previewGeofenceDetection = async ({ vehicleId, fromUtc, toUtc, settings, geofenceGroupId }) => {
-  if (!vehicleId) {
-    throw new Error("Vehicle is required for geofence detection preview");
-  }
-
-  const payload = {
-    vehicleId: Number(vehicleId),
-    fromUtc,
-    toUtc,
-  };
-
-  if (geofenceGroupId != null) payload.geofenceGroupId = Number(geofenceGroupId);
-
-  if (settings) {
-    if (settings.minimumTripDistanceKm != null) payload.minimumTripDistanceKm = Number(settings.minimumTripDistanceKm);
-    if (settings.minimumTripDurationMinutes != null) payload.minimumTripDurationMinutes = Number(settings.minimumTripDurationMinutes);
-    if (settings.maxTrackPoints != null) payload.maxTrackPoints = Number(settings.maxTrackPoints);
-  }
-
-  const response = await axiosInstance.post("/vehicletrips/geofence/preview", payload);
-
-  return unwrapResponse(response, "Geofence detection preview failed");
-};
-
-export const fetchGeofenceGroups = async () => {
-  const response = await axiosInstance.get("/Geofence/groups", {
-    params: { onlyActive: true, includeGeofences: false },
-  });
-
-  const payload = response?.data?.data ?? response?.data?.Data ?? response?.data ?? [];
-  return Array.isArray(payload) ? payload : [];
-};
+// Preview endpoints were removed. Trip analysis runs locally inside the Vehicle
+// Tracking workspace against already-loaded track points and commits via recompute.
 
 export const fetchTripSiteLookup = async () => {
   const response = await axiosInstance.get("/site", {

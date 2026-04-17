@@ -71,7 +71,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("{groupId}/members")]
-        [RequirePermission(Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> AddMembers(int groupId, [FromBody] List<GroupMemberCreateRequest> members, CancellationToken cancellationToken = default)
         {
             if (members == null || members.Count == 0)
@@ -85,7 +85,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{groupId}/members/{memberId}")]
-        [RequirePermission(Permissions.Notification.ManageGroups, Permissions.WarningLetter.Update)]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> RemoveMember(int groupId, int memberId, CancellationToken cancellationToken = default)
         {
             FMSResponse result = await _groupService.RemoveGroupMemberAsync(groupId, memberId, cancellationToken);

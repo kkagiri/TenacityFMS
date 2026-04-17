@@ -1406,6 +1406,119 @@
       align-items: flex-start;
     }
   }
+}
+
+/* ── Bulk Signature Request Wizard ── */
+.bulk-signature {
+  &__stepper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #605e5c;
+    background: #f3f2f1;
+    transition: all 0.2s ease;
+
+    &--active {
+      background: #0078d4;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    &--done {
+      background: #dff6dd;
+      color: #107c10;
+    }
+  }
+
+  &__step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.08);
+
+    .bulk-signature__step--active & {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .bulk-signature__step--done & {
+      background: rgba(16, 124, 16, 0.15);
+    }
+  }
+
+  &__step-label {
+    white-space: nowrap;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #edebe9;
+  }
+
+  &__selection-count {
+    font-size: 13px;
+    color: #605e5c;
+    font-weight: 500;
+  }
+
+  &__section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #201f1e;
+    margin: 0 0 4px;
+
+    i {
+      margin-right: 6px;
+      color: #0078d4;
+    }
+  }
+
+  &__section-desc {
+    font-size: 13px;
+    color: #605e5c;
+    margin: 0 0 14px;
+  }
+
+  &__form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  &__recipient-section {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 768px) {
+  .bulk-signature {
+    &__stepper {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__form-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 
   .warning-letter-preview {
     &__header-actions,

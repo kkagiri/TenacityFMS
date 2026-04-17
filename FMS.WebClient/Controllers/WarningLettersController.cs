@@ -399,6 +399,37 @@ public class WarningLettersController : BaseApiController
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpGet("site-signature-recipients")]
+    [RequirePermission(Permissions.WarningLetter.Send)]
+    public async Task<IActionResult> GetSiteSignatureRecipients([FromQuery] int siteId)
+    {
+        if (siteId <= 0)
+        {
+            return BadRequest("Invalid site ID");
+        }
+
+        var result = await _mediator.Send(new GetSiteSignatureRecipientsQuery(siteId));
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("bulk-request-signature")]
+    [RequirePermission(Permissions.WarningLetter.Send)]
+    public async Task<IActionResult> BulkRequestSignature([FromBody] BulkRequestWarningLetterSignatureDto? request)
+    {
+        if (request == null || request.WarningLetterIds == null || request.WarningLetterIds.Count == 0)
+        {
+            return BadRequest("At least one warning letter must be selected.");
+        }
+
+        if (!TryGetCurrentUserId(out var userId))
+        {
+            return BadRequest("Invalid user ID");
+        }
+
+        var result = await _warningLetterService.BulkRequestSignatureAsync(userId, request);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpPost("{id:int}/signed-copy")]
     [RequirePermission(Permissions.WarningLetter.UploadSignedCopy)]
     public async Task<IActionResult> UploadSignedCopy(int id, [FromForm] IFormFile file)
@@ -423,7 +454,7 @@ public class WarningLettersController : BaseApiController
     }
 
     [HttpPost("{id:int}/approve-letter")]
-    [RequirePermission(Permissions.WarningLetter.Update)]
+    [RequirePermission(Permissions.WarningLetter.UploadApproveLetter)]
     public async Task<IActionResult> UploadApproveLetter(int id, [FromForm] IFormFile file)
     {
         if (id <= 0)

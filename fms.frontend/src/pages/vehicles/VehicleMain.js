@@ -43,7 +43,6 @@ import VehicleTransferReviewPage from "./transfers/VehicleTransferReviewPage";
 import VehicleReportsPage from "./reports/VehicleReportsPage";
 import VehicleTripsPage from "./trips/VehicleTripsPage";
 import VehicleTripSettingsPage from "./trips/VehicleTripSettingsPage";
-import VehicleTripClusterPreviewPage from "./trips/VehicleTripClusterPreviewPage";
 
 // Settings
 import VehicleSettingsPage from "./settings/VehicleSettingsPage";
@@ -62,7 +61,6 @@ const VehicleMain = () => {
         <Route path="geofencemanagement" element={<VehicleGeofenceManagementPage />} />
         <Route path="trips" element={<VehicleTripsPage />} />
         <Route path="trips/settings" element={<VehicleTripSettingsPage />} />
-        <Route path="trips/cluster-preview" element={<VehicleTripClusterPreviewPage />} />
         <Route path="consumption" element={<VehicleConsumptionPage />} />
         <Route path="consumption-comparison" element={<VehicleConsumptionComparisonPage />} />
         <Route path="maintenance" element={<MaintenanceAlertsPage />} />

@@ -105,6 +105,7 @@ const WarningLetterListPage = () => {
     const canUpdate = hasPermission("_Update_WarningLetter");
     const canDelete = hasPermission("_Delete_WarningLetter");
     const canDeleteAny = hasPermission("_delete_any_letter");
+    const canSend = hasPermission("_Send_WarningLetter");
     const canManageSettings = hasPermission("_Update_WarningLetter");
     const currentUserId = String(getUserId(currentUser) || "");
 
@@ -390,6 +391,15 @@ const WarningLetterListPage = () => {
                     {canCreate && (
                         <button type="button" className="m365-btn m365-btn--primary" onClick={() => navigate("/reports/warning-letters/new")}>
                             <i className="fa-light fa-plus" /> New Letter
+                        </button>
+                    )}
+                    {canSend && filters.siteId && (
+                        <button
+                            type="button"
+                            className="m365-btn m365-btn--ghost"
+                            onClick={() => navigate(`/reports/warning-letters/bulk-signature?siteId=${filters.siteId}`)}
+                        >
+                            <i className="fa-light fa-signature" /> Bulk Request Signature
                         </button>
                     )}
                 </div>

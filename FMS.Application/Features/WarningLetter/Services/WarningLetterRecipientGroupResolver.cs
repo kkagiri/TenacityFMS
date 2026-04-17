@@ -116,42 +116,6 @@ internal static class WarningLetterRecipientGroupResolver
             userIds.Add(memberId);
         }
 
-        var roleIdentifiers = groupMembers
-            .Where(member => string.Equals(member.MemberType, "Role", StringComparison.OrdinalIgnoreCase))
-            .Select(member => member.MemberId)
-            .Where(memberId => !string.IsNullOrWhiteSpace(memberId))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (roleIdentifiers.Count > 0)
-        {
-            var roleIds = await context.Roles
-                .AsNoTracking()
-                .Where(role => roleIdentifiers.Contains(role.Id) || (role.Name != null && roleIdentifiers.Contains(role.Name)))
-                .Select(role => role.Id)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            if (roleIds.Count > 0)
-            {
-                var roleUserIds = await context.UserRoles
-                    .AsNoTracking()
-                    .Where(userRole => roleIds.Contains(userRole.RoleId))
-                    .Join(
-                        context.UserSites.AsNoTracking().Where(userSite => userSite.SiteId == siteId),
-                        userRole => userRole.UserId,
-                        userSite => userSite.UserId,
-                        (userRole, userSite) => userRole.UserId)
-                    .Distinct()
-                    .ToListAsync(cancellationToken);
-
-                foreach (var roleUserId in roleUserIds)
-                {
-                    userIds.Add(roleUserId);
-                }
-            }
-        }
-
         if (userIds.Count == 0)
         {
             return new List<WarningLetterSignatureRecipientDto>();

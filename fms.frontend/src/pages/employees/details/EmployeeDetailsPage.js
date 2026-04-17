@@ -12,8 +12,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import Popup from "devextreme-react/popup";
-import TagBox from "devextreme-react/tag-box";
 import DataGrid, {
   Column,
   FilterRow,
@@ -27,12 +25,13 @@ import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
 import {
   deleteEmployee,
-  fetchEmployeePositions,
   updateEmployee,
 } from "../../../redux/actions/employeeActions";
 import { fetchpermissionbyUserId } from "../../../redux/actions/permissionActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
+import SlidePanel from "../../../components/ui/SlidePanel";
+import EmployeeFormPanel from "../components/EmployeeFormPanel";
 import EmployeeDocumentsWorkspace from "./components/EmployeeDocumentsWorkspace";
 import EmployeeWarningLettersWorkspace from "./components/EmployeeWarningLettersWorkspace";
 import "./EmployeeDetailsPage.scss";
@@ -70,18 +69,6 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const employeeStatusOptions = ["Active", "Terminated"];
-
-const toEditFormData = (sourceEmployee) => ({
-  fullName: sourceEmployee?.fullName || "",
-  employeephoneNumber: sourceEmployee?.employeephoneNumber || "",
-  employeeWorkNo: sourceEmployee?.employeeWorkNo || "",
-  position: sourceEmployee?.position || "",
-  employeestatus: sourceEmployee?.employeestatus || "Active",
-  siteId: sourceEmployee?.siteId ?? null,
-  vehicles: Array.isArray(sourceEmployee?.vehicles) ? sourceEmployee.vehicles : [],
-});
-
 const EmployeeDetailsPage = () => {
   const { id } = useParams();
   const employeeId = Number(id);
@@ -106,11 +93,9 @@ const EmployeeDetailsPage = () => {
     toDateInputValue(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
   );
   const [toDate, setToDate] = useState(toDateInputValue(new Date()));
-  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showEditPanel, setShowEditPanel] = useState(false);
   const [savingEmployeeChanges, setSavingEmployeeChanges] = useState(false);
   const [deletingEmployee, setDeletingEmployee] = useState(false);
-  const [editFormData, setEditFormData] = useState(() => toEditFormData(null));
-  const [positionOptions, setPositionOptions] = useState([]);
 
   useEffect(() => {
     if (!vehicles.length) {
@@ -120,22 +105,6 @@ const EmployeeDetailsPage = () => {
       dispatch(fetchSiteList());
     }
   }, [dispatch, sites.length, vehicles.length]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPositionOptions = async () => {
-      const result = await fetchEmployeePositions(true);
-      if (!cancelled && result.success) {
-        setPositionOptions(Array.isArray(result.data) ? result.data : []);
-      }
-    };
-
-    loadPositionOptions();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -176,12 +145,6 @@ const EmployeeDetailsPage = () => {
   useEffect(() => {
     loadEmployee();
   }, [loadEmployee]);
-
-  useEffect(() => {
-    if (employee && !showEditPopup) {
-      setEditFormData(toEditFormData(employee));
-    }
-  }, [employee, showEditPopup]);
 
   const loadTransactions = useCallback(async () => {
     setLoadingTransactions(true);
@@ -441,21 +404,6 @@ const EmployeeDetailsPage = () => {
     };
   }, [employeeTransactions, vehicleChangeRows.length]);
 
-  const availablePositionOptions = useMemo(() => {
-    const currentPosition = (editFormData.position || "").trim();
-    const options = Array.isArray(positionOptions) ? [...positionOptions] : [];
-
-    if (currentPosition && !options.some((option) => option?.name === currentPosition)) {
-      options.push({
-        id: `current-${currentPosition}`,
-        name: currentPosition,
-        isActive: false,
-      });
-    }
-
-    return options;
-  }, [editFormData.position, positionOptions]);
-
   const canEditEmployee = permissions.includes("_Edit_Employee");
   const canDeleteEmployee = permissions.includes("_Delete_Employee");
   const canReadWarningLetters = permissions.includes("_Read_WarningLetter");
@@ -470,18 +418,12 @@ const EmployeeDetailsPage = () => {
       return;
     }
 
-    setEditFormData(toEditFormData(employee));
-    setShowEditPopup(true);
+    setShowEditPanel(true);
   }, [canEditEmployee, employee]);
 
-  const handleSaveEmployeeChanges = useCallback(async () => {
+  const handleSaveEmployeeChanges = useCallback(async (formData) => {
     if (!canEditEmployee) {
       notify("You do not have permission to edit employee information.", "warning", 3000);
-      return;
-    }
-
-    if (!editFormData.fullName?.trim()) {
-      notify("Employee name is required.", "warning", 2500);
       return;
     }
 
@@ -489,12 +431,12 @@ const EmployeeDetailsPage = () => {
     try {
       const updatePayload = {
         ...employee,
-        ...editFormData,
+        ...formData,
         id: employeeId,
-        fullName: editFormData.fullName.trim().toUpperCase(),
-        position: (editFormData.position || "").trim(),
-        siteId: editFormData.siteId || null,
-        vehicles: Array.isArray(editFormData.vehicles) ? editFormData.vehicles : [],
+        fullName: (formData?.fullName || "").trim().toUpperCase(),
+        position: (formData?.position || "").trim(),
+        siteId: formData?.siteId || null,
+        vehicles: Array.isArray(formData?.vehicles) ? formData.vehicles : [],
       };
 
       const response = await dispatch(updateEmployee(employeeId, updatePayload));
@@ -505,14 +447,14 @@ const EmployeeDetailsPage = () => {
       }
 
       notify("Employee information updated successfully.", "success", 3000);
-      setShowEditPopup(false);
+      setShowEditPanel(false);
       await loadEmployee();
     } catch (error) {
       notify(error.message || "Failed to update employee.", "error", 3000);
     } finally {
       setSavingEmployeeChanges(false);
     }
-  }, [canEditEmployee, dispatch, editFormData, employee, employeeId, loadEmployee]);
+  }, [canEditEmployee, dispatch, employee, employeeId, loadEmployee]);
 
   const handleDeleteEmployee = useCallback(async () => {
     if (!canDeleteEmployee) {
@@ -819,124 +761,21 @@ const EmployeeDetailsPage = () => {
         )}
       </div>
 
-      {/* ── Edit Popup ── */}
-      <Popup
-        visible={showEditPopup}
-        onHiding={() => setShowEditPopup(false)}
-        dragEnabled={false}
-        showTitle={true}
-        showCloseButton={true}
-        title={`Edit Employee: ${employee.fullName}`}
-        width="90%"
-        maxWidth={720}
-        height="auto"
-        maxHeight="90vh"
+      <SlidePanel
+        open={showEditPanel}
+        onClose={() => setShowEditPanel(false)}
+        title={`Quick Edit Employee: ${employee.fullName}`}
+        width={900}
       >
-        <div style={{ padding: 20 }}>
-          <div className="employee-form-grid" style={{ marginBottom: 16 }}>
-            <div className="m365-field">
-              <label className="m365-field__label">Full Name</label>
-              <input
-                type="text"
-                className="m365-input"
-                value={editFormData.fullName}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, fullName: e.target.value }))}
-              />
-            </div>
-            <div className="m365-field">
-              <label className="m365-field__label">Phone Number</label>
-              <input
-                type="text"
-                className="m365-input"
-                value={editFormData.employeephoneNumber}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeephoneNumber: e.target.value }))}
-              />
-            </div>
-            <div className="m365-field">
-              <label className="m365-field__label">Work Number</label>
-              <input
-                type="text"
-                className="m365-input"
-                value={editFormData.employeeWorkNo}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeeWorkNo: e.target.value }))}
-              />
-            </div>
-            <div className="m365-field">
-              <label className="m365-field__label">Position</label>
-              <select
-                className="m365-select"
-                value={editFormData.position}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, position: e.target.value }))}
-              >
-                <option value="">Select position</option>
-                {availablePositionOptions.map((position) => (
-                  <option key={position.id} value={position.name}>
-                    {position.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="m365-field">
-              <label className="m365-field__label">Status</label>
-              <select
-                className="m365-select"
-                value={editFormData.employeestatus}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeestatus: e.target.value || "Active" }))}
-              >
-                {employeeStatusOptions.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="m365-field" style={{ marginBottom: 16 }}>
-            <label className="m365-field__label">Site</label>
-            <select
-              className="m365-select"
-              value={editFormData.siteId || ""}
-              onChange={(e) => setEditFormData((prev) => ({ ...prev, siteId: e.target.value ? Number(e.target.value) : null }))}
-            >
-              <option value="">Unassigned</option>
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>{site.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="m365-field" style={{ marginBottom: 16 }}>
-            <label className="m365-field__label">Default Vehicles</label>
-            <TagBox
-              dataSource={vehicles}
-              value={editFormData.vehicles}
-              valueExpr="vehicleId"
-              displayExpr="hyoungNo"
-              searchEnabled={true}
-              showSelectionControls={true}
-              showClearButton={true}
-              applyValueMode="useButtons"
-              maxDisplayedTags={4}
-              onValueChanged={(event) =>
-                setEditFormData((prev) => ({ ...prev, vehicles: event.value || [] }))
-              }
-            />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid var(--m365-border-light)' }}>
-            <button className="m365-btn m365-btn--ghost"
-              onClick={() => setShowEditPopup(false)}
-              disabled={savingEmployeeChanges}>
-              Cancel
-            </button>
-            <button className="m365-btn m365-btn--primary"
-              onClick={handleSaveEmployeeChanges}
-              disabled={savingEmployeeChanges}>
-              <i className="fa-light fa-floppy-disk" />
-              {savingEmployeeChanges ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </div>
-      </Popup>
+        <EmployeeFormPanel
+          mode="edit"
+          employee={employee}
+          sites={sites}
+          saving={savingEmployeeChanges}
+          onSubmit={handleSaveEmployeeChanges}
+          onClose={() => setShowEditPanel(false)}
+        />
+      </SlidePanel>
     </div>
   );
 };

@@ -11,7 +11,6 @@ export const vehicleRoutes = {
   geofenceManagement: '/vehicles/geofencemanagement',
   trips: '/vehicles/trips',
   tripSettings: '/vehicles/trips/settings',
-  tripClusterPreview: '/vehicles/trips/cluster-preview',
   maintenance: '/vehicles/maintenance',
   consumption: '/vehicles/consumption',
   consumptionComparison: '/vehicles/consumption-comparison',
@@ -100,14 +99,6 @@ export const navigationGroups = {
           path: vehicleRoutes.tripSettings,
           permissionAny: ['_Read_VehicleTrips', '_Edit_VehicleTrips', '_Read_Vehicle', '_Edit_Vehicle'],
           description: 'Control realtime trip execution settings'
-        },
-        {
-          id: 'trip-cluster-preview',
-          title: 'Cluster Preview',
-          icon: 'fa-light fa-chart-scatter-bubble',
-          path: vehicleRoutes.tripClusterPreview,
-          permissionAny: ['_Read_VehicleTrips', '_Read_Vehicle'],
-          description: 'Preview cluster detection with timeline and speed analytics'
         }
       ]
     },

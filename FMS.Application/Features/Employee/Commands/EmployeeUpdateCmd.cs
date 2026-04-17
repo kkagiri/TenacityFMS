@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Employee.Services;
 using FMS.Application.Features.FMS.Employee;
 using FMS.Application.Models.Vehicle;
@@ -23,12 +24,18 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeeUpdateCmdHandler> _logger;
+        private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
 
-        public EmployeeUpdateCmdHandler(GpsdataContext context, IMapper mapper, ILogger<EmployeeUpdateCmdHandler> logger)
+        public EmployeeUpdateCmdHandler(
+            GpsdataContext context,
+            IMapper mapper,
+            ILogger<EmployeeUpdateCmdHandler> logger,
+            IGPSGateDriverNameService? gpsGateDriverNameService = null)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
+            _gpsGateDriverNameService = gpsGateDriverNameService;
         }
 
         public async Task<EmployeeUpdateResponse> Handle(EmployeeUpdateCmd request, CancellationToken cancellationToken)
@@ -111,10 +118,14 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 // Clear existing vehicle relationships
                 _context.RemoveRange(employee.EmployeeVehicles);
 
+                var requestedVehicleIds = request.EmployeeDto.Vehicles?
+                    .Distinct()
+                    .ToList() ?? new List<int>();
+
                 // Add new vehicle relationships
-                if (request.EmployeeDto.Vehicles != null && request.EmployeeDto.Vehicles.Any())
+                if (requestedVehicleIds.Any())
                 {
-                    foreach (var vehicleId in request.EmployeeDto.Vehicles)
+                    foreach (var vehicleId in requestedVehicleIds)
                     {
                         // Check if vehicle exists
                         var vehicleExists = await _context.Vehicles
@@ -135,6 +146,12 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
                 // Save changes
                 await _context.SaveChangesAsync(cancellationToken);
 
+                await TrySyncAssignedVehiclesToGpsGateAsync(
+                    employee.Id,
+                    normalizedFullName,
+                    requestedVehicleIds,
+                    cancellationToken);
+
                 // Load the updated employee with vehicles for the response
                 var updatedEmployee = await _context.Employees
                     .Include(e => e.EmployeeVehicles)
@@ -149,6 +166,59 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
             {
                 _logger.LogError(ex.ToString(), "Error in EmployeeUpdateCmdHandler");
                 return new EmployeeUpdateResponse(false, ex.Message, null);
+            }
+        }
+
+        private async Task TrySyncAssignedVehiclesToGpsGateAsync(
+            int employeeId,
+            string employeeFullName,
+            IReadOnlyCollection<int> vehicleIds,
+            CancellationToken cancellationToken)
+        {
+            if (_gpsGateDriverNameService == null || vehicleIds.Count == 0)
+            {
+                return;
+            }
+
+            var gpsEnabledVehicleIds = await _context.Vehicles
+                .Where(vehicle => vehicleIds.Contains(vehicle.VehicleId) && vehicle.HasGPSInstalled == 1)
+                .Select(vehicle => vehicle.VehicleId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var vehicleId in gpsEnabledVehicleIds)
+            {
+                try
+                {
+                    var result = await _gpsGateDriverNameService.UpdateDriverNameAsync(
+                        vehicleId,
+                        employeeId,
+                        cancellationToken);
+
+                    if (result.IsSuccess)
+                    {
+                        _logger.LogInformation(
+                            "Updated GPSGate DriverName for vehicle {VehicleId} after employee update for employee {EmployeeId}",
+                            vehicleId,
+                            employeeId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Failed to update GPSGate DriverName for vehicle {VehicleId} after employee update for employee {EmployeeId}: {Message}",
+                            vehicleId,
+                            employeeId,
+                            result.Message);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Error updating GPSGate DriverName for vehicle {VehicleId} after employee update for employee {EmployeeId} ({EmployeeName})",
+                        vehicleId,
+                        employeeId,
+                        employeeFullName);
+                }
             }
         }
     }

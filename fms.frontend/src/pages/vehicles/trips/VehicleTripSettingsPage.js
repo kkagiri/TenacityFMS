@@ -17,7 +17,6 @@ import {
   updateVehicleTripSettings,
 } from "./services/vehicleTripService";
 import VehicleTripReconciliationSettingsTab from "./components/VehicleTripReconciliationSettingsTab";
-import ClusterDetectionPreviewPanel from "./components/ClusterDetectionPreviewPanel";
 import { vehicleRoutes } from "../utils/navigationHelper";
 
 const getDefaultSettings = () => ({
@@ -711,23 +710,23 @@ const VehicleTripSettingsPage = () => {
                   </div>
 
                   <div className="tw-mt-8 tw-border-t tw-border-slate-200 tw-pt-6">
-                    <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-rounded-xl tw-border tw-border-sky-200 tw-bg-sky-50 tw-p-4">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-rounded-xl tw-border tw-border-sky-200 tw-bg-sky-50 tw-p-4">
                       <div>
-                        <div className="tw-text-sm tw-font-semibold tw-text-sky-900">Need more room to inspect the run?</div>
+                        <div className="tw-text-sm tw-font-semibold tw-text-sky-900">Tune thresholds against live data</div>
                         <p className="tw-mt-1 tw-text-sm tw-text-sky-800">
-                          Open the standalone cluster preview workspace for point timeline and speed-profile charts.
+                          The Trip Analysis panel on the Vehicle Tracking page replays detection
+                          against already-loaded GPS tracks and can commit results back to trips.
                         </p>
                       </div>
                       <button
                         type="button"
                         className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-font-medium tw-text-sky-700 tw-shadow-sm hover:tw-bg-sky-100"
-                        onClick={() => navigate(vehicleRoutes.tripClusterPreview)}
+                        onClick={() => navigate(vehicleRoutes.tracking)}
                       >
                         <i className="fa-light fa-arrow-up-right-from-square" />
-                        Open full page
+                        Open tracking
                       </button>
                     </div>
-                    <ClusterDetectionPreviewPanel />
                   </div>
                 </>
               )}

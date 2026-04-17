@@ -365,6 +365,96 @@ const buildConsumptionSummaryMetrics = (rawRecords) => {
     };
 };
 
+const buildVehicleConsumptionUnitMetadata = (isKmL) => {
+    return isKmL
+        ? {
+            unitKey: 'km',
+            unitLabel: 'KM/L Vehicles',
+            distanceHeader: 'Distance (km)',
+            consumptionHeader: 'km/L',
+            distanceSummaryLabel: 'Total Distance',
+            avgConsumptionLabel: 'Avg km/L',
+            distanceUnit: 'km',
+            consumptionUnit: 'km/L',
+        }
+        : {
+            unitKey: 'hr',
+            unitLabel: 'L/hr Equipment',
+            distanceHeader: 'Engine Hours (hr)',
+            consumptionHeader: 'L/hr',
+            distanceSummaryLabel: 'Total Engine Hours',
+            avgConsumptionLabel: 'Avg L/hr',
+            distanceUnit: 'hr',
+            consumptionUnit: 'L/hr',
+        };
+};
+
+const buildVehicleConsumptionUnitGroup = (rows, isKmL) => {
+    const meta = buildVehicleConsumptionUnitMetadata(isKmL);
+    const totalVolume = sumBy(rows, (row) => row.volumeRaw);
+    const totalDistance = sumBy(rows, (row) => row.distanceRaw);
+    const totalCost = sumBy(rows, (row) => row.costRaw);
+    const avgConsumption = rows.length > 0
+        ? averageBy(rows, (row) => row.consumptionRaw)
+        : 0;
+
+    return {
+        ...meta,
+        records: rows.map((row, index) => ({
+            ...row,
+            rowNumber: index + 1,
+        })),
+        summary: {
+            totalVehicles: rows.length,
+            totalVolume: formatNumber(totalVolume),
+            totalDistance: formatNumber(totalDistance),
+            totalDistanceDisplay: `${formatNumber(totalDistance)} ${meta.distanceUnit}`,
+            totalCost: formatNumber(totalCost),
+            avgConsumption: formatNumber(avgConsumption),
+            avgConsumptionDisplay: `${formatNumber(avgConsumption)} ${meta.consumptionUnit}`,
+        },
+    };
+};
+
+const buildVehicleConsumptionSiteGroups = (rows) => {
+    const siteMap = new Map();
+
+    rows.forEach((row) => {
+        const siteKey = String(row.siteName || '-').trim() || '-';
+        if (!siteMap.has(siteKey)) {
+            siteMap.set(siteKey, []);
+        }
+
+        siteMap.get(siteKey).push(row);
+    });
+
+    return Array.from(siteMap.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([siteName, siteRows]) => {
+            const unitGroups = [];
+            const kmRows = siteRows.filter((row) => row.isKmL);
+            const hrRows = siteRows.filter((row) => !row.isKmL);
+
+            if (kmRows.length > 0) {
+                unitGroups.push(buildVehicleConsumptionUnitGroup(kmRows, true));
+            }
+
+            if (hrRows.length > 0) {
+                unitGroups.push(buildVehicleConsumptionUnitGroup(hrRows, false));
+            }
+
+            return {
+                siteName,
+                summary: {
+                    totalVehicles: siteRows.length,
+                    totalVolume: formatNumber(sumBy(siteRows, (row) => row.volumeRaw)),
+                    totalCost: formatNumber(sumBy(siteRows, (row) => row.costRaw)),
+                },
+                unitGroups,
+            };
+        });
+};
+
 const mapDefaultRecords = (rawRecords) => {
     return rawRecords.map((record, index) => ({
         rowNumber: index + 1,
@@ -453,17 +543,23 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
             refillCount: numberOrZero(getValue(record, ['refillCount'])),
             volume: formatNumber(volumeValue),
             totalVolume: formatNumber(volumeValue),
+            volumeRaw: volumeValue,
             distance: formatNumber(distanceValue),
             totalDistance: formatNumber(distanceValue),
+            distanceRaw: distanceValue,
             distanceDisplay: `${formatNumber(distanceValue)} ${distanceUnit}`,
             consumption: formatNumber(consumptionValue),
             consumptionDisplay: `${formatNumber(consumptionValue)} ${consumptionUnit}`,
+            consumptionRaw: consumptionValue,
             distanceUnit,
             consumptionUnit,
             isKmL,
             cost: formatNumber(costValue),
+            costRaw: costValue,
         };
     });
+
+    const siteGroups = buildVehicleConsumptionSiteGroups(mapped);
 
     const totalVolume = sumBy(rawRecords, (r) => getValue(r, ['totalFuelAmount', 'volume', 'totalVolume']));
     const totalCost = sumBy(rawRecords, (r) => getValue(r, ['cost', 'totalCost']));
@@ -474,6 +570,10 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
     return {
         ...labels,
         records: mapped,
+        siteGroups,
+        siteName: siteGroups.length === 1
+            ? siteGroups[0].siteName
+            : (siteGroups.length > 1 ? `${siteGroups.length} Sites` : (queryParams?.siteIds ? 'Selected Sites' : 'All Sites')),
         summary: {
             totalRecords: mapped.length,
             totalVehicles: mapped.length,
@@ -2062,6 +2162,8 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
         case 'fuel-refill':
             return mapFuelRefill(rawRecords);
         case 'vehicle-consumption':
+            return mapVehicleConsumption(rawRecords, queryParams);
+        case 'vehicle-consumption-gps':
             return mapVehicleConsumption(rawRecords, queryParams);
         case 'consumption-by-refills':
             return mapVehicleConsumption(rawRecords, queryParams);

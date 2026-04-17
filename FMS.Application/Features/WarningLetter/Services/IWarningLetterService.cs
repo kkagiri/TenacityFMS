@@ -20,6 +20,7 @@ public interface IWarningLetterService
     Task<FMSResponse<WarningLetterDocumentDto>> GetPdfAsync(int warningLetterId, CancellationToken cancellationToken = default);
     Task<FMSResponse> SendEmailAsync(int warningLetterId, string modifiedBy, string? emailRecipient = null, CancellationToken cancellationToken = default);
     Task<FMSResponse<WarningLetterDto>> RequestSignatureAsync(int warningLetterId, string modifiedBy, RequestWarningLetterSignatureDto request, CancellationToken cancellationToken = default);
+    Task<FMSResponse<BulkSignatureResultDto>> BulkRequestSignatureAsync(string modifiedBy, BulkRequestWarningLetterSignatureDto request, CancellationToken cancellationToken = default);
     Task<FMSResponse<WarningLetterDto>> UploadApproveLetterAsync(int warningLetterId, IFormFile file, string uploadedBy, CancellationToken cancellationToken = default);
     Task<FMSResponse<WarningLetterDocumentDto>> GetApproveLetterAsync(int warningLetterId, CancellationToken cancellationToken = default);
     Task<FMSResponse<WarningLetterDto>> UploadSignedCopyAsync(int warningLetterId, IFormFile file, string uploadedBy, CancellationToken cancellationToken = default);

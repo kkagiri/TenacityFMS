@@ -33,6 +33,7 @@ import storageReceivedVsDispensed from './storageReceivedVsDispensed';
 import vehicleDocumentCompliance from './vehicleDocumentCompliance';
 import warningLetterAnalytics from './warningLetterAnalytics';
 import warningLetterCandidates from './warningLetterCandidates';
+import vehicleConsumptionGps from './vehicleConsumptionGps';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -76,6 +77,7 @@ const builtInSources = [
     vehicleDocumentCompliance,
     warningLetterAnalytics,
     warningLetterCandidates,
+    vehicleConsumptionGps,
 ];
 
 builtInSources.forEach((source) => {

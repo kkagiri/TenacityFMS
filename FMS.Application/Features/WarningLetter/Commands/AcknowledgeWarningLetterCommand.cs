@@ -5,6 +5,7 @@
  * Last Modified: 2026-04-06
  */
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -29,10 +30,21 @@ public class AcknowledgeWarningLetterCommandHandler : IRequestHandler<Acknowledg
 
     public async Task<FMSResponse<WarningLetterDto>> Handle(AcknowledgeWarningLetterCommand request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.ModifiedBy))
+        {
+            return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { "ModifiedBy is required." });
+        }
+
         var warningLetter = await _context.WarningLetters.FirstOrDefaultAsync(w => w.Id == request.Id, cancellationToken);
         if (warningLetter == null)
         {
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
+        }
+
+        var isCreator = string.Equals(warningLetter.CreatedBy, request.ModifiedBy, StringComparison.OrdinalIgnoreCase);
+        if (!isCreator)
+        {
+            return FMSResponse<WarningLetterDto>.BusinessLogicError("WARNING_LETTER_ACKNOWLEDGE_FORBIDDEN", "Only the user who created this warning letter can acknowledge it.");
         }
 
         var alreadyAcknowledged = warningLetter.Status == WarningLetterStatus.Acknowledged;

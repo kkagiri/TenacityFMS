@@ -350,36 +350,6 @@ public class VehicleTripsController : ControllerBase
         return await ExecuteOverrideAsync(command);
     }
 
-    [HttpPost("cluster/preview")]
-    public async Task<IActionResult> PreviewClusterDetection([FromBody] PreviewClusterDetectionQuery query)
-    {
-        try
-        {
-            var result = await _mediator.Send(query);
-            return result.IsSuccess ? Ok(result) : BadRequest(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error running cluster detection preview for vehicle {VehicleId}", query.VehicleId);
-            return StatusCode(500, new { Success = false, Message = "Internal server error" });
-        }
-    }
-
-    [HttpPost("geofence/preview")]
-    public async Task<IActionResult> PreviewGeofenceDetection([FromBody] PreviewGeofenceDetectionQuery query)
-    {
-        try
-        {
-            var result = await _mediator.Send(query);
-            return result.IsSuccess ? Ok(result) : BadRequest(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error running geofence detection preview for vehicle {VehicleId}", query.VehicleId);
-            return StatusCode(500, new { Success = false, Message = "Internal server error" });
-        }
-    }
-
     [HttpPost("override/merge")]
     [RequirePermission(Permissions.VehicleTrips.Edit, Permissions.Vehicle.Edit)]
     public async Task<IActionResult> MergeVehicleTrips([FromBody] MergeVehicleTripsCommand command)
