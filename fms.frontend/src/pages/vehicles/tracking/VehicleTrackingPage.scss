@@ -95,6 +95,58 @@
     }
   }
 
+  &__selectbox {
+    width: 100%;
+
+    .dx-texteditor {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #c8c6c4;
+      border-radius: 4px;
+    }
+
+    .dx-texteditor-container {
+      border-radius: 4px;
+    }
+
+    .dx-texteditor-input {
+      height: 32px;
+      padding: 0 10px;
+      color: #201f1e;
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    .dx-placeholder::before {
+      padding: 0 10px;
+      color: #a19f9d;
+      font-size: 13px;
+    }
+
+    .dx-dropdowneditor-icon {
+      color: #605e5c;
+    }
+
+    .dx-texteditor.dx-state-hover {
+      border-color: #605e5c;
+    }
+
+    .dx-texteditor.dx-state-focused,
+    .dx-texteditor.dx-state-active {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 1px #0078d4;
+    }
+
+    .dx-texteditor.dx-state-disabled {
+      background: #f3f2f1;
+    }
+
+    .dx-texteditor.dx-state-disabled .dx-texteditor-input,
+    .dx-texteditor.dx-state-disabled .dx-placeholder::before {
+      color: #a19f9d;
+    }
+  }
+
   &__metric {
     display: inline-flex;
     align-items: center;
@@ -361,7 +413,7 @@
   }
 
   .dx-header-row > td {
-    padding: 10px 12px;
+    padding: 6px 10px;
     background: #f9fafb;
     color: #374151;
     font-size: 12px;
@@ -370,7 +422,7 @@
   }
 
   .dx-data-row > td {
-    padding: 9px 12px;
+    padding: 5px 10px;
     font-size: 12px;
     color: #111827;
     border-bottom: 1px solid #f1f5f9;

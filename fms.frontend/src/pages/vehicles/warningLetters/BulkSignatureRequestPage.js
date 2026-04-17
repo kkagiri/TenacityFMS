@@ -74,11 +74,11 @@ const STEPS = [
     { key: 2, label: "Review & Send", icon: "fa-light fa-paper-plane" },
 ];
 
-const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
 const BulkSignatureRequestPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const recipientTouchedRef = React.useRef(false);
+    const ccTouchedRef = React.useRef(false);
     const preselectedSiteId = searchParams.get("siteId") || "";
     const { hasPermission } = usePermissions();
     const canManageRecipientGroups = hasPermission("_Manage_NotificationGroups");
@@ -97,7 +97,6 @@ const BulkSignatureRequestPage = () => {
     });
     const [recipientsLoading, setRecipientsLoading] = useState(false);
     const [selectedRecipientId, setSelectedRecipientId] = useState(null);
-    const [manualEmail, setManualEmail] = useState("");
     const [selectedCcIds, setSelectedCcIds] = useState([]);
 
     const [submitting, setSubmitting] = useState(false);
@@ -137,12 +136,10 @@ const BulkSignatureRequestPage = () => {
         return resolvedSiteName || `Site ${preselectedSiteId}`;
     }, [letters, preselectedSiteId, selectedLetters]);
 
-    const selectedRecipientValue = selectedRecipientId || manualEmail || null;
-
-    const effectiveEmail = (manualEmail || selectedRecipient?.email || "").trim();
+    const effectiveEmail = (selectedRecipient?.email || "").trim();
 
     const canProceedToStep2 = selectedLetterIds.length > 0;
-    const canProceedToStep3 = Boolean(selectedRecipient || isValidEmail(effectiveEmail));
+    const canProceedToStep3 = Boolean(selectedRecipient);
     const canSubmit = canProceedToStep3 && selectedLetterIds.length > 0 && !submitting;
 
     const renderLetterType = useCallback(({ value }) => typeMap[value] || value || "-", []);
@@ -186,6 +183,30 @@ const BulkSignatureRequestPage = () => {
         loadEligibleLetters();
     }, [loadEligibleLetters]);
 
+    useEffect(() => {
+        if (recipientsLoading) {
+            return;
+        }
+
+        if (!recipientTouchedRef.current && !selectedRecipientId && signatureRecipients.length === 1) {
+            setSelectedRecipientId(signatureRecipients[0].id);
+        }
+    }, [recipientsLoading, selectedRecipientId, signatureRecipients]);
+
+    useEffect(() => {
+        if (recipientsLoading || ccTouchedRef.current || selectedCcIds.length > 0) {
+            return;
+        }
+
+        const effectiveSelectedRecipientId = selectedRecipientId
+            || (!recipientTouchedRef.current && signatureRecipients.length === 1 ? signatureRecipients[0].id : null);
+        const defaultCcIds = ccRecipients
+            .filter((recipient) => recipient.id !== effectiveSelectedRecipientId)
+            .map((recipient) => recipient.id);
+
+        setSelectedCcIds(defaultCcIds);
+    }, [ccRecipients, recipientsLoading, selectedCcIds.length, selectedRecipientId, signatureRecipients]);
+
     const handleSelectionChanged = useCallback((e) => {
         const ids = (e.selectedRowsData || []).map((row) => row.id);
         setSelectedLetterIds(ids);
@@ -197,7 +218,7 @@ const BulkSignatureRequestPage = () => {
             return;
         }
         if (step === 1 && !canProceedToStep3) {
-            notify("Select a recipient or type a valid external email in the Site Representative field.", "warning", 2500);
+            notify("Select a site representative.", "warning", 2500);
             return;
         }
         if (step === 0) {
@@ -242,39 +263,19 @@ const BulkSignatureRequestPage = () => {
         const nextValue = e.value;
         const match = signatureRecipients.find((r) => r.id === nextValue);
 
+        recipientTouchedRef.current = true;
         if (match) {
             setSelectedRecipientId(match.id);
-            setManualEmail(match.email || "");
             setSelectedCcIds((prev) => prev.filter((id) => id !== match.id));
             return;
         }
 
-        if (typeof nextValue === "string") {
-            const trimmedValue = nextValue.trim();
-            setSelectedRecipientId(null);
-            setManualEmail(trimmedValue);
-            return;
-        }
-
         setSelectedRecipientId(null);
-        setManualEmail("");
     };
 
-    const handleRecipientCustomItemCreating = (e) => {
-        const typedEmail = (e.text || "").trim();
-
-        if (!typedEmail) {
-            e.customItem = null;
-            return;
-        }
-
-        if (!isValidEmail(typedEmail)) {
-            notify("Enter a valid email address for an external recipient.", "warning", 2500);
-            e.customItem = null;
-            return;
-        }
-
-        e.customItem = typedEmail;
+    const handleCcRecipientsChanged = (nextValue) => {
+        ccTouchedRef.current = true;
+        setSelectedCcIds(Array.isArray(nextValue) ? nextValue : []);
     };
 
     const loadRecipientGroupUsers = useCallback(async () => {
@@ -287,6 +288,7 @@ const BulkSignatureRequestPage = () => {
         const response = await notificationsApi.getRecipientCandidates({
             siteId: Number(preselectedSiteId),
             take: 200,
+            applySiteAssignmentFilter: false,
         });
         if (!response.isSuccess) {
             throw new Error(response.message || "Failed to load recipient candidates.");
@@ -549,8 +551,8 @@ const BulkSignatureRequestPage = () => {
                         </h3>
                         <p className="bulk-signature__section-desc">
                             All {selectedLetterIds.length} selected letter{selectedLetterIds.length !== 1 ? "s" : ""} will be sent to the same recipient.
-                            Site: <strong>{selectedSiteName}</strong>. Select from the site's warning-letter notification groups, or type an external email directly in the Site Representative field.
-                            In-app notification is only sent when a configured site user is selected.
+                            Site: <strong>{selectedSiteName}</strong>. Select from the site's warning-letter notification groups.
+                            In-app notification is sent to the configured site user you select.
                         </p>
                         <p className="warning-letter-preview__signature-group-summary" style={{ margin: "0 0 12px 0", fontSize: 12, color: "#605e5c" }}>
                             Site Representative Group <strong>{recipientOptions.siteRepresentativeGroupName}</strong><br />
@@ -570,13 +572,13 @@ const BulkSignatureRequestPage = () => {
                             <div className="m365-info-banner m365-info-banner--warning" style={{ marginBottom: 12 }}>
                                 <i className="fa-light fa-circle-exclamation m365-info-banner__icon" />
                                 <span className="m365-info-banner__text">
-                                    No site representatives configured. You can enter an email address manually, or edit the group to add users.
+                                    No site representatives configured. Edit the group to add users before sending.
                                 </span>
                             </div>
                         )}
 
                         <div className="bulk-signature__form-grid">
-                            <label className="warning-letter-page__field">
+                            <div className="warning-letter-page__field">
                                 <span style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
                                     <span>
                                         Site Representative
@@ -588,7 +590,11 @@ const BulkSignatureRequestPage = () => {
                                             className="m365-icon-btn"
                                             title="Edit site representative group"
                                             aria-label="Edit site representative group"
-                                            onClick={() => openRecipientGroupPanel(recipientOptions.siteRepresentativeGroupName)}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                openRecipientGroupPanel(recipientOptions.siteRepresentativeGroupName);
+                                            }}
                                             disabled={recipientsLoading}
                                         >
                                             <i className="fa-light fa-pen-to-square" />
@@ -599,10 +605,8 @@ const BulkSignatureRequestPage = () => {
                                     dataSource={signatureRecipients}
                                     displayExpr={(item) => item ? `${item.userName || "Unknown"}${item.email ? ` (${item.email})` : ""}` : ""}
                                     valueExpr="id"
-                                    value={selectedRecipientValue}
+                                    value={selectedRecipientId}
                                     onValueChanged={handleRecipientChanged}
-                                    acceptCustomValue={true}
-                                    onCustomItemCreating={handleRecipientCustomItemCreating}
                                     placeholder={recipientsLoading ? "Loading site representatives..." : "Search and select a site representative"}
                                     searchEnabled
                                     searchExpr={["userName", "email"]}
@@ -612,11 +616,11 @@ const BulkSignatureRequestPage = () => {
                                     stylingMode="outlined"
                                 />
                                 <small style={{ color: "#605e5c" }}>
-                                    Only direct user members of <strong>{recipientOptions.siteRepresentativeGroupName}</strong> are shown. Role-based members are ignored here. To use an outsider email, type it here and press Enter.
+                                    Only direct user members of <strong>{recipientOptions.siteRepresentativeGroupName}</strong> are shown. Role-based members are ignored here.
                                 </small>
-                            </label>
+                            </div>
 
-                            <label className="warning-letter-page__field">
+                            <div className="warning-letter-page__field">
                                 <span style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between" }}>
                                     <span>
                                         CC Recipients
@@ -628,7 +632,11 @@ const BulkSignatureRequestPage = () => {
                                             className="m365-icon-btn"
                                             title="Edit signature CC group"
                                             aria-label="Edit signature CC group"
-                                            onClick={() => openRecipientGroupPanel(recipientOptions.signatureCcGroupName)}
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                openRecipientGroupPanel(recipientOptions.signatureCcGroupName);
+                                            }}
                                             disabled={recipientsLoading}
                                         >
                                             <i className="fa-light fa-pen-to-square" />
@@ -640,7 +648,7 @@ const BulkSignatureRequestPage = () => {
                                     displayExpr={(item) => item ? `${item.userName || "Unknown"}${item.email ? ` (${item.email})` : ""}` : ""}
                                     valueExpr="id"
                                     value={selectedCcIds}
-                                    onValueChanged={(e) => setSelectedCcIds(e.value || [])}
+                                    onValueChanged={(e) => handleCcRecipientsChanged(e.value || [])}
                                     placeholder={recipientsLoading ? "Loading additional recipients..." : "Optional CC recipients at this site"}
                                     searchEnabled
                                     searchExpr={["userName", "email"]}
@@ -652,7 +660,7 @@ const BulkSignatureRequestPage = () => {
                                 <small style={{ color: "#605e5c" }}>
                                     Only direct user members of <strong>{recipientOptions.signatureCcGroupName}</strong> are shown. Manage the group to add site users.
                                 </small>
-                            </label>
+                            </div>
                         </div>
                     </div>
 
@@ -681,7 +689,7 @@ const BulkSignatureRequestPage = () => {
                         </div>
                         <div>
                             <span>Recipient</span>
-                            <strong>{selectedRecipient?.userName || effectiveEmail || "—"}</strong>
+                            <strong>{selectedRecipient?.userName || "—"}</strong>
                         </div>
                         <div>
                             <span>Email</span>

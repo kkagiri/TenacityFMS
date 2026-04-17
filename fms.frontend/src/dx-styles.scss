@@ -147,24 +147,10 @@ body {
   padding-top: 0;
 }
 
-/* Global fix for DevExtreme clear button size (X icon) - applies to all textboxes, dateboxes, tagboxes, selectboxes, etc. */
-.dx-clear-button-area {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  max-width: 20px !important;
-  max-height: 20px !important;
-
-  .dx-icon-clear {
-    width: 16px !important;
-    height: 16px !important;
-    font-size: 16px !important;
-    line-height: 16px !important;
-  }
-}
-
-/* Explicitly target TagBox, SelectBox, DateBox, and other dropdown editors */
+/* Global fix for DevExtreme clear button (X icon) - size + centering
+   Ensures the X glyph is visually centered inside its circular background
+   for all textboxes, dateboxes, tagboxes, selectboxes, etc. */
+.dx-clear-button-area,
 .dx-tagbox .dx-clear-button-area,
 .dx-selectbox .dx-clear-button-area,
 .dx-datebox .dx-clear-button-area,
@@ -179,11 +165,75 @@ body {
   min-height: 20px !important;
   max-width: 20px !important;
   max-height: 20px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  /* Remove circular background - show just the X */
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  &::before,
+  &::after {
+    display: none !important;
+    background: transparent !important;
+    content: none !important;
+  }
+
+  &:hover,
+  &:focus,
+  &:active,
+  &.dx-state-hover,
+  &.dx-state-focused,
+  &.dx-state-active {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
 
   .dx-icon-clear {
     width: 16px !important;
     height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
     font-size: 16px !important;
     line-height: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    /* Remove the circular background drawn on the icon itself */
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: inherit;
+    /* Clear DevExtreme's default absolute positioning that offsets the glyph */
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+
+    &::before {
+      position: static !important;
+      top: auto !important;
+      left: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 16px !important;
+      height: 16px !important;
+      line-height: 16px !important;
+      font-size: 16px !important;
+      text-align: center !important;
+      display: inline-block !important;
+    }
   }
 }

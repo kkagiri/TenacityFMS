@@ -86,4 +86,8 @@
 .dx-scrollview-content:has(.vehicle-layout--tracking) > .content-block {
   flex: 0 0 auto;
   margin-top: 0;
+  // Reclaim vertical space on the dense tracking workspace; the header + toolbar
+  // already convey product branding and status, and the map/grid benefit far
+  // more from the extra pixels than the global copyright strip.
+  display: none;
 }

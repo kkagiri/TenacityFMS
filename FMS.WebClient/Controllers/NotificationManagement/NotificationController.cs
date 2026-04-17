@@ -642,11 +642,12 @@ namespace FMS.WebClient.Controllers
             [FromQuery] bool? isSiteAdmin = null,
             [FromQuery] string? search = null,
             [FromQuery] int take = 100,
+            [FromQuery] bool applySiteAssignmentFilter = true,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                var query = new GetRecipientCandidatesQuery(siteId, departmentId, isSiteAdmin, search, take);
+                var query = new GetRecipientCandidatesQuery(siteId, departmentId, isSiteAdmin, search, take, applySiteAssignmentFilter);
                 var result = await _mediator.Send(query, cancellationToken);
 
                 if (result.IsSuccess)

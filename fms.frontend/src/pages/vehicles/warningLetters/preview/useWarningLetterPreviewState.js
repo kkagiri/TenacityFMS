@@ -34,6 +34,8 @@ import {
 export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canManageRecipientGroups, userInfo }) => {
     const approveLetterInputRef = useRef(null);
     const signedCopyInputRef = useRef(null);
+    const signatureRecipientTouchedRef = useRef(false);
+    const signatureCcTouchedRef = useRef(false);
     const [letter, setLetter] = useState(null);
     const [pdfUrl, setPdfUrl] = useState("");
     const [loading, setLoading] = useState(false);
@@ -47,7 +49,6 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
     });
     const [signatureRecipientsLoading, setSignatureRecipientsLoading] = useState(false);
     const [selectedSignatureRecipientId, setSelectedSignatureRecipientId] = useState(null);
-    const [manualSignatureRecipientEmail, setManualSignatureRecipientEmail] = useState("");
     const [selectedCcRecipientIds, setSelectedCcRecipientIds] = useState([]);
     const [signatureSubmitting, setSignatureSubmitting] = useState(false);
     const [approveLetterUploading, setApproveLetterUploading] = useState(false);
@@ -65,6 +66,36 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         signed: true,
     });
 
+    const signatureRecipients = useMemo(
+        () => (Array.isArray(signatureRecipientOptions.siteRepresentatives) ? signatureRecipientOptions.siteRepresentatives : []),
+        [signatureRecipientOptions.siteRepresentatives]
+    );
+
+    const signatureCcRecipients = useMemo(
+        () => (Array.isArray(signatureRecipientOptions.signatureCcRecipients) ? signatureRecipientOptions.signatureCcRecipients : []),
+        [signatureRecipientOptions.signatureCcRecipients]
+    );
+
+    const previewDerivedState = useMemo(() => buildPreviewDerivedState({
+        letter,
+        signatureRecipients,
+        signatureCcRecipients,
+        selectedSignatureRecipientId,
+        signatureRecipientsLoading,
+        signatureSubmitting,
+        canUpdate,
+        userInfo,
+    }), [
+        canUpdate,
+        letter,
+        selectedSignatureRecipientId,
+        signatureCcRecipients,
+        signatureRecipients,
+        signatureRecipientsLoading,
+        signatureSubmitting,
+        userInfo,
+    ]);
+
     const loadRecipientGroupUsers = useCallback(async () => {
         if (recipientGroupUserOptions.length > 0) {
             return recipientGroupUserOptions;
@@ -75,6 +106,7 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         const response = await notificationsApi.getRecipientCandidates({
             siteId: Number(letter.siteId),
             take: 200,
+            applySiteAssignmentFilter: false,
         });
         if (!response.isSuccess) {
             throw new Error(response.message || "Failed to load recipient candidates.");
@@ -182,10 +214,11 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
     }, [loadDetail]);
 
     useEffect(() => {
+        signatureRecipientTouchedRef.current = false;
+        signatureCcTouchedRef.current = false;
         setSelectedSignatureRecipientId(letter?.signatureRequestRecipientUserId || null);
-        setManualSignatureRecipientEmail(letter?.signatureRequestRecipient || "");
         setSelectedCcRecipientIds(Array.isArray(letter?.signatureRequestCcUserIds) ? letter.signatureRequestCcUserIds : []);
-    }, [letter?.signatureRequestCcUserIds, letter?.signatureRequestRecipient, letter?.signatureRequestRecipientUserId]);
+    }, [letter?.signatureRequestCcUserIds, letter?.signatureRequestRecipientUserId]);
 
     useEffect(() => {
         setSelectedSignatureRecipientId((currentValue) => {
@@ -204,6 +237,52 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
             return currentValue.filter((recipientId) => signatureCcRecipients.some((recipient) => recipient.id === recipientId));
         });
     }, [letter?.signatureRequestRecipientUserId, signatureCcRecipients, signatureRecipients]);
+
+    useEffect(() => {
+        if (!signaturePopupOpen || signatureRecipientsLoading) {
+            return;
+        }
+
+        const persistedRecipientId = letter?.signatureRequestRecipientUserId;
+        if (signatureRecipientTouchedRef.current || selectedSignatureRecipientId || persistedRecipientId) {
+            return;
+        }
+
+        if (signatureRecipients.length === 1) {
+            setSelectedSignatureRecipientId(signatureRecipients[0].id);
+        }
+    }, [letter?.signatureRequestRecipientUserId, selectedSignatureRecipientId, signaturePopupOpen, signatureRecipients, signatureRecipientsLoading]);
+
+    useEffect(() => {
+        if (!signaturePopupOpen || signatureRecipientsLoading) {
+            return;
+        }
+
+        const persistedCcRecipientIds = Array.isArray(letter?.signatureRequestCcUserIds) ? letter.signatureRequestCcUserIds : [];
+        if (signatureCcTouchedRef.current || selectedCcRecipientIds.length > 0 || persistedCcRecipientIds.length > 0) {
+            return;
+        }
+
+        const effectiveSelectedRecipientId = selectedSignatureRecipientId
+            || (!signatureRecipientTouchedRef.current && !letter?.signatureRequestRecipientUserId && signatureRecipients.length === 1
+                ? signatureRecipients[0].id
+                : null);
+
+        const defaultCcRecipientIds = signatureCcRecipients
+            .filter((recipient) => recipient.id !== effectiveSelectedRecipientId)
+            .map((recipient) => recipient.id);
+
+        setSelectedCcRecipientIds(defaultCcRecipientIds);
+    }, [
+        letter?.signatureRequestCcUserIds,
+        letter?.signatureRequestRecipientUserId,
+        selectedCcRecipientIds.length,
+        selectedSignatureRecipientId,
+        signaturePopupOpen,
+        signatureCcRecipients,
+        signatureRecipients,
+        signatureRecipientsLoading,
+    ]);
 
     useEffect(() => {
         if (canViewPdf) {
@@ -308,18 +387,22 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
 
     const handleOpenRequestSignature = useCallback(() => {
         setSelectedSignatureRecipientId(letter?.signatureRequestRecipientUserId || null);
-        setManualSignatureRecipientEmail(letter?.signatureRequestRecipient || "");
+        signatureRecipientTouchedRef.current = false;
+        signatureCcTouchedRef.current = false;
         setSignaturePopupOpen(true);
-    }, [letter?.signatureRequestRecipient, letter?.signatureRequestRecipientUserId]);
+    }, [letter?.signatureRequestRecipientUserId]);
 
     const handleSignatureRecipientChanged = useCallback((event) => {
         const nextRecipientId = event.value || null;
-        const matchedRecipient = signatureRecipients.find((recipient) => recipient.id === nextRecipientId) || null;
+        signatureRecipientTouchedRef.current = true;
         setSelectedSignatureRecipientId(nextRecipientId);
-        if (matchedRecipient?.email) {
-            setManualSignatureRecipientEmail(matchedRecipient.email);
-        }
-    }, [signatureRecipients]);
+        setSelectedCcRecipientIds((currentValue) => currentValue.filter((recipientId) => recipientId !== nextRecipientId));
+    }, []);
+
+    const handleCcRecipientsChanged = useCallback((nextRecipientIds) => {
+        signatureCcTouchedRef.current = true;
+        setSelectedCcRecipientIds(Array.isArray(nextRecipientIds) ? nextRecipientIds : []);
+    }, []);
 
     const handleCloseRecipientGroupPanel = useCallback(() => {
         if (recipientGroupLoading) {
@@ -396,7 +479,7 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         const effectiveSignatureRecipientEmail = previewDerivedState.effectiveSignatureRecipientEmail;
 
         if (!previewDerivedState.selectedSignatureRecipient && !previewDerivedState.canSubmitSignatureRequest) {
-            notify("Select a site user or enter a valid recipient email first.", "warning", 2500);
+            notify("Select a site representative first.", "warning", 2500);
             return;
         }
 
@@ -495,37 +578,6 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         }));
     }, []);
 
-    const signatureRecipients = useMemo(
-        () => (Array.isArray(signatureRecipientOptions.siteRepresentatives) ? signatureRecipientOptions.siteRepresentatives : []),
-        [signatureRecipientOptions.siteRepresentatives]
-    );
-
-    const signatureCcRecipients = useMemo(
-        () => (Array.isArray(signatureRecipientOptions.signatureCcRecipients) ? signatureRecipientOptions.signatureCcRecipients : []),
-        [signatureRecipientOptions.signatureCcRecipients]
-    );
-
-    const previewDerivedState = useMemo(() => buildPreviewDerivedState({
-        letter,
-        signatureRecipients,
-        signatureCcRecipients,
-        selectedSignatureRecipientId,
-        manualSignatureRecipientEmail,
-        signatureRecipientsLoading,
-        signatureSubmitting,
-        canUpdate,
-        userInfo,
-    }), [
-        canUpdate,
-        letter,
-        manualSignatureRecipientEmail,
-        selectedSignatureRecipientId,
-        signatureCcRecipients,
-        signatureRecipients,
-        signatureRecipientsLoading,
-        signatureSubmitting,
-        userInfo,
-    ]);
     return {
         approveLetterInputRef,
         signedCopyInputRef,
@@ -541,10 +593,8 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         availableSignatureCcRecipients: previewDerivedState.availableSignatureCcRecipients,
         signatureRecipientsLoading,
         selectedSignatureRecipientId,
-        manualSignatureRecipientEmail,
         selectedCcRecipientIds,
-        setManualSignatureRecipientEmail,
-        setSelectedCcRecipientIds,
+        handleCcRecipientsChanged,
         signatureSubmitting,
         approveLetterUploading,
         signedCopyUploading,
@@ -580,6 +630,7 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         handleSendEmail,
         handleOpenRequestSignature,
         handleSignatureRecipientChanged,
+        handleCcRecipientsChanged,
         handleCloseRecipientGroupPanel,
         handleAddRecipientGroupMember,
         handleRemoveRecipientGroupMember,

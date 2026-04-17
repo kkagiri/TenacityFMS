@@ -133,11 +133,9 @@ const WarningLetterPreviewPage = () => {
                 availableSignatureCcRecipients={previewState.availableSignatureCcRecipients}
                 signatureRecipientsLoading={previewState.signatureRecipientsLoading}
                 selectedSignatureRecipientId={previewState.selectedSignatureRecipientId}
-                manualSignatureRecipientEmail={previewState.manualSignatureRecipientEmail}
                 selectedCcRecipientIds={previewState.selectedCcRecipientIds}
                 onSignatureRecipientChanged={previewState.handleSignatureRecipientChanged}
-                onManualEmailChanged={previewState.setManualSignatureRecipientEmail}
-                onCcRecipientsChanged={previewState.setSelectedCcRecipientIds}
+                onCcRecipientsChanged={previewState.handleCcRecipientsChanged}
                 showSignatureGroupWarning={previewState.showSignatureGroupWarning}
                 canEditSignatureRecipients={canEditSignatureRecipients}
                 onEditRecipientGroup={previewState.openRecipientGroupPanel}

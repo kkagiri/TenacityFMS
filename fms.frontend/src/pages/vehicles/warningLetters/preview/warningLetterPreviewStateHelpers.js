@@ -8,7 +8,7 @@
  * - buildPreviewDerivedState(): Computes view-friendly workflow flags and labels.
  * - downloadBlobDocument(): Downloads a blob-backed file response.
  */
-import { isGuidLike, isValidEmail, workflowStageMap } from "./warningLetterPreviewConstants";
+import { isGuidLike, workflowStageMap } from "./warningLetterPreviewConstants";
 
 export const downloadBlobDocument = (fileDocument) => {
     const url = URL.createObjectURL(fileDocument.blob);
@@ -44,7 +44,6 @@ export const buildPreviewDerivedState = ({
     signatureRecipients,
     signatureCcRecipients,
     selectedSignatureRecipientId,
-    manualSignatureRecipientEmail,
     signatureRecipientsLoading,
     signatureSubmitting,
     canUpdate,
@@ -52,7 +51,7 @@ export const buildPreviewDerivedState = ({
 }) => {
     const selectedSignatureRecipient = signatureRecipients.find((recipient) => recipient.id === selectedSignatureRecipientId) || null;
     const availableSignatureCcRecipients = signatureCcRecipients.filter((recipient) => recipient.id !== selectedSignatureRecipientId);
-    const effectiveSignatureRecipientEmail = (manualSignatureRecipientEmail || selectedSignatureRecipient?.email || "").trim();
+    const effectiveSignatureRecipientEmail = (selectedSignatureRecipient?.email || "").trim();
     const showSignatureGroupWarning = signatureRecipients.length === 0 && signatureCcRecipients.length > 0;
     const workflowStage = letter?.workflowStage ?? 0;
     const hasApprovedLetter = Boolean(letter?.approveLetterUploadedAt);
@@ -84,7 +83,7 @@ export const buildPreviewDerivedState = ({
     const canSubmitSignatureRequest = Boolean(
         !signatureRecipientsLoading
         && !signatureSubmitting
-        && (selectedSignatureRecipient || isValidEmail(effectiveSignatureRecipientEmail))
+        && selectedSignatureRecipient
     );
 
     return {

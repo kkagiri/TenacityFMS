@@ -1,31 +1,27 @@
 /**
  * File:          VehicleTrackingTripAnalysisPanel.js
  * Purpose:       Dock panel that runs trip detection (Cluster or Geofence) locally against the
- *                track points already loaded by the tracking workspace, shows detected stops /
- *                clusters / legs, and lets the operator commit the result via recompute.
+ *                track points already loaded by the tracking workspace. Operators can tune
+ *                thresholds, list detected trip legs, select trips to draw on the map,
+ *                toggle cluster/site overlays, and commit the result via recompute.
  * Dependencies:  React, DevExtreme controls, buildFrontendClusterPreview, buildFrontendGeofencePreview,
- *                fetchTripSiteLookup, recomputeVehicleTrips
- * Last Modified: 2026-04-16
+ *                fetchTripSiteLookup, recomputeVehicleTrips, useTripAnalysisOverlays.
+ * Last Modified: 2026-04-17
  *
  * Key Functions:
  * - VehicleTrackingTripAnalysisPanel(): Map-integrated replacement for the standalone preview page.
  * - runAnalysis(): Executes the chosen detection mode locally from already-loaded points.
  * - saveAsTrips(): Promotes the tuned thresholds by asking the backend to recompute the same range.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from 'devextreme-react/button';
+import DataGrid, { Column, Paging, Scrolling, Selection } from 'devextreme-react/data-grid';
 import NumberBox from 'devextreme-react/number-box';
 import notify from 'devextreme/ui/notify';
-import {
-    buildFrontendClusterPreview,
-} from '../../utils/clusterDetectionPlayground';
-import {
-    buildFrontendGeofencePreview,
-} from '../../utils/geofenceDetectionPlayground';
-import {
-    fetchTripSiteLookup,
-    recomputeVehicleTrips,
-} from '../../../trips/services/vehicleTripService';
+import { buildFrontendClusterPreview } from '../../utils/clusterDetectionPlayground';
+import { buildFrontendGeofencePreview } from '../../utils/geofenceDetectionPlayground';
+import { fetchTripSiteLookup, recomputeVehicleTrips } from '../../../trips/services/vehicleTripService';
+import useTripAnalysisOverlays from '../../hooks/useTripAnalysisOverlays';
 
 const DEFAULT_CLUSTER = {
     stopSpeedThresholdKph: 3,
@@ -43,6 +39,7 @@ const DEFAULT_GEOFENCE = {
 const getPointTimestamp = (point) => {
     const raw = point?.timestamp ?? point?.Timestamp;
     if (!raw) return null;
+
     const date = raw instanceof Date ? raw : new Date(raw);
     return Number.isNaN(date.getTime()) ? null : date;
 };
@@ -50,18 +47,30 @@ const getPointTimestamp = (point) => {
 const getPointRange = (points) => {
     let min = null;
     let max = null;
+
     for (const point of points) {
         const ts = getPointTimestamp(point);
         if (!ts) continue;
         if (!min || ts < min) min = ts;
         if (!max || ts > max) max = ts;
     }
+
     return { min, max };
+};
+
+const formatTime = (value) => {
+    if (!value) return '—';
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 const VehicleTrackingTripAnalysisPanel = ({
     trackedVehicles = [],
     activeTrackPoints = [],
+    mapRef,
     onAnalysisResultChange,
 }) => {
     const [mode, setMode] = useState('cluster');
@@ -71,42 +80,53 @@ const VehicleTrackingTripAnalysisPanel = ({
     const [siteGeofences, setSiteGeofences] = useState([]);
     const [result, setResult] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [selectedTripKeys, setSelectedTripKeys] = useState([]);
+    const [showClusters, setShowClusters] = useState(true);
+    const [showSites, setShowSites] = useState(false);
+    const [zoomToSelection, setZoomToSelection] = useState(false);
+    const zoomTokenRef = useRef(0);
 
-    // Auto-pick single tracked vehicle
     useEffect(() => {
         if (trackedVehicles.length === 1) {
             setSelectedVehicleId(trackedVehicles[0].id);
         } else if (trackedVehicles.length === 0) {
             setSelectedVehicleId(null);
-        } else if (!trackedVehicles.some((v) => v.id === selectedVehicleId)) {
+        } else if (!trackedVehicles.some((vehicle) => vehicle.id === selectedVehicleId)) {
             setSelectedVehicleId(trackedVehicles[0].id);
         }
     }, [trackedVehicles, selectedVehicleId]);
 
-    // Load site geofences once (only when geofence mode is first used)
     useEffect(() => {
-        if (mode !== 'geofence' || siteGeofences.length > 0) return;
+        if (siteGeofences.length > 0) return;
+
         let cancelled = false;
+
         (async () => {
             try {
                 const sites = await fetchTripSiteLookup();
-                if (!cancelled) setSiteGeofences(Array.isArray(sites) ? sites : []);
+                if (!cancelled) {
+                    setSiteGeofences(Array.isArray(sites) ? sites : []);
+                }
             } catch {
-                /* empty site list is fine — detector will report 0 visits */
+                if (!cancelled) {
+                    setSiteGeofences([]);
+                }
             }
         })();
-        return () => { cancelled = true; };
-    }, [mode, siteGeofences.length]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [siteGeofences.length]);
 
     const pointsForSelectedVehicle = useMemo(() => {
-        if (!selectedVehicleId) return [];
-        if (activeTrackPoints.length === 0) return [];
+        if (!selectedVehicleId || activeTrackPoints.length === 0) return [];
 
-        // If track points are already scoped to one vehicle, take them as-is.
-        const tagged = activeTrackPoints.filter(
-            (p) => p.vehicleId === selectedVehicleId || p.VehicleId === selectedVehicleId,
+        const taggedPoints = activeTrackPoints.filter(
+            (point) => point.vehicleId === selectedVehicleId || point.VehicleId === selectedVehicleId,
         );
-        return tagged.length > 0 ? tagged : activeTrackPoints;
+
+        return taggedPoints.length > 0 ? taggedPoints : activeTrackPoints;
     }, [activeTrackPoints, selectedVehicleId]);
 
     const { min: fromUtc, max: toUtc } = useMemo(
@@ -114,15 +134,59 @@ const VehicleTrackingTripAnalysisPanel = ({
         [pointsForSelectedVehicle],
     );
 
-    const canAnalyze = Boolean(
-        selectedVehicleId && pointsForSelectedVehicle.length >= 2,
-    );
+    const canAnalyze = Boolean(selectedVehicleId && pointsForSelectedVehicle.length >= 2);
     const canSave = Boolean(result && fromUtc && toUtc && selectedVehicleId && !isSaving);
+
+    const tripLegs = useMemo(() => {
+        if (!result?.preview) return [];
+
+        const rawTripLegs = Array.isArray(result.preview.tripLegs) ? result.preview.tripLegs : [];
+        return rawTripLegs.map((leg, index) => ({
+            ...leg,
+            tripKey: `${index}-${leg.startTimeUtc}`,
+            sequenceNo: index + 1,
+        }));
+    }, [result]);
+
+    const clusters = useMemo(() => {
+        if (result?.mode !== 'cluster') return [];
+        return Array.isArray(result.preview?.clusters) ? result.preview.clusters : [];
+    }, [result]);
+
+    useEffect(() => {
+        setSelectedTripKeys([]);
+    }, [result]);
+
+    useTripAnalysisOverlays(mapRef, {
+        trackPoints: pointsForSelectedVehicle,
+        tripLegs,
+        selectedTripKeys,
+        clusters,
+        sites: siteGeofences,
+        showClusters: showClusters && clusters.length > 0,
+        showSites,
+        zoomToSelection,
+    });
+
+    useEffect(() => {
+        if (!zoomToSelection) return undefined;
+
+        const token = ++zoomTokenRef.current;
+        const timer = setTimeout(() => {
+            if (zoomTokenRef.current === token) {
+                setZoomToSelection(false);
+            }
+        }, 400);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [zoomToSelection]);
 
     const runAnalysis = useCallback(() => {
         if (!canAnalyze) return;
 
-        const selectedVehicle = trackedVehicles.find((v) => v.id === selectedVehicleId);
+        const selectedVehicle = trackedVehicles.find((vehicle) => vehicle.id === selectedVehicleId);
         const sourcePreview = {
             vehicleId: selectedVehicleId,
             vehicleName: selectedVehicle?.trackingCode || `Vehicle #${selectedVehicleId}`,
@@ -146,13 +210,22 @@ const VehicleTrackingTripAnalysisPanel = ({
         setResult({ mode, preview });
         onAnalysisResultChange?.({ mode, preview, selectedVehicleId });
     }, [
-        canAnalyze, clusterSettings, fromUtc, geofenceSettings, mode,
-        onAnalysisResultChange, pointsForSelectedVehicle, selectedVehicleId,
-        siteGeofences, toUtc, trackedVehicles,
+        canAnalyze,
+        clusterSettings,
+        fromUtc,
+        geofenceSettings,
+        mode,
+        onAnalysisResultChange,
+        pointsForSelectedVehicle,
+        selectedVehicleId,
+        siteGeofences,
+        toUtc,
+        trackedVehicles,
     ]);
 
     const saveAsTrips = useCallback(async () => {
         if (!canSave) return;
+
         setIsSaving(true);
         try {
             await recomputeVehicleTrips({
@@ -167,6 +240,21 @@ const VehicleTrackingTripAnalysisPanel = ({
             setIsSaving(false);
         }
     }, [canSave, fromUtc, selectedVehicleId, toUtc]);
+
+    const handleSelectAll = useCallback(() => {
+        setSelectedTripKeys(tripLegs.map((trip) => trip.tripKey));
+        setZoomToSelection(true);
+    }, [tripLegs]);
+
+    const handleClearSelection = useCallback(() => {
+        setSelectedTripKeys([]);
+    }, []);
+
+    const handleZoomToSelection = useCallback(() => {
+        if (selectedTripKeys.length > 0) {
+            setZoomToSelection(true);
+        }
+    }, [selectedTripKeys.length]);
 
     const summary = result
         ? result.mode === 'cluster'
@@ -183,7 +271,7 @@ const VehicleTrackingTripAnalysisPanel = ({
         : null;
 
     return (
-        <div className="tw-flex tw-h-full tw-flex-col tw-overflow-auto tw-bg-[#faf9f8] tw-p-4 tw-gap-4">
+        <div className="tw-flex tw-h-full tw-flex-col tw-gap-4 tw-overflow-auto tw-bg-[#faf9f8] tw-p-4">
             <div className="tw-flex tw-items-center tw-justify-between">
                 <div className="tw-text-[13px] tw-font-semibold tw-text-[#201f1e]">Trip Analysis</div>
                 <div className="tw-inline-flex tw-overflow-hidden tw-rounded tw-border tw-border-[#c8c6c4]">
@@ -205,17 +293,17 @@ const VehicleTrackingTripAnalysisPanel = ({
             </div>
 
             <div className="tw-rounded-md tw-border tw-border-[#edebe9] tw-bg-white tw-p-3">
-                <div className="tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c] tw-mb-2">
+                <div className="tw-mb-2 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c]">
                     Data source
                 </div>
                 <div className="tw-text-[12px] tw-text-[#323130]">
                     {trackedVehicles.length === 0 && 'No vehicles tracked. Select a vehicle in the Vehicles panel.'}
-                    {trackedVehicles.length > 0 && activeTrackPoints.length === 0 && (
-                        'Load track points in the Track Points panel first.'
-                    )}
+                    {trackedVehicles.length > 0 && activeTrackPoints.length === 0 && 'Load track points in the Track Points panel first.'}
                     {pointsForSelectedVehicle.length > 0 && (
                         <>
-                            <div><strong>{pointsForSelectedVehicle.length}</strong> track points loaded</div>
+                            <div>
+                                <strong>{pointsForSelectedVehicle.length}</strong> track points loaded
+                            </div>
                             {fromUtc && toUtc && (
                                 <div className="tw-text-[#605e5c]">
                                     {fromUtc.toLocaleString()} → {toUtc.toLocaleString()}
@@ -233,40 +321,65 @@ const VehicleTrackingTripAnalysisPanel = ({
                         labelMode="floating"
                         stylingMode="outlined"
                         value={clusterSettings.stopSpeedThresholdKph}
-                        min={0} max={50} step={0.5}
-                        onValueChanged={(e) => setClusterSettings((s) => ({ ...s, stopSpeedThresholdKph: Number(e.value) || 0 }))}
+                        min={0}
+                        max={50}
+                        step={0.5}
+                        onValueChanged={(event) => setClusterSettings((state) => ({
+                            ...state,
+                            stopSpeedThresholdKph: Number(event.value) || 0,
+                        }))}
                     />
                     <NumberBox
                         label="Min stop (min)"
                         labelMode="floating"
                         stylingMode="outlined"
                         value={clusterSettings.minimumStopDurationMinutes}
-                        min={0.1} max={60} step={0.5}
-                        onValueChanged={(e) => setClusterSettings((s) => ({ ...s, minimumStopDurationMinutes: Number(e.value) || 0 }))}
+                        min={0.1}
+                        max={60}
+                        step={0.5}
+                        onValueChanged={(event) => setClusterSettings((state) => ({
+                            ...state,
+                            minimumStopDurationMinutes: Number(event.value) || 0,
+                        }))}
                     />
                     <NumberBox
                         label="Min trip distance (km)"
                         labelMode="floating"
                         stylingMode="outlined"
                         value={clusterSettings.minimumTripDistanceKm}
-                        min={0} max={100} step={0.1}
-                        onValueChanged={(e) => setClusterSettings((s) => ({ ...s, minimumTripDistanceKm: Number(e.value) || 0 }))}
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        onValueChanged={(event) => setClusterSettings((state) => ({
+                            ...state,
+                            minimumTripDistanceKm: Number(event.value) || 0,
+                        }))}
                     />
                     <NumberBox
                         label="Min trip duration (min)"
                         labelMode="floating"
                         stylingMode="outlined"
                         value={clusterSettings.minimumTripDurationMinutes}
-                        min={0} max={1440} step={1}
-                        onValueChanged={(e) => setClusterSettings((s) => ({ ...s, minimumTripDurationMinutes: Number(e.value) || 0 }))}
+                        min={0}
+                        max={1440}
+                        step={1}
+                        onValueChanged={(event) => setClusterSettings((state) => ({
+                            ...state,
+                            minimumTripDurationMinutes: Number(event.value) || 0,
+                        }))}
                     />
                     <NumberBox
                         label="Cluster radius (m)"
                         labelMode="floating"
                         stylingMode="outlined"
                         value={clusterSettings.clusterRadiusMeters}
-                        min={10} max={5000} step={10}
-                        onValueChanged={(e) => setClusterSettings((s) => ({ ...s, clusterRadiusMeters: Number(e.value) || 0 }))}
+                        min={10}
+                        max={5000}
+                        step={10}
+                        onValueChanged={(event) => setClusterSettings((state) => ({
+                            ...state,
+                            clusterRadiusMeters: Number(event.value) || 0,
+                        }))}
                     />
                 </div>
             ) : (
@@ -276,21 +389,31 @@ const VehicleTrackingTripAnalysisPanel = ({
                         labelMode="floating"
                         stylingMode="outlined"
                         value={geofenceSettings.minimumTripDistanceKm}
-                        min={0} max={100} step={0.1}
-                        onValueChanged={(e) => setGeofenceSettings((s) => ({ ...s, minimumTripDistanceKm: Number(e.value) || 0 }))}
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        onValueChanged={(event) => setGeofenceSettings((state) => ({
+                            ...state,
+                            minimumTripDistanceKm: Number(event.value) || 0,
+                        }))}
                     />
                     <NumberBox
                         label="Min trip duration (min)"
                         labelMode="floating"
                         stylingMode="outlined"
                         value={geofenceSettings.minimumTripDurationMinutes}
-                        min={0} max={1440} step={1}
-                        onValueChanged={(e) => setGeofenceSettings((s) => ({ ...s, minimumTripDurationMinutes: Number(e.value) || 0 }))}
+                        min={0}
+                        max={1440}
+                        step={1}
+                        onValueChanged={(event) => setGeofenceSettings((state) => ({
+                            ...state,
+                            minimumTripDurationMinutes: Number(event.value) || 0,
+                        }))}
                     />
                 </div>
             )}
 
-            <div className="tw-flex tw-gap-2">
+            <div className="tw-flex tw-flex-wrap tw-gap-2">
                 <Button
                     text="Run analysis"
                     icon="fa-light fa-play"
@@ -311,7 +434,7 @@ const VehicleTrackingTripAnalysisPanel = ({
 
             {summary && (
                 <div className="tw-rounded-md tw-border tw-border-[#edebe9] tw-bg-white tw-p-3">
-                    <div className="tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c] tw-mb-2">
+                    <div className="tw-mb-2 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c]">
                         Result ({result.mode})
                     </div>
                     <div className="tw-grid tw-grid-cols-3 tw-gap-3 tw-text-center">
@@ -327,6 +450,110 @@ const VehicleTrackingTripAnalysisPanel = ({
                             <div className="tw-text-[20px] tw-font-semibold tw-text-[#ca5010]">{summary.legs}</div>
                             <div className="tw-text-[11px] tw-text-[#605e5c]">Trip legs</div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {tripLegs.length > 0 && (
+                <div className="tw-rounded-md tw-border tw-border-[#edebe9] tw-bg-white">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-border-b tw-border-[#edebe9] tw-px-3 tw-py-2">
+                        <div className="tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c]">
+                            Detected trips ({tripLegs.length}) · {selectedTripKeys.length} drawn
+                        </div>
+                        <div className="tw-flex tw-gap-1">
+                            <Button text="All" stylingMode="text" onClick={handleSelectAll} />
+                            <Button
+                                text="None"
+                                stylingMode="text"
+                                onClick={handleClearSelection}
+                                disabled={selectedTripKeys.length === 0}
+                            />
+                            <Button
+                                icon="fa-light fa-magnifying-glass-plus"
+                                stylingMode="text"
+                                hint="Zoom to selection"
+                                onClick={handleZoomToSelection}
+                                disabled={selectedTripKeys.length === 0}
+                            />
+                        </div>
+                    </div>
+                    <DataGrid
+                        dataSource={tripLegs}
+                        keyExpr="tripKey"
+                        selectedRowKeys={selectedTripKeys}
+                        onSelectionChanged={(event) => setSelectedTripKeys(event.selectedRowKeys || [])}
+                        showBorders={false}
+                        showColumnLines={false}
+                        showRowLines={true}
+                        rowAlternationEnabled={false}
+                        hoverStateEnabled={true}
+                        height={Math.min(320, 48 + tripLegs.length * 32)}
+                    >
+                        <Selection mode="multiple" showCheckBoxesMode="always" />
+                        <Scrolling mode="virtual" />
+                        <Paging enabled={false} />
+                        <Column dataField="sequenceNo" caption="#" width={40} alignment="center" />
+                        <Column
+                            dataField="startTimeUtc"
+                            caption="Start"
+                            width={70}
+                            calculateCellValue={(row) => formatTime(row.startTimeUtc)}
+                        />
+                        <Column
+                            dataField="endTimeUtc"
+                            caption="End"
+                            width={70}
+                            calculateCellValue={(row) => formatTime(row.endTimeUtc)}
+                        />
+                        <Column
+                            dataField="distanceKm"
+                            caption="km"
+                            width={60}
+                            alignment="right"
+                            format={{ type: 'fixedPoint', precision: 2 }}
+                        />
+                        <Column
+                            dataField="durationMinutes"
+                            caption="min"
+                            width={60}
+                            alignment="right"
+                            format={{ type: 'fixedPoint', precision: 1 }}
+                        />
+                        <Column
+                            dataField="maxSpeedKph"
+                            caption="max km/h"
+                            width={70}
+                            alignment="right"
+                            format={{ type: 'fixedPoint', precision: 0 }}
+                        />
+                    </DataGrid>
+                </div>
+            )}
+
+            {result && (
+                <div className="tw-rounded-md tw-border tw-border-[#edebe9] tw-bg-white tw-p-3">
+                    <div className="tw-mb-2 tw-text-[11px] tw-font-semibold tw-uppercase tw-tracking-wide tw-text-[#605e5c]">
+                        Map overlays
+                    </div>
+                    <div className="tw-flex tw-flex-col tw-gap-2">
+                        {result.mode === 'cluster' && (
+                            <label className="tw-flex tw-items-center tw-gap-2 tw-text-[12px] tw-text-[#323130]">
+                                <input
+                                    type="checkbox"
+                                    checked={showClusters}
+                                    onChange={(event) => setShowClusters(event.target.checked)}
+                                />
+                                Show cluster circles ({clusters.length})
+                            </label>
+                        )}
+                        <label className="tw-flex tw-items-center tw-gap-2 tw-text-[12px] tw-text-[#323130]">
+                            <input
+                                type="checkbox"
+                                checked={showSites}
+                                onChange={(event) => setShowSites(event.target.checked)}
+                            />
+                            Show site pins ({siteGeofences.length})
+                        </label>
                     </div>
                 </div>
             )}

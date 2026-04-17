@@ -303,7 +303,7 @@ class NotificationsApi {
   }
 
   // Get enriched user candidates for recipient dual-pane picker
-  async getRecipientCandidates({ siteId, departmentId, isSiteAdmin, search, take } = {}) {
+  async getRecipientCandidates({ siteId, departmentId, isSiteAdmin, search, take, applySiteAssignmentFilter } = {}) {
     try {
       const params = new URLSearchParams();
       if (siteId != null) params.append('siteId', String(siteId));
@@ -311,6 +311,7 @@ class NotificationsApi {
       if (typeof isSiteAdmin === 'boolean') params.append('isSiteAdmin', String(isSiteAdmin));
       if (search) params.append('search', search);
       if (take != null) params.append('take', String(take));
+      if (typeof applySiteAssignmentFilter === 'boolean') params.append('applySiteAssignmentFilter', String(applySiteAssignmentFilter));
       const qs = params.toString();
       const url = qs
         ? `${this.basePath}/recipient-candidates?${qs}`

@@ -25,7 +25,8 @@ namespace FMS.Application.Features.Notification.Queries
         int? DepartmentId = null,
         bool? IsSiteAdmin = null,
         string? Search = null,
-        int Take = 100
+        int Take = 100,
+        bool ApplySiteAssignmentFilter = true
     ) : IRequest<FMSResponse<List<RecipientCandidateDto>>>;
 
     public class GetRecipientCandidatesQueryHandler
@@ -62,7 +63,7 @@ namespace FMS.Application.Features.Notification.Queries
             }
 
             // Filter by site assignment via UserSites
-            if (request.SiteId.HasValue)
+            if (request.SiteId.HasValue && request.ApplySiteAssignmentFilter)
             {
                 var userIdsAtSite = _context.UserSites
                     .Where(us => us.SiteId == request.SiteId.Value)

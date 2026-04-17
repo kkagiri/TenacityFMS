@@ -19,15 +19,41 @@ import SlidePanel from '../../../components/ui/SlidePanel';
 import CreateUserPanel from '../../user/components/CreateUserPanel';
 import './RecipientManagement.scss';
 
-const WARNING_LETTER_GROUP_NAMES = [
-  'Warning Letter Site Representatives',
-  'Warning Letter Signature CC'
-];
+const WARNING_LETTER_GROUP_ROLES = ['siteRepresentatives', 'signatureCc'];
 
-const WARNING_LETTER_GROUP_DESCRIPTIONS = {
-  'Warning Letter Site Representatives': 'Primary signature recipients for warning letters at the selected site.',
-  'Warning Letter Signature CC': 'Additional CC recipients for warning-letter signature requests at the selected site.'
+const WARNING_LETTER_GROUP_CONFIG = {
+  siteRepresentatives: {
+    legacyName: 'Warning Letter Site Representatives',
+    suffix: 'Site Representatives',
+    description: 'Primary signature recipients for warning letters at the selected site.',
+    shortLabel: 'Rep'
+  },
+  signatureCc: {
+    legacyName: 'Warning Letter Signature CC',
+    suffix: 'Signature CC',
+    description: 'Additional CC recipients for warning-letter signature requests at the selected site.',
+    shortLabel: 'CC'
+  }
 };
+
+const buildWarningLetterGroupName = (siteName, role) => {
+  const normalizedSiteName = siteName?.trim() || 'Site';
+  return `${normalizedSiteName} ${WARNING_LETTER_GROUP_CONFIG[role].suffix}`;
+};
+
+const getWarningLetterGroupRole = (group) => {
+  const displayName = (group?.displayName || '').trim();
+  const description = (group?.description || '').trim();
+
+  return WARNING_LETTER_GROUP_ROLES.find(role => {
+    const config = WARNING_LETTER_GROUP_CONFIG[role];
+    return description === config.description
+      || displayName === config.legacyName
+      || displayName.endsWith(` ${config.suffix}`);
+  }) || null;
+};
+
+const getWarningLetterGroupTitle = (siteName, role) => buildWarningLetterGroupName(siteName, role);
 
 const mapGroupToViewModel = (group) => ({
   id: group.id,
@@ -161,9 +187,7 @@ const RecipientManagement = () => {
     return matchesSearch && matchesSite;
   });
 
-  const allWarningLetterGroups = groups.filter(group =>
-    WARNING_LETTER_GROUP_NAMES.includes(group.displayName)
-  );
+  const allWarningLetterGroups = groups.filter(group => Boolean(getWarningLetterGroupRole(group)));
 
   const warningLetterSiteItems = useMemo(() => {
     const normalizedSearch = groupSearch.trim().toLowerCase();
@@ -173,7 +197,7 @@ const RecipientManagement = () => {
       siteMap.set(String(site.id), {
         siteId: String(site.id),
         siteName: site.name,
-        groupsByName: new Map(WARNING_LETTER_GROUP_NAMES.map(name => [name, []]))
+        groupsByRole: new Map(WARNING_LETTER_GROUP_ROLES.map(role => [role, []]))
       });
     });
 
@@ -184,17 +208,20 @@ const RecipientManagement = () => {
         siteMap.set(siteId, {
           siteId,
           siteName: group.siteName || `Site ${siteId}`,
-          groupsByName: new Map(WARNING_LETTER_GROUP_NAMES.map(name => [name, []]))
+          groupsByRole: new Map(WARNING_LETTER_GROUP_ROLES.map(role => [role, []]))
         });
       }
 
       const siteEntry = siteMap.get(siteId);
-      siteEntry.groupsByName.get(group.displayName)?.push(group);
+      const role = getWarningLetterGroupRole(group);
+      if (role) {
+        siteEntry.groupsByRole.get(role)?.push(group);
+      }
     });
 
     return Array.from(siteMap.values())
       .map(site => {
-        const counts = WARNING_LETTER_GROUP_NAMES.map(name => site.groupsByName.get(name)?.length || 0);
+        const counts = WARNING_LETTER_GROUP_ROLES.map(role => site.groupsByRole.get(role)?.length || 0);
         const missingCount = counts.filter(count => count === 0).length;
         const duplicateCount = counts.reduce((sum, count) => sum + (count > 1 ? count - 1 : 0), 0);
         const hasAllRequired = counts.every(count => count >= 1);
@@ -213,7 +240,10 @@ const RecipientManagement = () => {
         if (!normalizedSearch) return true;
         return (
           site.siteName.toLowerCase().includes(normalizedSearch) ||
-          WARNING_LETTER_GROUP_NAMES.some(name => name.toLowerCase().includes(normalizedSearch) && (site.groupsByName.get(name)?.length || 0) > 0)
+          WARNING_LETTER_GROUP_ROLES.some(role => {
+            const title = getWarningLetterGroupTitle(site.siteName, role).toLowerCase();
+            return title.includes(normalizedSearch) && (site.groupsByRole.get(role)?.length || 0) > 0;
+          })
         );
       })
       .sort((left, right) => left.siteName.localeCompare(right.siteName));
@@ -225,7 +255,7 @@ const RecipientManagement = () => {
   );
 
   const warningLetterGroups = selectedWarningLetterSite
-    ? WARNING_LETTER_GROUP_NAMES.flatMap(name => selectedWarningLetterSite.groupsByName.get(name) || [])
+    ? WARNING_LETTER_GROUP_ROLES.flatMap(role => selectedWarningLetterSite.groupsByRole.get(role) || [])
     : [];
 
   const memberUserOptions = useMemo(() => users.map(user => ({
@@ -255,78 +285,28 @@ const RecipientManagement = () => {
     }
   };
 
-  const ensureWarningLetterGroupsForSite = async (siteId) => {
-    const normalizedSiteId = siteId ? parseInt(siteId, 10) : null;
+  const handleCreateSingleWarningLetterGroup = async (groupRole) => {
+    const normalizedSiteId = selectedGroupSiteId ? parseInt(selectedGroupSiteId, 10) : null;
     if (!normalizedSiteId || Number.isNaN(normalizedSiteId)) {
       notify('Select a site first.', 'warning', 2500);
-      return [];
+      return;
     }
-
-    const latestGroupsResponse = await notificationGroupsApi.getGroups(normalizedSiteId);
-    const latestSiteGroups = latestGroupsResponse.isSuccess
-      ? (latestGroupsResponse.data || []).map(mapGroupToViewModel)
-      : groups.filter(group => Number(group.siteId) === normalizedSiteId);
-    const warningLetterSiteGroups = latestSiteGroups.filter(group => WARNING_LETTER_GROUP_NAMES.includes(group.displayName));
-    const existingByName = new Map(
-      WARNING_LETTER_GROUP_NAMES.map(name => [
-        name,
-        warningLetterSiteGroups.filter(group => group.displayName === name)
-      ])
-    );
-
-    const duplicateNames = WARNING_LETTER_GROUP_NAMES.filter(name => (existingByName.get(name)?.length || 0) > 1);
-    let createdCount = 0;
-
-    for (const groupName of WARNING_LETTER_GROUP_NAMES) {
-      if ((existingByName.get(groupName)?.length || 0) > 0) continue;
+    const siteName = siteOptions.find(site => String(site.id) === String(normalizedSiteId))?.name || selectedWarningLetterSite?.siteName || `Site ${normalizedSiteId}`;
+    const groupName = buildWarningLetterGroupName(siteName, groupRole);
+    try {
+      setWarningLetterSetupLoading(true);
       const result = await notificationGroupsApi.createGroup({
         name: groupName,
-        description: WARNING_LETTER_GROUP_DESCRIPTIONS[groupName],
+        description: WARNING_LETTER_GROUP_CONFIG[groupRole].description,
         siteId: normalizedSiteId,
         isActive: true,
         allowedDeliveryMethods: ['Email']
       });
       if (!result.isSuccess) throw new Error(result.message || `Failed to create ${groupName}`);
-      createdCount += 1;
-    }
-    await refreshAndSetGroups(String(normalizedSiteId));
-    const latestGroups = await notificationGroupsApi.getGroups(normalizedSiteId);
-    const resolvedGroups = latestGroups.isSuccess
-      ? (latestGroups.data || []).map(mapGroupToViewModel).filter(group => WARNING_LETTER_GROUP_NAMES.includes(group.displayName))
-      : [];
-    if (createdCount > 0) {
-      notify(`Created ${createdCount} warning-letter group(s) for the selected site.`, 'success', 3000);
-    }
-    if (duplicateNames.length > 0) {
-      notify(`This site has duplicate warning-letter groups for ${duplicateNames.join(', ')}. Keep only one of each required group.`, 'warning', 4500);
-    }
-    return resolvedGroups;
-  };
-
-  const handleCreateWarningLetterGroups = async () => {
-    try {
-      setWarningLetterSetupLoading(true);
-      await ensureWarningLetterGroupsForSite(selectedGroupSiteId);
+      await refreshAndSetGroups(String(normalizedSiteId));
+      notify(`${groupName} created for this site.`, 'success', 2500);
     } catch (error) {
-      notify(error.message || 'Failed to prepare warning-letter groups.', 'error', 3500);
-    } finally {
-      setWarningLetterSetupLoading(false);
-    }
-  };
-
-  const handleCreateAndPopulateWarningLetterGroups = async () => {
-    try {
-      setWarningLetterSetupLoading(true);
-      const resolvedGroups = await ensureWarningLetterGroupsForSite(selectedGroupSiteId);
-      if (!resolvedGroups.length) {
-        notify('Warning-letter groups were not found after creation.', 'warning', 3000);
-        return;
-      }
-      await openMembersPopup(resolvedGroups[0]);
-      notify('Warning-letter groups are ready. Managing members for the first required group now.', 'success', 3500);
-      await refreshAndSetGroups(selectedGroupSiteId);
-    } catch (error) {
-      notify(error.message || 'Failed to populate warning-letter groups.', 'error', 3500);
+      notify(error.message || `Failed to create ${groupName}.`, 'error', 3500);
     } finally {
       setWarningLetterSetupLoading(false);
     }
@@ -335,7 +315,7 @@ const RecipientManagement = () => {
   useEffect(() => {
     if (!deepLinkAutoOpen || !deepLinkGroupName || deepLinkHandled) return;
     const targetGroup = warningLetterGroups.find(group =>
-      group.displayName === deepLinkGroupName &&
+      (group.displayName === deepLinkGroupName || getWarningLetterGroupTitle(selectedWarningLetterSite?.siteName || '', getWarningLetterGroupRole(group)).toLowerCase() === deepLinkGroupName.toLowerCase()) &&
       (!deepLinkSiteId || String(group.siteId) === String(deepLinkSiteId))
     );
     if (targetGroup) {
@@ -580,17 +560,19 @@ const RecipientManagement = () => {
     </div>
   );
 
-  const renderWarningLetterSlot = (groupName) => {
-    const matchedGroups = selectedWarningLetterSite?.groupsByName.get(groupName) || [];
+  const renderWarningLetterSlot = (groupRole) => {
+    const matchedGroups = selectedWarningLetterSite?.groupsByRole.get(groupRole) || [];
     const primaryGroup = matchedGroups[0];
     const duplicateCount = matchedGroups.length > 1 ? matchedGroups.length - 1 : 0;
+    const groupTitle = getWarningLetterGroupTitle(selectedWarningLetterSite?.siteName || '', groupRole);
+    const groupDescription = WARNING_LETTER_GROUP_CONFIG[groupRole].description;
 
     return (
-      <div key={groupName} className={`rm-wl-group-card ${duplicateCount ? 'rm-wl-group-card--duplicate' : primaryGroup ? 'rm-wl-group-card--ready' : 'rm-wl-group-card--missing'}`}>
+      <div key={groupRole} className={`rm-wl-group-card ${duplicateCount ? 'rm-wl-group-card--duplicate' : primaryGroup ? 'rm-wl-group-card--ready' : 'rm-wl-group-card--missing'}`}>
         <div className="rm-wl-group-card__header">
           <div>
-            <h3 className="rm-wl-group-card__title">{groupName}</h3>
-            <p className="rm-wl-group-card__description">{WARNING_LETTER_GROUP_DESCRIPTIONS[groupName]}</p>
+            <h3 className="rm-wl-group-card__title">{groupTitle}</h3>
+            <p className="rm-wl-group-card__description">{groupDescription}</p>
           </div>
           <span className={`rm-wl-group-card__status ${duplicateCount ? 'rm-wl-group-card__status--warning' : primaryGroup ? 'rm-wl-group-card__status--success' : 'rm-wl-group-card__status--muted'}`}>
             {duplicateCount ? `${matchedGroups.length} groups found` : primaryGroup ? 'Configured' : 'Missing'}
@@ -617,12 +599,23 @@ const RecipientManagement = () => {
         ) : (
           <div className="rm-wl-group-card__body">
             <p className="rm-wl-group-card__empty">This required group has not been created for the selected site.</p>
+            <div className="rm-wl-group-card__actions">
+              <button
+                type="button"
+                className="m365-btn m365-btn--primary"
+                onClick={() => handleCreateSingleWarningLetterGroup(groupRole)}
+                disabled={warningLetterSetupLoading}
+              >
+                <i className="fa-light fa-plus"></i>
+                {warningLetterSetupLoading ? 'Creating...' : 'Create Group'}
+              </button>
+            </div>
           </div>
         )}
 
         {duplicateCount > 0 && (
           <div className="rm-wl-group-card__duplicates">
-            <p className="rm-wl-group-card__warning">Only one {groupName.toLowerCase()} group should exist per site. Review the duplicates below.</p>
+            <p className="rm-wl-group-card__warning">Only one {groupTitle.toLowerCase()} group should exist per site. Review the duplicates below.</p>
             {matchedGroups.map(group => (
               <div key={group.id} className="rm-wl-group-card__duplicate-row">
                 <span>{group.displayName} · {group.memberCount} member{group.memberCount !== 1 ? 's' : ''}</span>
@@ -693,7 +686,7 @@ const RecipientManagement = () => {
       <div className="rm-wl-banner">
         <i className="fa-light fa-circle-info rm-wl-banner__icon"></i>
         <span className="rm-wl-banner__text">
-          Each site should have exactly one Warning Letter Site Representatives group and one Warning Letter Signature CC group.
+          Each site should have exactly one site-specific representatives group and one site-specific signature CC group.
         </span>
       </div>
       <div className="rm-toolbar">
@@ -710,24 +703,6 @@ const RecipientManagement = () => {
           </div>
         </div>
         <div className="rm-toolbar__right">
-          <button
-            type="button"
-            className="m365-btn m365-btn--ghost"
-            onClick={handleCreateWarningLetterGroups}
-            disabled={warningLetterSetupLoading || !selectedGroupSiteId}
-          >
-            <i className="fa-light fa-layer-group"></i>
-            {warningLetterSetupLoading ? 'Checking...' : 'Ensure Required Groups'}
-          </button>
-          <button
-            type="button"
-            className="m365-btn m365-btn--primary"
-            onClick={handleCreateAndPopulateWarningLetterGroups}
-            disabled={warningLetterSetupLoading || !selectedGroupSiteId}
-          >
-            <i className="fa-light fa-user-check"></i>
-            {warningLetterSetupLoading ? 'Opening...' : 'Ensure + Open Members'}
-          </button>
           {(groupSearch || selectedGroupSiteId) && (
             <button type="button" className="m365-btn m365-btn--text" onClick={() => { setGroupSearch(''); clearDeepLinkFilters(); }}>
               Clear Filters
@@ -767,13 +742,13 @@ const RecipientManagement = () => {
                   </span>
                 </div>
                 <div className="rm-wl-site-item__requirements">
-                  {WARNING_LETTER_GROUP_NAMES.map(name => {
-                    const count = site.groupsByName.get(name)?.length || 0;
-                    const shortLabel = name === 'Warning Letter Site Representatives' ? 'Rep' : 'CC';
+                  {WARNING_LETTER_GROUP_ROLES.map(role => {
+                    const count = site.groupsByRole.get(role)?.length || 0;
+                    const shortLabel = WARNING_LETTER_GROUP_CONFIG[role].shortLabel;
 
                     return (
                       <span
-                        key={`${site.siteId}-${name}`}
+                        key={`${site.siteId}-${role}`}
                         className={`rm-wl-site-item__requirement ${count > 1 ? 'rm-wl-site-item__requirement--warning' : count === 1 ? 'rm-wl-site-item__requirement--success' : 'rm-wl-site-item__requirement--muted'}`}
                       >
                         <span className="rm-wl-site-item__requirement-label">{shortLabel}</span>
@@ -802,7 +777,7 @@ const RecipientManagement = () => {
                   </div>
                 </div>
                 <div className="rm-wl-group-stack">
-                  {WARNING_LETTER_GROUP_NAMES.map(renderWarningLetterSlot)}
+                  {WARNING_LETTER_GROUP_ROLES.map(renderWarningLetterSlot)}
                 </div>
               </>
             ) : (

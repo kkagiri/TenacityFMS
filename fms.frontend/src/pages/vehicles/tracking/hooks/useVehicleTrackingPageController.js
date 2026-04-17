@@ -421,7 +421,7 @@ const useVehicleTrackingPageController = () => {
     }, [gridVehicles]);
 
     const handleTrackingViewChange = useCallback((event) => {
-        setSelectedTagId(normalizeTrackingTagId(event.target.value));
+        setSelectedTagId(normalizeTrackingTagId(event?.value ?? event?.target?.value));
     }, []);
 
     const handleOpenTripsPage = useCallback(() => {

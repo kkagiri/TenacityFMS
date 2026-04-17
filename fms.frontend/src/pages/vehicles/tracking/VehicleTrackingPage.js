@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadPanel } from 'devextreme-react/load-panel';
+import SelectBox from 'devextreme-react/select-box';
 import GeofenceCreateForm from '../../../components/geofenceManagement/GeofenceCreateForm';
 import VehicleTripDetailPanel from '../trips/components/VehicleTripDetailPanel';
 import VehicleTripOverridePanel from '../trips/components/VehicleTripOverridePanel';
@@ -233,6 +234,7 @@ const VehicleTrackingPage = () => {
             <VehicleTrackingTripAnalysisPanel
                 trackedVehicles={trackedVehicles}
                 activeTrackPoints={activeTrackPoints}
+                mapRef={mapRef}
             />
         ),
     }), [
@@ -271,24 +273,25 @@ const VehicleTrackingPage = () => {
     const menuBarContent = useMemo(() => (
         <div className="vehicle-tracking-toolbar__field-group vehicle-tracking-toolbar__field-group--floating">
             <div className="vehicle-tracking-toolbar__select-wrap">
-                <select
-                    id="vehicle-tracking-view-selector"
-                    className="vehicle-tracking-toolbar__select"
-                    aria-label="Vehicle view"
-                    value={selectedTagId == null ? '' : String(selectedTagId)}
-                    onChange={onTrackingViewChange}
+                <SelectBox
+                    className="vehicle-tracking-toolbar__selectbox"
+                    inputAttr={{
+                        id: 'vehicle-tracking-view-selector',
+                        'aria-label': 'Vehicle view',
+                    }}
+                    width="100%"
+                    dataSource={tags}
+                    value={selectedTagId}
+                    valueExpr="id"
+                    displayExpr="name"
+                    onValueChanged={onTrackingViewChange}
+                    searchEnabled={true}
+                    searchExpr="name"
+                    showClearButton={false}
                     disabled={tags.length === 0}
-                >
-                    {tags.length === 0 ? (
-                        <option value="">Loading views...</option>
-                    ) : (
-                        tags.map((tag) => (
-                            <option key={tag.id} value={String(tag.id)}>
-                                {tag.name}
-                            </option>
-                        ))
-                    )}
-                </select>
+                    noDataText="No views available"
+                    stylingMode="outlined"
+                />
             </div>
         </div>
     ), [onTrackingViewChange, selectedTagId, tags]);

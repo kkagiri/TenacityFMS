@@ -7,6 +7,33 @@ const resolveActor = () => {
   return userInfo?.id || userInfo?.username || userInfo?.email || "System";
 };
 
+const getValidationErrors = (payload) => {
+  if (Array.isArray(payload?.errors)) {
+    return payload.errors.filter(Boolean);
+  }
+
+  if (Array.isArray(payload?.validationErrors)) {
+    return payload.validationErrors.filter(Boolean);
+  }
+
+  if (Array.isArray(payload?.ValidationErrors)) {
+    return payload.ValidationErrors.filter(Boolean);
+  }
+
+  return [];
+};
+
+const getErrorMessage = (error, fallback) => {
+  const payload = error?.response?.data;
+  const validationErrors = getValidationErrors(payload);
+
+  if (validationErrors.length > 0) {
+    return validationErrors.join("\n");
+  }
+
+  return payload?.message || payload?.Message || error?.message || fallback;
+};
+
 /**
  * API service for managing notification groups and mappings
  */
@@ -36,7 +63,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: [],
-        message: error.response?.data?.message || "Failed to fetch groups",
+        message: getErrorMessage(error, "Failed to fetch groups"),
       };
     }
   }
@@ -69,7 +96,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to create group",
+        message: getErrorMessage(error, "Failed to create group"),
       };
     }
   }
@@ -102,7 +129,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to update group",
+        message: getErrorMessage(error, "Failed to update group"),
       };
     }
   }
@@ -124,7 +151,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to delete group",
+        message: getErrorMessage(error, "Failed to delete group"),
       };
     }
   }
@@ -146,7 +173,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: [],
-        message: error.response?.data?.message || "Failed to fetch group members",
+        message: getErrorMessage(error, "Failed to fetch group members"),
       };
     }
   }
@@ -171,7 +198,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to add group members",
+        message: getErrorMessage(error, "Failed to add group members"),
       };
     }
   }
@@ -194,7 +221,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to remove group member",
+        message: getErrorMessage(error, "Failed to remove group member"),
       };
     }
   }
@@ -217,7 +244,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to map policy to group",
+        message: getErrorMessage(error, "Failed to map policy to group"),
       };
     }
   }
@@ -240,7 +267,7 @@ class NotificationGroupsApi {
       return {
         isSuccess: false,
         data: null,
-        message: error.response?.data?.message || "Failed to unmap policy from group",
+        message: getErrorMessage(error, "Failed to unmap policy from group"),
       };
     }
   }

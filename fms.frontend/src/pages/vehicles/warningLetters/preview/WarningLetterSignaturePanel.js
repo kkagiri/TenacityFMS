@@ -24,10 +24,8 @@ const WarningLetterSignaturePanel = ({
     availableSignatureCcRecipients,
     signatureRecipientsLoading,
     selectedSignatureRecipientId,
-    manualSignatureRecipientEmail,
     selectedCcRecipientIds,
     onSignatureRecipientChanged,
-    onManualEmailChanged,
     onCcRecipientsChanged,
     showSignatureGroupWarning,
     canEditSignatureRecipients,
@@ -47,11 +45,8 @@ const WarningLetterSignaturePanel = ({
                     <div className="warning-letter-preview__signature-picker-titlebar">
                         <h3>Select Site Representative</h3>
                     </div>
-                    <p>Select from the site's warning-letter notification groups, or type an email address that is not in the system. In-app notification is only sent when a configured site user is selected.</p>
-                    <p className="warning-letter-preview__signature-group-summary">
-                        Site Representative Group <strong>{signatureRecipientOptions.siteRepresentativeGroupName}</strong><br />
-                        Signature CC Group <strong>{signatureRecipientOptions.signatureCcGroupName}</strong>
-                    </p>
+                    <p>Select from the site's warning-letter notification groups. In-app notification is only sent to configured site users.</p>
+
                 </div>
             </div>
 
@@ -76,7 +71,7 @@ const WarningLetterSignaturePanel = ({
                 </div>
                 <small>
                     This list shows only direct user members of <strong>{signatureRecipientOptions.siteRepresentativeGroupName}</strong>.
-                    Role-based group members are ignored here. You can also leave the picker empty and type an external email below.
+                    Role-based group members are ignored here.
                 </small>
                 {showSignatureGroupWarning && (
                     <div className="warning-letter-preview__signature-picker-warning">
@@ -99,23 +94,6 @@ const WarningLetterSignaturePanel = ({
                     disabled={signatureRecipientsLoading || submitting}
                     noDataText={`No user members configured in ${signatureRecipientOptions.siteRepresentativeGroupName}`}
                     stylingMode="outlined"
-                />
-            </div>
-
-            <div className="warning-letter-preview__signature-picker-field">
-                <div className="warning-letter-preview__signature-picker-label-row">
-                    <span>Recipient Email</span>
-                </div>
-                <small>
-                    Required when you are sending to an external email that is not linked to a site user.
-                </small>
-                <input
-                    type="email"
-                    className="m365-input"
-                    value={manualSignatureRecipientEmail}
-                    onChange={(event) => onManualEmailChanged(event.target.value)}
-                    placeholder="name@example.com"
-                    disabled={signatureRecipientsLoading || submitting}
                 />
             </div>
 

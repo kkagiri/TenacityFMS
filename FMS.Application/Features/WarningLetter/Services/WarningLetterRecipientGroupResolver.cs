@@ -18,23 +18,39 @@ namespace FMS.Application.Features.WarningLetter.Services;
 
 internal static class WarningLetterRecipientGroupResolver
 {
-    public const string SiteRepresentativesGroupName = "Warning Letter Site Representatives";
-    public const string SignatureCcGroupName = "Warning Letter Signature CC";
+    private const string LegacySiteRepresentativesGroupName = "Warning Letter Site Representatives";
+    private const string LegacySignatureCcGroupName = "Warning Letter Signature CC";
+    private const string SiteRepresentativesGroupSuffix = "Site Representatives";
+    private const string SignatureCcGroupSuffix = "Signature CC";
 
     private const string SiteRepresentativesGroupDescription = "Configured site representatives that can receive warning letter signature requests.";
     private const string SignatureCcGroupDescription = "Configured CC recipients for warning letter signature request emails.";
     private const string SystemActor = "system";
 
+    private enum WarningLetterGroupRole
+    {
+        SiteRepresentatives,
+        SignatureCc
+    }
+
+    private sealed class ResolvedWarningLetterGroups
+    {
+        public int SiteRepresentativesGroupId { get; init; }
+        public int SignatureCcGroupId { get; init; }
+        public string SiteRepresentativesGroupName { get; init; } = string.Empty;
+        public string SignatureCcGroupName { get; init; } = string.Empty;
+    }
+
     public static async Task<WarningLetterSignatureRecipientOptionsDto> GetRecipientOptionsAsync(GpsdataContext context, int siteId, CancellationToken cancellationToken = default)
     {
-        var groupIds = await EnsureRecipientGroupsAsync(context, siteId, cancellationToken);
-        var siteRepresentatives = await ResolveRecipientsForGroupAsync(context, siteId, groupIds[SiteRepresentativesGroupName], cancellationToken);
-        var signatureCcRecipients = await ResolveRecipientsForGroupAsync(context, siteId, groupIds[SignatureCcGroupName], cancellationToken);
+        var resolvedGroups = await EnsureRecipientGroupsAsync(context, siteId, cancellationToken);
+        var siteRepresentatives = await ResolveRecipientsForGroupAsync(context, siteId, resolvedGroups.SiteRepresentativesGroupId, cancellationToken);
+        var signatureCcRecipients = await ResolveRecipientsForGroupAsync(context, siteId, resolvedGroups.SignatureCcGroupId, cancellationToken);
 
         return new WarningLetterSignatureRecipientOptionsDto
         {
-            SiteRepresentativeGroupName = SiteRepresentativesGroupName,
-            SignatureCcGroupName = SignatureCcGroupName,
+            SiteRepresentativeGroupName = resolvedGroups.SiteRepresentativesGroupName,
+            SignatureCcGroupName = resolvedGroups.SignatureCcGroupName,
             SiteRepresentatives = siteRepresentatives,
             SignatureCcRecipients = signatureCcRecipients
         };
@@ -42,56 +58,179 @@ internal static class WarningLetterRecipientGroupResolver
 
     public static async Task<List<WarningLetterSignatureRecipientDto>> GetSiteRepresentativeRecipientsAsync(GpsdataContext context, int siteId, CancellationToken cancellationToken = default)
     {
-        var groupIds = await EnsureRecipientGroupsAsync(context, siteId, cancellationToken);
-        return await ResolveRecipientsForGroupAsync(context, siteId, groupIds[SiteRepresentativesGroupName], cancellationToken);
+        var resolvedGroups = await EnsureRecipientGroupsAsync(context, siteId, cancellationToken);
+        return await ResolveRecipientsForGroupAsync(context, siteId, resolvedGroups.SiteRepresentativesGroupId, cancellationToken);
     }
 
-    private static async Task<Dictionary<string, int>> EnsureRecipientGroupsAsync(GpsdataContext context, int siteId, CancellationToken cancellationToken)
+    private static async Task<ResolvedWarningLetterGroups> EnsureRecipientGroupsAsync(GpsdataContext context, int siteId, CancellationToken cancellationToken)
     {
+        var siteName = await context.Sites
+            .AsNoTracking()
+            .Where(site => site.Id == siteId)
+            .Select(site => site.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var normalizedSiteName = string.IsNullOrWhiteSpace(siteName)
+            ? $"Site {siteId}"
+            : siteName.Trim();
+
         var groups = await context.NotificationGroups
-            .Where(group => group.SiteId == siteId &&
-                (group.Name == SiteRepresentativesGroupName || group.Name == SignatureCcGroupName))
+            .Where(group => group.SiteId == siteId)
             .ToListAsync(cancellationToken);
 
-        var created = false;
+        var siteRepresentativesGroup = SelectPreferredGroup(groups, WarningLetterGroupRole.SiteRepresentatives, normalizedSiteName);
+        var signatureCcGroup = SelectPreferredGroup(groups, WarningLetterGroupRole.SignatureCc, normalizedSiteName);
+        var changed = false;
 
-        if (!groups.Any(group => string.Equals(group.Name, SiteRepresentativesGroupName, StringComparison.Ordinal)))
+        if (siteRepresentativesGroup == null)
         {
-            groups.Add(new NotificationGroup
+            siteRepresentativesGroup = new NotificationGroup
             {
-                Name = SiteRepresentativesGroupName,
+                Name = BuildGroupName(normalizedSiteName, WarningLetterGroupRole.SiteRepresentatives),
                 Description = SiteRepresentativesGroupDescription,
                 SiteId = siteId,
                 AllowedDeliveryMethods = "Email",
                 IsActive = true,
                 CreatedBy = SystemActor,
                 CreatedAt = DateTime.UtcNow
-            });
-            created = true;
+            };
+            groups.Add(siteRepresentativesGroup);
+            context.NotificationGroups.Add(siteRepresentativesGroup);
+            changed = true;
+        }
+        else
+        {
+            changed |= SyncGroupMetadata(siteRepresentativesGroup, normalizedSiteName, WarningLetterGroupRole.SiteRepresentatives);
         }
 
-        if (!groups.Any(group => string.Equals(group.Name, SignatureCcGroupName, StringComparison.Ordinal)))
+        if (signatureCcGroup == null)
         {
-            groups.Add(new NotificationGroup
+            signatureCcGroup = new NotificationGroup
             {
-                Name = SignatureCcGroupName,
+                Name = BuildGroupName(normalizedSiteName, WarningLetterGroupRole.SignatureCc),
                 Description = SignatureCcGroupDescription,
                 SiteId = siteId,
                 AllowedDeliveryMethods = "Email",
                 IsActive = true,
                 CreatedBy = SystemActor,
                 CreatedAt = DateTime.UtcNow
-            });
-            created = true;
+            };
+            groups.Add(signatureCcGroup);
+            context.NotificationGroups.Add(signatureCcGroup);
+            changed = true;
+        }
+        else
+        {
+            changed |= SyncGroupMetadata(signatureCcGroup, normalizedSiteName, WarningLetterGroupRole.SignatureCc);
         }
 
-        if (created)
+        if (changed)
         {
             await context.SaveChangesAsync(cancellationToken);
         }
 
-        return groups.ToDictionary(group => group.Name, group => group.Id, StringComparer.Ordinal);
+        return new ResolvedWarningLetterGroups
+        {
+            SiteRepresentativesGroupId = siteRepresentativesGroup.Id,
+            SignatureCcGroupId = signatureCcGroup.Id,
+            SiteRepresentativesGroupName = siteRepresentativesGroup.Name,
+            SignatureCcGroupName = signatureCcGroup.Name
+        };
     }
+
+    private static NotificationGroup? SelectPreferredGroup(IEnumerable<NotificationGroup> groups, WarningLetterGroupRole role, string siteName)
+    {
+        var expectedName = BuildGroupName(siteName, role);
+        var expectedDescription = GetGroupDescription(role);
+
+        return groups.FirstOrDefault(group => string.Equals(group.Name, expectedName, StringComparison.OrdinalIgnoreCase))
+            ?? groups.FirstOrDefault(group => string.Equals(group.Description, expectedDescription, StringComparison.OrdinalIgnoreCase))
+            ?? groups.FirstOrDefault(group => string.Equals(group.Name, GetLegacyGroupName(role), StringComparison.OrdinalIgnoreCase))
+            ?? groups.FirstOrDefault(group => IsRoleMatch(group, role));
+    }
+
+    private static bool SyncGroupMetadata(NotificationGroup group, string siteName, WarningLetterGroupRole role)
+    {
+        var expectedName = BuildGroupName(siteName, role);
+        var expectedDescription = GetGroupDescription(role);
+        var changed = false;
+
+        if (!string.Equals(group.Name, expectedName, StringComparison.Ordinal))
+        {
+            group.Name = expectedName;
+            changed = true;
+        }
+
+        if (!string.Equals(group.Description, expectedDescription, StringComparison.Ordinal))
+        {
+            group.Description = expectedDescription;
+            changed = true;
+        }
+
+        if (!string.Equals(group.AllowedDeliveryMethods, "Email", StringComparison.OrdinalIgnoreCase))
+        {
+            group.AllowedDeliveryMethods = "Email";
+            changed = true;
+        }
+
+        if (!group.IsActive)
+        {
+            group.IsActive = true;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            group.UpdatedBy = SystemActor;
+            group.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return changed;
+    }
+
+    private static bool IsRoleMatch(NotificationGroup group, WarningLetterGroupRole role)
+    {
+        var description = group.Description?.Trim();
+        var name = group.Name?.Trim();
+
+        if (string.Equals(description, GetGroupDescription(role), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(name, GetLegacyGroupName(role), StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return role switch
+        {
+            WarningLetterGroupRole.SiteRepresentatives => !string.IsNullOrWhiteSpace(name)
+                && name.EndsWith($" {SiteRepresentativesGroupSuffix}", StringComparison.OrdinalIgnoreCase),
+            WarningLetterGroupRole.SignatureCc => !string.IsNullOrWhiteSpace(name)
+                && name.EndsWith($" {SignatureCcGroupSuffix}", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+    }
+
+    private static string BuildGroupName(string siteName, WarningLetterGroupRole role)
+    {
+        var suffix = role == WarningLetterGroupRole.SiteRepresentatives
+            ? SiteRepresentativesGroupSuffix
+            : SignatureCcGroupSuffix;
+
+        return $"{siteName} {suffix}";
+    }
+
+    private static string GetGroupDescription(WarningLetterGroupRole role) =>
+        role == WarningLetterGroupRole.SiteRepresentatives
+            ? SiteRepresentativesGroupDescription
+            : SignatureCcGroupDescription;
+
+    private static string GetLegacyGroupName(WarningLetterGroupRole role) =>
+        role == WarningLetterGroupRole.SiteRepresentatives
+            ? LegacySiteRepresentativesGroupName
+            : LegacySignatureCcGroupName;
 
     private static async Task<List<WarningLetterSignatureRecipientDto>> ResolveRecipientsForGroupAsync(GpsdataContext context, int siteId, int groupId, CancellationToken cancellationToken)
     {
