@@ -52,6 +52,15 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .summary-card .value { font-size:22px; font-weight:700; margin-top:4px; }
     .summary-card .sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
 
+    .workflow-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:-4px 0 20px; }
+    .workflow-step { position:relative; background:var(--bg-card); border:1px solid var(--border); border-top:3px solid var(--primary); border-radius:8px; padding:12px 14px; min-height:84px; }
+    .workflow-step::after { content:'\2192'; position:absolute; right:-9px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:16px; font-weight:700; }
+    .workflow-step:last-child::after { display:none; }
+    .workflow-step__header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .workflow-step__title { font-size:12px; font-weight:700; }
+    .workflow-step__count { min-width:26px; height:26px; padding:0 8px; border-radius:999px; background:var(--bg-light); color:var(--text-main); display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+    .workflow-step__desc { font-size:10px; color:var(--text-muted); line-height:1.45; }
+
     .analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
     .chart-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
     .chart-card-header { padding:12px 16px; border-bottom:1px solid var(--border); }
@@ -88,6 +97,8 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .text-muted { color:var(--text-muted); }
     .text-danger { color:var(--danger); }
     .text-success { color:var(--success); }
+    .section-sub { margin:-4px 0 10px; font-size:10px; color:var(--text-muted); }
+    .stage-badge { display:inline-flex; align-items:center; border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:10px; font-weight:700; white-space:nowrap; }
 
     .stage-durations { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
     .stage-pill { background:var(--bg-light); border:1px solid var(--border); border-radius:16px; padding:6px 14px; font-size:11px; }
@@ -144,6 +155,19 @@ internal static class WarningLetterAnalyticsHtmlTemplate
             <div class=""sub"">{{analytics.employeeWithMostWarnings.count}} warnings</div>
         </div>
     </div>
+    {{#if analytics.workflowStages}}
+    <div class=""workflow-strip"">
+        {{#each analytics.workflowStages}}
+        <div class=""workflow-step"" style=""border-top-color:{{color}};"">
+            <div class=""workflow-step__header"">
+                <span class=""workflow-step__title"" style=""color:{{color}};"">{{label}}</span>
+                <span class=""workflow-step__count"">{{count}}</span>
+            </div>
+            <div class=""workflow-step__desc"">{{description}}</div>
+        </div>
+        {{/each}}
+    </div>
+    {{/if}}
 
     <!-- Stage Breakdown + Letter Type -->
     <div class=""analytics-grid"">
@@ -177,7 +201,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
             <div class=""chart-card-header"">
                 <div>
                     <div class=""chart-card-title"">Monthly Trend</div>
-                    <div class=""chart-card-sub"">Warning letters issued per month</div>
+                    <div class=""chart-card-sub"">Issue-date distribution on an evenly spaced day axis; 0 marks the first day of the month and the scale extends to today.</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
@@ -262,13 +286,16 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     </div>
 
     <!-- Last Warning by Employee -->
-    <div class=""section-label""><h2>Last Warning per Employee</h2></div>
+    <div class=""section-label""><h2>Latest Warning by Employee</h2></div>
+    <div class=""section-sub"">Most recent warning letter inside the selected report scope for each employee.</div>
     <table class=""data-table"">
         <thead>
             <tr>
                 <th>Employee</th>
                 <th>Last Letter Date</th>
                 <th>Letter Type</th>
+                <th>Stage</th>
+                <th class=""text-center"">Warnings in Scope</th>
             </tr>
         </thead>
         <tbody>
@@ -277,6 +304,8 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                 <td>{{employeeName}}</td>
                 <td>{{lastLetterDateFormatted}}</td>
                 <td>{{letterType}}</td>
+                <td><span class=""stage-badge"" style=""background:{{workflowStageTint}}; border-color:{{workflowStageBorderColor}}; color:{{workflowStageColor}};"">{{workflowStageName}}</span></td>
+                <td class=""text-center"">{{warningCount}}</td>
             </tr>
             {{/each}}
         </tbody>
@@ -302,13 +331,13 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         <tbody>
             {{#each records}}
             <tr>
-                <td>{{@index}}</td>
+                <td>{{rowNumber}}</td>
                 <td>{{letterDateFormatted}}</td>
                 <td>{{employeeName}}</td>
                 <td>{{vehicleHyoungNo}}</td>
                 <td>{{siteName}}</td>
                 <td>{{letterTypeName}}</td>
-                <td>{{workflowStageName}}</td>
+                <td><span class=""stage-badge"" style=""background:{{workflowStageTint}}; border-color:{{workflowStageBorderColor}}; color:{{workflowStageColor}};"">{{workflowStageName}}</span></td>
                 <td class=""text-right"">{{excessCostFormatted}}</td>
             </tr>
             {{/each}}
@@ -351,7 +380,7 @@ if (typeof Chart !== 'undefined') {
                 labels: cd.stageBreakdown.labels,
                 datasets: [{
                     data: cd.stageBreakdown.data,
-                    backgroundColor: ['#A1A1AA', PRIMARY, WARNING, SUCCESS, PURPLE],
+                    backgroundColor: cd.stageBreakdown.colors || ['#9CA3AF', PRIMARY, WARNING, '#0F766E', SUCCESS],
                     borderWidth: 2,
                     borderColor: '#ffffff',
                     hoverOffset: 6
@@ -392,13 +421,13 @@ if (typeof Chart !== 'undefined') {
     }
 
     // 3. Monthly Trend Line
-    if (cd.monthlyTrend && cd.monthlyTrend.labels.length > 0) {
+    if (cd.monthlyTrend && cd.monthlyTrend.points && cd.monthlyTrend.points.length > 0) {
         new Chart(document.getElementById('monthlyTrendChart'), {
             type: 'line',
             data: {
-                labels: cd.monthlyTrend.labels,
                 datasets: [{
-                    data: cd.monthlyTrend.data,
+                    data: cd.monthlyTrend.points,
+                    parsing: false,
                     borderColor: PRIMARY,
                     backgroundColor: 'rgba(0,120,212,0.08)',
                     borderWidth: 2,
@@ -413,7 +442,29 @@ if (typeof Chart !== 'undefined') {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+                    x: {
+                        type: 'linear',
+                        min: cd.monthlyTrend.minOffset,
+                        max: cd.monthlyTrend.maxOffset,
+                        grid: { display: false },
+                        afterBuildTicks: function(scale) {
+                            if (cd.monthlyTrend.tickValues && cd.monthlyTrend.tickValues.length) {
+                                scale.ticks = cd.monthlyTrend.tickValues.map(function(value) { return { value: value }; });
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                if (value === 0) {
+                                    return '0 (' + (cd.monthlyTrend.monthStartLabel || 'Month Start') + ')';
+                                }
+                                if (value === cd.monthlyTrend.todayOffset) {
+                                    return 'Today';
+                                }
+                                return value;
+                            }
+                        },
+                        title: { display: true, text: 'Day offset from month start' }
+                    },
                     y: { grid: { color: BORDER }, beginAtZero: true, ticks: { stepSize: 1 } }
                 }
             }

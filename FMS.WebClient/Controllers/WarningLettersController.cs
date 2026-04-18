@@ -547,6 +547,7 @@ public class WarningLettersController : BaseApiController
         [FromQuery] int[]? vehicleId,
         [FromQuery] int? vehicleTypeId,
         [FromQuery] int[]? employeeId,
+        [FromQuery] int[]? letterType,
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
     {
@@ -556,6 +557,11 @@ public class WarningLettersController : BaseApiController
             VehicleIds = vehicleId?.Where(id => id > 0).Distinct().ToList(),
             VehicleTypeId = vehicleTypeId,
             EmployeeIds = employeeId?.Where(id => id > 0).Distinct().ToList(),
+            LetterTypes = letterType?
+                .Where(id => Enum.IsDefined(typeof(WarningLetterType), id))
+                .Select(id => (WarningLetterType)id)
+                .Distinct()
+                .ToList(),
             StartDate = startDate,
             EndDate = endDate,
         });

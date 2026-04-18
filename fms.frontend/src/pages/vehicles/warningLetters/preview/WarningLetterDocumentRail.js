@@ -184,7 +184,7 @@ const WarningLetterDocumentRail = ({
                             <i className="fa-light fa-signature" /> Request Signature
                         </button>
                     )}
-                    {canUploadSignedCopy && canUploadWorkflowDocuments && letter.signatureRequestedAt && workflowStage < 4 && (
+                    {canUploadSignedCopy && canUploadWorkflowDocuments && hasApprovedLetter && workflowStage < 4 && (
                         <>
                             <input
                                 ref={signedCopyInputRef}

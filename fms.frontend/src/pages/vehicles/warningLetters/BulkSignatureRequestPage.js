@@ -82,7 +82,8 @@ const BulkSignatureRequestPage = () => {
     const preselectedSiteId = searchParams.get("siteId") || "";
     const { hasPermission } = usePermissions();
     const canManageRecipientGroups = hasPermission("_Manage_NotificationGroups");
-    const canEditSignatureRecipients = canManageRecipientGroups;
+    const canEditWarningLetterRecipients = hasPermission("_Update_WarningLetter") || hasPermission("_Send_WarningLetter");
+    const canEditSignatureRecipients = canManageRecipientGroups || canEditWarningLetterRecipients;
 
     const [step, setStep] = useState(0);
     const [letters, setLetters] = useState([]);

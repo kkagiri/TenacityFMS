@@ -42,6 +42,8 @@ const typeMap = {
     3: "Excess Idling",
 };
 
+const canDeleteWarningLetterInStage = (workflowStage) => [0, 1, 2].includes(Number(workflowStage));
+
 const formatDate = (value) =>
     value
         ? new Date(value).toLocaleDateString("en-GB", {
@@ -159,7 +161,7 @@ const EmployeeWarningLettersWorkspace = ({ employeeId, employee }) => {
                 </button>
             )}
             {canDelete &&
-                (data.workflowStage === 0 || data.workflowStage === 1) &&
+                canDeleteWarningLetterInStage(data.workflowStage) &&
                 (canDeleteAny || String(data.createdBy || "") === currentUserId) && (
                     <button
                         type="button"
@@ -222,6 +224,8 @@ const EmployeeWarningLettersWorkspace = ({ employeeId, employee }) => {
                 showRowLines={true}
                 rowAlternationEnabled={false}
                 columnAutoWidth={true}
+                allowColumnResizing={true}
+                columnResizingMode="widget"
                 noDataText="No warning letters found for this employee"
             >
                 <SearchPanel visible={true} width={240} placeholder="Search warning letters" />

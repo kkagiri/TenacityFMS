@@ -1,6 +1,6 @@
 /**
  * File: DeleteWarningLetterCommand.cs
- * Purpose: Deletes warning letters that have not entered the signature workflow, including stored draft and approved documents.
+ * Purpose: Deletes warning letters that have not reached signed or acknowledged workflow states, including stored draft and approved documents.
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetterStatus, System.IO
  * Last Modified: 2026-04-14
  */
@@ -50,16 +50,14 @@ public class DeleteWarningLetterCommandHandler : IRequestHandler<DeleteWarningLe
             return FMSResponse.BusinessLogicError("WARNING_LETTER_DELETE_FORBIDDEN", "Only the user who created this warning letter can delete it unless they have the override delete permission.");
         }
 
-        var hasEnteredSignatureWorkflow = warningLetter.SignatureRequestedAt.HasValue
-            || warningLetter.SignedCopyUploadedAt.HasValue
+        var hasLockedWorkflowArtifacts = warningLetter.SignedCopyUploadedAt.HasValue
             || warningLetter.EmployeeAcknowledgedAt.HasValue
-            || warningLetter.Status == WarningLetterStatus.Sent
             || warningLetter.Status == WarningLetterStatus.SignedCopyReceived
             || warningLetter.Status == WarningLetterStatus.Acknowledged;
 
-        if (hasEnteredSignatureWorkflow)
+        if (hasLockedWorkflowArtifacts)
         {
-            return FMSResponse.BusinessLogicError("WARNING_LETTER_NOT_DELETABLE", "Warning letters cannot be deleted after signature workflow has started.");
+            return FMSResponse.BusinessLogicError("WARNING_LETTER_NOT_DELETABLE", "Warning letters cannot be deleted after a signed copy or acknowledgement has been recorded.");
         }
 
         DeleteFileIfExists(warningLetter.PdfFilePath);

@@ -28,7 +28,7 @@ const warningLetterAnalytics = {
             required: false,
             defaultValue: () => {
                 const d = new Date();
-                d.setDate(d.getDate() - 90);
+                d.setDate(d.getDate() - 7);
                 return d;
             },
         },

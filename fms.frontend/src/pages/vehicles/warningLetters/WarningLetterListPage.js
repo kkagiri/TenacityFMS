@@ -74,6 +74,8 @@ const typeMap = {
     3: "Excess Idling",
 };
 
+const canDeleteWarningLetterInStage = (workflowStage) => [0, 1, 2].includes(Number(workflowStage));
+
 const WarningLetterListPage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
@@ -343,7 +345,7 @@ const WarningLetterListPage = () => {
                     Acknowledge
                 </button>
             )}
-            {canDelete && (data.workflowStage === 0 || data.workflowStage === 1) && (canDeleteAny || String(data.createdBy || "") === currentUserId) && (
+            {canDelete && canDeleteWarningLetterInStage(data.workflowStage) && (canDeleteAny || String(data.createdBy || "") === currentUserId) && (
                 <button type="button" className="m365-btn m365-btn--danger warning-letter-list__action-button" onClick={() => handleDelete(data)}>
                     Delete
                 </button>
@@ -549,6 +551,8 @@ const WarningLetterListPage = () => {
                     showBorders={false}
                     rowAlternationEnabled={true}
                     columnAutoWidth={true}
+                    allowColumnResizing={true}
+                    columnResizingMode="widget"
                     hoverStateEnabled={true}
                     noDataText="No warning letters found"
                 >

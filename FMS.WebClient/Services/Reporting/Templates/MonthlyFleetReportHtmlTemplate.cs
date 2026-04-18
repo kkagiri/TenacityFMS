@@ -108,6 +108,20 @@ h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}
 .bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#0078d4 0%,#3aa0ff 100%)}
 .mini-note{font-size:9px;color:#605e5c;line-height:1.5}
 .note-list{margin:0;padding-left:16px;font-size:10px;line-height:1.5}.note-list li{margin-bottom:4px}
+.stock-mini-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.stock-mini{border:1px solid var(--border);border-radius:8px;background:#faf9f8;padding:8px 9px}
+.stock-mini__value{font-size:13px;font-weight:800;color:var(--txt);line-height:1.1}
+.stock-mini__label{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.35px;margin-top:3px}
+.stock-mini__note{font-size:8.5px;color:#605e5c;line-height:1.35;margin-top:2px}
+.stock-watch{padding:8px 0;border-bottom:1px solid var(--border)}.stock-watch:last-child{border-bottom:none;padding-bottom:0}
+.stock-watch__top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:4px}
+.stock-watch__metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 12px;margin-bottom:5px}
+.stock-watch__metric{font-size:9px;color:#605e5c;line-height:1.45}
+.stock-watch__metric strong{color:var(--txt)}
+.stock-pill{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.35px}
+.stock-pill.stable{background:#dff6dd;color:#107c10}
+.stock-pill.watch{background:#fff4ce;color:#ca5010}
+.stock-pill.critical{background:#fde7e9;color:#d13438}
 .page-footer{margin:16px 28px 0;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:9.5px;color:var(--muted)}
 .pf-brand{display:flex;align-items:center;gap:6px}
 .pf-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);flex-shrink:0}
@@ -128,6 +142,15 @@ body{background:#fff}
 .ccard h3{font-size:10.5px}
 .ccard .csub{font-size:9px;margin-bottom:5px}
 .leg{gap:8px;margin-bottom:4px;font-size:9px}
+.stock-mini-grid{gap:6px;margin-bottom:8px}
+.stock-mini{padding:7px 8px}
+.stock-mini__value{font-size:12px}
+.stock-mini__label,.stock-mini__note{font-size:8px}
+.stock-watch{padding:6px 0}
+.stock-watch__top{margin-bottom:3px}
+.stock-watch__metrics{gap:5px 10px;margin-bottom:4px}
+.stock-watch__metric{font-size:8.5px}
+.stock-pill{font-size:8px;padding:2px 7px}
 .tbl-wrap{margin-bottom:8px}
 thead th{padding:6px 7px;font-size:8.7px}
 tbody td,tfoot td{padding:5px 7px;font-size:9.4px}
@@ -167,13 +190,12 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <!-- PAGE 2: Stock Analysis -->
 <div class=""report-page"">
 <div class=""topbar""><div class=""topbar-left""><div class=""logo-box""><span>HY</span></div><div><div style=""font-size:13px;font-weight:800;color:#E5E7EB"">{{reportTitle}}</div><div style=""font-size:9px;color:#9CA3AF"">{{reportSubtitle}}</div></div></div><div class=""topbar-right""><div class=""period-badge"">{{periodBadge}}</div><div style=""font-size:9px;color:#9CA3AF"">{{reportId}}</div></div></div>
-<div class=""sec-hdr stock""><div class=""snum"">2</div><h2>Stock Analysis</h2><span class=""stag"">Tank Ledger Movement</span></div>
+<div class=""sec-hdr stock""><div class=""snum"">2</div><h2>Stock Analysis</h2><span class=""stag"">Tank Reconciliation</span></div>
 <div class=""inner"">
-<div class=""site-grid"">{{#each stockSitePairs}}<div class=""site-kpi""><div class=""sn"">{{siteName}}</div><div class=""sp""><div class=""sk""><div class=""sv del"">{{delivered}}</div><div class=""sl"">Delivered</div></div><div class=""sdiv""></div><div class=""sk""><div class=""sv iss"">{{issued}}</div><div class=""sl"">Fuel Dispensed</div></div></div></div>{{/each}}</div>
+<div class=""site-grid"">{{#each stockSitePairs}}<div class=""site-kpi""><div class=""sn"">{{siteName}}</div><div class=""sp""><div class=""sk""><div class=""sv del"">{{expectedClosing}}</div><div class=""sl"">Expected Closing</div></div><div class=""sdiv""></div><div class=""sk""><div class=""sv iss"">{{actualClosing}}</div><div class=""sl"">Actual Closing</div></div></div></div>{{/each}}</div>
 <div class=""grid-2""><div>
-<div class=""tbl-wrap""><table><thead><tr><th>Site</th><th class=""tr"">Delivered (L)</th><th class=""tr"">Fuel Dispensed (L)</th><th class=""tr"">Fuel Lost (L)</th></tr></thead>
-<tbody>{{#each stockSitePairs}}<tr><td class=""fw"">{{siteName}}</td><td class=""tr"">{{delivered}}</td><td class=""tr"">{{issued}}</td><td class=""tr"">{{fuelLost}}</td></tr>{{/each}}</tbody></table></div>
-<div class=""narrative"">Deliveries and fuel dispensed values are taken from tank volume history with transfer movement excluded — reflecting receipt and dispensing only.</div></div>
+<div class=""ccard""><h3>Stock Control Watchlist</h3><p class=""csub"">Sites ranked by reconciliation variance using opening stock, month movement, and closing stock</p><div class=""stock-mini-grid"">{{#each stockControlSummary}}<div class=""stock-mini""><div class=""stock-mini__value"">{{value}}</div><div class=""stock-mini__label"">{{label}}</div><div class=""stock-mini__note"">{{note}}</div></div>{{/each}}</div>{{#each stockControlHighlights}}<div class=""stock-watch""><div class=""stock-watch__top""><span class=""fw"">{{siteName}}</span><span class=""stock-pill {{statusClass}}"">{{statusLabel}}</span></div><div class=""stock-watch__metrics""><div class=""stock-watch__metric"">Opening Stock: <strong>{{openingStock}}</strong></div><div class=""stock-watch__metric"">Expected Closing: <strong>{{expectedClosing}}</strong></div><div class=""stock-watch__metric"">Actual Closing: <strong>{{actualClosing}}</strong></div><div class=""stock-watch__metric"">Variance: <strong>{{variance}}</strong> ({{variancePercent}})</div></div><div class=""mini-note"">{{movementSummary}}</div><div class=""bar-track""><div class=""bar-fill"" style=""width:{{barWidth}};background:{{barColor}}""></div></div></div>{{/each}}</div>
+<div class=""narrative""><strong>How to read this:</strong> Expected Closing = Opening Stock + Delivered + Transfer In - Fuel Dispensed - Transfer Out +/- Adjustments. Actual Closing comes from the latest tank stock reading at or before month end. Status uses the same variance-percent bands used in Fuel Audit logic: under 2% is Stable, 2% to under 5% is Watch, and 5% or more is Action.</div></div>
 <div><div class=""ccard""><h3>Stock Movement Trend</h3><p class=""csub"">Delivered vs fuel dispensed across months</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Delivered</span><span><span class=""ld"" style=""background:#D13438""></span>Fuel Dispensed</span></div><div style=""position:relative;height:200px""><canvas id=""c_stockTrend""></canvas></div></div></div>
 </div></div>
 <div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 2 of 11 &nbsp;|&nbsp; {{reportId}}</div></div></div>

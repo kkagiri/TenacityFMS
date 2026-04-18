@@ -29,13 +29,14 @@ const WarningLetterPreviewPage = () => {
     const canUploadApproveLetter = hasPermission("_UploadApproveLetter_WarningLetter");
     const canUploadSignedCopy = hasPermission("_UploadSignedCopy_WarningLetter");
     const canManageRecipientGroups = hasPermission("_Manage_NotificationGroups");
-    const canEditSignatureRecipients = canManageRecipientGroups;
+    const canEditWarningLetterRecipients = hasPermission("_Update_WarningLetter") || hasPermission("_Send_WarningLetter");
+    const canEditSignatureRecipients = canManageRecipientGroups || canEditWarningLetterRecipients;
 
     const previewState = useWarningLetterPreviewState({
         id,
         canViewPdf,
         canUpdate,
-        canManageRecipientGroups,
+        canManageRecipientGroups: canEditSignatureRecipients,
         userInfo,
     });
 

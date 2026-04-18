@@ -44,7 +44,7 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
 
     public async Task<FMSResponse<WarningLetterReportDataDto>> Handle(GetWarningLetterReportQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.WarningLetters
+        var scopedQuery = _context.WarningLetters
             .AsNoTracking()
             .Include(w => w.Employee)
             .Include(w => w.Vehicle)
@@ -53,32 +53,38 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
             .AsQueryable();
 
         if (request.SiteId.HasValue)
-            query = query.Where(w => w.SiteId == request.SiteId.Value);
+            scopedQuery = scopedQuery.Where(w => w.SiteId == request.SiteId.Value);
 
         if (request.VehicleIds is { Count: > 0 })
-            query = query.Where(w => request.VehicleIds.Contains(w.VehicleId));
+            scopedQuery = scopedQuery.Where(w => request.VehicleIds.Contains(w.VehicleId));
 
         if (request.VehicleTypeId.HasValue)
-            query = query.Where(w => w.Vehicle.VehicleTypeId == request.VehicleTypeId.Value);
+            scopedQuery = scopedQuery.Where(w => w.Vehicle.VehicleTypeId == request.VehicleTypeId.Value);
 
         if (request.EmployeeIds is { Count: > 0 })
-            query = query.Where(w => request.EmployeeIds.Contains(w.EmployeeId));
+            scopedQuery = scopedQuery.Where(w => request.EmployeeIds.Contains(w.EmployeeId));
 
         if (request.LetterType.HasValue)
-            query = query.Where(w => w.LetterType == request.LetterType.Value);
+            scopedQuery = scopedQuery.Where(w => w.LetterType == request.LetterType.Value);
 
         if (request.WorkflowStage.HasValue)
         {
-            query = request.WorkflowStage.Value switch
+            scopedQuery = request.WorkflowStage.Value switch
             {
-                WarningLetterWorkflowStage.Draft => query.Where(w => w.ApproveLetterUploadedAt == null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
-                WarningLetterWorkflowStage.Approved => query.Where(w => w.ApproveLetterUploadedAt != null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
-                WarningLetterWorkflowStage.PendingSigned => query.Where(w => w.SignatureRequestedAt != null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
-                WarningLetterWorkflowStage.Signed => query.Where(w => w.SignedCopyUploadedAt != null && w.EmployeeAcknowledgedAt == null && w.Status != WarningLetterStatus.Acknowledged),
-                WarningLetterWorkflowStage.Acknowledged => query.Where(w => w.EmployeeAcknowledgedAt != null || w.Status == WarningLetterStatus.Acknowledged),
-                _ => query
+                WarningLetterWorkflowStage.Draft => scopedQuery.Where(w => w.ApproveLetterUploadedAt == null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.Approved => scopedQuery.Where(w => w.ApproveLetterUploadedAt != null && w.SignatureRequestedAt == null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.PendingSigned => scopedQuery.Where(w => w.SignatureRequestedAt != null && w.SignedCopyUploadedAt == null && w.EmployeeAcknowledgedAt == null),
+                WarningLetterWorkflowStage.Signed => scopedQuery.Where(w => w.SignedCopyUploadedAt != null && w.EmployeeAcknowledgedAt == null && w.Status != WarningLetterStatus.Acknowledged),
+                WarningLetterWorkflowStage.Acknowledged => scopedQuery.Where(w => w.EmployeeAcknowledgedAt != null || w.Status == WarningLetterStatus.Acknowledged),
+                _ => scopedQuery
             };
         }
+
+        var monthlyTrendDates = await scopedQuery
+            .Select(w => w.LetterDate)
+            .ToListAsync(cancellationToken);
+
+        var query = scopedQuery;
 
         if (request.StartDate.HasValue)
             query = query.Where(w => w.LetterDate >= request.StartDate.Value);
@@ -95,7 +101,7 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
         {
             Id = w.Id,
             LetterType = w.LetterType,
-            LetterTypeName = w.LetterType.ToString(),
+            LetterTypeName = FormatLetterTypeName(w.LetterType),
             EmployeeId = w.EmployeeId,
             EmployeeName = w.Employee?.FullName ?? string.Empty,
             VehicleId = w.VehicleId,
@@ -109,7 +115,7 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
             PeriodStart = w.PeriodStart,
             PeriodEnd = w.PeriodEnd,
             WorkflowStage = WarningLetterWorkflowStageResolver.Resolve(w),
-            WorkflowStageName = WarningLetterWorkflowStageResolver.Resolve(w).ToString(),
+            WorkflowStageName = FormatWorkflowStageName(WarningLetterWorkflowStageResolver.Resolve(w)),
             ExcessCost = w.ExcessCost,
             ExcessValue = w.ExcessValue,
             ExpectedValue = w.ExpectedValue,
@@ -123,7 +129,7 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
             EmployeeAcknowledgedAt = w.EmployeeAcknowledgedAt,
         }).ToList();
 
-        var analytics = BuildAnalytics(records, letters);
+        var analytics = BuildAnalytics(records, letters, monthlyTrendDates);
 
         return FMSResponse<WarningLetterReportDataDto>.Success(new WarningLetterReportDataDto
         {
@@ -134,7 +140,8 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
 
     private static WarningLetterAnalyticsDto BuildAnalytics(
         List<WarningLetterReportRecordDto> records,
-        List<Domain.Entities.Features.WarningLetterManagement.WarningLetter> letters)
+        List<Domain.Entities.Features.WarningLetterManagement.WarningLetter> letters,
+        List<DateTime> monthlyTrendDates)
     {
         var analytics = new WarningLetterAnalyticsDto
         {
@@ -144,10 +151,12 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
         };
 
         // Stage breakdown
-        analytics.StageBreakdown = records
-            .GroupBy(r => r.WorkflowStageName)
-            .Select(g => new StageBreakdownItem { Stage = g.Key, Count = g.Count() })
-            .OrderBy(s => s.Stage)
+        analytics.StageBreakdown = Enum.GetValues<WarningLetterWorkflowStage>()
+            .Select(stage => new StageBreakdownItem
+            {
+                Stage = FormatWorkflowStageName(stage),
+                Count = records.Count(r => r.WorkflowStage == stage),
+            })
             .ToList();
 
         // Letter type breakdown
@@ -184,42 +193,47 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
 
         // Employee with most warnings
         var topEmployee = records
-            .GroupBy(r => r.EmployeeName)
+            .GroupBy(r => new { r.EmployeeId, r.EmployeeName })
             .OrderByDescending(g => g.Count())
+            .ThenByDescending(g => g.Max(r => r.LetterDate))
+            .ThenBy(g => g.Key.EmployeeName)
             .FirstOrDefault();
         if (topEmployee != null)
         {
             analytics.EmployeeWithMostWarnings = new EmployeeWarningItem
             {
-                EmployeeName = topEmployee.Key,
+                EmployeeName = topEmployee.Key.EmployeeName,
                 Count = topEmployee.Count(),
             };
         }
 
         // Employee ranking (top 10)
         analytics.EmployeeRanking = records
-            .GroupBy(r => r.EmployeeName)
+            .GroupBy(r => new { r.EmployeeId, r.EmployeeName })
             .Select(g => new EmployeeRankingItem
             {
-                EmployeeName = g.Key,
+                EmployeeName = g.Key.EmployeeName,
                 WarningCount = g.Count(),
                 TotalDeduction = g.Sum(r => r.ExcessCost ?? 0),
             })
             .OrderByDescending(e => e.WarningCount)
+            .ThenBy(e => e.EmployeeName)
             .Take(10)
             .ToList();
 
         // Last warning by employee (top 10)
         analytics.LastWarningByEmployee = records
-            .GroupBy(r => r.EmployeeName)
+            .GroupBy(r => new { r.EmployeeId, r.EmployeeName })
             .Select(g =>
             {
                 var latest = g.OrderByDescending(r => r.LetterDate).First();
                 return new LastWarningByEmployeeItem
                 {
-                    EmployeeName = g.Key,
+                    EmployeeName = g.Key.EmployeeName,
                     LastLetterDate = latest.LetterDate,
                     LetterType = latest.LetterTypeName,
+                    WorkflowStageName = latest.WorkflowStageName,
+                    WarningCount = g.Count(),
                 };
             })
             .OrderByDescending(l => l.LastLetterDate)
@@ -227,9 +241,9 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
             .ToList();
 
         // Monthly trend
-        analytics.MonthlyTrend = records
-            .GroupBy(r => r.LetterDate.ToString("yyyy-MM"))
-            .Select(g => new MonthlyTrendItem { Month = g.Key, Count = g.Count() })
+        analytics.MonthlyTrend = monthlyTrendDates
+            .GroupBy(letterDate => letterDate.Date)
+            .Select(g => new MonthlyTrendItem { Month = g.Key.ToString("yyyy-MM-dd"), Count = g.Count() })
             .OrderBy(m => m.Month)
             .ToList();
 
@@ -283,4 +297,20 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
 
         return result;
     }
+
+    private static string FormatWorkflowStageName(WarningLetterWorkflowStage stage)
+        => stage switch
+        {
+            WarningLetterWorkflowStage.PendingSigned => "Pending Signed",
+            _ => stage.ToString()
+        };
+
+    private static string FormatLetterTypeName(WarningLetterType letterType)
+        => letterType switch
+        {
+            WarningLetterType.ExcessFuelConsumption => "Excess Fuel",
+            WarningLetterType.ExcessiveSpeed => "Excessive Speed",
+            WarningLetterType.ExcessiveIdling => "Excessive Idling",
+            _ => letterType.ToString()
+        };
 }

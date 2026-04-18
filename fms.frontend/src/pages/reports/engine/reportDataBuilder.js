@@ -169,6 +169,161 @@ const formatWarningLetterTypeName = (value) => {
     }
 };
 
+const WARNING_LETTER_WORKFLOW_STAGES = [
+    {
+        key: 'Draft',
+        label: 'Draft',
+        description: 'Initial draft pending HR approval.',
+        color: '#9CA3AF',
+        tint: 'rgba(156, 163, 175, 0.12)',
+        borderColor: 'rgba(156, 163, 175, 0.35)',
+    },
+    {
+        key: 'Approved',
+        label: 'Approved',
+        description: 'Approved by HR.',
+        color: '#0078D4',
+        tint: 'rgba(0, 120, 212, 0.12)',
+        borderColor: 'rgba(0, 120, 212, 0.35)',
+    },
+    {
+        key: 'Pending Signed',
+        label: 'Pending Signed',
+        description: 'Driver to sign.',
+        color: '#D97706',
+        tint: 'rgba(217, 119, 6, 0.12)',
+        borderColor: 'rgba(217, 119, 6, 0.35)',
+    },
+    {
+        key: 'Signed',
+        label: 'Signed',
+        description: 'Driver has signed and site admin uploaded.',
+        color: '#0F766E',
+        tint: 'rgba(15, 118, 110, 0.12)',
+        borderColor: 'rgba(15, 118, 110, 0.35)',
+    },
+    {
+        key: 'Acknowledged',
+        label: 'Acknowledged',
+        description: 'File is saved.',
+        color: '#107C10',
+        tint: 'rgba(16, 124, 16, 0.12)',
+        borderColor: 'rgba(16, 124, 16, 0.35)',
+    },
+];
+
+const formatWarningLetterWorkflowStageName = (value) => {
+    const normalized = normalizeText(value, 'Draft').toLowerCase().replace(/[_-]+/g, ' ');
+
+    switch (normalized) {
+        case 'approved':
+            return 'Approved';
+        case 'pending signed':
+        case 'pendingsigned':
+            return 'Pending Signed';
+        case 'signed':
+            return 'Signed';
+        case 'acknowledged':
+            return 'Acknowledged';
+        default:
+            return 'Draft';
+    }
+};
+
+const getWarningLetterWorkflowStageMeta = (value, count = 0) => {
+    const label = formatWarningLetterWorkflowStageName(value);
+    const base = WARNING_LETTER_WORKFLOW_STAGES.find((stage) => stage.label === label) || WARNING_LETTER_WORKFLOW_STAGES[0];
+
+    return {
+        ...base,
+        count,
+    };
+};
+
+const parseWarningLetterTrendDate = (value) => {
+    const normalized = normalizeText(value, '');
+    const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+        return null;
+    }
+
+    return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+};
+
+const resolveWarningLetterTrendReferenceDate = (queryParams) => {
+    const queryEnd = queryParams?.endDate ? new Date(queryParams.endDate) : null;
+    if (queryEnd && !Number.isNaN(queryEnd.getTime())) {
+        return new Date(queryEnd.getFullYear(), queryEnd.getMonth(), queryEnd.getDate());
+    }
+
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+};
+
+const formatWarningLetterTrendDateLabel = (value) => {
+    const date = parseWarningLetterTrendDate(value);
+    if (!date) {
+        return normalizeText(value, '-');
+    }
+
+    return date.toLocaleString(undefined, { day: '2-digit', month: 'short', timeZone: 'UTC' });
+};
+
+const buildWarningLetterTrendAxis = (trendItems, referenceDate) => {
+    const monthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    const points = trendItems
+        .map((item) => {
+            const trendDate = parseWarningLetterTrendDate(item.dateKey || item.month);
+            if (!trendDate) {
+                return null;
+            }
+
+            const localTrendDate = new Date(trendDate.getUTCFullYear(), trendDate.getUTCMonth(), trendDate.getUTCDate());
+            return {
+                x: Math.round((localTrendDate.getTime() - monthStart.getTime()) / msPerDay),
+                y: item.count,
+            };
+        })
+        .filter(Boolean);
+
+    const todayOffset = Math.max(0, Math.round((referenceDate.getTime() - monthStart.getTime()) / msPerDay));
+    const minPointOffset = points.length ? Math.min(...points.map((item) => item.x)) : 0;
+    const minOffset = Math.min(-30, minPointOffset);
+    const midpointOffset = todayOffset > 0 ? Math.round(todayOffset / 2) : 0;
+    const tickValues = Array.from(new Set([
+        minOffset,
+        -15,
+        0,
+        midpointOffset,
+        todayOffset,
+    ].filter((value) => value >= minOffset && value <= todayOffset))).sort((left, right) => left - right);
+
+    return {
+        monthStartLabel: monthStart.toLocaleString(undefined, { day: '2-digit', month: 'short' }),
+        todayOffset,
+        minOffset,
+        maxOffset: todayOffset,
+        tickValues,
+        points,
+    };
+};
+
+const formatWarningLetterExcessCost = (value, letterTypeName) => {
+    const normalizedType = formatWarningLetterTypeName(letterTypeName);
+
+    if (normalizedType === 'Excessive Speed') {
+        return '-';
+    }
+
+    if (value === null || value === undefined || value === '') {
+        return '-';
+    }
+
+    return formatNumber(numberOrZero(value));
+};
+
 const findRecordCollection = (input) => {
     if (Array.isArray(input)) {
         return { records: input, container: null };
@@ -1976,33 +2131,50 @@ const mapVehicleDocumentCompliance = (rawRecords) => {
     };
 };
 
-const mapWarningLetterAnalytics = (rawRecords, container) => {
+const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
     const rawAnalytics = container?.analytics || container?.Analytics || {};
 
-    const mapped = rawRecords.map((record, index) => ({
-        rowNumber: index + 1,
-        letterTypeName: formatWarningLetterTypeName(getValue(record, ['letterTypeName'])),
-        employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
-        vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
-        numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
-        vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
-        siteName: normalizeText(getValue(record, ['siteName']), '-'),
-        letterDate: formatDate(getValue(record, ['letterDate'])),
-        letterDateFormatted: formatDate(getValue(record, ['letterDate'])),
-        periodStart: formatDate(getValue(record, ['periodStart'])),
-        periodEnd: formatDate(getValue(record, ['periodEnd'])),
-        workflowStageName: normalizeText(getValue(record, ['workflowStageName']), '-'),
-        excessCost: numberOrZero(getValue(record, ['excessCost'])),
-        excessCostFormatted: formatNumber(numberOrZero(getValue(record, ['excessCost']))),
-        excessValue: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
-        expectedValue: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
-        actualValue: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
-        violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
-    }));
+    const mapped = rawRecords.map((record, index) => {
+        const letterTypeName = formatWarningLetterTypeName(getValue(record, ['letterTypeName']));
+        const stageMeta = getWarningLetterWorkflowStageMeta(getValue(record, ['workflowStageName']));
+        const excessCostRaw = getValue(record, ['excessCost']);
 
-    const stageBreakdown = (rawAnalytics.stageBreakdown || rawAnalytics.StageBreakdown || []).map((item) => ({
-        stage: normalizeText(getValue(item, ['stage']), '-'),
-        count: numberOrZero(getValue(item, ['count'])),
+        return {
+            rowNumber: index + 1,
+            letterTypeName,
+            employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
+            vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
+            numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
+            vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
+            siteName: normalizeText(getValue(record, ['siteName']), '-'),
+            letterDate: formatDate(getValue(record, ['letterDate'])),
+            letterDateFormatted: formatDate(getValue(record, ['letterDate'])),
+            periodStart: formatDate(getValue(record, ['periodStart'])),
+            periodEnd: formatDate(getValue(record, ['periodEnd'])),
+            workflowStageName: stageMeta.label,
+            workflowStageColor: stageMeta.color,
+            workflowStageTint: stageMeta.tint,
+            workflowStageBorderColor: stageMeta.borderColor,
+            excessCost: excessCostRaw == null || excessCostRaw === '' ? null : numberOrZero(excessCostRaw),
+            excessCostFormatted: formatWarningLetterExcessCost(excessCostRaw, letterTypeName),
+            excessValue: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
+            expectedValue: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
+            actualValue: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
+            violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
+        };
+    });
+
+    const stageCounts = new Map(
+        (rawAnalytics.stageBreakdown || rawAnalytics.StageBreakdown || []).map((item) => ([
+            formatWarningLetterWorkflowStageName(getValue(item, ['stage'])),
+            numberOrZero(getValue(item, ['count'])),
+        ]))
+    );
+
+    const stageBreakdown = WARNING_LETTER_WORKFLOW_STAGES.map((stage) => ({
+        ...stage,
+        stage: stage.label,
+        count: stageCounts.get(stage.label) || 0,
     }));
 
     const letterTypeBreakdown = (rawAnalytics.letterTypeBreakdown || rawAnalytics.LetterTypeBreakdown || []).map((item) => ({
@@ -2012,8 +2184,12 @@ const mapWarningLetterAnalytics = (rawRecords, container) => {
 
     const monthlyTrend = (rawAnalytics.monthlyTrend || rawAnalytics.MonthlyTrend || []).map((item) => ({
         month: normalizeText(getValue(item, ['month']), '-'),
+        dateKey: normalizeText(getValue(item, ['month']), '-'),
+        dateLabel: formatWarningLetterTrendDateLabel(getValue(item, ['month'])),
         count: numberOrZero(getValue(item, ['count'])),
     }));
+
+    const trendAxis = buildWarningLetterTrendAxis(monthlyTrend, resolveWarningLetterTrendReferenceDate(queryParams));
 
     const deductionBySite = (rawAnalytics.deductionBySite || rawAnalytics.DeductionBySite || []).map((item) => ({
         name: normalizeText(getValue(item, ['name']), '-'),
@@ -2045,12 +2221,21 @@ const mapWarningLetterAnalytics = (rawRecords, container) => {
         widthPercent: Math.max(8, Math.round((item.warningCount / maxWarningCount) * 100)),
     }));
 
-    const lastWarningByEmployee = (rawAnalytics.lastWarningByEmployee || rawAnalytics.LastWarningByEmployee || []).map((item) => ({
-        employeeName: normalizeText(getValue(item, ['employeeName']), '-'),
-        lastLetterDate: formatDate(getValue(item, ['lastLetterDate'])),
-        lastLetterDateFormatted: formatDate(getValue(item, ['lastLetterDate'])),
-        letterType: formatWarningLetterTypeName(getValue(item, ['letterType'])),
-    }));
+    const lastWarningByEmployee = (rawAnalytics.lastWarningByEmployee || rawAnalytics.LastWarningByEmployee || []).map((item) => {
+        const stageMeta = getWarningLetterWorkflowStageMeta(getValue(item, ['workflowStageName']));
+
+        return {
+            employeeName: normalizeText(getValue(item, ['employeeName']), '-'),
+            lastLetterDate: formatDate(getValue(item, ['lastLetterDate'])),
+            lastLetterDateFormatted: formatDate(getValue(item, ['lastLetterDate'])),
+            letterType: formatWarningLetterTypeName(getValue(item, ['letterType'])),
+            workflowStageName: stageMeta.label,
+            workflowStageColor: stageMeta.color,
+            workflowStageTint: stageMeta.tint,
+            workflowStageBorderColor: stageMeta.borderColor,
+            warningCount: numberOrZero(getValue(item, ['warningCount'])),
+        };
+    });
 
     const employeeWithMostWarningsRaw = rawAnalytics.employeeWithMostWarnings || rawAnalytics.EmployeeWithMostWarnings || null;
     const employeeWithMostWarnings = employeeWithMostWarningsRaw
@@ -2067,6 +2252,7 @@ const mapWarningLetterAnalytics = (rawRecords, container) => {
         avgDaysToAcknowledge: roundTo(numberOrZero(rawAnalytics.avgDaysToAcknowledge), 1),
         uniqueEmployees: numberOrZero(rawAnalytics.uniqueEmployees),
         stageBreakdown,
+        workflowStages: stageBreakdown,
         letterTypeBreakdown,
         monthlyTrend,
         deductionBySite,
@@ -2081,14 +2267,19 @@ const mapWarningLetterAnalytics = (rawRecords, container) => {
         stageBreakdown: {
             labels: stageBreakdown.map((item) => item.stage),
             data: stageBreakdown.map((item) => item.count),
+            colors: stageBreakdown.map((item) => item.color),
         },
         letterTypeBreakdown: {
             labels: letterTypeBreakdown.map((item) => item.letterType),
             data: letterTypeBreakdown.map((item) => item.count),
         },
         monthlyTrend: {
-            labels: monthlyTrend.map((item) => item.month),
-            data: monthlyTrend.map((item) => item.count),
+            points: trendAxis.points,
+            tickValues: trendAxis.tickValues,
+            monthStartLabel: trendAxis.monthStartLabel,
+            todayOffset: trendAxis.todayOffset,
+            minOffset: trendAxis.minOffset,
+            maxOffset: trendAxis.maxOffset,
         },
         deductionBySite: {
             labels: deductionBySite.map((item) => item.name),
@@ -2192,7 +2383,7 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
         case 'live-trip-operations':
             return mapLiveTripOperations(container || rawRecords, container, queryParams);
         case 'warning-letter-analytics':
-            return mapWarningLetterAnalytics(rawRecords, container);
+            return mapWarningLetterAnalytics(rawRecords, container, queryParams);
         case 'warning-letter-candidates':
             return mapWarningLetterCandidates(rawRecords, container);
         default:

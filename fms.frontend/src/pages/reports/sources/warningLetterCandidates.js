@@ -28,7 +28,7 @@ const warningLetterCandidates = {
             required: false,
             defaultValue: () => {
                 const d = new Date();
-                d.setDate(d.getDate() - 30);
+                d.setDate(d.getDate() - 7);
                 return d;
             },
         },
@@ -72,6 +72,21 @@ const warningLetterCandidates = {
             required: false,
             placeholder: 'All Vehicle Types',
         },
+        {
+            key: 'letterType',
+            label: 'Letter Type',
+            type: 'select',
+            multiSelect: true,
+            options: [
+                { value: '1', label: 'Excess Fuel' },
+                { value: '2', label: 'Excessive Speed' },
+                { value: '3', label: 'Excessive Idling' },
+            ],
+            valueExpr: 'value',
+            displayExpr: 'label',
+            required: false,
+            placeholder: 'Select letter types',
+        },
     ],
     defaultFilters: {
         startDate: null,
@@ -79,6 +94,7 @@ const warningLetterCandidates = {
         siteId: null,
         vehicleId: null,
         vehicleTypeId: null,
+        letterType: null,
     },
 };
 

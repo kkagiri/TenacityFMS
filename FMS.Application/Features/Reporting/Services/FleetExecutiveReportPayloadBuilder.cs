@@ -118,17 +118,22 @@ namespace FMS.Application.Features.Reporting.Services
                     tank => ResolveSiteName(siteLookup, tank.SiteId),
                     cancellationToken);
 
+            var openingTankBoundaries = await LoadLatestTankRowsAtOrBeforeAsync(monthAnchor, cancellationToken);
+            var closingTankBoundaries = await LoadLatestTankRowsAtOrBeforeAsync(monthEnd, cancellationToken);
+
             var tankRows = await _context.TankVolumeHistories
                 .AsNoTracking()
                 .Where(row => row.Timestamp >= trendStart && row.Timestamp <= monthEnd && (row.IsDeleted == null || row.IsDeleted == false))
                 .Select(row => new TankMovementRow(
+                    row.Id,
                     row.TankId ?? 0,
                     row.Timestamp,
                     row.ChangeReason,
-                    row.VolumeChange ?? 0m))
+                    row.VolumeChange ?? 0m,
+                    row.NewVolume ?? 0m))
                 .ToListAsync(cancellationToken);
 
-            return new ReportDataBundle(monthAnchor, monthEnd, siteLookup, vehicleLookup, consumptionRows, tankRows, tankSiteLookup);
+            return new ReportDataBundle(monthAnchor, monthEnd, siteLookup, vehicleLookup, consumptionRows, tankRows, tankSiteLookup, openingTankBoundaries, closingTankBoundaries);
         }
 
         private object BuildMonthlyPayload(JObject metadata, ReportDataBundle data, string reportTitle, ReportFilters filters)
@@ -141,7 +146,10 @@ namespace FMS.Application.Features.Reporting.Services
             var heTypeNames = SelectVehicleTypes(currentMonthConsumption, data.VehicleLookup, isKmL: false, MaxHeTypesPerMatrix, filters);
             var monthlyTrend = BuildMonthlyTrend(data);
             var monthlySummaries = BuildRawMonthlySummaries(data);
-            var stockSitePairs = BuildStockSitePairs(siteNames, currentMonthTankRows, data.TankSiteLookup);
+            var stockControlRows = BuildStockControlRows(siteNames, data.TankRows, data.OpeningTankBoundaries, data.ClosingTankBoundaries, data.MonthAnchor, data.MonthEnd, data.TankSiteLookup);
+            var stockSitePairs = BuildStockSitePairs(stockControlRows);
+            var stockControlSummary = BuildStockControlSummary(stockControlRows);
+            var stockControlHighlights = BuildStockControlHighlights(stockControlRows);
             var currentMonthSummary = BuildMonthSummary(data.MonthAnchor, currentMonthConsumption, currentMonthTankRows, data.VehicleLookup);
             var siteHighlights = BuildSiteHighlights(siteNames, currentMonthConsumption, currentMonthTankRows, data.SiteLookup, data.VehicleLookup, data.TankSiteLookup);
             var lvHighlights = BuildTypeHighlights(currentMonthConsumption.Where(row => row.IsKmL), data.VehicleLookup, MaxLvTypesPerMatrix, true);
@@ -194,6 +202,8 @@ namespace FMS.Application.Features.Reporting.Services
                 chartDataJson = BuildChartDataJson(monthlySummaries, siteNames, currentMonthConsumption, currentMonthTankRows, data, lvTypeNames, heTypeNames),
                 stockSitePairs,
                 stockHighlights = siteHighlights,
+                stockControlSummary,
+                stockControlHighlights,
                 lvFuelMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvFuel),
                 lvEfficiencyMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvEfficiency),
                 lvDistanceMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvDistance),
@@ -347,22 +357,165 @@ namespace FMS.Application.Features.Reporting.Services
                 .ToList();
         }
 
-        private List<object> BuildStockSitePairs(IEnumerable<string> siteNames, IEnumerable<TankMovementRow> tankRows, IReadOnlyDictionary<int, string> tankSiteLookup)
+        private List<StockControlRow> BuildStockControlRows(
+            IEnumerable<string> siteNames,
+            IEnumerable<TankMovementRow> tankRows,
+            IReadOnlyDictionary<int, TankMovementRow> openingTankBoundaries,
+            IReadOnlyDictionary<int, TankMovementRow> closingTankBoundaries,
+            DateTime periodStart,
+            DateTime periodEnd,
+            IReadOnlyDictionary<int, string> tankSiteLookup)
         {
+            var rows = tankRows.ToList();
+
             return siteNames
                 .Select(siteName =>
                 {
-                    var siteRows = tankRows.Where(row => ResolveTankSiteName(tankSiteLookup, row.TankId) == siteName).ToList();
+                    var siteTankIds = tankSiteLookup
+                        .Where(tank => tank.Value == siteName)
+                        .Select(tank => tank.Key)
+                        .Distinct()
+                        .ToList();
+
+                    decimal openingStock = 0m;
+                    decimal delivered = 0m;
+                    decimal issued = 0m;
+                    decimal transfersIn = 0m;
+                    decimal transfersOut = 0m;
+                    decimal adjustments = 0m;
+                    decimal expectedClosing = 0m;
+                    decimal actualClosing = 0m;
+
+                    foreach (var tankId in siteTankIds)
+                    {
+                        var tankPeriodRows = rows
+                            .Where(row => row.TankId == tankId && row.Timestamp > periodStart && row.Timestamp <= periodEnd)
+                            .OrderBy(row => row.Timestamp)
+                            .ThenBy(row => row.Id)
+                            .ToList();
+
+                        var explicitOpening = rows
+                            .Where(row => row.TankId == tankId && row.ChangeReason == VolumeChangeReasonEnum.OpeningStock && row.Timestamp.Date == periodStart.Date)
+                            .OrderByDescending(row => row.Timestamp)
+                            .ThenByDescending(row => row.Id)
+                            .FirstOrDefault();
+
+                        var explicitClosing = rows
+                            .Where(row => row.TankId == tankId && row.ChangeReason == VolumeChangeReasonEnum.ClosingStock && row.Timestamp.Date == periodEnd.Date)
+                            .OrderByDescending(row => row.Timestamp)
+                            .ThenByDescending(row => row.Id)
+                            .FirstOrDefault();
+
+                        var tankOpening = explicitOpening?.NewVolume
+                            ?? (openingTankBoundaries.TryGetValue(tankId, out var openingBoundary) ? openingBoundary.NewVolume : 0m);
+                        var tankClosing = explicitClosing?.NewVolume
+                            ?? (closingTankBoundaries.TryGetValue(tankId, out var closingBoundary) ? closingBoundary.NewVolume : 0m);
+                        var tankDelivered = tankPeriodRows.Where(IsReceiptReason).Sum(row => PositiveValue(row.VolumeChange));
+                        var tankIssued = tankPeriodRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange));
+                        var tankTransfersIn = tankPeriodRows.Where(IsTransferInReason).Sum(row => PositiveValue(row.VolumeChange));
+                        var tankTransfersOut = tankPeriodRows.Where(IsTransferOutReason).Sum(row => Math.Abs(row.VolumeChange));
+                        var tankAdjustments = tankPeriodRows.Where(IsAdjustmentReason).Sum(row => row.VolumeChange);
+                        var tankExpectedClosing = tankOpening + tankDelivered + tankTransfersIn - tankIssued - tankTransfersOut + tankAdjustments;
+
+                        openingStock += tankOpening;
+                        delivered += tankDelivered;
+                        issued += tankIssued;
+                        transfersIn += tankTransfersIn;
+                        transfersOut += tankTransfersOut;
+                        adjustments += tankAdjustments;
+                        expectedClosing += tankExpectedClosing;
+                        actualClosing += tankClosing;
+                    }
+
+                    var variance = actualClosing - expectedClosing;
+                    var variancePercent = expectedClosing != 0m
+                        ? Math.Round((variance / expectedClosing) * 100m, 1, MidpointRounding.AwayFromZero)
+                        : 0m;
+
+                    return new StockControlRow(siteName, openingStock, delivered, issued, transfersIn, transfersOut, adjustments, expectedClosing, actualClosing, variance, variancePercent);
+                })
+                .ToList();
+        }
+
+        private static List<object> BuildStockSitePairs(IEnumerable<StockControlRow> stockRows)
+        {
+            return stockRows
+                .Select(row => new
+                {
+                    siteName = row.SiteName,
+                    expectedClosing = FormatCompact(row.ExpectedClosing),
+                    actualClosing = FormatCompact(row.ActualClosing)
+                })
+                .Cast<object>()
+                .ToList();
+        }
+
+        private static List<object> BuildStockControlSummary(IEnumerable<StockControlRow> stockRows)
+        {
+            var rows = stockRows.ToList();
+            var openingStock = rows.Sum(row => row.OpeningStock);
+            var expectedClosing = rows.Sum(row => row.ExpectedClosing);
+            var actualClosing = rows.Sum(row => row.ActualClosing);
+            var variance = rows.Sum(row => row.Variance);
+
+            return new List<object>
+            {
+                new { value = FormatNumber(openingStock, "L"), label = "Opening Stock", note = "Latest stock at or before month start" },
+                new { value = FormatNumber(expectedClosing, "L"), label = "Expected Closing", note = "Opening plus in-month movements" },
+                new { value = FormatNumber(actualClosing, "L"), label = "Actual Closing", note = "Latest stock at or before month end" },
+                new { value = $"{FormatSigned(variance)} L", label = "Variance", note = "Actual closing minus expected closing" }
+            };
+        }
+
+        private static List<object> BuildStockControlHighlights(IEnumerable<StockControlRow> stockRows)
+        {
+            var rows = stockRows.ToList();
+            var maxVariancePercent = rows.Select(row => Math.Abs(row.VariancePercent)).DefaultIfEmpty(0m).Max();
+
+            return rows
+                .OrderByDescending(row => Math.Abs(row.VariancePercent))
+                .ThenByDescending(row => Math.Abs(row.Variance))
+                .Select(row =>
+                {
+                    var status = ResolveStockStatus(row);
+                    var width = maxVariancePercent > 0m
+                        ? Math.Max(10m, Math.Min(100m, Math.Round((Math.Abs(row.VariancePercent) / maxVariancePercent) * 100m, 0, MidpointRounding.AwayFromZero)))
+                        : 10m;
+
                     return new
                     {
-                        siteName,
-                        delivered = FormatCompact(siteRows.Where(IsReceiptReason).Sum(row => PositiveValue(row.VolumeChange))),
-                        issued = FormatCompact(siteRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange))),
-                        fuelLost = FormatCompact(siteRows.Where(IsLossReason).Sum(row => Math.Abs(row.VolumeChange)))
+                        siteName = row.SiteName,
+                        statusLabel = status.Label,
+                        statusClass = status.CssClass,
+                        openingStock = FormatNumber(row.OpeningStock, "L"),
+                        expectedClosing = FormatNumber(row.ExpectedClosing, "L"),
+                        actualClosing = FormatNumber(row.ActualClosing, "L"),
+                        variance = $"{FormatSigned(row.Variance)} L",
+                        variancePercent = FormatSignedPercent(row.VariancePercent),
+                        movementSummary = $"Delivered {FormatNumber(row.Delivered, "L")} | Dispensed {FormatNumber(row.Issued, "L")} | Transfers {FormatSigned(row.TransfersIn - row.TransfersOut)} L | Adjustments {FormatSigned(row.Adjustments)} L",
+                        barWidth = $"{width:N0}%",
+                        barColor = status.BarColor
                     };
                 })
                 .Cast<object>()
                 .ToList();
+        }
+
+        private static (string Label, string CssClass, string BarColor) ResolveStockStatus(StockControlRow row)
+        {
+            var absVariancePercent = Math.Abs(row.VariancePercent);
+
+            if (absVariancePercent >= 5m)
+            {
+                return ("Action", "critical", "#D13438");
+            }
+
+            if (absVariancePercent >= 2m)
+            {
+                return ("Watch", "watch", "#CA5010");
+            }
+
+            return ("Stable", "stable", "#107C10");
         }
 
         private List<object> BuildSiteUsageMatrix(IEnumerable<string> siteNames, IEnumerable<DateTime> recentMonths, ReportDataBundle data)
@@ -858,12 +1011,47 @@ namespace FMS.Application.Features.Reporting.Services
                 filteredVehicleLookup,
                 filteredConsumptionRows,
                 filteredTankRows,
-                data.TankSiteLookup);
+                data.TankSiteLookup,
+                data.OpeningTankBoundaries,
+                data.ClosingTankBoundaries);
         }
 
         private static DateTime EndOfMonth(DateTime monthAnchor)
         {
-            return new DateTime(monthAnchor.Year, monthAnchor.Month, DateTime.DaysInMonth(monthAnchor.Year, monthAnchor.Month));
+            return new DateTime(monthAnchor.Year, monthAnchor.Month, DateTime.DaysInMonth(monthAnchor.Year, monthAnchor.Month), 23, 59, 59, 999, DateTimeKind.Unspecified).AddTicks(9999);
+        }
+
+        private async Task<IReadOnlyDictionary<int, TankMovementRow>> LoadLatestTankRowsAtOrBeforeAsync(DateTime boundary, CancellationToken cancellationToken)
+        {
+            var latestTimestamps = _context.TankVolumeHistories
+                .AsNoTracking()
+                .Where(row => row.Timestamp <= boundary && (row.IsDeleted == null || row.IsDeleted == false))
+                .GroupBy(row => row.TankId ?? 0)
+                .Select(group => new
+                {
+                    TankId = group.Key,
+                    Timestamp = group.Max(item => item.Timestamp)
+                });
+
+            var boundaryRows = await (
+                from row in _context.TankVolumeHistories.AsNoTracking()
+                join latest in latestTimestamps
+                    on new { TankId = row.TankId ?? 0, row.Timestamp } equals new { latest.TankId, latest.Timestamp }
+                where row.Timestamp <= boundary && (row.IsDeleted == null || row.IsDeleted == false)
+                select new TankMovementRow(
+                    row.Id,
+                    row.TankId ?? 0,
+                    row.Timestamp,
+                    row.ChangeReason,
+                    row.VolumeChange ?? 0m,
+                    row.NewVolume ?? 0m))
+                .ToListAsync(cancellationToken);
+
+            return boundaryRows
+                .GroupBy(row => row.TankId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderByDescending(row => row.Id).First());
         }
 
         private static bool MatchesSiteFilter(ConsumptionRow row, ReportDataBundle data, ReportFilters filters)
@@ -1014,6 +1202,23 @@ namespace FMS.Application.Features.Reporting.Services
             return row.ChangeReason == VolumeChangeReasonEnum.Dispensing || row.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing;
         }
 
+        private static bool IsTransferInReason(TankMovementRow row)
+        {
+            return row.ChangeReason == VolumeChangeReasonEnum.TransferIn;
+        }
+
+        private static bool IsTransferOutReason(TankMovementRow row)
+        {
+            return row.ChangeReason == VolumeChangeReasonEnum.TransferOut;
+        }
+
+        private static bool IsAdjustmentReason(TankMovementRow row)
+        {
+            return row.ChangeReason == VolumeChangeReasonEnum.Adjustment ||
+                   row.ChangeReason == VolumeChangeReasonEnum.Reconciliation ||
+                   row.ChangeReason == VolumeChangeReasonEnum.AutomatedReconciliation;
+        }
+
         private static bool IsLossReason(TankMovementRow row)
         {
             return (row.ChangeReason == VolumeChangeReasonEnum.Adjustment ||
@@ -1118,6 +1323,13 @@ namespace FMS.Application.Features.Reporting.Services
         private static string FormatDecimal(decimal value)
         {
             return value.ToString("N2", CultureInfo.InvariantCulture);
+        }
+
+        private static string FormatSignedPercent(decimal value)
+        {
+            return value >= 0
+                ? $"+{value:N1}%"
+                : $"{value:N1}%";
         }
 
         private static string FormatSigned(decimal value)
@@ -1448,7 +1660,8 @@ namespace FMS.Application.Features.Reporting.Services
         private sealed record SiteLookup(int SiteId, string SiteName);
         private sealed record VehicleSnapshot(int VehicleId, string HyoungNo, int? VehicleTypeId, string VehicleType, int? SiteId, string SiteName, bool IsKmL, decimal ExpectedAverage);
         private sealed record ConsumptionRow(int VehicleId, int SiteId, DateTime Date, decimal TotalFuel, decimal TotalDistance, decimal EngineHours, decimal FuelLost, bool IsKmL);
-        private sealed record TankMovementRow(int TankId, DateTime Timestamp, VolumeChangeReasonEnum ChangeReason, decimal VolumeChange);
+        private sealed record TankMovementRow(int Id, int TankId, DateTime Timestamp, VolumeChangeReasonEnum ChangeReason, decimal VolumeChange, decimal NewVolume);
+        private sealed record StockControlRow(string SiteName, decimal OpeningStock, decimal Delivered, decimal Issued, decimal TransfersIn, decimal TransfersOut, decimal Adjustments, decimal ExpectedClosing, decimal ActualClosing, decimal Variance, decimal VariancePercent);
         private sealed record ReportFilters(int? SiteId, string? SiteName, IReadOnlyCollection<int> LightVehicleTypeIds, string? LightVehicleTypeName, IReadOnlyCollection<int> HeavyEquipmentTypeIds, string? HeavyEquipmentTypeName);
         private sealed record ReportDataBundle(
             DateTime MonthAnchor,
@@ -1457,7 +1670,9 @@ namespace FMS.Application.Features.Reporting.Services
             IReadOnlyDictionary<int, VehicleSnapshot> VehicleLookup,
             List<ConsumptionRow> ConsumptionRows,
             List<TankMovementRow> TankRows,
-            IReadOnlyDictionary<int, string> TankSiteLookup);
+            IReadOnlyDictionary<int, string> TankSiteLookup,
+            IReadOnlyDictionary<int, TankMovementRow> OpeningTankBoundaries,
+            IReadOnlyDictionary<int, TankMovementRow> ClosingTankBoundaries);
         private sealed record MonthSummary(
             DateTime Month,
             decimal TotalFuelUsed,

@@ -749,12 +749,19 @@ namespace FMS.WebClient.Services
         private async Task<object> FetchWarningLetterCandidatesData(
             IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
         {
+            var letterTypeParams = GetIntListParam(request.Parameters, "letterType");
+
             var query = new GetWarningLetterCandidatesReportQuery
             {
                 SiteId = GetIntParam(request.Parameters, "siteId"),
                 VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
                 VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
                 EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
+                LetterTypes = letterTypeParams?
+                    .Where(id => Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), id))
+                    .Select(id => (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType)id)
+                    .Distinct()
+                    .ToList(),
                 StartDate = GetDateParam(request.Parameters, "startDate"),
                 EndDate = GetDateParam(request.Parameters, "endDate"),
             };
@@ -766,92 +773,12 @@ namespace FMS.WebClient.Services
                 return null;
             }
 
-            var dto = result.Data;
-            var records = dto.Records
-                .Select((r, index) => new
-                {
-                    rowNumber = index + 1,
-                    rowNum = index + 1,
-                    r.ConsumptionId,
-                    letterType = r.LetterTypeName,
-                    letterTypeName = r.LetterTypeName,
-                    metricDate = r.MetricDate,
-                    period = r.Period,
-                    siteName = string.IsNullOrWhiteSpace(r.SiteName) ? "-" : r.SiteName,
-                    vehicleHyoungNo = string.IsNullOrWhiteSpace(r.VehicleHyoungNo) ? "-" : r.VehicleHyoungNo,
-                    numberPlate = string.IsNullOrWhiteSpace(r.NumberPlate) ? "-" : r.NumberPlate,
-                    vehicleTypeName = string.IsNullOrWhiteSpace(r.VehicleTypeName) ? "-" : r.VehicleTypeName,
-                    employeeName = string.IsNullOrWhiteSpace(r.EmployeeName) ? "-" : r.EmployeeName,
-                    expectedValue = r.ExpectedValue,
-                    actualValue = r.ActualValue,
-                    excessValue = r.ExcessValue,
-                    expectedFormatted = FormatWarningLetterExpectedMetric(r.ExpectedValue, r.LetterType),
-                    actualFormatted = FormatWarningLetterActualMetric(r.ActualValue, r.LetterType),
-                    excessFormatted = FormatWarningLetterExcessMetric(r.ExcessValue, r.LetterType),
-                    fuelPrice = r.FuelPrice,
-                    fuelPriceFormatted = r.FuelPrice.HasValue
-                        ? r.FuelPrice.Value.ToString("N2", CultureInfo.InvariantCulture)
-                        : "-",
-                    excessCost = r.ExcessCost,
-                    excessCostFormatted = r.ExcessCost.HasValue
-                        ? r.ExcessCost.Value.ToString("N2", CultureInfo.InvariantCulture)
-                        : "-",
-                    violationSummary = r.ViolationSummary,
-                })
-                .ToList();
-
-            return new
-            {
-                reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
+            return WarningLetterCandidatesReportDataBuilder.Build(
+                result.Data,
+                string.IsNullOrWhiteSpace(request.ReportTitle)
                     ? BuildDefaultReportTitle(request.SourceId)
-                    : request.ReportTitle,
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = "System",
-                reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                records,
-                data = records,
-                items = records,
-                transactions = records,
-                summary = new
-                {
-                    totalRecords = records.Count,
-                    totalCandidates = dto.Summary.TotalCandidates,
-                    excessFuelCount = dto.Summary.ExcessFuelCount,
-                    excessiveSpeedCount = dto.Summary.ExcessiveSpeedCount,
-                    excessiveIdlingCount = dto.Summary.ExcessiveIdlingCount,
-                    uniqueSites = dto.Summary.UniqueSites,
-                    uniqueVehicles = dto.Summary.UniqueVehicles,
-                    uniqueEmployees = dto.Summary.UniqueEmployees,
-                },
-            };
+                    : request.ReportTitle);
         }
-
-        private static string FormatWarningLetterExpectedMetric(decimal value, WarningLetterType letterType)
-            => letterType switch
-            {
-                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/l",
-                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
-                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
-                _ => value.ToString("N2", CultureInfo.InvariantCulture)
-            };
-
-        private static string FormatWarningLetterActualMetric(decimal value, WarningLetterType letterType)
-            => letterType switch
-            {
-                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/l",
-                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
-                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
-                _ => value.ToString("N2", CultureInfo.InvariantCulture)
-            };
-
-        private static string FormatWarningLetterExcessMetric(decimal value, WarningLetterType letterType)
-            => letterType switch
-            {
-                WarningLetterType.ExcessFuelConsumption => $"{value.ToString("N2", CultureInfo.InvariantCulture)} l",
-                WarningLetterType.ExcessiveSpeed => $"{value.ToString("N2", CultureInfo.InvariantCulture)} km/h",
-                WarningLetterType.ExcessiveIdling => $"{value.ToString("N2", CultureInfo.InvariantCulture)} hrs",
-                _ => value.ToString("N2", CultureInfo.InvariantCulture)
-            };
 
         private async Task<object> FetchWarningLetterAnalyticsData(
             IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
@@ -859,20 +786,28 @@ namespace FMS.WebClient.Services
             var letterTypeParam = GetIntParam(request.Parameters, "letterType");
             var workflowStageParam = GetIntParam(request.Parameters, "workflowStage");
 
+            FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType? letterTypeFilter = null;
+            if (letterTypeParam is int letterTypeValue
+                && Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), letterTypeValue))
+            {
+                letterTypeFilter = (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType)letterTypeValue;
+            }
+
+            FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage? workflowStageFilter = null;
+            if (workflowStageParam is int workflowStageValue
+                && Enum.IsDefined(typeof(FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage), workflowStageValue))
+            {
+                workflowStageFilter = (FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage)workflowStageValue;
+            }
+
             var query = new GetWarningLetterReportQuery
             {
                 SiteId = GetIntParam(request.Parameters, "siteId"),
                 VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
                 VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
                 EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
-                LetterType = letterTypeParam.HasValue
-                    && Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), letterTypeParam.Value)
-                    ? (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType?)letterTypeParam.Value
-                    : null,
-                WorkflowStage = workflowStageParam.HasValue
-                    && Enum.IsDefined(typeof(FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage), workflowStageParam.Value)
-                    ? (FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage)workflowStageParam.Value
-                    : null,
+                LetterType = letterTypeFilter,
+                WorkflowStage = workflowStageFilter,
                 StartDate = GetDateParam(request.Parameters, "startDate"),
                 EndDate = GetDateParam(request.Parameters, "endDate"),
             };
@@ -884,51 +819,12 @@ namespace FMS.WebClient.Services
                 return null;
             }
 
-            var dto = result.Data;
-            var records = dto.Records
-                .Select((r, index) => new
-                {
-                    rowNumber = index + 1,
-                    r.Id,
-                    letterType = r.LetterTypeName,
-                    employeeName = string.IsNullOrWhiteSpace(r.EmployeeName) ? "-" : r.EmployeeName,
-                    vehicleHyoungNo = string.IsNullOrWhiteSpace(r.VehicleHyoungNo) ? "-" : r.VehicleHyoungNo,
-                    numberPlate = string.IsNullOrWhiteSpace(r.NumberPlate) ? "-" : r.NumberPlate,
-                    vehicleTypeName = string.IsNullOrWhiteSpace(r.VehicleTypeName) ? "-" : r.VehicleTypeName,
-                    siteName = string.IsNullOrWhiteSpace(r.SiteName) ? "-" : r.SiteName,
-                    letterDate = r.LetterDate.ToString("dd MMM yyyy"),
-                    periodStart = r.PeriodStart.ToString("dd MMM yyyy"),
-                    periodEnd = r.PeriodEnd.ToString("dd MMM yyyy"),
-                    workflowStage = r.WorkflowStageName,
-                    excessCost = r.ExcessCost ?? 0m,
-                    excessValue = r.ExcessValue ?? 0m,
-                    expectedValue = r.ExpectedValue ?? 0m,
-                    actualValue = r.ActualValue ?? 0m,
-                    violationSummary = r.ViolationSummary,
-                })
-                .ToList();
-
-            return new
-            {
-                reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
+            return WarningLetterAnalyticsReportDataBuilder.Build(
+                result.Data,
+                string.IsNullOrWhiteSpace(request.ReportTitle)
                     ? BuildDefaultReportTitle(request.SourceId)
                     : request.ReportTitle,
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = "System",
-                reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                records,
-                data = records,
-                items = records,
-                transactions = records,
-                analytics = dto.Analytics,
-                summary = new
-                {
-                    totalRecords = records.Count,
-                    totalLetters = dto.Analytics.TotalLetters,
-                    totalDeductions = dto.Analytics.TotalDeductions,
-                    uniqueEmployees = dto.Analytics.UniqueEmployees,
-                },
-            };
+                GetDateParam(request.Parameters, "endDate")?.Date ?? DateTime.Today);
         }
 
         // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1024,6 +920,52 @@ namespace FMS.WebClient.Services
             if (val is string s)
             {
                 return s.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => int.TryParse(x.Trim(), out var v) ? v : (int?)null)
+                    .Where(x => x.HasValue)
+                    .Select(x => x.Value)
+                    .ToList();
+            }
+            if (val is System.Text.Json.JsonElement je)
+            {
+                if (je.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    return je.EnumerateArray()
+                        .Select(item =>
+                        {
+                            if (item.ValueKind == System.Text.Json.JsonValueKind.Number)
+                            {
+                                return (int?)item.GetInt32();
+                            }
+
+                            if (item.ValueKind == System.Text.Json.JsonValueKind.String
+                                && int.TryParse(item.GetString(), out var parsedItem))
+                            {
+                                return (int?)parsedItem;
+                            }
+
+                            return null;
+                        })
+                        .Where(item => item.HasValue)
+                        .Select(item => item.Value)
+                        .ToList();
+                }
+
+                if (je.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    var value = je.GetString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        return value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => int.TryParse(x.Trim(), out var v) ? v : (int?)null)
+                            .Where(x => x.HasValue)
+                            .Select(x => x.Value)
+                            .ToList();
+                    }
+                }
+            }
+            if (val?.ToString() is string str && !string.IsNullOrWhiteSpace(str))
+            {
+                return str.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(x => int.TryParse(x.Trim(), out var v) ? v : (int?)null)
                     .Where(x => x.HasValue)
                     .Select(x => x.Value)

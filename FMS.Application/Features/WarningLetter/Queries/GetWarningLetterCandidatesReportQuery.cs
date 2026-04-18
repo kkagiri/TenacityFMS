@@ -31,6 +31,7 @@ public class GetWarningLetterCandidatesReportQuery : IRequest<FMSResponse<Warnin
     public List<int>? VehicleIds { get; set; }
     public int? VehicleTypeId { get; set; }
     public List<int>? EmployeeIds { get; set; }
+    public List<WarningLetterType>? LetterTypes { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 }
@@ -120,6 +121,11 @@ public class GetWarningLetterCandidatesReportQueryHandler : IRequestHandler<GetW
 
             foreach (var letterType in letterTypes)
             {
+                if (request.LetterTypes is { Count: > 0 } && !request.LetterTypes.Contains(letterType))
+                {
+                    continue;
+                }
+
                 var hasLetter = existingLetters.Any(w => IsDuplicateCandidate(w, candidate.VehicleId, candidate.Date.Date, letterType));
 
                 if (hasLetter) continue;

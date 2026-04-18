@@ -105,6 +105,8 @@ public class LastWarningByEmployeeItem
     public string EmployeeName { get; set; } = string.Empty;
     public DateTime LastLetterDate { get; set; }
     public string LetterType { get; set; } = string.Empty;
+    public string WorkflowStageName { get; set; } = string.Empty;
+    public int WarningCount { get; set; }
 }
 
 public class MonthlyTrendItem

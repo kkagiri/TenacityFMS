@@ -194,8 +194,8 @@ namespace FMS.WebClient.Services.Reporting
                 ["monthly-fleet-report"] = () => MonthlyFleetReportHtmlTemplate.Get(logoBase64),
                 ["weekly-fleet-report"] = WeeklyFleetReportHtmlTemplate.Get,
                 ["warning-letter-report"] = WarningLetterHtmlTemplates.GetTemplate,
-                ["warning-letter-analytics-report"] = JsReportHtmlTemplates.WarningLetterAnalytics,
-                ["warning-letter-candidates-report"] = JsReportHtmlTemplates.WarningLetterCandidates,
+                ["warning-letter-analytics-report"] = WarningLetterAnalyticsHtmlTemplate.Get,
+                ["warning-letter-candidates-report"] = WarningLetterCandidatesHtmlTemplate.Get,
             };
 
             foreach (var (name, generator) in templates)

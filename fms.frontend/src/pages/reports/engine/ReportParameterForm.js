@@ -489,6 +489,26 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                         const inferredValueExpr = param.valueExpr || (options.some((item) => Object.prototype.hasOwnProperty.call(item, 'value')) ? 'value' : 'id');
                         const inferredDisplayExpr = param.displayExpr || (options.some((item) => Object.prototype.hasOwnProperty.call(item, 'label')) ? 'label' : 'name');
 
+                        if (param.multiSelect !== false) {
+                            return (
+                                <TagBox
+                                    value={Array.isArray(value) ? value : (value !== null && value !== undefined && value !== '' ? [value] : [])}
+                                    dataSource={options}
+                                    valueExpr={inferredValueExpr}
+                                    displayExpr={inferredDisplayExpr}
+                                    onValueChanged={(e) => handleChange(param.key, e.value)}
+                                    placeholder={param.placeholder || 'Select...'}
+                                    showClearButton={!param.required}
+                                    searchEnabled={false}
+                                    showSelectionControls={true}
+                                    applyValueMode="instantly"
+                                    hideSelectedItems={false}
+                                    multiline={true}
+                                    maxDisplayedTags={3}
+                                />
+                            );
+                        }
+
                         return (
                             <SelectBox
                                 value={value !== undefined ? value : null}

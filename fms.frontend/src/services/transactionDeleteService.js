@@ -12,6 +12,80 @@
 import axiosInstance from '../api/axiosInstance';
 
 /**
+ * Normalizes a BulkTankVolumeHistoryDeleteResultDto (returned by the backend coordinator
+ * for single-transaction validate-delete requests) into the legacy
+ * FutureRecordsValidationResult shape that `DeleteConfirmationDialog` expects.
+ *
+ * Keeps the original bulk fields intact so newer dialogs (BulkDeleteConfirmationDialog)
+ * continue to work unchanged.
+ */
+const normalizeSingleValidationResult = (payload) => {
+  if (!payload || typeof payload !== 'object') return payload;
+
+  const isBulkShape =
+    'blockedCount' in payload ||
+    'warningCount' in payload ||
+    'summaryMessage' in payload ||
+    Array.isArray(payload.blockedItems) ||
+    Array.isArray(payload.warningItems);
+
+  if (!isBulkShape) return payload;
+
+  const blockedCount = payload.blockedCount || 0;
+  const warningCount = payload.warningCount || 0;
+  const blockedItems = Array.isArray(payload.blockedItems) ? payload.blockedItems : [];
+  const warningItems = Array.isArray(payload.warningItems) ? payload.warningItems : [];
+
+  const firstBlocked = blockedItems[0];
+  const firstWarning = warningItems[0];
+
+  // Delete is allowed as long as nothing is hard-blocked. Warnings only need confirmation.
+  const isAllowed = blockedCount === 0;
+
+  const message =
+    (isAllowed ? firstWarning?.message : firstBlocked?.message) ||
+    payload.summaryMessage ||
+    (isAllowed
+      ? 'This deletion will affect future records.'
+      : 'This transaction cannot be deleted.');
+
+  const detailedWarning =
+    (isAllowed ? firstWarning?.recommendedAction : firstBlocked?.recommendedAction) ||
+    payload.summaryMessage ||
+    '';
+
+  // Try to extract future record span from warning message text
+  // (e.g. "4 future records exist after 2026-04-17 ... Records span from 2026-04-17 to 2026-04-17.")
+  let futureRecordsCount = 0;
+  let earliestFutureRecord = null;
+  let latestFutureRecord = null;
+
+  if (firstWarning?.message) {
+    const countMatch = firstWarning.message.match(/(\d+)\s+future record/i);
+    if (countMatch) futureRecordsCount = parseInt(countMatch[1], 10) || 0;
+
+    const spanMatch = firstWarning.message.match(
+      /from\s+(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2})?)\s+to\s+(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2})?)/i
+    );
+    if (spanMatch) {
+      earliestFutureRecord = spanMatch[1];
+      latestFutureRecord = spanMatch[2];
+    }
+  }
+
+  return {
+    ...payload,
+    isAllowed,
+    requiresUserConfirmation: !!payload.requiresUserConfirmation,
+    message,
+    detailedWarning,
+    futureRecordsCount,
+    earliestFutureRecord,
+    latestFutureRecord
+  };
+};
+
+/**
  * Service for transaction deletion operations
  */
 class TransactionDeleteService {
@@ -58,7 +132,7 @@ class TransactionDeleteService {
 
       return {
         success: true,
-        data: response.data
+        data: normalizeSingleValidationResult(response.data)
       };
 
     } catch (error) {
@@ -66,10 +140,11 @@ class TransactionDeleteService {
 
       // Handle different error types
       if (error.response?.data) {
+        const rawDetails = error.response.data.data || error.response.data;
         return {
           success: false,
           error: error.response.data.message || error.response.data,
-          details: error.response.data.data || error.response.data
+          details: normalizeSingleValidationResult(rawDetails)
         };
       }
 
