@@ -156,6 +156,7 @@ public class WarningLetterService : IWarningLetterService
             IssuedByUserId = request.IssuedByUserId,
             IssuedByName = issuedByName,
             IssuedByTitle = issuedByTitle,
+            HideWarningCountInSubject = request.HideWarningCountInSubject,
             Notes = request.Notes,
             Status = WarningLetterStatus.Draft,
             DateCreated = DateTime.UtcNow,
@@ -871,6 +872,7 @@ public class WarningLetterService : IWarningLetterService
             IsExcessiveIdling = warningLetter.LetterType == WarningLetterType.ExcessiveIdling,
             WarningCountLabel = warningSequence.Label,
             IsLastWarning = warningSequence.IsLastWarning,
+            HideWarningCountInSubject = warningLetter.HideWarningCountInSubject,
             ReferenceNumber = BuildReferenceNumber(warningLetter),
             LetterDate = FormatLongDate(warningLetter.LetterDate),
             EmployeeName = employee.FullName,
@@ -907,9 +909,16 @@ public class WarningLetterService : IWarningLetterService
         int maxWarningCountBeforeLast,
         CancellationToken cancellationToken)
     {
+        // Only letters issued on/after the configured effective start date count toward the ordinal.
+        // This allows the business to reset the counter when the feature is rolled out.
+        var effectiveStartDate = await Queries.GetWarningLetterSettingsQueryHandler.GetEffectiveStartDateAsync(
+            _systemConfigurationService, cancellationToken);
+
         var matchingWarningLetters = _context.WarningLetters
             .AsNoTracking()
-            .Where(w => w.EmployeeId == warningLetter.EmployeeId && w.LetterType == warningLetter.LetterType);
+            .Where(w => w.EmployeeId == warningLetter.EmployeeId
+                     && w.LetterType == warningLetter.LetterType
+                     && w.DateCreated >= effectiveStartDate);
 
         int warningCount;
         if (warningLetter.Id > 0)

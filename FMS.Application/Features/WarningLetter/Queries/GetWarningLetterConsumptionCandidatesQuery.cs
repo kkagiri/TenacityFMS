@@ -60,12 +60,16 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
         var speedThreshold = await GetDecimalConfigAsync(SpeedThresholdConfigKey, 80m, cancellationToken);
         var idlingThreshold = await GetDecimalConfigAsync(IdlingThresholdConfigKey, 2m, cancellationToken);
         var excessFuelThresholdPercent = await GetDecimalConfigAsync(ExcessFuelThresholdPercentConfigKey, 15m, cancellationToken);
+        var effectiveStartDate = await GetWarningLetterSettingsQueryHandler.GetEffectiveStartDateAsync(
+            _systemConfigurationService,
+            cancellationToken);
 
         var query = _context.Vehicleconsumptions
             .AsNoTracking()
             .Include(vc => vc.Site)
             .Include(vc => vc.Vehicle)
                 .ThenInclude(v => v.DefaultEmployee)
+            .Where(vc => vc.Date >= effectiveStartDate)
             .AsQueryable();
 
         if (request.SiteId is int siteId)
@@ -85,7 +89,9 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
 
         if (request.StartDate is DateTime startDateValue)
         {
-            var startDate = startDateValue.Date;
+            var startDate = startDateValue.Date < effectiveStartDate
+                ? effectiveStartDate
+                : startDateValue.Date;
             query = query.Where(vc => vc.Date >= startDate);
         }
 

@@ -15,6 +15,7 @@ import DateBox from "devextreme-react/date-box";
 import notify from "devextreme/ui/notify";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { getUserDisplayName, getUserId } from "../transfers/vehicleTransferFormUtils";
 import EmployeeSearchableSelector from "../../../components/selectors/EmployeeSearchableSelector";
 import SlidePanel from "../../../components/ui/SlidePanel";
@@ -262,6 +263,7 @@ const toPayload = (form) => {
         issuedByUserId: form.issuedByUserId,
         issuedByName: form.issuedByName.trim(),
         issuedByTitle: form.issuedByTitle.trim() || null,
+        hideWarningCountInSubject: Boolean(form.hideWarningCountInSubject),
     };
 };
 
@@ -270,6 +272,7 @@ const WarningLetterFormPage = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const currentUser = useSelector((state) => state.auth?.user || {});
+    const { hasPermission } = usePermissions();
     const isEditMode = Boolean(id);
 
     const [step, setStep] = useState(isEditMode ? 3 : 1);
@@ -299,6 +302,7 @@ const WarningLetterFormPage = () => {
         issuedByUserId: String(getUserId(currentUser) || ""),
         issuedByName: getUserDisplayName(currentUser) || "",
         issuedByTitle: "Fleet Manager",
+        hideWarningCountInSubject: false,
     });
     const [settings, setSettings] = useState({
         fuelPricePerLitre: 0,
@@ -309,6 +313,7 @@ const WarningLetterFormPage = () => {
 
     const metricLabels = metricLabelsByType[Number(form.letterType)] || metricLabelsByType[1];
     const isDraft = !isEditMode || status === 0;
+    const canCreateEmployee = hasPermission("_Create_Employee");
     const resolvedSiteId = form.siteId || selectedCandidate?.siteId || "";
     const resolvedSiteName = getSiteName(sites, resolvedSiteId);
     const resolvedVehicleName = vehicleDisplayName || (form.vehicleId ? `Vehicle #${form.vehicleId}` : "");
@@ -433,6 +438,7 @@ const WarningLetterFormPage = () => {
                     issuedByUserId: d.issuedByUserId || String(getUserId(currentUser) || ""),
                     issuedByName: d.issuedByName || getUserDisplayName(currentUser) || "",
                     issuedByTitle: d.issuedByTitle || "Fleet Manager",
+                    hideWarningCountInSubject: Boolean(d.hideWarningCountInSubject ?? d.HideWarningCountInSubject),
                 });
             } catch (err) {
                 notify(err.message || "Failed to load warning letter.", "error", 3000);
@@ -473,6 +479,11 @@ const WarningLetterFormPage = () => {
     }, [employees, isEditMode, selectedCandidate]);
 
     const handleOpenCreateEmployee = () => {
+        if (!canCreateEmployee) {
+            notify("You do not have permission to add employees.", "warning", 2500);
+            return;
+        }
+
         setEmployeePanelMode("create");
         setIsEmployeePanelOpen(true);
     };
@@ -806,7 +817,8 @@ const WarningLetterFormPage = () => {
                                             type="button"
                                             className="m365-btn m365-btn--ghost tw-shrink-0"
                                             onClick={handleOpenCreateEmployee}
-                                            disabled={!isDraft || loading}
+                                            disabled={!isDraft || loading || !canCreateEmployee}
+                                            title={canCreateEmployee ? "Add employee" : "You do not have permission to add employees"}
                                         >
                                             <i className="fa-light fa-user-plus" />
                                             Add Employee
@@ -853,6 +865,19 @@ const WarningLetterFormPage = () => {
                         </div>
 
                         <div className="warning-letter-page__form-grid warning-letter-wizard__details-grid">
+                            <label className="warning-letter-page__field warning-letter-page__field--wide">
+                                <span>Subject Line Options</span>
+                                <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={Boolean(form.hideWarningCountInSubject)}
+                                        onChange={(e) => updateField("hideWarningCountInSubject", e.target.checked)}
+                                        disabled={!isDraft || loading}
+                                    />
+                                    <span>Hide letter count in subject (renders "WARNING LETTER" instead of "1st / 2nd / LAST WARNING LETTER")</span>
+                                </label>
+                                <small className="warning-letter-page__field-hint">Turn on when this letter should not display an ordinal in the subject line.</small>
+                            </label>
                             <label className="warning-letter-page__field">
                                 <span>Letter Date</span>
                                 <input className="m365-date" type="date" value={form.letterDate} onChange={(e) => updateField("letterDate", e.target.value)} disabled={!isDraft || loading} />

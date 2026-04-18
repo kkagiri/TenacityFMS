@@ -1,8 +1,8 @@
 /**
  * File: EmployeeFormPanel.js
  * Purpose: Side-panel form used for creating and editing employee records.
- * Dependencies: react, devextreme-react/tag-box, devextreme/data/custom_store, vehicle search API
- * Last Modified: 2026-04-11
+ * Dependencies: react, devextreme-react/tag-box, vehicle search API
+ * Last Modified: 2026-04-18
  *
  * Props:
  * - mode: "create" | "edit"
@@ -13,12 +13,9 @@
  * - onClose: closes the side panel
  */
 import React, { useEffect, useMemo, useState } from "react";
-import TagBox from "devextreme-react/tag-box";
 import SelectBox from "devextreme-react/select-box";
-import CustomStore from "devextreme/data/custom_store";
-import axiosInstance from "../../../api/axiosInstance";
 import { checkEmployeeDuplicates, fetchEmployeePositions } from "../../../redux/actions/employeeActions";
-import { quickSearchVehicles } from "../../../redux/actions/vehicleSearchActions";
+import MultiVehicleSearchableSelector from "../../../components/selectors/MultiVehicleSearchableSelector";
 
 const EMPTY_FORM = {
   fullName: "",
@@ -40,13 +37,19 @@ const EMPTY_DUPLICATE_STATE = {
   workNumberMatches: [],
 };
 
+const normalizeSiteId = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : "";
+};
+
 const buildInitialForm = (initialValues = {}) => ({
   ...EMPTY_FORM,
   ...initialValues,
-  siteId:
-    initialValues?.siteId === undefined || initialValues?.siteId === null || initialValues?.siteId === ""
-      ? ""
-      : String(initialValues.siteId),
+  siteId: normalizeSiteId(initialValues?.siteId),
   vehicles: normalizeVehicleIds(initialValues?.vehicles),
 });
 
@@ -54,7 +57,7 @@ const normalizeVehicleIds = (value) => {
   if (!Array.isArray(value)) return [];
   return value
     .map((item) =>
-      typeof item === "object" && item !== null ? item.vehicleId : item
+      typeof item === "object" && item !== null ? item.vehicleId ?? item.VehicleId : item
     )
     .filter((item) => item !== undefined && item !== null);
 };
@@ -81,23 +84,6 @@ const arraysEqual = (left, right) => {
     if (String(left[index]) !== String(right[index])) return false;
   }
   return true;
-};
-
-const toVehicleDisplay = (vehicle) => {
-  if (!vehicle) return "";
-  const code = vehicle.hyoungNo || vehicle.numberPlate || `#${vehicle.vehicleId}`;
-  const name = vehicle.vehicleName || "";
-  return name ? `${code} - ${name}` : code;
-};
-
-const normalizeVehiclePayload = (payload) => {
-  if (!payload) return null;
-  if (payload.vehicleId) return payload;
-
-  const wrapped = payload.data || payload.Data || payload.vehicleDto || payload.VehicleDto;
-  if (wrapped?.vehicleId) return wrapped;
-
-  return null;
 };
 
 const EmployeeFormPanel = ({
@@ -141,10 +127,7 @@ const EmployeeFormPanel = ({
         employeeWorkNo: employee.employeeWorkNo || "",
         position: employee.position || "",
         employeestatus: employee.employeestatus || "Active",
-        siteId:
-          employee.siteId === undefined || employee.siteId === null || employee.siteId === ""
-            ? initialForm.siteId
-            : String(employee.siteId),
+        siteId: normalizeSiteId(employee.siteId) || initialForm.siteId,
         vehicles: mergeVehicleIds(initialForm.vehicles, employee.vehicles),
       });
       setErrors({});
@@ -206,27 +189,6 @@ const EmployeeFormPanel = ({
 
     return options;
   }, [form.position, positionOptions]);
-
-  const vehicleStore = useMemo(
-    () =>
-      new CustomStore({
-        key: "vehicleId",
-        loadMode: "raw",
-        load: async (loadOptions) => {
-          const term = String(loadOptions?.searchValue || "").trim();
-          if (term.length < 2) return [];
-
-          const result = await quickSearchVehicles(term, 50);
-          return result?.success ? result.data || [] : [];
-        },
-        byKey: async (key) => {
-          if (key === undefined || key === null || key === "") return null;
-          const response = await axiosInstance.get(`/vehicle/${key}`);
-          return normalizeVehiclePayload(response?.data);
-        },
-      }),
-    []
-  );
 
   const vehicleValues = useMemo(
     () => normalizeVehicleIds(form.vehicles),
@@ -302,7 +264,7 @@ const EmployeeFormPanel = ({
   const handleSubmit = async () => {
     const nextErrors = {};
     const fullName = (form.fullName || "").trim();
-    const siteId = form.siteId === undefined || form.siteId === null ? "" : String(form.siteId).trim();
+    const siteId = normalizeSiteId(form.siteId);
 
     if (!fullName) {
       nextErrors.fullName = "Employee name is required";
@@ -327,7 +289,7 @@ const EmployeeFormPanel = ({
       employeeWorkNo: (form.employeeWorkNo || "").trim(),
       position: (form.position || "").trim(),
       employeestatus: form.employeestatus || "Active",
-      siteId: Number(siteId),
+      siteId,
       vehicles: normalizeVehicleIds(form.vehicles),
     };
 
@@ -473,7 +435,7 @@ const EmployeeFormPanel = ({
                 value={form.siteId}
                 valueExpr="id"
                 displayExpr="name"
-                onValueChanged={(event) => setField("siteId", event.value === null || event.value === undefined ? "" : String(event.value))}
+                onValueChanged={(event) => setField("siteId", normalizeSiteId(event.value))}
                 placeholder="Select site"
                 searchEnabled
                 searchExpr="name"
@@ -488,26 +450,16 @@ const EmployeeFormPanel = ({
 
             <div className="m365-field">
               <label className="m365-field__label">Default Vehicles</label>
-              <TagBox
-                dataSource={vehicleStore}
+              <MultiVehicleSearchableSelector
                 value={vehicleValues}
-                valueExpr="vehicleId"
-                displayExpr={toVehicleDisplay}
-                searchEnabled
-                minSearchLength={2}
-                showDataBeforeSearch={false}
-                showSelectionControls
-                applyValueMode="useButtons"
-                showClearButton
-                maxDisplayedTags={5}
-                searchExpr={["hyoungNo", "numberPlate"]}
-                noDataText="Type at least 2 characters to search vehicles"
+                width="100%"
+                placeholder="Search and add vehicles"
                 onValueChanged={(event) => setField("vehicles", event.value || [])}
               />
               <span className="m365-field__hint">
                 {duplicateState.isChecking
                   ? "Checking for duplicate employee records..."
-                  : "Search vehicles by Hyoung No or plate. Results load from server."}
+                  : "Search vehicles by Hyoung No or plate, then add each vehicle to the selection list."}
               </span>
             </div>
           </div>

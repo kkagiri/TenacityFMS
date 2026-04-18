@@ -56,6 +56,11 @@ public class GetWarningLetterCandidatesReportQueryHandler : IRequestHandler<GetW
         var idlingThreshold = await GetDecimalConfigAsync(IdlingThresholdConfigKey, 2m, cancellationToken);
         var fuelPrice = await GetDecimalConfigAsync("WarningLetter:FuelPricePerLitre", 0m, cancellationToken);
 
+        // Enforce the system-in-place date: regardless of the caller-provided start date,
+        // candidates before the effective start date are excluded.
+        var effectiveStartDate = await GetWarningLetterSettingsQueryHandler.GetEffectiveStartDateAsync(
+            _systemConfigurationService, cancellationToken);
+
         var query = _context.Vehicleconsumptions
             .AsNoTracking()
             .Include(vc => vc.Site)
@@ -77,8 +82,12 @@ public class GetWarningLetterCandidatesReportQueryHandler : IRequestHandler<GetW
         if (request.EmployeeIds is { Count: > 0 })
             query = query.Where(vc => vc.Vehicle.DefaultEmployeeId.HasValue && request.EmployeeIds.Contains(vc.Vehicle.DefaultEmployeeId.Value));
 
-        if (request.StartDate.HasValue)
-            query = query.Where(vc => vc.Date >= request.StartDate.Value.Date);
+        // Clamp the requested start date to the effective start date (user may choose earlier,
+        // but the backend enforces the cutoff).
+        var resolvedStartDate = request.StartDate.HasValue && request.StartDate.Value.Date > effectiveStartDate
+            ? request.StartDate.Value.Date
+            : effectiveStartDate;
+        query = query.Where(vc => vc.Date >= resolvedStartDate);
 
         if (request.EndDate.HasValue)
             query = query.Where(vc => vc.Date <= request.EndDate.Value.Date.AddDays(1).AddTicks(-1));

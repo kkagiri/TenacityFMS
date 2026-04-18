@@ -20,6 +20,7 @@ public static class WarningLetterHtmlTemplates
         public bool IsExcessiveIdling { get; init; }
         public string WarningCountLabel { get; init; } = "1st";
         public bool IsLastWarning { get; init; }
+        public bool HideWarningCountInSubject { get; init; }
         public string ReferenceNumber { get; init; } = string.Empty;
         public string LetterDate { get; init; } = string.Empty;
         public string EmployeeName { get; init; } = string.Empty;
@@ -190,7 +191,7 @@ public static class WarningLetterHtmlTemplates
         <div><strong>TRADE:</strong> {{Position}}</div>
     </div>
 
-    <div class=""subject"">SUBJECT: {{#if IsLastWarning}}LAST WARNING LETTER{{else}}{{WarningCountLabel}} WARNING LETTER{{/if}} &ndash; {{ViolationTitle}}</div>
+    <div class=""subject"">SUBJECT: {{#if HideWarningCountInSubject}}WARNING LETTER{{else}}{{#if IsLastWarning}}LAST WARNING LETTER{{else}}{{WarningCountLabel}} WARNING LETTER{{/if}}{{/if}} &ndash; {{ViolationTitle}}</div>
 
     <p class=""compact-gap"">Dear Sir,</p>
 

@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.WarningLetter.DTOs;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -36,20 +37,27 @@ public class GetWarningLetterReportQuery : IRequest<FMSResponse<WarningLetterRep
 public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLetterReportQuery, FMSResponse<WarningLetterReportDataDto>>
 {
     private readonly GpsdataContext _context;
+    private readonly ISystemConfigurationService _systemConfigurationService;
 
-    public GetWarningLetterReportQueryHandler(GpsdataContext context)
+    public GetWarningLetterReportQueryHandler(GpsdataContext context, ISystemConfigurationService systemConfigurationService)
     {
         _context = context;
+        _systemConfigurationService = systemConfigurationService;
     }
 
     public async Task<FMSResponse<WarningLetterReportDataDto>> Handle(GetWarningLetterReportQuery request, CancellationToken cancellationToken)
     {
+        // Enforce the system-in-place date: analytics ignore letters issued prior to the effective start date.
+        var effectiveStartDate = await GetWarningLetterSettingsQueryHandler.GetEffectiveStartDateAsync(
+            _systemConfigurationService, cancellationToken);
+
         var scopedQuery = _context.WarningLetters
             .AsNoTracking()
             .Include(w => w.Employee)
             .Include(w => w.Vehicle)
                 .ThenInclude(v => v.VehicleType)
             .Include(w => w.Site)
+            .Where(w => w.LetterDate >= effectiveStartDate)
             .AsQueryable();
 
         if (request.SiteId.HasValue)
@@ -86,7 +94,9 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
 
         var query = scopedQuery;
 
-        if (request.StartDate.HasValue)
+        // Clamp the requested start date to the effective start date (user-selected start is
+        // allowed to be earlier, but the backend enforces the cutoff above).
+        if (request.StartDate.HasValue && request.StartDate.Value > effectiveStartDate)
             query = query.Where(w => w.LetterDate >= request.StartDate.Value);
 
         if (request.EndDate.HasValue)

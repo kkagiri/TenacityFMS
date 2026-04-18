@@ -27,6 +27,7 @@ public class WarningLetter
     public string IssuedByUserId { get; set; } = null!;
     public string IssuedByName { get; set; } = null!;
     public string? IssuedByTitle { get; set; }
+    public bool HideWarningCountInSubject { get; set; }
     public string? PdfFilePath { get; set; }
     public DateTime? EmailSentAt { get; set; }
     public string? EmailRecipient { get; set; }

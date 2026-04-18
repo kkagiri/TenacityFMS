@@ -4,6 +4,8 @@
  * Dependencies: MediatR, ISystemConfigurationService, FMSResponse, WarningLetterSettingsDto
  * Last Modified: 2026-04-07
  */
+using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -23,7 +25,11 @@ public class GetWarningLetterSettingsQueryHandler : IRequestHandler<GetWarningLe
     internal const string IssuerNameConfigKey = "WarningLetter:IssuerName";
     internal const string IssuerTitleConfigKey = "WarningLetter:IssuerTitle";
     internal const string MaxWarningCountBeforeLastConfigKey = "WarningLetter:MaxWarningCountBeforeLast";
+    internal const string EffectiveStartDateConfigKey = "WarningLetter:EffectiveStartDate";
     internal const int DefaultMaxWarningCountBeforeLast = 3;
+    // System-in-place date for the Warning Letter feature. Letters, candidates, and analytics
+    // prior to this date are ignored unless the configuration value overrides it.
+    internal static readonly DateTime DefaultEffectiveStartDate = new(2026, 4, 14);
 
     private readonly ISystemConfigurationService _systemConfigurationService;
 
@@ -43,12 +49,33 @@ public class GetWarningLetterSettingsQueryHandler : IRequestHandler<GetWarningLe
             ? parsedCount
             : DefaultMaxWarningCountBeforeLast;
 
+        var effectiveStartDate = await GetEffectiveStartDateAsync(_systemConfigurationService, cancellationToken);
+
         return FMSResponse<WarningLetterSettingsDto>.Success(new WarningLetterSettingsDto
         {
             FuelPricePerLitre = fuelPrice,
             IssuerName = issuerName,
             IssuerTitle = issuerTitle,
-            MaxWarningCountBeforeLast = maxWarningCountBeforeLast
+            MaxWarningCountBeforeLast = maxWarningCountBeforeLast,
+            EffectiveStartDate = effectiveStartDate
         });
+    }
+
+    /// <summary>
+    /// Resolves the warning-letter effective start date. Returns the configured value when present
+    /// and parseable, otherwise falls back to <see cref="DefaultEffectiveStartDate"/>.
+    /// </summary>
+    internal static async Task<DateTime> GetEffectiveStartDateAsync(
+        ISystemConfigurationService systemConfigurationService,
+        CancellationToken cancellationToken)
+    {
+        var rawValue = await systemConfigurationService.GetConfigurationValueAsync(EffectiveStartDateConfigKey, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(rawValue)
+            && DateTime.TryParse(rawValue.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal | DateTimeStyles.AdjustToUniversal, out var parsed))
+        {
+            return parsed.Date;
+        }
+
+        return DefaultEffectiveStartDate;
     }
 }

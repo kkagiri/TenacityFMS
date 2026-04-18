@@ -96,6 +96,11 @@ public class WarningLetterConfiguration : EntityTypeConfiguration<WarningLetter>
                 .HasMaxLength(200)
                 .HasColumnName("IssuedByTitle");
 
+            builder.Property(e => e.HideWarningCountInSubject)
+                .HasColumnType("tinyint(1)")
+                .HasColumnName("HideWarningCountInSubject")
+                .HasDefaultValue(false);
+
             builder.Property(e => e.PdfFilePath)
                 .HasMaxLength(500)
                 .HasColumnName("PdfFilePath");

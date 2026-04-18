@@ -28,6 +28,7 @@ public class CreateWarningLetterDto
     public string IssuedByUserId { get; set; } = string.Empty;
     public string IssuedByName { get; set; } = string.Empty;
     public string? IssuedByTitle { get; set; }
+    public bool HideWarningCountInSubject { get; set; }
     public string? EmailRecipient { get; set; }
     public string? SignatureRequestRecipientUserId { get; set; }
     public List<string> SignatureRequestCcUserIds { get; set; } = new();

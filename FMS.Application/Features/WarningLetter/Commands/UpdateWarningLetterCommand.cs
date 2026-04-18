@@ -142,6 +142,7 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         warningLetter.IssuedByUserId = userId;
         warningLetter.IssuedByName = resolvedIssuedByName;
         warningLetter.IssuedByTitle = resolvedIssuedByTitle;
+        warningLetter.HideWarningCountInSubject = request.WarningLetter.HideWarningCountInSubject;
         warningLetter.EmailRecipient = string.IsNullOrWhiteSpace(request.WarningLetter.EmailRecipient) ? employee.Email : request.WarningLetter.EmailRecipient.Trim();
         warningLetter.SignatureRequestRecipientUserId = string.IsNullOrWhiteSpace(request.WarningLetter.SignatureRequestRecipientUserId) ? null : request.WarningLetter.SignatureRequestRecipientUserId.Trim();
         warningLetter.SignatureRequestCcUserIds = CreateWarningLetterCommandHandler.JoinDelimitedValues(request.WarningLetter.SignatureRequestCcUserIds);

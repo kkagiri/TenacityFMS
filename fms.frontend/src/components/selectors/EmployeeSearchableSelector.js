@@ -17,6 +17,7 @@ import { SelectBox } from 'devextreme-react/select-box';
 import { useSelector } from 'react-redux';
 import notify from 'devextreme/ui/notify';
 import axiosInstance from '../../api/axiosInstance';
+import { usePermissions } from '../../hooks/usePermissions';
 import './SearchableSelector.css';
 
 const EmployeeSearchableSelector = ({
@@ -46,6 +47,8 @@ const EmployeeSearchableSelector = ({
   const containerRef = useRef(null);
   const dropdownRef = useRef(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const { hasPermission } = usePermissions();
+  const canCreateEmployee = hasPermission('_Create_Employee');
 
   const updateDropdownPosition = useCallback(() => {
     if (containerRef.current) {
@@ -191,6 +194,11 @@ const EmployeeSearchableSelector = ({
   }, [searchTerm, performSearch]);
 
   const handleAddNewEmployee = useCallback(() => {
+    if (!canCreateEmployee) {
+      notify('You do not have permission to add employees.', 'warning', 2500);
+      return;
+    }
+
     setShowDropdown(false);
     setNewEmployee({
       fullName: searchTerm || '',
@@ -198,7 +206,7 @@ const EmployeeSearchableSelector = ({
       siteId: siteId || null
     });
     setShowAddPopup(true);
-  }, [searchTerm, siteId]);
+  }, [canCreateEmployee, searchTerm, siteId]);
 
   const handleSaveNewEmployee = useCallback(async () => {
     // Validation
@@ -466,7 +474,7 @@ const EmployeeSearchableSelector = ({
                         {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search employees' : 'No employees found'}
                       </div>
                     </div>
-                    {searchTerm.length >= 2 && !isLoading && (
+                    {canCreateEmployee && searchTerm.length >= 2 && !isLoading && (
                       <div className="dx-list-item"
                         style={{
                           borderTop: '1px solid #e6e6e6',
@@ -496,7 +504,7 @@ const EmployeeSearchableSelector = ({
             </div>
           </div>
         </div>
-      , document.body)}
+        , document.body)}
 
       {/* Add New Employee Popup */}
       <Popup

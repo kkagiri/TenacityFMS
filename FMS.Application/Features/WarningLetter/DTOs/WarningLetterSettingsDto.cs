@@ -12,4 +12,5 @@ public class WarningLetterSettingsDto
     public string? IssuerName { get; set; }
     public string? IssuerTitle { get; set; }
     public int MaxWarningCountBeforeLast { get; set; } = 3;
+    public System.DateTime? EffectiveStartDate { get; set; }
 }

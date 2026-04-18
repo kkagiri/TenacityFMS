@@ -7,6 +7,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import DataGrid, {
     Column,
+    ColumnChooser,
     SearchPanel,
     HeaderFilter,
     FilterRow,
@@ -558,6 +559,7 @@ const WarningLetterListPage = () => {
                 >
                     <LoadPanel enabled={loading} />
                     <Export enabled={true} fileName={`warning-letters-${new Date().toISOString().split("T")[0]}`} />
+                    <ColumnChooser enabled={true} mode="select" />
                     <SearchPanel visible={true} width={240} placeholder="Search warning letters" />
                     <HeaderFilter visible={true} />
                     <FilterRow visible={true} />
@@ -565,6 +567,7 @@ const WarningLetterListPage = () => {
                     <Paging defaultPageSize={15} />
                     <Pager showPageSizeSelector={true} allowedPageSizes={[15, 30, 60]} showInfo={true} />
 
+                    <Column dataField="workflowStage" caption="Stage" cellRender={renderStatus} width={150} />
                     <Column dataField="id" caption="Ref" width={80} />
                     <Column dataField="letterDate" caption="Letter Date" cellRender={renderDate} width={120} />
                     <Column dataField="periodStart" caption="Violation Date" cellRender={renderDate} width={120} />
@@ -573,7 +576,6 @@ const WarningLetterListPage = () => {
                     <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
                     <Column dataField="siteName" caption="Site" minWidth={160} />
                     <Column caption="Created By" minWidth={180} cellRender={renderCreatedBy} />
-                    <Column dataField="workflowStage" caption="Stage" cellRender={renderStatus} width={150} />
                     <Column dataField="signatureRequestRecipient" caption="Site Representative" minWidth={180} />
                     <Column dataField="approveLetterUploadedAt" caption="Approved At" cellRender={renderDate} width={120} />
                     <Column dataField="signatureRequestedAt" caption="Sent At" cellRender={renderDate} width={120} />
