@@ -310,10 +310,10 @@ const buildWarningLetterTrendAxis = (trendItems, referenceDate) => {
     };
 };
 
-const formatWarningLetterExcessCost = (value, letterTypeName) => {
+const formatWarningLetterExcessFuelLitres = (value, letterTypeName) => {
     const normalizedType = formatWarningLetterTypeName(letterTypeName);
 
-    if (normalizedType === 'Excessive Speed') {
+    if (normalizedType !== 'Excess Fuel') {
         return '-';
     }
 
@@ -321,7 +321,7 @@ const formatWarningLetterExcessCost = (value, letterTypeName) => {
         return '-';
     }
 
-    return formatNumber(numberOrZero(value));
+    return `${formatNumber(numberOrZero(value))} L`;
 };
 
 const findRecordCollection = (input) => {
@@ -2137,10 +2137,9 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
     const mapped = rawRecords.map((record, index) => {
         const letterTypeName = formatWarningLetterTypeName(getValue(record, ['letterTypeName']));
         const stageMeta = getWarningLetterWorkflowStageMeta(getValue(record, ['workflowStageName']));
-        const excessCostRaw = getValue(record, ['excessCost']);
-
         return {
             rowNumber: index + 1,
+            employeeId: numberOrZero(getValue(record, ['employeeId'])),
             letterTypeName,
             employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
             vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
@@ -2155,8 +2154,8 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             workflowStageColor: stageMeta.color,
             workflowStageTint: stageMeta.tint,
             workflowStageBorderColor: stageMeta.borderColor,
-            excessCost: excessCostRaw == null || excessCostRaw === '' ? null : numberOrZero(excessCostRaw),
-            excessCostFormatted: formatWarningLetterExcessCost(excessCostRaw, letterTypeName),
+            excessValueRaw: numberOrZero(getValue(record, ['excessValue'])),
+            excessFuelLitresDisplay: formatWarningLetterExcessFuelLitres(getValue(record, ['excessValue']), letterTypeName),
             excessValue: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
             expectedValue: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
             actualValue: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
@@ -2191,29 +2190,62 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
 
     const trendAxis = buildWarningLetterTrendAxis(monthlyTrend, resolveWarningLetterTrendReferenceDate(queryParams));
 
-    const deductionBySite = (rawAnalytics.deductionBySite || rawAnalytics.DeductionBySite || []).map((item) => ({
-        name: normalizeText(getValue(item, ['name']), '-'),
-        totalExcessCost: numberOrZero(getValue(item, ['totalExcessCost'])),
-        totalExcessCostFormatted: formatNumber(numberOrZero(getValue(item, ['totalExcessCost']))),
-    }));
+    const fuelRecords = mapped.filter((item) => item.letterTypeName === 'Excess Fuel');
 
-    const deductionByVehicleType = (rawAnalytics.deductionByVehicleType || rawAnalytics.DeductionByVehicleType || []).map((item) => ({
-        name: normalizeText(getValue(item, ['name']), '-'),
-        totalExcessCost: numberOrZero(getValue(item, ['totalExcessCost'])),
-        totalExcessCostFormatted: formatNumber(numberOrZero(getValue(item, ['totalExcessCost']))),
-    }));
+    const sumFuelLitres = (items) => roundTo(items.reduce((total, item) => total + numberOrZero(item.excessValueRaw), 0), 2);
+
+    const excessFuelBySite = Array.from(fuelRecords.reduce((groups, item) => {
+        const key = item.siteName || '-';
+        groups.set(key, (groups.get(key) || 0) + numberOrZero(item.excessValueRaw));
+        return groups;
+    }, new Map()).entries())
+        .map(([name, totalExcessFuelLitres]) => ({
+            name,
+            totalExcessFuelLitres: roundTo(totalExcessFuelLitres, 2),
+            totalExcessFuelLitresFormatted: formatNumber(roundTo(totalExcessFuelLitres, 2)),
+        }))
+        .sort((left, right) => right.totalExcessFuelLitres - left.totalExcessFuelLitres);
+
+    const excessFuelByVehicleType = Array.from(fuelRecords.reduce((groups, item) => {
+        const key = item.vehicleTypeName || '-';
+        groups.set(key, (groups.get(key) || 0) + numberOrZero(item.excessValueRaw));
+        return groups;
+    }, new Map()).entries())
+        .map(([name, totalExcessFuelLitres]) => ({
+            name,
+            totalExcessFuelLitres: roundTo(totalExcessFuelLitres, 2),
+            totalExcessFuelLitresFormatted: formatNumber(roundTo(totalExcessFuelLitres, 2)),
+        }))
+        .sort((left, right) => right.totalExcessFuelLitres - left.totalExcessFuelLitres);
 
     const averageDaysBetweenStages = (rawAnalytics.averageDaysBetweenStages || rawAnalytics.AverageDaysBetweenStages || []).map((item) => ({
         transition: normalizeText(getValue(item, ['transition']), '-'),
         averageDays: roundTo(numberOrZero(getValue(item, ['averageDays'])), 1),
     }));
 
-    const employeeRankingBase = (rawAnalytics.employeeRanking || rawAnalytics.EmployeeRanking || []).map((item) => ({
-        employeeName: normalizeText(getValue(item, ['employeeName']), '-'),
-        warningCount: numberOrZero(getValue(item, ['warningCount'])),
-        totalDeduction: numberOrZero(getValue(item, ['totalDeduction'])),
-        totalDeductionFormatted: formatNumber(numberOrZero(getValue(item, ['totalDeduction']))),
-    }));
+    const employeeRankingBase = Array.from(mapped.reduce((groups, item) => {
+        const key = `${item.employeeId}:${item.employeeName}`;
+        const existing = groups.get(key) || {
+            employeeName: item.employeeName,
+            warningCount: 0,
+            totalExcessFuelLitres: 0,
+        };
+
+        existing.warningCount += 1;
+        if (item.letterTypeName === 'Excess Fuel') {
+            existing.totalExcessFuelLitres += numberOrZero(item.excessValueRaw);
+        }
+
+        groups.set(key, existing);
+        return groups;
+    }, new Map()).values())
+        .map((item) => ({
+            ...item,
+            totalExcessFuelLitres: roundTo(item.totalExcessFuelLitres, 2),
+            totalExcessFuelLitresFormatted: formatNumber(roundTo(item.totalExcessFuelLitres, 2)),
+        }))
+        .sort((left, right) => right.warningCount - left.warningCount || left.employeeName.localeCompare(right.employeeName))
+        .slice(0, 10);
 
     const maxWarningCount = employeeRankingBase.reduce((max, item) => Math.max(max, item.warningCount), 0) || 1;
     const employeeRanking = employeeRankingBase.map((item) => ({
@@ -2247,16 +2279,16 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
 
     const analytics = {
         totalLetters: numberOrZero(rawAnalytics.totalLetters) || mapped.length,
-        totalDeductions: numberOrZero(rawAnalytics.totalDeductions),
-        totalDeductionsFormatted: formatNumber(numberOrZero(rawAnalytics.totalDeductions)),
+        totalExcessFuelLitres: sumFuelLitres(fuelRecords),
+        totalExcessFuelLitresFormatted: formatNumber(sumFuelLitres(fuelRecords)),
         avgDaysToAcknowledge: roundTo(numberOrZero(rawAnalytics.avgDaysToAcknowledge), 1),
         uniqueEmployees: numberOrZero(rawAnalytics.uniqueEmployees),
         stageBreakdown,
         workflowStages: stageBreakdown,
         letterTypeBreakdown,
         monthlyTrend,
-        deductionBySite,
-        deductionByVehicleType,
+        excessFuelBySite,
+        excessFuelByVehicleType,
         averageDaysBetweenStages,
         employeeRanking,
         employeeWithMostWarnings,
@@ -2281,13 +2313,13 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             minOffset: trendAxis.minOffset,
             maxOffset: trendAxis.maxOffset,
         },
-        deductionBySite: {
-            labels: deductionBySite.map((item) => item.name),
-            data: deductionBySite.map((item) => item.totalExcessCost),
+        excessFuelBySite: {
+            labels: excessFuelBySite.map((item) => item.name),
+            data: excessFuelBySite.map((item) => item.totalExcessFuelLitres),
         },
-        deductionByVehicleType: {
-            labels: deductionByVehicleType.map((item) => item.name),
-            data: deductionByVehicleType.map((item) => item.totalExcessCost),
+        excessFuelByVehicleType: {
+            labels: excessFuelByVehicleType.map((item) => item.name),
+            data: excessFuelByVehicleType.map((item) => item.totalExcessFuelLitres),
         },
     };
 
@@ -2298,7 +2330,7 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         summary: {
             totalRecords: mapped.length,
             totalLetters: numberOrZero(analytics.totalLetters) || mapped.length,
-            totalDeductions: formatNumber(numberOrZero(analytics.totalDeductions)),
+            totalExcessFuelLitres: formatNumber(numberOrZero(analytics.totalExcessFuelLitres)),
             avgDaysToAcknowledge: roundTo(numberOrZero(analytics.avgDaysToAcknowledge), 1),
             uniqueEmployees: numberOrZero(analytics.uniqueEmployees),
         },
@@ -2325,10 +2357,6 @@ const mapWarningLetterCandidates = (rawRecords, container) => {
         expectedFormatted: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
         actualFormatted: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
         excessFormatted: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
-        fuelPrice: getValue(record, ['fuelPrice']),
-        excessCost: getValue(record, ['excessCost']),
-        fuelPriceFormatted: getValue(record, ['fuelPrice']) != null ? formatNumber(numberOrZero(getValue(record, ['fuelPrice']))) : '-',
-        excessCostFormatted: getValue(record, ['excessCost']) != null ? formatNumber(numberOrZero(getValue(record, ['excessCost']))) : '-',
         violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
         hasExistingLetter: Boolean(getValue(record, ['hasExistingLetter'])),
     }));

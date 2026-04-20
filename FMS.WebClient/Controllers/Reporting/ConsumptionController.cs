@@ -281,6 +281,55 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        [HttpGet("records")]
+        public async Task<IActionResult> GetConsumptionModuleRecords(
+            [FromQuery] string startDate,
+            [FromQuery] string endDate,
+            [FromQuery] int? vehicleTypeId = null,
+            [FromQuery] int? vehicleId = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] List<int>? siteIds = null,
+            [FromQuery] bool? averageKmL = null)
+        {
+            var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var _endDate = DateTime.ParseExact(endDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            if (_startDate == default(DateTime) || _endDate == default(DateTime))
+            {
+                return BadRequest("Invalid date");
+            }
+
+            try
+            {
+                var normalizedSiteIds = (siteIds ?? new List<int>())
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (siteId.HasValue && siteId.Value > 0 && !normalizedSiteIds.Contains(siteId.Value))
+                {
+                    normalizedSiteIds.Add(siteId.Value);
+                }
+
+                var query = new GetVehicleConsumptionModuleGridQuery(
+                    _startDate,
+                    _endDate,
+                    vehicleTypeId,
+                    vehicleId,
+                    siteId,
+                    normalizedSiteIds,
+                    averageKmL);
+
+                var results = await _mediator.Send(query);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving vehicle consumption module records");
+                return StatusCode(500, new { message = "Error retrieving vehicle consumption module records", details = ex.Message });
+            }
+        }
+
         [HttpGet("manualRefillsbySiteId")]
         public async Task<IActionResult> GetManualConsumptionBySiteId([FromQuery] string startDate, string endDate, int SiteId)
         {
@@ -1286,6 +1335,32 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error retrieving vehicle consumption detail for vehicle {VehicleId}", vehicleId);
                 return StatusCode(500, new { message = "Error retrieving vehicle consumption detail", details = ex.Message });
+            }
+        }
+
+        [HttpGet("recordDetail/{id}")]
+        public async Task<IActionResult> GetConsumptionRecordDetail(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest("Invalid consumption ID.");
+            }
+
+            try
+            {
+                var result = await _mediator.Send(new GetVehicleConsumptionRecordDetailQuery(id));
+
+                if (result == null)
+                {
+                    return NotFound(new { message = $"Vehicle consumption record {id} was not found." });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving vehicle consumption record detail for {ConsumptionId}", id);
+                return StatusCode(500, new { message = "Error retrieving vehicle consumption record detail", details = ex.Message });
             }
         }
     }

@@ -127,7 +127,7 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating user");
-                throw new Exception("Error updating user", ex);
+                throw;
             }
         }
     }

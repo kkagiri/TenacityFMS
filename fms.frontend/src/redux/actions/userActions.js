@@ -11,6 +11,84 @@
  */
 import axiosInstance from "./../../api/axiosInstance";
 
+const normalizeValidationMessage = (entry) => {
+    if (!entry) return null;
+
+    if (typeof entry === 'string') {
+        return entry;
+    }
+
+    if (typeof entry === 'object') {
+        return entry.description
+            || entry.Description
+            || entry.errorMessage
+            || entry.ErrorMessage
+            || entry.message
+            || entry.Message
+            || entry.title
+            || entry.Title
+            || entry.code
+            || entry.Code
+            || null;
+    }
+
+    return String(entry);
+};
+
+const extractPayloadValidationMessages = (payload) => {
+    if (!payload || typeof payload !== 'object') {
+        return [];
+    }
+
+    const collected = [];
+
+    ['errors', 'Errors', 'validationErrors', 'ValidationErrors'].forEach((key) => {
+        const value = payload[key];
+
+        if (Array.isArray(value)) {
+            value
+                .map(normalizeValidationMessage)
+                .filter(Boolean)
+                .forEach((message) => collected.push(message));
+            return;
+        }
+
+        if (value && typeof value === 'object') {
+            Object.values(value).forEach((nestedValue) => {
+                if (Array.isArray(nestedValue)) {
+                    nestedValue
+                        .map(normalizeValidationMessage)
+                        .filter(Boolean)
+                        .forEach((message) => collected.push(message));
+                } else {
+                    const normalizedMessage = normalizeValidationMessage(nestedValue);
+                    if (normalizedMessage) {
+                        collected.push(normalizedMessage);
+                    }
+                }
+            });
+        }
+    });
+
+    return collected.filter((message, index, messages) => messages.indexOf(message) === index);
+};
+
+const resolveApiErrorMessage = (error, fallback) => {
+    const payload = error?.response?.data;
+    const validationMessages = extractPayloadValidationMessages(payload);
+
+    if (validationMessages.length > 0) {
+        return validationMessages.join('; ');
+    }
+
+    return payload?.message
+        || payload?.Message
+        || payload?.title
+        || payload?.Title
+        || error?.message
+        || fallback;
+};
+
 // Action Types
 export const FETCH_USERS_SUCCESS = 'FETCH_USERS_SUCCESS';
 export const FETCH_USERS_FAILURE = 'FETCH_USERS_FAILURE';
@@ -102,9 +180,7 @@ export const createUser = (userData) => async (dispatch) => {
         // If backend wrapped response in FMSResponse shape
         if (respData && typeof respData === 'object' && 'isSuccess' in respData && 'errorType' in respData) {
             if (!respData.isSuccess) {
-                const errors = (respData.validationErrors && respData.validationErrors.length)
-                    ? respData.validationErrors.join('; ')
-                    : (respData.message || 'User creation failed');
+                const errors = resolveApiErrorMessage({ response: { data: respData } }, 'User creation failed');
                 dispatch({ type: CREATE_USER_FAILURE, payload: errors });
                 throw new Error(errors);
             }
@@ -129,20 +205,9 @@ export const createUser = (userData) => async (dispatch) => {
         dispatch({ type: CREATE_USER_SUCCESS, payload: respData });
         return respData;
     } catch (error) {
-        // Attempt to extract FMSResponse error payload
-        if (error.response && error.response.data) {
-            const resp = error.response.data;
-            if (resp && resp.validationErrors) {
-                const errorsText = resp.validationErrors.join('; ');
-                dispatch({ type: CREATE_USER_FAILURE, payload: errorsText });
-                throw new Error(errorsText);
-            }
-            const message = resp.message || 'Error creating user';
-            dispatch({ type: CREATE_USER_FAILURE, payload: message });
-            throw new Error(message);
-        }
-        dispatch({ type: CREATE_USER_FAILURE, payload: error.message });
-        throw new Error(error.message || 'Error creating user');
+        const errorMessage = resolveApiErrorMessage(error, 'Error creating user');
+        dispatch({ type: CREATE_USER_FAILURE, payload: errorMessage });
+        throw new Error(errorMessage);
     }
 };
 
@@ -196,7 +261,7 @@ export const updateUser = (userId, userData) => async (dispatch) => {
         dispatch({ type: UPDATE_USER_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {
-        throw new Error('Error updating user');
+        throw new Error(resolveApiErrorMessage(error, 'Error updating user'));
     }
 };
 

@@ -2,7 +2,7 @@
  * File: WarningLetterSignaturePanel.js
  * Purpose: Collects signature request recipients and CC members for a warning letter.
  * Dependencies: React, devextreme-react/select-box, devextreme-react/tag-box, SlidePanel
- * Last Modified: 2026-04-16
+ * Last Modified: 2026-04-20
  *
  * Key Functions:
  * - WarningLetterSignaturePanel(): Renders the signature request picker UI.
@@ -118,7 +118,7 @@ const WarningLetterSignaturePanel = ({
                 </div>
                 <small>
                     This list shows only direct user members of <strong>{signatureRecipientOptions.signatureCcGroupName}</strong>.
-                    Add any site user to that group from Notification Recipient Management if they need CC access.
+                    Add any site user to that group from Notification Recipient Management if they need CC access. The user sending this request is always CC'd automatically.
                 </small>
                 <TagBox
                     dataSource={availableSignatureCcRecipients}

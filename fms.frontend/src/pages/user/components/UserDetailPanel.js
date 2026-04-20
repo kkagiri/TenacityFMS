@@ -30,6 +30,31 @@ import { UserRoleBadgeList } from './UserRoleBadge';
 import ChangePasswordPopup from './ChangePasswordPopup';
 import SlidePanel from '../../../components/ui/SlidePanel';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const deriveEditFieldErrorsFromMessage = (message) => {
+    const normalizedMessage = (message || '').toLowerCase();
+    const nextErrors = {};
+
+    if (normalizedMessage.includes('username')) {
+        nextErrors.userName = message;
+    }
+
+    if (normalizedMessage.includes('email')) {
+        nextErrors.email = message;
+    }
+
+    if (normalizedMessage.includes('role')) {
+        nextErrors.roleName = message;
+    }
+
+    if (normalizedMessage.includes('phone')) {
+        nextErrors.phone = message;
+    }
+
+    return nextErrors;
+};
+
 const PANEL_TABS = [
     { key: 'general', label: 'General', icon: 'fa-light fa-user' },
     { key: 'activities', label: 'Activities', icon: 'fa-light fa-clock-rotate-left' },
@@ -83,6 +108,17 @@ const UserDetailPanel = ({
     const user = useMemo(
         () => allUsers.find((u) => (u.id || u.Id) === userId) || null,
         [allUsers, userId]
+    );
+
+    const normalizedAllSites = useMemo(
+        () => (allSitesRedux || []).map((site) => ({
+            id: site.siteId || site.SiteId || site.id,
+            name: site.siteName || site.SiteName || site.name,
+            location: site.location || site.Location || '',
+            siteAdministratorId: site.siteAdministratorId || site.SiteAdministratorId || null,
+            siteAdministratorName: site.siteAdministratorName || site.SiteAdministratorName || null,
+        })),
+        [allSitesRedux]
     );
 
     // ── Reset on user change ──────────────────────────────────────────────
@@ -192,6 +228,7 @@ const UserDetailPanel = ({
     const startEdit = useCallback(() => {
         if (!user) return;
         setActiveTab('general');
+        setEditErrors({});
         setEditValues({
             firstName: user.firstName || user.FirstName || '',
             lastName: user.lastName || user.LastName || '',
@@ -227,8 +264,12 @@ const UserDetailPanel = ({
         // Email required + format
         if (!editValues.email || !editValues.email.trim()) {
             errors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editValues.email.trim())) {
+        } else if (!EMAIL_REGEX.test(editValues.email.trim())) {
             errors.email = 'Enter a valid email address';
+        }
+
+        if (!editValues.roleName || !String(editValues.roleName).trim()) {
+            errors.roleName = 'Role is required';
         }
 
         // Phone validation (optional, but if provided must be valid)
@@ -248,11 +289,22 @@ const UserDetailPanel = ({
 
         setSaving(true);
         try {
-            await dispatch(updateUser(user.id || user.Id, editValues));
+            setEditErrors({});
+            await dispatch(updateUser(user.id || user.Id, {
+                ...editValues,
+                userName: editValues.userName?.trim(),
+                email: editValues.email?.trim(),
+                phone: editValues.phone?.trim(),
+                roleName: editValues.roleName?.trim(),
+            }));
             notify('User updated successfully', 'success', 2500);
             setEditMode(false);
             onUserChanged?.();
         } catch (err) {
+            const nextErrors = deriveEditFieldErrorsFromMessage(err.message);
+            if (Object.keys(nextErrors).length > 0) {
+                setEditErrors((prev) => ({ ...prev, ...nextErrors }));
+            }
             notify(err.message || 'Failed to update user', 'error', 3000);
         } finally {
             setSaving(false);
@@ -278,6 +330,14 @@ const UserDetailPanel = ({
             setSavingSites(false);
         }
     }, [dispatch, userId, selectedSiteIds]);
+
+    const handleAssignAllSites = useCallback(() => {
+        setSelectedSiteIds(
+            normalizedAllSites
+                .map((site) => site.id)
+                .filter((siteId, index, siteIds) => siteId != null && siteIds.indexOf(siteId) === index)
+        );
+    }, [normalizedAllSites]);
 
     const handleClose = useCallback(() => {
         if (editMode) {
@@ -449,11 +509,28 @@ const UserDetailPanel = ({
                     </div>
                     <div className="m365-field">
                         <label className="m365-field__label m365-field__label--required">Username</label>
-                        <input className="m365-input" value={editValues.userName} onChange={(e) => handleEditChange('userName', e.target.value)} autoComplete="off" />
+                        <input
+                            className={`m365-input${editErrors.userName ? ' m365-input--error' : ''}`}
+                            value={editValues.userName}
+                            onChange={(e) => handleEditChange('userName', e.target.value)}
+                            autoComplete="off"
+                        />
+                        {editErrors.userName && (
+                            <span className="m365-field__error">{editErrors.userName}</span>
+                        )}
                     </div>
                     <div className="m365-field">
                         <label className="m365-field__label m365-field__label--required">Email</label>
-                        <input className="m365-input" type="email" value={editValues.email} onChange={(e) => handleEditChange('email', e.target.value)} autoComplete="off" />
+                        <input
+                            className={`m365-input${editErrors.email ? ' m365-input--error' : ''}`}
+                            type="email"
+                            value={editValues.email}
+                            onChange={(e) => handleEditChange('email', e.target.value)}
+                            autoComplete="off"
+                        />
+                        {editErrors.email && (
+                            <span className="m365-field__error">{editErrors.email}</span>
+                        )}
                     </div>
                     <div className="m365-field">
                         <label className="m365-field__label">Phone</label>
@@ -477,7 +554,12 @@ const UserDetailPanel = ({
                 <div className="m365-edit-fields">
                     <div className="m365-field">
                         <label className="m365-field__label">Role</label>
-                        <select className="m365-select" style={{ width: '100%' }} value={editValues.roleName} onChange={(e) => handleEditChange('roleName', e.target.value)}>
+                        <select
+                            className={`m365-select${editErrors.roleName ? ' m365-select--error' : ''}`}
+                            style={{ width: '100%' }}
+                            value={editValues.roleName}
+                            onChange={(e) => handleEditChange('roleName', e.target.value)}
+                        >
                             <option value="">— Select role —</option>
                             {roleOptions
                                 .filter((r) => r.value !== 'all' && r.value !== 'unassigned')
@@ -485,6 +567,9 @@ const UserDetailPanel = ({
                                     <option key={r.value || r.id} value={r.text || r.label || r.name}>{r.text || r.label || r.name}</option>
                                 ))}
                         </select>
+                        {editErrors.roleName && (
+                            <span className="m365-field__error">{editErrors.roleName}</span>
+                        )}
                     </div>
                     <div className="m365-field">
                         <label className="m365-field__label">Department</label>
@@ -852,13 +937,7 @@ const UserDetailPanel = ({
             );
         }
 
-        const normalizedSites = (allSitesRedux || []).map((s) => ({
-            id: s.siteId || s.SiteId || s.id,
-            name: s.siteName || s.SiteName || s.name,
-            location: s.location || s.Location || '',
-            siteAdministratorId: s.siteAdministratorId || s.SiteAdministratorId || null,
-            siteAdministratorName: s.siteAdministratorName || s.SiteAdministratorName || null,
-        }));
+        const normalizedSites = normalizedAllSites;
 
         const assigned = normalizedSites.filter((s) => selectedSiteIds.includes(s.id));
         const unassigned = normalizedSites.filter((s) => !selectedSiteIds.includes(s.id));
@@ -867,8 +946,20 @@ const UserDetailPanel = ({
             <div className="m365-sites-tab">
                 {/* Summary */}
                 <div className="m365-sites-tab__summary">
-                    <i className="fa-light fa-building-circle-check" />
-                    <span>{assigned.length} of {normalizedSites.length} sites assigned</span>
+                    <div className="tw-flex tw-items-center tw-gap-2">
+                        <i className="fa-light fa-building-circle-check" />
+                        <span>{assigned.length} of {normalizedSites.length} sites assigned</span>
+                    </div>
+                    {canManage && unassigned.length > 0 && (
+                        <button
+                            type="button"
+                            className="m365-btn m365-btn--ghost"
+                            onClick={handleAssignAllSites}
+                        >
+                            <i className="fa-light fa-buildings" />
+                            Assign all sites
+                        </button>
+                    )}
                 </div>
 
                 {/* Assigned */}

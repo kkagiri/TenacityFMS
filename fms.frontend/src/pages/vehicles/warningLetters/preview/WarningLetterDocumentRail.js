@@ -2,7 +2,7 @@
  * File: WarningLetterDocumentRail.js
  * Purpose: Renders the warning letter detail and workflow document cards shown in the left rail.
  * Dependencies: React
- * Last Modified: 2026-04-16
+ * Last Modified: 2026-04-20
  *
  * Key Functions:
  * - WarningLetterDocumentRail(): Shows letter metadata and document workflow actions.
@@ -138,7 +138,7 @@ const WarningLetterDocumentRail = ({
             status={approvedStatus}
             loading={approveLetterUploading}
             onToggle={togglePanel}
-            uploadButton={canUploadApproveLetter && canUploadWorkflowDocuments && !approvedLetterLocked && !hasApprovedLetter && (
+            uploadButton={canUploadApproveLetter && canUploadWorkflowDocuments && !approvedLetterLocked && (
                 <>
                     <input
                         ref={approveLetterInputRef}

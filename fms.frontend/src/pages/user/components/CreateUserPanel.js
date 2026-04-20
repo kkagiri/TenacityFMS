@@ -14,6 +14,31 @@ import notify from 'devextreme/ui/notify';
 import { createUser } from '../../../redux/actions/userActions';
 import SlidePanel from '../../../components/ui/SlidePanel';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const deriveFieldErrorsFromMessage = (message) => {
+    const normalizedMessage = (message || '').toLowerCase();
+    const nextErrors = {};
+
+    if (normalizedMessage.includes('username')) {
+        nextErrors.userName = message;
+    }
+
+    if (normalizedMessage.includes('email')) {
+        nextErrors.email = message;
+    }
+
+    if (normalizedMessage.includes('role')) {
+        nextErrors.roleName = message;
+    }
+
+    if (normalizedMessage.includes('confirmation')) {
+        nextErrors.requireEmailConfirmation = message;
+    }
+
+    return nextErrors;
+};
+
 const EMPTY_FORM = {
     firstName: '',
     lastName: '',
@@ -53,14 +78,23 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
 
     const validate = () => {
         const e = {};
-        if (!form.userName.trim()) e.userName = 'Username is required';
-        if ((form.sendOnboardingEmail || form.requireEmailConfirmation) && !form.email.trim()) {
+        const trimmedUserName = form.userName.trim();
+        const trimmedEmail = form.email.trim();
+
+        if (!trimmedUserName) e.userName = 'Username is required';
+
+        if ((form.sendOnboardingEmail || form.requireEmailConfirmation) && !trimmedEmail) {
             e.email = 'Email is required when onboarding email or email confirmation is enabled';
+        } else if (trimmedEmail && !EMAIL_REGEX.test(trimmedEmail)) {
+            e.email = 'Enter a valid email address';
         }
+
         if (!form.roleName) e.roleName = 'Role is required';
+
         if (form.requireEmailConfirmation && !form.sendOnboardingEmail) {
             e.requireEmailConfirmation = 'Email confirmation requires onboarding email to be enabled';
         }
+
         return e;
     };
 
@@ -68,15 +102,17 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
         const validationErrors = validate();
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            notify('Please fix the highlighted errors', 'warning', 3000);
             return;
         }
         try {
             setLoading(true);
+            setErrors({});
             const response = await dispatch(createUser({
                 FirstName: form.firstName || null,
                 LastName: form.lastName || null,
                 Email: form.email.trim() || null,
-                Username: form.userName,
+                Username: form.userName.trim(),
                 RoleName: form.roleName,
                 DepartmentId: form.departmentId,
                 SendOnboardingEmail: form.sendOnboardingEmail,
@@ -99,6 +135,10 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
             await onSuccess?.({ createdUserId, response });
             onHide?.();
         } catch (error) {
+            const nextErrors = deriveFieldErrorsFromMessage(error.message);
+            if (Object.keys(nextErrors).length > 0) {
+                setErrors((prev) => ({ ...prev, ...nextErrors }));
+            }
             notify(error.message || 'Failed to create user', 'error', 3000);
         } finally {
             setLoading(false);

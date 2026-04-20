@@ -166,7 +166,6 @@ internal static class WarningLetterCandidatesHtmlTemplate
                 <th class=""text-right"">Expected</th>
                 <th class=""text-right"">Actual</th>
                 <th class=""text-right"">Excess</th>
-                <th class=""text-right"">Amount (KES)</th>
             </tr>
         </thead>
         <tbody>
@@ -182,7 +181,6 @@ internal static class WarningLetterCandidatesHtmlTemplate
                 <td class=""text-right"">{{expectedFormatted}}</td>
                 <td class=""text-right"">{{actualFormatted}}</td>
                 <td class=""text-right text-danger"">{{excessFormatted}}</td>
-                <td class=""text-right"">{{excessCostFormatted}}</td>
             </tr>
             {{/each}}
         </tbody>

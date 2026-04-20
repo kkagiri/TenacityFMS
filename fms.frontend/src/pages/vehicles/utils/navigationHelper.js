@@ -111,6 +111,24 @@ export const navigationGroups = {
       permissionAny: ['_Read_VehicleMaintenance', '_Read_Vehicle'],
     },
     {
+      id: 'consumption',
+      title: 'Consumption',
+      icon: 'fa-light fa-gas-pump',
+      path: vehicleRoutes.consumption,
+      permissionAny: ['_Read_VehicleConsumptionReport'],
+      description: 'Review operational fuel consumption rows, losses, and supporting comparisons',
+      children: [
+        {
+          id: 'consumption-comparison',
+          title: 'Comparison',
+          icon: 'fa-light fa-scale-balanced',
+          path: vehicleRoutes.consumptionComparison,
+          permissionAny: ['_Read_VehicleConsumptionReport'],
+          description: 'Compare GPS and manual refill consumption patterns'
+        }
+      ]
+    },
+    {
       id: 'documents',
       title: 'Documents',
       icon: 'fa-light fa-file-lines',

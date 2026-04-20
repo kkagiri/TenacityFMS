@@ -1,226 +1,293 @@
-# Standardize Module Dashboards Plan
+# Vehicle Consumption Module Plan
 
 ## Goal
-Give every module dashboard (Vehicle, IssueTracker, Admin, TankStock, Employee, Events, Reports) the same widget-based experience as the main RealtimeDashboard at `/home`, while preserving module-specific features.
+Build a proper Vehicle Consumption module by extending the existing vehicle and reporting surfaces already in the repo, not by creating a parallel feature from scratch.
 
-## Architecture
+The next agent should turn the current `/vehicles/consumption` area into a complete module with:
+- a usable dashboard/list view
+- filters and drill-down details
+- comparison/reporting support
+- permission-aware navigation
+- M365 Admin Center styling
+- mobile-safe layouts
 
-### Shared Component: `ModuleDashboard`
-A reusable shell component that wraps `CategoryGroupedWidgetRenderer` + `EnhancedWidgetRenderer` with module-scoping. Each module page renders `<ModuleDashboard moduleId="vehicle" />` instead of custom layouts.
+## Verified Starting Points
 
-### Data Flow
-```
-ModuleDashboard (moduleId="vehicle")
-  → useModuleDashboard(moduleId) hook
-    → loads module-specific widget instances (scoped by moduleId)
-    → fetches data from registered data sources
-    → optional SignalR real-time updates
-  → CategoryGroupedWidgetRenderer (same as main dashboard)
-    → EnhancedWidgetRenderer per widget
-```
+### Existing frontend surfaces
+- `fms.frontend/src/pages/vehicles/VehicleMain.js`
+  - already routes:
+    - `/vehicles/consumption`
+    - `/vehicles/consumption-comparison`
+    - `/vehicles/:id/consumption/:consumptionId/details`
+- `fms.frontend/src/pages/vehicles/consumption/VehicleConsumptionPage.js`
+  - currently acts like an analytics dashboard fed by `/Consumption/gpsAnalytics`
+- `fms.frontend/src/pages/vehicles/consumption/VehicleConsumptionDetails.js`
+- `fms.frontend/src/pages/vehicles/consumption/comparison/VehicleConsumptionComparisonPage.js`
+- `fms.frontend/src/pages/vehicles/details/components/VehicleConsumptionHistory.js`
+- `fms.frontend/src/services/domain/VehicleService.js`
+  - already has vehicle consumption history fetching helpers
 
----
+### Existing backend surfaces
+- `FMS.WebClient/Controllers/Reporting/ConsumptionController.cs`
+  - existing endpoints include:
+    - `GET /api/v1/Consumption/gpsFiltered`
+    - `GET /api/v1/Consumption/gpsAnalytics`
+    - `GET /api/v1/Consumption/manualRefillsFiltered`
+    - `GET /api/v1/Consumption/gethistoryconsumptionbyvehicle`
+- `FMS.Application/Queries/Database/FMSQuery/Consumption/GetVehicleConsumptionGpsQueryFiltered.cs`
+  - existing filtered GPS query
+- `FMS.Application/Common/Constants/PermissionConstants.cs`
+  - existing read permission: `_Read_VehicleConsumptionReport`
 
-## Implementation Steps
+### Existing application structure constraints
+- `FMS.Application/Features/Vehicle/` exists and should be reused where practical.
+- `FMS.Application/Features/VehicleConsumption/` does not exist.
+- Do not create a brand-new top-level application domain folder unless the user explicitly approves it.
+- Do not modify `FMS.Domain/` unless the user explicitly approves domain-layer changes.
 
-### Step 1: Register Module Data Sources (Backend)
-**File:** `DataSourceManager.Metadata.cs`
+## Implementation Direction
 
-Add data sources for each module that don't already exist:
+### Preferred architectural approach
+Use the existing `Vehicle` feature area and the current `ConsumptionController` as the first extension points.
 
-**Vehicle Module:**
-- `vehicle_fleet_status` → Total/Active/Online/Maintenance counts (BigStat)
-- `vehicle_fleet_health` → Fleet health score (BigStat)
-- `vehicle_status_distribution` → Status breakdown (PieChart)
-- `vehicle_utilization_trend` → Daily utilization (LineChart)
-- `vehicle_performance_table` → Per-vehicle metrics (DataTable)
-- `vehicle_recent_activities` → Activity log (DataTable)
-- `vehicle_trip_operations` → Trip KPIs (BigStat)
+Do this first:
+- extend `FMS.Application/Features/Vehicle/DTOs/` for new response contracts if needed
+- add new read-side queries under an appropriate location that matches current repo conventions
+- keep controller changes inside the existing `ConsumptionController.cs` unless there is a clear reason to split later
+- reuse `vehicleconsumption` table data already used by warning letters and current reporting queries
 
-**IssueTracker Module:**
-- `issue_overview_stats` → Total/Open/InProgress/Resolved (BigStat)
-- `issue_priority_alerts` → Critical/High/Overdue/Unassigned (BigStat)
-- `issue_user_stats` → Assigned/Opened by me stats (BigStat)
-- `issue_by_week` → Weekly opened/closed (BarChart)
-- `issue_by_category` → Category distribution (PieChart)
-- `issue_by_vehicle` → Top vehicles (BarChart)
-- `issue_by_site` → Top sites (BarChart)
-- `issue_assigned_list` → Assigned issues grid (DataTable)
-- `issue_activity_heatmap` → Activity heatmap data (custom/ProgressList)
+Do not do this unless user approves:
+- creating `FMS.Application/Features/VehicleConsumption/`
+- moving existing legacy/reporting consumption code across domains
+- changing `FMS.Domain` entities
 
-**TankStock Module:**
-- `tank_overview_stats` → Total/Stock/Fill Level/Critical (BigStat)
-- `tank_levels_by_site` → Grouped tank levels (ProgressList)
-- `tank_critical_alerts` → Low-level alerts (Alert)
-- `tank_volume_trend` → Volume over time (LineChart)
+### Product direction for the module
+The module should feel like a real operations module, not a single chart page.
 
-**Employee Module:**
-- `employee_overview_stats` → Total/Active/Terminated (BigStat)
-- `employee_assignment_stats` → Assigned/Unassigned/Vehicles (BigStat)
-- `employee_site_distribution` → Distribution by site (BarChart)
-- `employee_top_assignments` → Top vehicle assignments (DataTable)
-- `employee_recent_updates` → Recently updated (DataTable)
+Target experience:
+- summary cards for total fuel, distance, engine hours, average efficiency, fuel lost
+- searchable/filterable records grid
+- fast drill-down to record detail
+- comparison page for GPS vs refill/manual patterns
+- clear site, vehicle, vehicle type, date, and mode filters
+- explicit distinction between km/L and L/hr vehicles
 
-**Admin Module:**
-- `admin_system_health` → System status indicators (BigStat)
-- `admin_user_activity` → Recent user activity (DataTable)
-- `admin_module_summary` → Module feature cards (ProgressList)
+## Scope For Next Agent
 
-**Reports Module:**
-- `report_execution_stats` → Total/Success/Failed/AvgDuration (BigStat)
-- `report_execution_history` → Execution log (DataTable)
-- `report_format_usage` → Format distribution (PieChart)
+### Phase 1: Stabilize the module shell
+1. Audit the current `/vehicles/consumption` page and decide whether to refactor it in place or split it into subcomponents.
+2. Keep the route path `/vehicles/consumption`.
+3. Keep the existing comparison route `/vehicles/consumption-comparison`.
+4. Keep the detail route `/vehicles/:id/consumption/:consumptionId/details`.
+5. Ensure the module is linked in the vehicle navigation if it is missing or visually weak.
 
-### Step 2: Add Data Handlers (Backend)
-**File:** `DataSourceManager.cs`
+### Phase 2: Backend read model cleanup
+1. Inventory the existing consumption endpoints in `ConsumptionController.cs`.
+2. Reuse existing endpoints where response shapes are already sufficient.
+3. Add focused new read endpoints only if the current ones cannot support the UI cleanly.
+4. Prefer CQRS-style read handlers over adding controller-level query logic.
+5. Use `GpsdataContext` and MySQL 5.5/5.6-safe query patterns only.
 
-For each new data source, implement the handler method that queries the database and returns data in the standard widget format:
-```csharp
-{ current: { value, unit, trend }, timeSeries: [...], metadata: {...} }
-```
+### Phase 3: Frontend module completion
+1. Turn `VehicleConsumptionPage.js` into a real module landing page.
+2. Add a filter bar with:
+   - date range
+   - site
+   - vehicle
+   - vehicle type
+   - consumption mode (km/L vs L/hr)
+3. Add a records grid beneath the summary cards.
+4. Make the grid row click navigate to the detail page.
+5. Make the comparison page share the same filter language and layout tone.
 
-Reuse existing query handlers from each module (e.g., `GetVehicleDashboardMetricsQuery`, `GetUserIssuesDashboardQuery`).
+### Phase 4: Detail view
+1. Ensure the detail page clearly shows:
+   - violated/record date
+   - vehicle and plate
+   - driver name from source row
+   - site
+   - expected average
+   - actual efficiency
+   - total fuel
+   - fuel lost
+   - distance
+   - engine hours
+   - max/avg speed
+   - report/import reference where available
+2. Show raw-source values without silently reinterpreting dates or units.
+3. Reuse existing detail/history components where possible rather than duplicating them.
 
-### Step 3: Create Widget Templates (Backend)
-**File:** `WidgetTemplateSeeder.cs`
+## UI And Design Rules
 
-Add pre-configured widget templates for each module with:
-- Module-scoped category (e.g., `vehicle_operations`, `issue_tracking`)
-- Pre-linked data source
-- Default visualization type
-- Default settings (colors, labels, sizes)
+The next agent must follow the repo instructions and the design skill, with repo rules taking priority.
 
-### Step 4: Create `ModuleDashboard` Component (Frontend)
-**File:** `src/components/dashboard/ModuleDashboard.js`
+### Non-negotiable styling rules
+- Use Microsoft 365 Admin Center flat design language.
+- Light mode only.
+- Use `Segoe UI` style system typography.
+- Use compact 34px controls.
+- Use native `<select>`, `<input type="date">`, and native checkboxes for simple controls.
+- Use `fa-light` icons.
+- Use SCSS, not plain CSS.
+- Use Tailwind only with the `tw-` prefix.
 
-Reusable component that:
-- Accepts `moduleId` prop to scope widget instances
-- Accepts `title` and `headerActions` props for module-specific header content
-- Uses `CategoryGroupedWidgetRenderer` for layout
-- Supports edit mode (add/remove/resize widgets)
-- Supports grouping (by category, widget type, none)
-- Saves layout per module to localStorage/Redux
+### Layout guidance for the module page
+- compact page header with inline icon and actions
+- flat filter bar inside a white card or panel
+- summary cards with neutral surfaces and 1px borders
+- main grid below summaries
+- detail view should use section groups, not oversized cards
+- if there are more than 3 adjacent actions, use a segmented button group
 
-### Step 5: Create `useModuleDashboard` Hook (Frontend)
-**File:** `src/hooks/useModuleDashboard.js`
+### UX requirements
+- mobile and desktop responsive
+- no dark mode work
+- no purple-biased styling
+- avoid generic analytics-dashboard gradients if they clash with Fluent Admin styling
 
-Custom hook that:
-- Loads widget instances filtered by `moduleId`
-- Fetches data for each widget's data source
-- Manages loading/error/stale states
-- Optionally subscribes to SignalR for real-time updates
-- Provides CRUD methods for widget instances
+## Backend Plan
 
-### Step 6: Update Module Dashboard Pages (Frontend)
+### Step A: Inventory and classify existing endpoints
+The next agent should first map which UI needs are already covered by:
+- `gpsFiltered`
+- `gpsAnalytics`
+- `manualRefillsFiltered`
+- `gethistoryconsumptionbyvehicle`
 
-Replace custom dashboard layouts with `<ModuleDashboard>`:
+Expected result:
+- determine which endpoint feeds the dashboard cards
+- determine which endpoint feeds the main records grid
+- determine whether detail view can reuse an existing query or needs one dedicated endpoint
 
-**Vehicle:** `src/pages/vehicles/dashboard/VehicleDashboard.js`
-```jsx
-<ModuleDashboard
-  moduleId="vehicle"
-  title="Vehicle Fleet Dashboard"
-  headerActions={[/* Manage Fleet, Live Tracking buttons */]}
-  defaultWidgets={vehicleDefaultWidgets}
-/>
-```
+### Step B: Add missing read contracts only where necessary
+If current endpoints are insufficient, add read-side contracts in existing feature structure.
 
-**IssueTracker:** `src/pages/issueTracker/components/CombinedIssueDashboard.js`
-```jsx
-<>
-  <FollowedIssuesTicker />
-  <DashboardFilterSection />
-  <ModuleDashboard
-    moduleId="issue_tracker"
-    title="Issue Dashboard"
-    defaultWidgets={issueDefaultWidgets}
-  />
-</>
-```
+Recommended additions if needed:
+- `GetVehicleConsumptionModuleSummaryQuery`
+- `GetVehicleConsumptionGridQuery`
+- `GetVehicleConsumptionRecordDetailQuery`
+- `GetVehicleConsumptionFilterOptionsQuery`
 
-**TankStock:** `src/pages/tankStock/dashboard/EnhancedTankStockDashboard.js`
-```jsx
-<ModuleDashboard
-  moduleId="tank_stock"
-  title="Tank Stock Dashboard"
-  headerActions={[/* Map View toggle */]}
-  defaultWidgets={tankStockDefaultWidgets}
-  customSections={[<TankLevelVisuals />, <MapView />]}
-/>
-```
+Preferred placement:
+- extend current query locations if they are already consumption-focused
+- or add under `FMS.Application/Features/Vehicle/Queries/Consumption/` if the user approves that refinement inside the existing Vehicle domain
 
-**Employee:** `src/pages/employees/dashboard/EmployeeDashboard.js`
-```jsx
-<ModuleDashboard
-  moduleId="employee"
-  title="Employee Operations"
-  headerActions={[/* Employee List, Consumption History */]}
-  defaultWidgets={employeeDefaultWidgets}
-/>
-```
+### Step C: DTOs
+Prefer DTOs under existing vehicle feature structure if new ones are needed.
 
-**Admin:** `src/pages/admin/AdminDashboard.js`
-```jsx
-<ModuleDashboard
-  moduleId="admin"
-  title="Administration"
-  defaultWidgets={adminDefaultWidgets}
-  customSections={[<AdminFeatureGrid />]}
-/>
-```
+Likely DTOs:
+- `VehicleConsumptionModuleSummaryDto`
+- `VehicleConsumptionGridItemDto`
+- `VehicleConsumptionRecordDetailDto`
+- `VehicleConsumptionFilterOptionsDto`
 
-**Reports:** `src/pages/reports/ReportsDashboard.js`
-```jsx
-<ModuleDashboard
-  moduleId="reports"
-  title="Reports Overview"
-  defaultWidgets={reportsDefaultWidgets}
-  customSections={[<ReportSourceCatalog />]}
-/>
-```
+### Step D: Permission boundary
+Use the existing read permission first:
+- `_Read_VehicleConsumptionReport`
 
-### Step 7: Default Widget Configurations (Frontend)
-**File:** `src/config/moduleDefaultWidgets.js`
+If the module needs create/update/delete actions later, do not invent frontend-only permissions.
+Stop and ask for approval before introducing new permission constants or DB-backed permissions.
 
-Define default widget sets per module (used when no saved layout exists):
-```js
-export const vehicleDefaultWidgets = [
-  { widgetType: 'BigStat', dataSource: 'vehicle_fleet_status', category: 'vehicle_operations', size: 'small', name: 'Total Vehicles' },
-  { widgetType: 'PieChart', dataSource: 'vehicle_status_distribution', category: 'vehicle_operations', size: 'medium', name: 'Status Distribution' },
-  { widgetType: 'LineChart', dataSource: 'vehicle_utilization_trend', category: 'vehicle_operations', size: 'large', name: 'Fleet Utilization' },
-  { widgetType: 'DataTable', dataSource: 'vehicle_performance_table', category: 'vehicle_operations', size: 'full', name: 'Vehicle Performance' },
-  // ...
-];
-```
+## Frontend Plan
 
-### Step 8: Module-Specific Custom Sections
-Some modules have unique features that don't map to standard widgets:
-- **TankStock**: SVG tank level visuals, Google Maps view → Keep as `customSections`
-- **IssueTracker**: Followed issues ticker, heatmap, filter bar → Keep as header/custom sections
-- **Admin**: Feature navigation grid → Keep as `customSections`
-- **Reports**: Source catalog with format badges → Keep as `customSections`
+### Step A: Refactor page structure
+Refactor `VehicleConsumptionPage.js` into smaller pieces if necessary.
 
-These render above/below the widget grid via the `customSections` prop.
+Recommended structure:
+- `VehicleConsumptionPage.js` as page shell
+- `components/VehicleConsumptionFilterBar.js`
+- `components/VehicleConsumptionSummaryCards.js`
+- `components/VehicleConsumptionGrid.js`
+- `components/VehicleConsumptionEmptyState.js`
 
----
+Only create files that clearly improve structure. Avoid splitting tiny helpers into many files.
 
-## File Changes Summary
+### Step B: Data service layer
+Add or extend a dedicated service wrapper instead of placing raw axios calls all over page components.
 
-### New Files
-1. `src/components/dashboard/ModuleDashboard.js` - Reusable module dashboard shell
-2. `src/components/dashboard/ModuleDashboard.scss` - Styles
-3. `src/hooks/useModuleDashboard.js` - Module dashboard hook
-4. `src/config/moduleDefaultWidgets.js` - Default widget configs per module
+Preferred options:
+- extend `fms.frontend/src/services/domain/VehicleService.js` if that keeps consumption logic coherent
+- or add a focused consumption service under the vehicle module if the current service is too broad
 
-### Modified Files (Backend)
-5. `DataSourceManager.Metadata.cs` - Register ~30 new data sources
-6. `DataSourceManager.cs` - Add handler methods for new data sources
-7. `WidgetTemplateSeeder.cs` - Add module widget templates
+Service responsibilities:
+- summary fetch
+- grid fetch
+- detail fetch
+- filter-option fetch
+- response normalization
 
-### Modified Files (Frontend)
-8. `VehicleDashboard.js` - Use ModuleDashboard
-9. `CombinedIssueDashboard.js` - Use ModuleDashboard (keep ticker/filters)
-10. `EnhancedTankStockDashboard.js` - Use ModuleDashboard (keep tank visuals/map)
-11. `EmployeeDashboard.js` - Use ModuleDashboard
-12. `AdminDashboard.js` - Use ModuleDashboard (keep feature grid)
-13. `ReportsDashboard.js` - Use ModuleDashboard (keep catalog)
+### Step C: Grid behavior
+Grid should support:
+- search panel
+- filter row
+- header filters where useful
+- date sorting descending by default
+- clear unit display for actual value and fuel lost
+- site and vehicle columns
+- explicit date column that reflects source `vehicleconsumption.Date`
+
+### Step D: Detail behavior
+Detail page should:
+- show the exact row values for the selected record
+- preserve calendar dates without timezone shifting
+- show source-driver text separately from default vehicle employee where relevant
+- expose the report/import reference if available
+
+## Navigation And Wiring
+
+### Vehicle routes
+Keep using `fms.frontend/src/pages/vehicles/VehicleMain.js`.
+
+### Module navigation
+The next agent should inspect existing vehicle navigation wiring before changing anything.
+If the consumption module item is missing or weak in the left navigation, update the existing vehicle layout/navigation structure rather than inventing a second entry point.
+
+### Report-area overlap
+There is already reporting-related consumption functionality under the reporting controller and report viewers.
+The new module should reuse that backend capability but present it as a vehicle operations module, not duplicate report designer logic.
+
+## Risks To Handle Explicitly
+
+1. Legacy consumption code exists in multiple places. The next agent must identify the live path before deleting or replacing anything.
+2. Date handling has already shown timezone-related bugs nearby. Treat all date-only fields carefully and avoid `toISOString().slice(0, 10)` for local calendar display values.
+3. Some consumption data is grouped, some is raw row-level. The module must clearly separate aggregated summaries from raw record details.
+4. Driver names in `vehicleconsumption.EmployeeName` may differ from default assigned employee. Preserve both when useful.
+5. `IsKmperLiter` changes how values should be interpreted. UI labels must not assume km/L for all vehicles.
+
+## Stop Conditions For The Next Agent
+
+The next agent should stop and ask before proceeding if any of these become necessary:
+- creating a new `FMS.Application/Features/VehicleConsumption/` domain folder
+- changing `FMS.Domain/`
+- adding new permissions that require DB migration
+- replacing the existing `/api/v1/Consumption` controller outright
+- deleting older consumption components without first proving they are unused
+
+## Suggested Implementation Order
+
+1. Confirm the live frontend entry points and current navigation behavior.
+2. Confirm which existing backend endpoints already satisfy dashboard, grid, detail, and comparison needs.
+3. Build or refactor the service wrapper for consistent data normalization.
+4. Refactor `/vehicles/consumption` into header + filters + summaries + grid.
+5. Tighten the detail page around raw row data and date correctness.
+6. Improve the comparison page to use the same filters and visual language.
+7. Validate permission gating and route access.
+
+## Expected Deliverables
+
+At minimum, the next agent should leave behind:
+- a production-usable `/vehicles/consumption` module page
+- a stable detail page
+- aligned comparison page
+- reused backend queries/endpoints or minimal new read endpoints
+- consistent M365-style UI
+- no domain-layer changes
+
+## Final Notes For The Next Agent
+
+- Reuse before rewriting.
+- Keep changes narrow and traceable.
+- Prefer existing Vehicle feature structure over inventing a new domain.
+- Preserve route paths already in use.
+- Use design-skill styling, but follow repo instructions first where they conflict.
+- Do not build automatically unless the user explicitly asks.

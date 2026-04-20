@@ -2,7 +2,7 @@
  * File: WarningLetterService.cs
  * Purpose: Handles warning letter preview, PDF persistence, and email delivery workflows.
  * Dependencies: EF Core, SystemConfigurationService, IEmailService, IWarningLetterPdfRenderer
- * Last Modified: 2026-04-14
+ * Last Modified: 2026-04-20
  */
 using System;
 using System.Collections.Generic;
@@ -410,6 +410,35 @@ public class WarningLetterService : IWarningLetterService
         {
             return FMSResponse<WarningLetterDto>.ValidationFailed(new List<string> { $"One or more CC recipients are not configured in recipient group '{recipientOptions.SignatureCcGroupName}'." });
         }
+
+        var requesterUser = string.IsNullOrWhiteSpace(modifiedBy)
+            ? null
+            : await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == modifiedBy)
+                .Select(u => new { u.Id, u.Email })
+                .FirstOrDefaultAsync(cancellationToken);
+
+        var requesterEmail = requesterUser?.Email?.Trim();
+        if (!string.IsNullOrWhiteSpace(requesterEmail)
+            && IsValidEmailAddress(requesterEmail)
+            && !string.Equals(requesterEmail, recipient, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(requesterUser!.Id, selectedUser?.Id, StringComparison.OrdinalIgnoreCase))
+            {
+                ccRecipientIds.Add(requesterUser.Id);
+            }
+
+            ccRecipientEmails.Add(requesterEmail);
+        }
+
+        ccRecipientIds = ccRecipientIds
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        ccRecipientEmails = ccRecipientEmails
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
         var documentResult = await GetPdfAsync(warningLetterId, cancellationToken);
         if (!documentResult.IsSuccess || documentResult.Data == null)

@@ -50,54 +50,11 @@ internal static class WarningLetterAnalyticsReportDataBuilder
 
         var trendAxis = BuildTrendAxis(monthlyTrend, referenceDate);
 
-        var deductionBySite = dto.Analytics.DeductionBySite
-            .Select(item => new
-            {
-                name = string.IsNullOrWhiteSpace(item.Name) ? "-" : item.Name,
-                totalExcessCost = item.TotalExcessCost,
-                totalExcessCostFormatted = item.TotalExcessCost.ToString("N2", CultureInfo.InvariantCulture),
-            })
-            .ToList();
-
-        var deductionByVehicleType = dto.Analytics.DeductionByVehicleType
-            .Select(item => new
-            {
-                name = string.IsNullOrWhiteSpace(item.Name) ? "-" : item.Name,
-                totalExcessCost = item.TotalExcessCost,
-                totalExcessCostFormatted = item.TotalExcessCost.ToString("N2", CultureInfo.InvariantCulture),
-            })
-            .ToList();
-
         var averageDaysBetweenStages = dto.Analytics.AverageDaysBetweenStages
             .Select(item => new
             {
                 transition = item.Transition,
                 averageDays = Math.Round(item.AverageDays, 1),
-            })
-            .ToList();
-
-        var employeeRankingBase = dto.Analytics.EmployeeRanking
-            .Select(item => new
-            {
-                employeeName = string.IsNullOrWhiteSpace(item.EmployeeName) ? "-" : item.EmployeeName,
-                warningCount = item.WarningCount,
-                totalDeduction = item.TotalDeduction,
-                totalDeductionFormatted = item.TotalDeduction.ToString("N2", CultureInfo.InvariantCulture),
-            })
-            .ToList();
-
-        var maxWarningCount = employeeRankingBase.Count == 0
-            ? 1
-            : employeeRankingBase.Max(item => item.warningCount);
-
-        var employeeRanking = employeeRankingBase
-            .Select(item => new
-            {
-                item.employeeName,
-                item.warningCount,
-                item.totalDeduction,
-                item.totalDeductionFormatted,
-                widthPercent = Math.Max(8, (int)Math.Round(item.warningCount / (double)maxWarningCount * 100d)),
             })
             .ToList();
 
@@ -139,6 +96,7 @@ internal static class WarningLetterAnalyticsReportDataBuilder
                 {
                     rowNumber = index + 1,
                     record.Id,
+                    record.EmployeeId,
                     letterTypeName,
                     employeeName = string.IsNullOrWhiteSpace(record.EmployeeName) ? "-" : record.EmployeeName,
                     vehicleHyoungNo = string.IsNullOrWhiteSpace(record.VehicleHyoungNo) ? "-" : record.VehicleHyoungNo,
@@ -153,8 +111,8 @@ internal static class WarningLetterAnalyticsReportDataBuilder
                     workflowStageColor = stageMeta.Color,
                     workflowStageTint = stageMeta.Tint,
                     workflowStageBorderColor = stageMeta.BorderColor,
-                    excessCost = record.ExcessCost,
-                    excessCostFormatted = FormatExcessCostValue(record.ExcessCost, letterTypeName),
+                    excessValueRaw = record.ExcessValue ?? 0m,
+                    excessFuelLitresDisplay = FormatExcessFuelLitres(record.ExcessValue, letterTypeName),
                     excessValue = (record.ExcessValue ?? 0m).ToString("N2", CultureInfo.InvariantCulture),
                     expectedValue = (record.ExpectedValue ?? 0m).ToString("N2", CultureInfo.InvariantCulture),
                     actualValue = (record.ActualValue ?? 0m).ToString("N2", CultureInfo.InvariantCulture),
@@ -163,21 +121,79 @@ internal static class WarningLetterAnalyticsReportDataBuilder
             })
             .ToList();
 
+        var fuelRecords = records
+            .Where(record => string.Equals(record.letterTypeName, "Excess Fuel", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var totalExcessFuelLitres = Math.Round(fuelRecords.Sum(record => record.excessValueRaw), 2, MidpointRounding.AwayFromZero);
+
+        var excessFuelBySite = fuelRecords
+            .GroupBy(record => record.siteName)
+            .Select(group => new
+            {
+                name = group.Key,
+                totalExcessFuelLitres = Math.Round(group.Sum(record => record.excessValueRaw), 2, MidpointRounding.AwayFromZero),
+            })
+            .OrderByDescending(item => item.totalExcessFuelLitres)
+            .ToList();
+
+        var excessFuelByVehicleType = fuelRecords
+            .GroupBy(record => record.vehicleTypeName)
+            .Select(group => new
+            {
+                name = group.Key,
+                totalExcessFuelLitres = Math.Round(group.Sum(record => record.excessValueRaw), 2, MidpointRounding.AwayFromZero),
+            })
+            .OrderByDescending(item => item.totalExcessFuelLitres)
+            .ToList();
+
+        var employeeRanking = records
+            .GroupBy(record => new { record.EmployeeId, record.employeeName })
+            .Select(group => new
+            {
+                employeeName = group.Key.employeeName,
+                warningCount = group.Count(),
+                totalExcessFuelLitres = Math.Round(
+                    group.Where(record => string.Equals(record.letterTypeName, "Excess Fuel", StringComparison.OrdinalIgnoreCase))
+                        .Sum(record => record.excessValueRaw),
+                    2,
+                    MidpointRounding.AwayFromZero),
+            })
+            .OrderByDescending(item => item.warningCount)
+            .ThenBy(item => item.employeeName)
+            .Take(10)
+            .ToList();
+
+        var maxWarningCount = employeeRanking.Count == 0
+            ? 1
+            : employeeRanking.Max(item => item.warningCount);
+
+        var employeeRankingWithWidths = employeeRanking
+            .Select(item => new
+            {
+                item.employeeName,
+                item.warningCount,
+                item.totalExcessFuelLitres,
+                totalExcessFuelLitresFormatted = item.totalExcessFuelLitres.ToString("N2", CultureInfo.InvariantCulture),
+                widthPercent = Math.Max(8, (int)Math.Round(item.warningCount / (double)maxWarningCount * 100d)),
+            })
+            .ToList();
+
         var analytics = new
         {
             totalLetters = dto.Analytics.TotalLetters,
-            totalDeductions = dto.Analytics.TotalDeductions,
-            totalDeductionsFormatted = dto.Analytics.TotalDeductions.ToString("N2", CultureInfo.InvariantCulture),
+            totalExcessFuelLitres,
+            totalExcessFuelLitresFormatted = totalExcessFuelLitres.ToString("N2", CultureInfo.InvariantCulture),
             avgDaysToAcknowledge = Math.Round(dto.Analytics.AvgDaysToAcknowledge, 1),
             uniqueEmployees = dto.Analytics.UniqueEmployees,
             stageBreakdown,
             workflowStages = stageBreakdown,
             letterTypeBreakdown,
             monthlyTrend,
-            deductionBySite,
-            deductionByVehicleType,
+            excessFuelBySite,
+            excessFuelByVehicleType,
             averageDaysBetweenStages,
-            employeeRanking,
+            employeeRanking = employeeRankingWithWidths,
             employeeWithMostWarnings,
             lastWarningByEmployee,
         };
@@ -204,15 +220,15 @@ internal static class WarningLetterAnalyticsReportDataBuilder
                 minOffset = trendAxis.MinOffset,
                 maxOffset = trendAxis.MaxOffset,
             },
-            deductionBySite = new
+            excessFuelBySite = new
             {
-                labels = deductionBySite.Select(item => item.name).ToList(),
-                data = deductionBySite.Select(item => item.totalExcessCost).ToList(),
+                labels = excessFuelBySite.Select(item => item.name).ToList(),
+                data = excessFuelBySite.Select(item => item.totalExcessFuelLitres).ToList(),
             },
-            deductionByVehicleType = new
+            excessFuelByVehicleType = new
             {
-                labels = deductionByVehicleType.Select(item => item.name).ToList(),
-                data = deductionByVehicleType.Select(item => item.totalExcessCost).ToList(),
+                labels = excessFuelByVehicleType.Select(item => item.name).ToList(),
+                data = excessFuelByVehicleType.Select(item => item.totalExcessFuelLitres).ToList(),
             },
         });
 
@@ -232,7 +248,7 @@ internal static class WarningLetterAnalyticsReportDataBuilder
             {
                 totalRecords = records.Count,
                 totalLetters = analytics.totalLetters,
-                totalDeductions = analytics.totalDeductionsFormatted,
+                totalExcessFuelLitres = analytics.totalExcessFuelLitresFormatted,
                 uniqueEmployees = dto.Analytics.UniqueEmployees,
             },
         };
@@ -356,16 +372,14 @@ internal static class WarningLetterAnalyticsReportDataBuilder
             todayOffset);
     }
 
-    private static string FormatExcessCostValue(decimal? excessCost, string letterTypeName)
+    private static string FormatExcessFuelLitres(decimal? excessValue, string letterTypeName)
     {
-        if (string.Equals(letterTypeName, "Excessive Speed", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(letterTypeName, "Excess Fuel", StringComparison.OrdinalIgnoreCase) || !excessValue.HasValue)
         {
             return "-";
         }
 
-        return excessCost.HasValue
-            ? excessCost.Value.ToString("N2", CultureInfo.InvariantCulture)
-            : "-";
+        return $"{excessValue.Value.ToString("N2", CultureInfo.InvariantCulture)} L";
     }
 
     private sealed record WorkflowStagePayload(

@@ -536,7 +536,8 @@ namespace FMS.WebClient.Services.Reporting
                 if (root.TryGetProperty("records", out var warningLetterCandidateRows) &&
                     warningLetterCandidateRows.ValueKind == JsonValueKind.Array &&
                     warningLetterCandidateRows.GetArrayLength() > 0 &&
-                    warningLetterCandidateRows[0].TryGetProperty("letterTypeName", out _))
+                    warningLetterCandidateRows[0].TryGetProperty("letterTypeName", out _) &&
+                    warningLetterCandidateRows[0].TryGetProperty("metricDate", out _))
                 {
                     BuildWarningLetterCandidatesSheet(wb, root, warningLetterCandidateRows);
                     using var ms = new MemoryStream();
@@ -825,7 +826,7 @@ namespace FMS.WebClient.Services.Reporting
             ApplyHeaderRow(ws, row, new[]
             {
                 "#", "Date", "Type", "Employee Name (Work No)", "Vehicle", "Vehicle Type", "Site",
-                "Expected", "Actual", "Excess", "Amount (KES)"
+                "Expected", "Actual", "Excess"
             });
             row++;
 
@@ -841,7 +842,6 @@ namespace FMS.WebClient.Services.Reporting
                 ws.Cell(row, 8).Value = GetStr(candidate, "expectedFormatted");
                 ws.Cell(row, 9).Value = GetStr(candidate, "actualFormatted");
                 ws.Cell(row, 10).Value = GetStr(candidate, "excessFormatted");
-                ws.Cell(row, 11).Value = GetStr(candidate, "excessCostFormatted");
                 row++;
             }
 

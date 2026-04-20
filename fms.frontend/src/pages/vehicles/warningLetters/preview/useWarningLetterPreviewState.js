@@ -2,7 +2,7 @@
  * File: useWarningLetterPreviewState.js
  * Purpose: Encapsulates warning letter preview page state, loading, and workflow actions.
  * Dependencies: React, devextreme notify, warningLetterService, notificationGroupsApi, notificationsApi
- * Last Modified: 2026-04-16
+ * Last Modified: 2026-04-20
  *
  * Key Functions:
  * - useWarningLetterPreviewState(): Coordinates preview data, recipients, and document workflow actions.
@@ -531,7 +531,6 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
             setApproveLetterUploading(true);
             const updatedLetter = await uploadWarningLetterApproveLetter(id, file);
             setLetter(updatedLetter);
-            notify("Approved letter uploaded.", "success", 2500);
             await refreshAll(false);
         } catch (error) {
             notify(error.message || "Failed to upload approved letter.", "error", 3000);

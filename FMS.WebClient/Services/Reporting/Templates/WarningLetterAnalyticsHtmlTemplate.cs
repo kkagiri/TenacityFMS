@@ -18,6 +18,8 @@ internal static class WarningLetterAnalyticsHtmlTemplate
 <title>Warning Letter Analytics</title>
 <script src=""https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js""></script>
 <style>
+    @page { size: A4 landscape; margin: 10mm; }
+
     :root {
         --primary: #0078D4;
         --success: #107C10;
@@ -140,9 +142,9 @@ internal static class WarningLetterAnalyticsHtmlTemplate
             <div class=""sub"">{{analytics.uniqueEmployees}} employees</div>
         </div>
         <div class=""summary-card danger"">
-            <div class=""label"">Total Deductions</div>
-            <div class=""value"">{{analytics.totalDeductionsFormatted}}</div>
-            <div class=""sub"">Excess cost charged</div>
+            <div class=""label"">Excess Fuel</div>
+            <div class=""value"">{{analytics.totalExcessFuelLitresFormatted}} L</div>
+            <div class=""sub"">Fuel loss across excess fuel letters</div>
         </div>
         <div class=""summary-card warning"">
             <div class=""label"">Avg Days to Acknowledge</div>
@@ -195,7 +197,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         </div>
     </div>
 
-    <!-- Monthly Trend + Deductions by Site -->
+    <!-- Monthly Trend + Excess Fuel by Site -->
     <div class=""analytics-grid"">
         <div class=""chart-card"">
             <div class=""chart-card-header"">
@@ -211,27 +213,27 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>
-                    <div class=""chart-card-title"">Deductions by Site</div>
-                    <div class=""chart-card-sub"">Total excess cost per site</div>
+                    <div class=""chart-card-title"">Excess Fuel by Site</div>
+                    <div class=""chart-card-sub"">Total fuel loss per site in litres</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
-                <canvas id=""deductionBySiteChart""></canvas>
+                <canvas id=""excessFuelBySiteChart""></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Deductions by Vehicle Type + Stage Duration -->
+    <!-- Excess Fuel by Vehicle Type + Stage Duration -->
     <div class=""analytics-grid"">
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>
-                    <div class=""chart-card-title"">Deductions by Vehicle Type</div>
-                    <div class=""chart-card-sub"">Total excess cost per vehicle category</div>
+                    <div class=""chart-card-title"">Excess Fuel by Vehicle Type</div>
+                    <div class=""chart-card-sub"">Total fuel loss per vehicle category in litres</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
-                <canvas id=""deductionByVehicleTypeChart""></canvas>
+                <canvas id=""excessFuelByVehicleTypeChart""></canvas>
             </div>
         </div>
         <div class=""chart-card"">
@@ -270,7 +272,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         <div class=""chart-card-header"">
             <div>
                 <div class=""chart-card-title"">Top 10 Employees by Warnings</div>
-                <div class=""chart-card-sub"">Employee ranking with warning count and total deduction</div>
+                <div class=""chart-card-sub"">Employee ranking by warning count and fuel loss litres</div>
             </div>
         </div>
         <div class=""employee-list"">
@@ -279,7 +281,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                 <span class=""employee-name"">{{employeeName}}</span>
                 <div class=""employee-bar-track""><div class=""employee-bar-fill"" style=""width:{{widthPercent}}%""></div></div>
                 <span class=""employee-count"">{{warningCount}}</span>
-                <span class=""employee-cost"">{{totalDeductionFormatted}}</span>
+                <span class=""employee-cost"">{{totalExcessFuelLitresFormatted}} L</span>
             </div>
             {{/each}}
         </div>
@@ -325,7 +327,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                 <th>Site</th>
                 <th>Type</th>
                 <th>Stage</th>
-                <th class=""text-right"">Excess Cost</th>
+                <th class=""text-right"">Excess Fuel (L)</th>
             </tr>
         </thead>
         <tbody>
@@ -338,7 +340,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                 <td>{{siteName}}</td>
                 <td>{{letterTypeName}}</td>
                 <td><span class=""stage-badge"" style=""background:{{workflowStageTint}}; border-color:{{workflowStageBorderColor}}; color:{{workflowStageColor}};"">{{workflowStageName}}</span></td>
-                <td class=""text-right"">{{excessCostFormatted}}</td>
+                <td class=""text-right"">{{excessFuelLitresDisplay}}</td>
             </tr>
             {{/each}}
         </tbody>
@@ -471,56 +473,57 @@ if (typeof Chart !== 'undefined') {
         });
     }
 
-    // 4. Deductions by Site Bar
-    if (cd.deductionBySite && cd.deductionBySite.labels.length > 0) {
-        new Chart(document.getElementById('deductionBySiteChart'), {
-            type: 'bar',
-            data: {
-                labels: cd.deductionBySite.labels,
-                datasets: [{
-                    label: 'Excess Cost',
-                    data: cd.deductionBySite.data,
-                    backgroundColor: DANGER,
-                    borderRadius: 4,
-                    barPercentage: 0.6
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { grid: { color: BORDER }, beginAtZero: true }
+        // 4. Excess Fuel by Site Bar
+        if (cd.excessFuelBySite && cd.excessFuelBySite.labels.length > 0) {
+            new Chart(document.getElementById('excessFuelBySiteChart'), {
+                type: 'bar',
+                data: {
+                    labels: cd.excessFuelBySite.labels,
+                    datasets: [{
+                        label: 'Excess Fuel (L)',
+                        data: cd.excessFuelBySite.data,
+                        backgroundColor: DANGER,
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: BORDER }, beginAtZero: true }
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    // 5. Deductions by Vehicle Type Horizontal Bar
-    if (cd.deductionByVehicleType && cd.deductionByVehicleType.labels.length > 0) {
-        new Chart(document.getElementById('deductionByVehicleTypeChart'), {
-            type: 'bar',
-            data: {
-                labels: cd.deductionByVehicleType.labels,
-                datasets: [{
-                    label: 'Excess Cost',
-                    data: cd.deductionByVehicleType.data,
-                    backgroundColor: [PRIMARY, SUCCESS, WARNING, PURPLE, DANGER, '#0EA5E9'],
-                    borderRadius: 4,
-                    barPercentage: 0.6
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: BORDER }, beginAtZero: true },
-                    y: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' } } }
+        // 5. Excess Fuel by Vehicle Type Horizontal Bar
+        if (cd.excessFuelByVehicleType && cd.excessFuelByVehicleType.labels.length > 0) {
+            new Chart(document.getElementById('excessFuelByVehicleTypeChart'), {
+                type: 'bar',
+                data: {
+                    labels: cd.excessFuelByVehicleType.labels,
+                    datasets: [{
+                        label: 'Excess Fuel (L)',
+                        data: cd.excessFuelByVehicleType.data,
+                        backgroundColor: [PRIMARY, SUCCESS, WARNING, PURPLE, DANGER, '#0EA5E9'],
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: BORDER }, beginAtZero: true },
+                        y: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' } } }
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+
 }
 </script>
 </body>

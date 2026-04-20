@@ -42,14 +42,6 @@ internal static class WarningLetterCandidatesReportDataBuilder
                 expectedFormatted = FormatExpectedMetric(record.ExpectedValue, record.LetterType),
                 actualFormatted = FormatActualMetric(record.ActualValue, record.LetterType),
                 excessFormatted = FormatExcessMetric(record.ExcessValue, record.LetterType),
-                fuelPrice = record.FuelPrice,
-                fuelPriceFormatted = record.FuelPrice.HasValue
-                    ? record.FuelPrice.Value.ToString("N2", CultureInfo.InvariantCulture)
-                    : "-",
-                excessCost = record.ExcessCost,
-                excessCostFormatted = record.ExcessCost.HasValue
-                    ? record.ExcessCost.Value.ToString("N2", CultureInfo.InvariantCulture)
-                    : "-",
                 violationSummary = record.ViolationSummary,
             })
             .ToList();

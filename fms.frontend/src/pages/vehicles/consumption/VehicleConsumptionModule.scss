@@ -1,0 +1,363 @@
+/*
+ * File: VehicleConsumptionModule.scss
+ * Purpose: Provides Microsoft 365-style layout and card styling for vehicle consumption pages.
+ * Dependencies: m365 shared styles
+ * Last Modified: 2026-04-20
+ */
+.vehicle-consumption-module {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: #faf9f8;
+  min-height: 100%;
+
+  &__panel {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  &__header-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    color: #605e5c;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: #605e5c;
+  }
+
+  &__header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__filter-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+    align-items: end;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #323130;
+    }
+  }
+
+  &__filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+
+  &__summary-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__summary-card {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 118px;
+  }
+
+  &__summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  &__summary-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #605e5c;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__summary-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #deecf9;
+    color: #0078d4;
+    font-size: 14px;
+  }
+
+  &__summary-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #201f1e;
+    line-height: 1.1;
+  }
+
+  &__summary-unit {
+    font-size: 12px;
+    font-weight: 500;
+    color: #605e5c;
+    margin-left: 4px;
+  }
+
+  &__summary-meta {
+    font-size: 12px;
+    color: #605e5c;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 36px 16px;
+    text-align: center;
+    color: #605e5c;
+  }
+
+  &__empty-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #f3f2f1;
+    color: #605e5c;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  &__empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__grid-title,
+  &__comparison-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #201f1e;
+    }
+
+    p {
+      margin: 0;
+      font-size: 12px;
+      color: #605e5c;
+    }
+  }
+
+  &__grid-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f3f2f1;
+    color: #323130;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  &__comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  &__compare-card {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  &__compare-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__stat-block {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    span {
+      font-size: 12px;
+      color: #605e5c;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    strong {
+      font-size: 22px;
+      color: #201f1e;
+      font-weight: 600;
+    }
+
+    small {
+      font-size: 12px;
+      color: #605e5c;
+    }
+  }
+
+  &__detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__info-cell {
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 12px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #605e5c;
+    text-transform: uppercase;
+  }
+
+  &__info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #201f1e;
+    word-break: break-word;
+  }
+
+  &__info-note {
+    font-size: 12px;
+    color: #605e5c;
+    white-space: pre-wrap;
+  }
+
+  &__accent-danger {
+    color: #d13438;
+  }
+
+  &__accent-success {
+    color: #107c10;
+  }
+
+  .dx-datagrid {
+    border-color: #edebe9;
+  }
+
+  .dx-datagrid-headers,
+  .dx-header-row > td {
+    background: #faf9f8;
+    color: #323130;
+    font-weight: 600;
+  }
+
+  .dx-row:hover > td {
+    background: #f3f2f1;
+  }
+}
+
+@media (max-width: 1200px) {
+  .vehicle-consumption-module {
+    &__filter-grid,
+    &__summary-grid,
+    &__compare-stats,
+    &__detail-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .vehicle-consumption-module {
+    &__comparison-grid,
+    &__filter-grid,
+    &__summary-grid,
+    &__compare-stats,
+    &__detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__header-actions,
+    &__filter-actions {
+      justify-content: flex-start;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .vehicle-consumption-module {
+    padding: 12px;
+
+    &__comparison-grid,
+    &__filter-grid,
+    &__summary-grid,
+    &__compare-stats,
+    &__detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__panel,
+    &__compare-card {
+      padding: 12px;
+    }
+
+    &__summary-value {
+      font-size: 22px;
+    }
+  }
+}
