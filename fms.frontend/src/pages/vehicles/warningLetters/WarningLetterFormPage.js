@@ -2,7 +2,7 @@
  * File:          WarningLetterFormPage.js
  * Purpose:       Multi-step wizard for creating/editing warning letters with candidate-based metric population.
  * Dependencies:  React, react-router-dom, react-redux, DevExtreme DateBox, warningLetterService
- * Last Modified: 2026-04-11
+ * Last Modified: 2026-04-20
  *
  * Key Functions:
  * - handleLoadCandidates(): queries consumption records matching type + month
@@ -99,8 +99,21 @@ const dateToMonthString = (value) => {
 
 const toInputDate = (value) => {
     if (!value) return "";
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+
+    if (typeof value === "string") {
+        const trimmedValue = value.trim();
+        const directDateMatch = trimmedValue.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (directDateMatch) {
+            return directDateMatch[1];
+        }
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return formatDateParts(date.getFullYear(), date.getMonth() + 1, date.getDate());
 };
 
 const normalizeEmployeeName = (value) =>
