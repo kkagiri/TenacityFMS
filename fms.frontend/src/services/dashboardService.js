@@ -379,13 +379,18 @@ class DashboardService {
   // ========================================
 
   /**
-   * Share a widget with other users
+   * Share a widget with users and/or departments
    * @param {number} widgetInstanceId - Widget instance ID
-   * @param {string[]} targetUserIds - Array of user IDs to share with
+   * @param {string[]} targetUserIds - Individual user IDs to share with
+   * @param {number[]} targetDepartmentIds - Department IDs (shares with all users in those departments)
    * @returns {Promise<object>} FMSResponseMessage<ShareWidgetResponseDto>
    */
-  async shareWidget(widgetInstanceId, targetUserIds) {
-    const response = await axiosInstance.post(`v1/dashboard/widgets/${widgetInstanceId}/share`, targetUserIds);
+  async shareWidget(widgetInstanceId, targetUserIds = [], targetDepartmentIds = []) {
+    const response = await axiosInstance.post(`v1/dashboard/widgets/${widgetInstanceId}/share`, {
+      targetUserIds,
+      targetDepartmentIds,
+      allowEdit: true
+    });
     return response.data;
   }
 
@@ -427,6 +432,15 @@ class DashboardService {
    */
   async getUsersForSharing() {
     const response = await axiosInstance.get('v1/dashboard/users');
+    return response.data;
+  }
+
+  /**
+   * Get all active departments (for sharing by department)
+   * @returns {Promise<object[]>} List of departments
+   */
+  async getDepartmentsForSharing() {
+    const response = await axiosInstance.get('department');
     return response.data;
   }
 

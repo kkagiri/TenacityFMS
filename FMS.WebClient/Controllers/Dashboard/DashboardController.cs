@@ -321,34 +321,41 @@ namespace FMS.WebClient.Controllers
         // ===== WIDGET SHARING ENDPOINTS =====
 
         /// <summary>
-        /// Share a widget with other users
-        /// Creates new widget instances for each target user
+        /// Share a widget with other users or departments
+        /// Creates new widget instances for each target user (including users resolved from departments)
         /// </summary>
         [HttpPost("widgets/{widgetInstanceId}/share")]
         public async Task<ActionResult<FMSResponseMessage<ShareWidgetResponseDto>>> ShareWidget(
             int widgetInstanceId,
-            [FromBody] List<string> targetUserIds)
+            [FromBody] ShareWidgetRequestDto shareRequest)
         {
-            if (targetUserIds == null || !targetUserIds.Any())
+            if (shareRequest == null)
             {
                 return BadRequest(new FMSResponseMessage<ShareWidgetResponseDto>(
                     false,
-                    "No target users specified",
+                    "Invalid request",
+                    null!
+                ));
+            }
+
+            var hasTargetUsers = shareRequest.TargetUserIds != null && shareRequest.TargetUserIds.Any();
+            var hasTargetDepartments = shareRequest.TargetDepartmentIds != null && shareRequest.TargetDepartmentIds.Any();
+
+            if (!hasTargetUsers && !hasTargetDepartments)
+            {
+                return BadRequest(new FMSResponseMessage<ShareWidgetResponseDto>(
+                    false,
+                    "No target users or departments specified",
                     null!
                 ));
             }
 
             string userId = CurrentUserId;
-            var request = new ShareWidgetRequestDto
-            {
-                WidgetInstanceId = widgetInstanceId,
-                TargetUserIds = targetUserIds,
-                AllowEdit = true // As per requirements, shared users can edit parameters
-            };
+            shareRequest.WidgetInstanceId = widgetInstanceId;
 
             var result = await _mediator.Send(new ShareWidgetCommand(
                 userId,
-                request,
+                shareRequest,
                 CurrentActor
             ));
 

@@ -56,11 +56,34 @@ namespace FMS.Application.Features.Dashboard.Commands
                     );
                 }
 
-                if (request.TargetUserIds == null || !request.TargetUserIds.Any())
+                // Resolve department IDs to user IDs and merge with individually selected users
+                var allTargetUserIds = new HashSet<string>(request.TargetUserIds ?? new List<string>());
+
+                if (request.TargetDepartmentIds != null && request.TargetDepartmentIds.Any())
+                {
+                    var departmentUserIds = await _context.Users
+                        .Where(u => u.DepartmentId.HasValue
+                            && request.TargetDepartmentIds.Contains(u.DepartmentId.Value))
+                        .Select(u => u.Id)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var uid in departmentUserIds)
+                    {
+                        allTargetUserIds.Add(uid);
+                    }
+
+                    _logger.LogInformation(
+                        "Resolved {DeptCount} department(s) to {UserCount} user(s) for widget sharing",
+                        request.TargetDepartmentIds.Count,
+                        departmentUserIds.Count
+                    );
+                }
+
+                if (!allTargetUserIds.Any())
                 {
                     return new FMSResponseMessage<ShareWidgetResponseDto>(
                         false,
-                        "No target users specified",
+                        "No target users or departments specified",
                         null!
                     );
                 }
@@ -101,8 +124,8 @@ namespace FMS.Application.Features.Dashboard.Commands
 
                 var sharedAt = DateTime.UtcNow;
 
-                // Process each target user
-                foreach (var targetUserId in request.TargetUserIds.Distinct())
+                // Process each target user (merged from individual + department selections)
+                foreach (var targetUserId in allTargetUserIds)
                 {
                     try
                     {
@@ -181,8 +204,9 @@ namespace FMS.Application.Features.Dashboard.Commands
                         _context.DashboardWidgetInstances.Add(sharedWidget);
                         await _context.SaveChangesAsync(cancellationToken);
 
-                        // Get user display name
+                        // Get user display name and department
                         var targetUser = await _context.Users
+                            .Include(u => u.Department)
                             .FirstOrDefaultAsync(u => u.Id == targetUserId, cancellationToken);
 
                         response.SharedInstances.Add(new SharedWidgetInstanceDto
@@ -190,6 +214,7 @@ namespace FMS.Application.Features.Dashboard.Commands
                             WidgetInstanceId = sharedWidget.Id,
                             UserId = targetUserId,
                             UserDisplayName = targetUser?.UserName ?? targetUserId,
+                            DepartmentName = targetUser?.Department?.Name,
                             SharedAt = sharedAt,
                             CanEdit = request.AllowEdit,
                             CanDelete = false

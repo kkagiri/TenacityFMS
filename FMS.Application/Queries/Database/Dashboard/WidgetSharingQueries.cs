@@ -175,19 +175,25 @@ namespace FMS.Application.Queries.Database.Dashboard
                     );
                 }
 
-                // Get user information
+                // Get user information including department
                 var userIds = shares.Select(s => s.UserId).ToList();
                 var users = await _context.Users
+                    .Include(u => u.Department)
                     .Where(u => userIds.Contains(u.Id))
-                    .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Email ?? u.Id, cancellationToken);
+                    .ToDictionaryAsync(u => u.Id, u => u, cancellationToken);
 
-                var dtos = shares.Select(s => new SharedWithUserDto
+                var dtos = shares.Select(s =>
                 {
-                    UserId = s.UserId,
-                    UserDisplayName = users.ContainsKey(s.UserId) ? users[s.UserId] : s.UserId,
-                    SharedWidgetInstanceId = s.Id,
-                    SharedAt = s.SharedAt ?? s.CreatedAt,
-                    CanEdit = s.CanEdit
+                    var user = users.ContainsKey(s.UserId) ? users[s.UserId] : null;
+                    return new SharedWithUserDto
+                    {
+                        UserId = s.UserId,
+                        UserDisplayName = user?.UserName ?? user?.Email ?? s.UserId,
+                        DepartmentName = user?.Department?.Name,
+                        SharedWidgetInstanceId = s.Id,
+                        SharedAt = s.SharedAt ?? s.CreatedAt,
+                        CanEdit = s.CanEdit
+                    };
                 }).ToList();
 
                 return new FMSResponseMessage<List<SharedWithUserDto>>(

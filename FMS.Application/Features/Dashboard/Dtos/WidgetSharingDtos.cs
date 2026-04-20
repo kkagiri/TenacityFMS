@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace FMS.Application.Features.Dashboard
 {
     /// <summary>
-    /// Request to share a widget with other users
+    /// Request to share a widget with other users or departments
     /// </summary>
     public class ShareWidgetRequestDto
     {
@@ -14,9 +14,14 @@ namespace FMS.Application.Features.Dashboard
         public int WidgetInstanceId { get; set; }
 
         /// <summary>
-        /// List of user IDs to share the widget with
+        /// List of individual user IDs to share the widget with
         /// </summary>
         public List<string> TargetUserIds { get; set; } = new List<string>();
+
+        /// <summary>
+        /// List of department IDs to share the widget with (all active users in those departments)
+        /// </summary>
+        public List<int> TargetDepartmentIds { get; set; } = new List<int>();
 
         /// <summary>
         /// Optional: Allow shared users to edit widget parameters
@@ -75,6 +80,11 @@ namespace FMS.Application.Features.Dashboard
         /// User's display name or email
         /// </summary>
         public string UserDisplayName { get; set; } = null!;
+
+        /// <summary>
+        /// Department name of the user (if applicable)
+        /// </summary>
+        public string? DepartmentName { get; set; }
 
         /// <summary>
         /// When the widget was shared
@@ -179,6 +189,11 @@ namespace FMS.Application.Features.Dashboard
         /// User's display name or email
         /// </summary>
         public string UserDisplayName { get; set; } = null!;
+
+        /// <summary>
+        /// Department name of the user (if applicable)
+        /// </summary>
+        public string? DepartmentName { get; set; }
 
         /// <summary>
         /// Shared widget instance ID

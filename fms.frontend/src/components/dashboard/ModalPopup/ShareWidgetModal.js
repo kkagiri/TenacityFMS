@@ -19,7 +19,10 @@ import dashboardService from '../../../services/dashboardService';
  */
 const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) => {
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedDepartmentIds, setSelectedDepartmentIds] = useState([]);
+  const [shareMode, setShareMode] = useState('department'); // 'department' or 'user'
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [sharedWithUsers, setSharedWithUsers] = useState([]);
@@ -28,11 +31,18 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await dashboardService.getUsersForSharing();
-      setUsers(response);
+      const [usersResponse, departmentsResponse] = await Promise.all([
+        dashboardService.getUsersForSharing(),
+        dashboardService.getDepartmentsForSharing()
+      ]);
+      setUsers(usersResponse);
+      // Filter to active departments that have users
+      const activeDepts = (departmentsResponse?.result || departmentsResponse || [])
+        .filter(d => d.isActive !== false);
+      setDepartments(activeDepts);
     } catch (error) {
-      console.error('Failed to load users:', error);
-      notify('Failed to load users', 'error', 3000);
+      console.error('Failed to load users/departments:', error);
+      notify('Failed to load data', 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -51,18 +61,25 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
     } finally {
       setLoadingShares(false);
     }
-  };  // Load available users and existing shares
+  };
+
+  // Load available users, departments, and existing shares
   useEffect(() => {
     if (visible && widgetInstanceId) {
       loadUsers();
       loadSharedUsers();
+      setSelectedUserIds([]);
+      setSelectedDepartmentIds([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, widgetInstanceId]);
 
     const handleShare = async () => {
-    if (!selectedUserIds || selectedUserIds.length === 0) {
-      notify('Please select at least one user', 'warning', 3000);
+    const hasUsers = selectedUserIds && selectedUserIds.length > 0;
+    const hasDepartments = selectedDepartmentIds && selectedDepartmentIds.length > 0;
+
+    if (!hasUsers && !hasDepartments) {
+      notify('Please select at least one user or department', 'warning', 3000);
       return;
     }
 
@@ -71,7 +88,8 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
 
       const response = await dashboardService.shareWidget(
         widgetInstanceId,
-        selectedUserIds
+        selectedUserIds || [],
+        selectedDepartmentIds || []
       );
 
       if (response?.isSuccess) {
@@ -94,8 +112,9 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
         // Reload shares to show updated list
         await loadSharedUsers();
 
-        // Clear selection
+        // Clear selections
         setSelectedUserIds([]);
+        setSelectedDepartmentIds([]);
 
         // Close modal if all shares succeeded
         if (result.failureCount === 0) {
@@ -175,6 +194,7 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
                     <div>
                       <div className="tw-font-medium tw-text-sm">{share.userDisplayName}</div>
                       <div className="tw-text-xs tw-text-gray-600">
+                        {share.departmentName && <span className="tw-mr-1">{share.departmentName} •</span>}
                         Shared {new Date(share.sharedAt).toLocaleDateString()} •
                         {share.canEdit ? ' Can edit' : ' Read-only'}
                       </div>
@@ -193,52 +213,133 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
           </div>
         )}
 
-        {/* Share With New Users Section */}
+        {/* Share Mode Toggle */}
         {!loading && (
           <div className="tw-mb-4">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
-              <i className="fa-light fa-share-nodes tw-mr-2"></i>
-              Share With New Users
-            </h4>
+            <div className="tw-flex tw-gap-2 tw-mb-4">
+              <button
+                onClick={() => setShareMode('department')}
+                className={`tw-flex-1 tw-py-2 tw-px-3 tw-rounded-lg tw-text-sm tw-font-medium tw-transition-colors tw-border ${
+                  shareMode === 'department'
+                    ? 'tw-bg-blue-600 tw-text-white tw-border-blue-600'
+                    : 'tw-bg-white tw-text-gray-700 tw-border-gray-300 hover:tw-bg-gray-50'
+                }`}
+              >
+                <i className="fa-light fa-building tw-mr-2"></i>
+                By Department
+              </button>
+              <button
+                onClick={() => setShareMode('user')}
+                className={`tw-flex-1 tw-py-2 tw-px-3 tw-rounded-lg tw-text-sm tw-font-medium tw-transition-colors tw-border ${
+                  shareMode === 'user'
+                    ? 'tw-bg-blue-600 tw-text-white tw-border-blue-600'
+                    : 'tw-bg-white tw-text-gray-700 tw-border-gray-300 hover:tw-bg-gray-50'
+                }`}
+              >
+                <i className="fa-light fa-user tw-mr-2"></i>
+                By User
+              </button>
+            </div>
 
-            {availableUsers.length === 0 ? (
-              <div className="tw-text-center tw-py-4 tw-text-gray-500">
-                <i className="fa-light fa-info-circle tw-mr-2"></i>
-                {sharedWithUsers.length > 0
-                  ? 'Widget is already shared with all available users'
-                  : 'No users available to share with'}
-              </div>
-            ) : (
-              <>
-                <TagBox
-                  dataSource={availableUsers}
-                  displayExpr="displayName"
-                  valueExpr="id"
-                  value={selectedUserIds}
-                  onValueChanged={(e) => setSelectedUserIds(e.value)}
-                  placeholder="Select users to share with..."
-                  searchEnabled={true}
-                  showSelectionControls={true}
-                  applyValueMode="useButtons"
-                  stylingMode="outlined"
-                  className="tw-mb-4"
-                  itemRender={(item) => (
-                    <div className="tw-py-1">
-                      <div className="tw-font-medium">{item.displayName}</div>
-                      {item.email && (
-                        <div className="tw-text-xs tw-text-gray-600">{item.email}</div>
+            {/* Share by Department */}
+            {shareMode === 'department' && (
+              <div className="tw-mb-4">
+                <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
+                  <i className="fa-light fa-building tw-mr-2"></i>
+                  Share With Departments
+                </h4>
+
+                {departments.length === 0 ? (
+                  <div className="tw-text-center tw-py-4 tw-text-gray-500">
+                    <i className="fa-light fa-info-circle tw-mr-2"></i>
+                    No departments available
+                  </div>
+                ) : (
+                  <>
+                    <TagBox
+                      dataSource={departments}
+                      displayExpr="name"
+                      valueExpr="departmentId"
+                      value={selectedDepartmentIds}
+                      onValueChanged={(e) => setSelectedDepartmentIds(e.value)}
+                      placeholder="Select departments to share with..."
+                      searchEnabled={true}
+                      showSelectionControls={true}
+                      applyValueMode="useButtons"
+                      stylingMode="outlined"
+                      className="tw-mb-4"
+                      itemRender={(item) => (
+                        <div className="tw-py-1">
+                          <div className="tw-font-medium">{item.name}</div>
+                          {item.code && (
+                            <div className="tw-text-xs tw-text-gray-600">{item.code}</div>
+                          )}
+                          {item.userCount !== undefined && (
+                            <div className="tw-text-xs tw-text-gray-500">{item.userCount} user(s)</div>
+                          )}
+                        </div>
                       )}
-                    </div>
-                  )}
-                />
+                    />
 
-                <div className="tw-flex tw-items-center tw-p-3 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-mb-4">
-                  <i className="fa-light fa-info-circle tw-mr-2 tw-text-blue-600"></i>
-                  <span className="tw-text-sm tw-text-gray-700">
-                    Shared users can edit widget parameters but cannot delete the widget.
-                  </span>
-                </div>
-              </>
+                    <div className="tw-flex tw-items-center tw-p-3 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-mb-4">
+                      <i className="fa-light fa-info-circle tw-mr-2 tw-text-blue-600"></i>
+                      <span className="tw-text-sm tw-text-gray-700">
+                        All users in the selected department(s) will receive this widget. Shared users can edit widget parameters but cannot delete the widget.
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Share by Individual User */}
+            {shareMode === 'user' && (
+              <div className="tw-mb-4">
+                <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
+                  <i className="fa-light fa-share-nodes tw-mr-2"></i>
+                  Share With Individual Users
+                </h4>
+
+                {availableUsers.length === 0 ? (
+                  <div className="tw-text-center tw-py-4 tw-text-gray-500">
+                    <i className="fa-light fa-info-circle tw-mr-2"></i>
+                    {sharedWithUsers.length > 0
+                      ? 'Widget is already shared with all available users'
+                      : 'No users available to share with'}
+                  </div>
+                ) : (
+                  <>
+                    <TagBox
+                      dataSource={availableUsers}
+                      displayExpr="displayName"
+                      valueExpr="id"
+                      value={selectedUserIds}
+                      onValueChanged={(e) => setSelectedUserIds(e.value)}
+                      placeholder="Select users to share with..."
+                      searchEnabled={true}
+                      showSelectionControls={true}
+                      applyValueMode="useButtons"
+                      stylingMode="outlined"
+                      className="tw-mb-4"
+                      itemRender={(item) => (
+                        <div className="tw-py-1">
+                          <div className="tw-font-medium">{item.displayName}</div>
+                          {item.email && (
+                            <div className="tw-text-xs tw-text-gray-600">{item.email}</div>
+                          )}
+                        </div>
+                      )}
+                    />
+
+                    <div className="tw-flex tw-items-center tw-p-3 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-mb-4">
+                      <i className="fa-light fa-info-circle tw-mr-2 tw-text-blue-600"></i>
+                      <span className="tw-text-sm tw-text-gray-700">
+                        Shared users can edit widget parameters but cannot delete the widget.
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -252,16 +353,14 @@ const ShareWidgetModal = ({ visible, onHiding, widgetInstanceId, widgetName }) =
             type="normal"
             disabled={sharing}
           />
-          {availableUsers.length > 0 && (
-            <Button
-              text={sharing ? 'Sharing...' : 'Share Widget'}
-              onClick={handleShare}
-              stylingMode="contained"
-              type="default"
-              disabled={sharing || selectedUserIds.length === 0}
-              icon={sharing ? undefined : 'share'}
-            />
-          )}
+          <Button
+            text={sharing ? 'Sharing...' : 'Share Widget'}
+            onClick={handleShare}
+            stylingMode="contained"
+            type="default"
+            disabled={sharing || (selectedUserIds.length === 0 && selectedDepartmentIds.length === 0)}
+            icon={sharing ? undefined : 'share'}
+          />
         </div>
       </div>
     </Popup>
