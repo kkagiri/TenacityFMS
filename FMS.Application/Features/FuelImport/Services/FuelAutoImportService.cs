@@ -78,6 +78,34 @@ public class FuelAutoImportService : IFuelAutoImportService
         "KATANI"
     };
 
+    private static readonly Dictionary<string, int> MonthNameToNumber = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["JANUARY"] = 1,
+        ["JAN"] = 1,
+        ["FEBRUARY"] = 2,
+        ["FEB"] = 2,
+        ["MARCH"] = 3,
+        ["MAR"] = 3,
+        ["APRIL"] = 4,
+        ["APR"] = 4,
+        ["MAY"] = 5,
+        ["JUNE"] = 6,
+        ["JUN"] = 6,
+        ["JULY"] = 7,
+        ["JUL"] = 7,
+        ["AUGUST"] = 8,
+        ["AUG"] = 8,
+        ["SEPTEMBER"] = 9,
+        ["SEP"] = 9,
+        ["SEPT"] = 9,
+        ["OCTOBER"] = 10,
+        ["OCT"] = 10,
+        ["NOVEMBER"] = 11,
+        ["NOV"] = 11,
+        ["DECEMBER"] = 12,
+        ["DEC"] = 12,
+    };
+
     public FuelAutoImportService(
         IExcelParsingService parsingService,
         IFileTrackerService fileTrackerService,
@@ -123,12 +151,13 @@ public class FuelAutoImportService : IFuelAutoImportService
                 options.ScanPaths = new List<string> { NormalizeScanPath(selectedProfile.ScanPath) };
                 options.BatchSize = selectedProfile.BatchSize;
                 options.IncludeRetries = selectedProfile.IncludeRetries;
+                options.RecentMonthsWindow = selectedProfile.RecentMonthsWindow;
                 result.ProfileId = selectedProfile.Id;
                 result.ProfileName = selectedProfile.Name;
                 configuredProfiles = new List<FuelAutoImportProfileDto> { selectedProfile };
 
-                _logger.LogInformation("Resolved profile '{ProfileId}' ({ProfileName}). Path: {Path}, Batch: {Batch}",
-                    selectedProfile.Id, selectedProfile.Name, selectedProfile.ScanPath, selectedProfile.BatchSize);
+                _logger.LogInformation("Resolved profile '{ProfileId}' ({ProfileName}). Path: {Path}, Batch: {Batch}, MonthsWindow: {Window}",
+                    selectedProfile.Id, selectedProfile.Name, selectedProfile.ScanPath, selectedProfile.BatchSize, selectedProfile.RecentMonthsWindow);
             }
 
             // 2. Determine scan paths
@@ -155,6 +184,24 @@ public class FuelAutoImportService : IFuelAutoImportService
                 _logger.LogInformation("No .xlsx files found in scan paths");
                 result.Duration = sw.Elapsed;
                 return result;
+            }
+
+            // 2b. Apply recent-months window filter (keeps files whose detected month/year fall within
+            //     the rolling window. Files without detectable month/year are kept so they can still fail
+            //     loudly rather than be silently dropped).
+            if (options.RecentMonthsWindow > 0)
+            {
+                var referenceMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+                var cutoffMonth = referenceMonth.AddMonths(-(options.RecentMonthsWindow - 1));
+                var beforeCount = allFiles.Count;
+                allFiles = allFiles.Where(f => IsWithinRecentMonths(f, cutoffMonth, referenceMonth)).ToList();
+                var excluded = beforeCount - allFiles.Count;
+                result.FilesSkippedOutOfWindow = excluded;
+                result.FilesScanned = allFiles.Count;
+
+                _logger.LogInformation(
+                    "Applied month window filter: window={Window} month(s) ({From:yyyy-MM}..{To:yyyy-MM}), kept {Kept}, skipped {Skipped}",
+                    options.RecentMonthsWindow, cutoffMonth, referenceMonth, allFiles.Count, excluded);
             }
 
             // 3. Detect new/changed files (skip unchanged via tracker)
@@ -249,9 +296,9 @@ public class FuelAutoImportService : IFuelAutoImportService
         }
 
         _logger.LogInformation(
-            "Auto-import scan completed in {Duration}ms. Scanned: {Scanned}, Processed: {Processed}, " +
+            "Auto-import scan completed in {Duration}ms. Scanned: {Scanned}, OutOfWindow: {OutOfWindow}, Processed: {Processed}, " +
             "Succeeded: {Succeeded}, Failed: {Failed}, Unchanged: {Unchanged}, Records: {Records}",
-            sw.ElapsedMilliseconds, result.FilesScanned, result.FilesProcessed,
+            sw.ElapsedMilliseconds, result.FilesScanned, result.FilesSkippedOutOfWindow, result.FilesProcessed,
             result.FilesSucceeded, result.FilesFailed, result.FilesSkippedUnchanged, result.TotalRecordsImported);
 
         return result;
@@ -407,6 +454,7 @@ public class FuelAutoImportService : IFuelAutoImportService
             IntervalMinutes = 0,
             ScheduleTime = string.Empty,
             BatchSize = 50,
+            RecentMonthsWindow = 3,
             IncludeRetries = true,
             DuplicateHandling = FuelAutoImportProfileDto.DuplicateHandlingSkip,
             NotificationsEnabled = false,
@@ -699,7 +747,24 @@ public class FuelAutoImportService : IFuelAutoImportService
     {
         profile.ScanPath = NormalizeScanPath(profile.ScanPath);
         profile.DuplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile.DuplicateHandling);
+        if (profile.RecentMonthsWindow < 0) profile.RecentMonthsWindow = 0;
         return profile;
+    }
+
+    /// <summary>
+    /// Returns true if the file's detected month/year falls inside [cutoffMonth..referenceMonth].
+    /// Files with undetectable month/year are kept (not silently dropped) so parsing errors surface.
+    /// </summary>
+    private static bool IsWithinRecentMonths(FuelReportFileMetadata metadata, DateTime cutoffMonth, DateTime referenceMonth)
+    {
+        if (metadata.DetectedYear is null || string.IsNullOrWhiteSpace(metadata.DetectedMonth))
+            return true;
+
+        if (!MonthNameToNumber.TryGetValue(metadata.DetectedMonth.Trim(), out var monthNum))
+            return true;
+
+        var fileMonth = new DateTime(metadata.DetectedYear.Value, monthNum, 1);
+        return fileMonth >= cutoffMonth && fileMonth <= referenceMonth;
     }
 
     private static FuelAutoImportProfileDto? ResolveProfileForFilePath(string filePath, IReadOnlyCollection<FuelAutoImportProfileDto> profiles)

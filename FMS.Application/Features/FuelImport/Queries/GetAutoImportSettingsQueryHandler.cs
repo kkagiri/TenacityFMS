@@ -128,6 +128,7 @@ public class GetAutoImportSettingsQueryHandler
     private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
     {
         profile.DuplicateHandling = FuelAutoImportProfileDto.NormalizeDuplicateHandling(profile.DuplicateHandling);
+        if (profile.RecentMonthsWindow < 0) profile.RecentMonthsWindow = 0;
 
         if (string.IsNullOrWhiteSpace(profile.ScanPath))
             return profile;

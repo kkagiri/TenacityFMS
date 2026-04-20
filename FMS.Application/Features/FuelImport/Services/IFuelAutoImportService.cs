@@ -25,6 +25,7 @@ public class AutoImportResult
     public int FilesNew { get; set; }
     public int FilesChanged { get; set; }
     public int FilesSkippedUnchanged { get; set; }
+    public int FilesSkippedOutOfWindow { get; set; }
     public int FilesProcessed { get; set; }
     public int FilesSucceeded { get; set; }
     public int FilesFailed { get; set; }
@@ -62,6 +63,13 @@ public class AutoImportOptions
     /// Maximum files to process in a single run (0 = unlimited).
     /// </summary>
     public int BatchSize { get; set; } = 50;
+
+    /// <summary>
+    /// Rolling month window (based on filename month/year) to limit which files are picked up.
+    /// 3 = current month + 2 previous months. 0 = no month filter.
+    /// Overridden by the profile setting when a profile is resolved.
+    /// </summary>
+    public int RecentMonthsWindow { get; set; } = 0;
 
     /// <summary>
     /// Whether to include failed files eligible for retry.

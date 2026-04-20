@@ -254,6 +254,25 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage, on
                         </div>
                         <div className="ais-field">
                             <label className="ais-field__label">
+                                Months Window
+                                <M365InfoTip text="Only import files whose filename month/year fall inside a rolling window ending in the current month. 3 = current month + 2 previous months (M, M-1, M-2). Set to 0 to import all historical files. Files with an unrecognisable month in the name are always kept." />
+                            </label>
+                            <input
+                                type="number"
+                                className="m365-input tw-w-full"
+                                min={0}
+                                max={60}
+                                value={profile.recentMonthsWindow ?? 3}
+                                onChange={(e) =>
+                                    update(
+                                        "recentMonthsWindow",
+                                        Math.max(0, parseInt(e.target.value, 10) || 0)
+                                    )
+                                }
+                            />
+                        </div>
+                        <div className="ais-field">
+                            <label className="ais-field__label">
                                 Duplicates
                                 <M365InfoTip text="Choose whether rows that already exist for the same Vehicle / Date / Shift should be skipped or should replace the stored row. Use Replace to correct previously imported values." />
                             </label>

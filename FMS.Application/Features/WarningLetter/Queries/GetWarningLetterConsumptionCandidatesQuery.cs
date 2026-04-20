@@ -2,7 +2,7 @@
  * File: GetWarningLetterConsumptionCandidatesQuery.cs
  * Purpose: Returns filtered vehicle-consumption records that qualify as warning letter candidates.
  * Dependencies: MediatR, GpsdataContext, ISystemConfigurationService, FMSResponse, WarningLetter DTOs/entities
- * Last Modified: 2026-04-09
+ * Last Modified: 2026-04-20
  */
 using System;
 using System.Collections.Generic;
@@ -105,7 +105,7 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
         {
             WarningLetterType.ExcessiveSpeed => query.Where(vc => (vc.MaxSpeed ?? 0m) > speedThreshold),
             WarningLetterType.ExcessiveIdling => query.Where(vc => (vc.EngHours ?? 0m) > idlingThreshold),
-            _ => query.Where(vc => (vc.FuelLost ?? 0m) > 4m)
+            _ => query.Where(vc => (vc.FuelLost ?? 0m) >= 4m)
         };
 
         var candidates = await query
@@ -256,12 +256,6 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
     {
         var storedStart = existingLetter.PeriodStart.Date;
         var storedEnd = existingLetter.PeriodEnd.Date;
-
-        if (storedStart <= violationDate && storedEnd >= violationDate)
-        {
-            return true;
-        }
-
-        return storedStart.AddDays(1) <= violationDate && storedEnd.AddDays(1) >= violationDate;
+        return storedStart <= violationDate && storedEnd >= violationDate;
     }
 }

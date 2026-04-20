@@ -44,6 +44,12 @@ public class FuelAutoImportProfileDto
     /// <summary>Maximum files to process per batch (0 = unlimited)</summary>
     public int BatchSize { get; set; } = 50;
 
+    /// <summary>
+    /// Rolling month window (based on filename month/year) to limit which files are picked up.
+    /// 3 = current month + 2 previous months. 0 = no month filter (import all detected periods).
+    /// </summary>
+    public int RecentMonthsWindow { get; set; } = 3;
+
     /// <summary>Whether to auto-include failed/skipped files for retry</summary>
     public bool IncludeRetries { get; set; } = true;
 

@@ -27,6 +27,7 @@ const createEmptyProfile = (id = null) => ({
     intervalMinutes: 0,
     scheduleTime: "",
     batchSize: 50,
+    recentMonthsWindow: 3,
     includeRetries: true,
     duplicateHandling: "skip",
     notificationsEnabled: false,
@@ -41,6 +42,10 @@ const EMPTY_SETTINGS = {
 
 const normalizeProfile = (profile = {}) => ({
     ...createEmptyProfile(profile.id),
+    recentMonthsWindow:
+        Number.isFinite(profile.recentMonthsWindow) && profile.recentMonthsWindow >= 0
+            ? profile.recentMonthsWindow
+            : 3,
     ...profile,
     duplicateHandling: normalizeDuplicateHandling(profile.duplicateHandling),
 });
