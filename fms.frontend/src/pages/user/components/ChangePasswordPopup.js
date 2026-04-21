@@ -15,34 +15,59 @@ import { updateUser } from '../../../redux/actions/userActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ChangePasswordPopup = ({ visible, onHide, userId, userName }) => {
+const ChangePasswordPopup = ({ visible, onHide, userId, userName, user }) => {
     const dispatch = useDispatch();
 
-    const [newPassword,     setNewPassword]     = useState('');
+    const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [showNew,         setShowNew]         = useState(false);
-    const [showConfirm,     setShowConfirm]     = useState(false);
-    const [saving,          setSaving]          = useState(false);
-    const [errors,          setErrors]          = useState({});
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [errors, setErrors] = useState({});
 
     // ── Validation ────────────────────────────────────────────────────────
     const validate = useCallback(() => {
         const errs = {};
-        if (!newPassword.trim())         errs.newPassword     = 'New password is required.';
-        else if (newPassword.length < 6) errs.newPassword     = 'Password must be at least 6 characters.';
-        if (!confirmPassword.trim())     errs.confirmPassword = 'Please confirm your password.';
+        if (!newPassword.trim()) errs.newPassword = 'New password is required.';
+        else if (newPassword.length < 6) errs.newPassword = 'Password must be at least 6 characters.';
+        if (!confirmPassword.trim()) errs.confirmPassword = 'Please confirm your password.';
         else if (newPassword !== confirmPassword)
-                                         errs.confirmPassword = 'Passwords do not match.';
+            errs.confirmPassword = 'Passwords do not match.';
         setErrors(errs);
         return Object.keys(errs).length === 0;
     }, [newPassword, confirmPassword]);
 
+    const buildUpdatePayload = useCallback(() => {
+        if (!user) {
+            return null;
+        }
+
+        return {
+            firstName: user.firstName || user.FirstName || '',
+            lastName: user.lastName || user.LastName || '',
+            userName: user.userName || user.Username || '',
+            email: user.email || user.Email || '',
+            phone: user.phone || user.Phone || '',
+            roleName: user.roleName || user.RoleName || (user.roleNames?.[0] ?? ''),
+            departmentId: String(user.departmentId ?? user.DepartmentId ?? ''),
+            bypassGps: user.bypassGps ?? user.BypassGps ?? false,
+            password: newPassword,
+        };
+    }, [newPassword, user]);
+
     // ── Submit ────────────────────────────────────────────────────────────
     const handleSave = useCallback(async () => {
         if (!validate()) return;
+
+        const payload = buildUpdatePayload();
+        if (!payload) {
+            notify('Unable to load the selected user details.', 'error', 3000);
+            return;
+        }
+
         setSaving(true);
         try {
-            await dispatch(updateUser(userId, { Password: newPassword }));
+            await dispatch(updateUser(userId, payload));
             notify('Password changed successfully', 'success', 2500);
             handleReset();
             onHide();
@@ -51,7 +76,7 @@ const ChangePasswordPopup = ({ visible, onHide, userId, userName }) => {
         } finally {
             setSaving(false);
         }
-    }, [dispatch, userId, newPassword, validate, onHide]);
+    }, [buildUpdatePayload, dispatch, onHide, userId, validate]);
 
     const handleReset = () => {
         setNewPassword('');

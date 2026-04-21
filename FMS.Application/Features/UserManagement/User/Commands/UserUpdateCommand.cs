@@ -24,7 +24,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         string? LastName = null,
         string? Phone = null,
         bool? BypassLocationValidation = null,
-        int? DepartmentId = null) : IRequest<bool>;
+        int? DepartmentId = null,
+        string? Password = null) : IRequest<bool>;
 
     public class UserUpdateCommandHandler : IRequestHandler<UserUpdateCommand, bool>
     {
@@ -94,6 +95,24 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
                 {
                     _logger.LogError("Update user: Error updating user");
                     throw new Exception(string.Join("; ", result.Errors.Select(e => e.Description)));
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.Password))
+                {
+                    var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                    var passwordResetResult = await _userManager.ResetPasswordAsync(user, resetToken, request.Password);
+
+                    if (!passwordResetResult.Succeeded)
+                    {
+                        throw new Exception(string.Join("; ", passwordResetResult.Errors.Select(e => e.Description)));
+                    }
+
+                    user.RequirePasswordChangeOnFirstLogin = true;
+                    var postResetUpdateResult = await _userManager.UpdateAsync(user);
+                    if (!postResetUpdateResult.Succeeded)
+                    {
+                        throw new Exception(string.Join("; ", postResetUpdateResult.Errors.Select(e => e.Description)));
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(request.RoleName))

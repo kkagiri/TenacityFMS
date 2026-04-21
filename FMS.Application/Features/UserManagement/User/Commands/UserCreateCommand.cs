@@ -44,6 +44,9 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
     private const string PasswordLetters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     private const string PasswordSpecialCharacters = "!@#$%^&*";
     private const string DevelopmentEnvironmentName = "Development";
+    private const string DefaultFrontendBaseUrl = "http://10.0.10.153";
+    private const string InternalFrontendBaseUrl = "http://10.0.10.153";
+    private const string ExternalFrontendBaseUrl = "http://197.254.33.227";
 
     private readonly IConfiguration _configuration;
     private readonly GpsdataContext _context;
@@ -237,12 +240,33 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
 
     private string BuildConfirmationLink(string userId, string encodedToken)
     {
-        var baseUrl = _configuration["Frontend:BaseUrl"]
-            ?? _configuration["App:FrontendBaseUrl"]
-            ?? _configuration["FrontendBaseUrl"]
-            ?? "http://localhost:3000";
+        var baseUrl = ResolveFrontendBaseUrl();
 
         return $"{baseUrl.TrimEnd('/')}/confirm-email?userId={Uri.EscapeDataString(userId)}&token={Uri.EscapeDataString(encodedToken)}";
+    }
+
+    private string ResolveFrontendBaseUrl()
+    {
+        var configuredBaseUrl = _configuration["Frontend:BaseUrl"]
+            ?? _configuration["App:FrontendBaseUrl"]
+            ?? _configuration["FrontendBaseUrl"]
+            ?? _configuration["AppSettings:FrontendBaseUrl"]
+            ?? _configuration["IssueTracker:FrontendBaseUrl"]
+            ?? DefaultFrontendBaseUrl;
+
+        if (!Uri.TryCreate(configuredBaseUrl, UriKind.Absolute, out var parsedBaseUrl))
+        {
+            return DefaultFrontendBaseUrl;
+        }
+
+        if (string.Equals(parsedBaseUrl.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(parsedBaseUrl.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(parsedBaseUrl.Host, "0.0.0.0", StringComparison.OrdinalIgnoreCase))
+        {
+            return DefaultFrontendBaseUrl;
+        }
+
+        return configuredBaseUrl.TrimEnd('/');
     }
 
     private static string BuildWelcomeEmailBody(User user, string temporaryPassword, string? confirmationLink, bool requirePasswordChangeOnFirstLogin)
@@ -252,9 +276,10 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
         var safeName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(displayName) ? user.UserName ?? "User" : displayName);
         var safeUserName = WebUtility.HtmlEncode(user.UserName ?? string.Empty);
         var safePassword = WebUtility.HtmlEncode(temporaryPassword);
+        var alternativeAccessNote = BuildAlternativeAccessNote(confirmationLink);
         var confirmationSection = string.IsNullOrWhiteSpace(confirmationLink)
             ? string.Empty
-            : $"<p><a href=\"{WebUtility.HtmlEncode(confirmationLink)}\">Confirm your email address</a></p>";
+            : $"<p><a href=\"{WebUtility.HtmlEncode(confirmationLink)}\">Confirm your email address</a></p>{alternativeAccessNote}";
         var passwordChangeSection = requirePasswordChangeOnFirstLogin
             ? "<p>After your first successful login, you will be required to change this temporary password.</p>"
             : string.Empty;
@@ -269,6 +294,33 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
     {passwordChangeSection}
     <p>If you did not expect this account, please contact your administrator.</p>
 </div>";
+    }
+
+    private static string BuildAlternativeAccessNote(string? confirmationLink)
+    {
+        if (string.IsNullOrWhiteSpace(confirmationLink)
+            || !Uri.TryCreate(confirmationLink, UriKind.Absolute, out var confirmationUri))
+        {
+            return string.Empty;
+        }
+
+        var activeBaseUrl = $"{confirmationUri.Scheme}://{confirmationUri.Authority}";
+        var alternateBaseUrl = string.Equals(activeBaseUrl, InternalFrontendBaseUrl, StringComparison.OrdinalIgnoreCase)
+            ? ExternalFrontendBaseUrl
+            : string.Equals(activeBaseUrl, ExternalFrontendBaseUrl, StringComparison.OrdinalIgnoreCase)
+                ? InternalFrontendBaseUrl
+                : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(alternateBaseUrl))
+        {
+            return string.Empty;
+        }
+
+        var accessType = string.Equals(alternateBaseUrl, InternalFrontendBaseUrl, StringComparison.OrdinalIgnoreCase)
+            ? "Internal network access"
+            : "External network access";
+
+        return $"<p><strong>{accessType}:</strong> {WebUtility.HtmlEncode(alternateBaseUrl)}</p>";
     }
 
     private bool IsDevelopmentEnvironment()

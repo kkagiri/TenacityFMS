@@ -267,23 +267,70 @@ User Agent: ${navigator.userAgent}
                 paddingTop: "20px",
               }}
             >
-              <button
-                onClick={this.toggleDetails}
+              <div
                 style={{
-                  padding: "8px 16px",
-                  backgroundColor: "transparent",
-                  color: "#666",
-                  border: "1px solid #ddd",
-                  borderRadius: "4px",
-                  fontSize: "13px",
-                  cursor: "pointer",
+                  display: "flex",
+                  gap: "10px",
+                  justifyContent: "center",
+                  flexWrap: "wrap",
                   marginBottom: "10px",
                 }}
               >
-                {this.state.showDetails
-                  ? "▼ Hide Error Details"
-                  : "▶ Show Error Details"}
-              </button>
+                <button
+                  onClick={this.toggleDetails}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "transparent",
+                    color: "#666",
+                    border: "1px solid #ddd",
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {this.state.showDetails
+                    ? "▼ Hide Error Details"
+                    : "▶ Show Error Details"}
+                </button>
+
+                <button
+                  onClick={this.copyErrorToClipboard}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: "#607D8B",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  📋 Copy Details
+                </button>
+
+                <button
+                  onClick={this.handleReportError}
+                  disabled={this.state.isReporting || this.state.reportSuccess}
+                  style={{
+                    padding: "8px 16px",
+                    backgroundColor: this.state.reportSuccess
+                      ? "#4CAF50"
+                      : "#f44336",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    cursor: this.state.isReporting ? "wait" : "pointer",
+                    opacity: this.state.isReporting ? 0.6 : 1,
+                  }}
+                >
+                  {this.state.isReporting
+                    ? "Sending..."
+                    : this.state.reportSuccess
+                      ? "✓ Report Sent"
+                      : "📧 Send Error to System"}
+                </button>
+              </div>
 
               {this.state.showDetails && (
                 <div
@@ -331,50 +378,6 @@ User Agent: ${navigator.userAgent}
                     >
                       {this.state.error?.stack || "No stack trace"}
                     </pre>
-                  </div>
-
-                  <div
-                    style={{ display: "flex", gap: "10px", marginTop: "15px" }}
-                  >
-                    <button
-                      onClick={this.handleReportError}
-                      disabled={
-                        this.state.isReporting || this.state.reportSuccess
-                      }
-                      style={{
-                        padding: "8px 16px",
-                        backgroundColor: this.state.reportSuccess
-                          ? "#4CAF50"
-                          : "#f44336",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        cursor: this.state.isReporting ? "wait" : "pointer",
-                        opacity: this.state.isReporting ? 0.6 : 1,
-                      }}
-                    >
-                      {this.state.isReporting
-                        ? "Sending..."
-                        : this.state.reportSuccess
-                        ? "✓ Report Sent"
-                        : "📧 Report Error"}
-                    </button>
-
-                    <button
-                      onClick={this.copyErrorToClipboard}
-                      style={{
-                        padding: "8px 16px",
-                        backgroundColor: "#607D8B",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      📋 Copy Details
-                    </button>
                   </div>
                 </div>
               )}

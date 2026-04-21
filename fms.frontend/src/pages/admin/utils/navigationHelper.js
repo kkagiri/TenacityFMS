@@ -35,6 +35,7 @@ export const adminRoutes = {
   notificationAlertThresholds: "/admin/notification/alert-configuration",
   providers: "/admin/providers",
   logs: "/admin/logs",
+  errorReports: "/admin/error-reports",
   expectedAverages: "/admin/expected-averages",
   employeePositions: "/admin/employee-positions",
   checkupTemplates: "/admin/checkup-templates",

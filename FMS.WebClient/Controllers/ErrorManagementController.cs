@@ -26,7 +26,6 @@ namespace FMS.Webclient.Contollers;
 [ApiController]
 [Route("api/v1/errors")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-[RequirePermission(Permissions.Admin.Users)]
 public class ErrorManagementController : BaseApiController
 {
     private readonly IMediator _mediator;
@@ -68,6 +67,7 @@ public class ErrorManagementController : BaseApiController
         }
     }
     [HttpGet("logs")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<ActionResult<List<ErrorLogDto>>> GetErrorLogs(
         [FromQuery] int pageSize = 50, [FromQuery] int pageNumber = 1,
         [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null

@@ -99,6 +99,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Log Management",
         subtitle: "Download, view, and manage system log files",
       };
+    } else if (pathname.includes("/error-reports")) {
+      return {
+        title: "Frontend Error Reports",
+        subtitle: "Review client-side errors submitted from the error boundary",
+      };
     } else if (pathname.includes("/expected-averages")) {
       return {
         title: "Expected Fuel Average Management",
@@ -297,6 +302,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Log Management",
       icon: "fa-light fa-file-lines",
       path: adminRoutes.logs,
+    },
+    {
+      id: "error-reports",
+      title: "Error Reports",
+      icon: "fa-light fa-bug",
+      path: adminRoutes.errorReports,
     },
     {
       id: "expected-averages",

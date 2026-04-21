@@ -1162,6 +1162,8 @@ const UserDetailPanel = ({
                     visible={showPasswordPopup}
                     onHide={() => setShowPwdPopup(false)}
                     userId={userId}
+                    userName={displayName}
+                    user={user}
                 />
             )}
         </>

@@ -245,6 +245,8 @@ export const updateUser = (userId, userData) => async (dispatch) => {
         const deptId = (deptRaw === '' || deptRaw === null || deptRaw === undefined)
             ? null
             : Number(deptRaw) || null;
+        const passwordRaw = userData.password ?? userData.Password ?? null;
+        const password = typeof passwordRaw === 'string' ? passwordRaw.trim() : null;
 
         const payload = {
             UserId: userId,
@@ -256,6 +258,7 @@ export const updateUser = (userId, userData) => async (dispatch) => {
             roleName: userData.roleName,
             departmentId: deptId,
             bypassLocationValidation: userData.bypassGps ?? false,
+            password: password || null,
         };
         const response = await axiosInstance.put(`/user/${userId}`, payload);
         dispatch({ type: UPDATE_USER_SUCCESS, payload: response.data });

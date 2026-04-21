@@ -34,6 +34,7 @@ import NotificationSystem from "../notifications";
 import ProviderManagementMain from "../providermanagement/ProviderManagementMain";
 import TaskManagement from "../taskManagement";
 import LogManagementPage from "./logManagement/LogManagementPage";
+import ErrorReportsPage from "./errorReports/ErrorReportsPage";
 import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
 import CheckupTemplateManagementPage from "./checkupTemplates/CheckupTemplateManagementPage";
 import EmployeePositionManagementPage from "./employeePositions/EmployeePositionManagementPage";
@@ -113,6 +114,10 @@ const AdminMain = () => {
         {/* Log Management Route */}
         <Route path="logs" element={<LogManagementPage />} />
         <Route path="logs/*" element={<LogManagementPage />} />
+
+        {/* Frontend Error Reports Route */}
+        <Route path="error-reports" element={<ErrorReportsPage />} />
+        <Route path="error-reports/*" element={<ErrorReportsPage />} />
 
         {/* Expected Fuel Average Management Route */}
         <Route

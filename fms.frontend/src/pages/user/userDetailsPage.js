@@ -279,10 +279,23 @@ const UserDetailsPage = () => {
       return;
     }
 
+    if (!user) {
+      notify("Unable to load user details", "error", 3000);
+      return;
+    }
+
     setSaving(true);
     try {
       await dispatch(
         updateUser(id, {
+          firstName: user.firstName || user.FirstName || "",
+          lastName: user.lastName || user.LastName || "",
+          userName: user.userName || user.UserName || "",
+          email: user.email || user.Email || "",
+          phone: user.phone || user.Phone || user.phoneNumber || user.PhoneNumber || "",
+          roleName: user.roleName || user.RoleName || (user.roles && user.roles.length > 0 ? user.roles[0] : ""),
+          departmentId: user.departmentId || user.DepartmentId || null,
+          bypassGps: user.bypassLocationValidation || user.BypassLocationValidation || false,
           password: passwordFormData.newPassword,
         })
       );
