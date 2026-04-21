@@ -14,6 +14,66 @@
 
 import React from "react";
 
+const ERROR_REPORT_THROTTLE_WINDOW_MS = 5 * 60 * 1000;
+const ERROR_REPORT_STORAGE_KEY = "fms:last-error-report";
+
+const buildErrorFingerprint = (report) => {
+  const message = (report.message || "").trim();
+  const stack = (report.stack || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 5)
+    .join("|");
+  const componentStack = (report.componentStack || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 5)
+    .join("|");
+  const normalizedUrl = (() => {
+    try {
+      return new URL(report.url || window.location.href).pathname;
+    } catch {
+      return report.url || window.location.href;
+    }
+  })();
+
+  return [message, stack, componentStack, normalizedUrl].join("::");
+};
+
+const wasRecentlyReported = (fingerprint) => {
+  try {
+    const rawValue = window.sessionStorage.getItem(ERROR_REPORT_STORAGE_KEY);
+    if (!rawValue) {
+      return false;
+    }
+
+    const parsedValue = JSON.parse(rawValue);
+    if (!parsedValue || parsedValue.fingerprint !== fingerprint) {
+      return false;
+    }
+
+    return Date.now() - Number(parsedValue.timestamp || 0) < ERROR_REPORT_THROTTLE_WINDOW_MS;
+  } catch {
+    return false;
+  }
+};
+
+const markReported = (fingerprint) => {
+  try {
+    window.sessionStorage.setItem(
+      ERROR_REPORT_STORAGE_KEY,
+      JSON.stringify({
+        fingerprint,
+        timestamp: Date.now(),
+      })
+    );
+  } catch {
+    // Ignore session storage failures and keep reporting functional.
+  }
+};
+
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -69,6 +129,14 @@ class GlobalErrorBoundary extends React.Component {
     this.setState((prev) => ({ showDetails: !prev.showDetails }));
   };
 
+  showTemporaryReportSuccess = () => {
+    this.setState({ isReporting: false, reportSuccess: true });
+
+    setTimeout(() => {
+      this.setState({ reportSuccess: false });
+    }, 3000);
+  };
+
   handleReportError = async () => {
     this.setState({ isReporting: true });
 
@@ -80,20 +148,25 @@ class GlobalErrorBoundary extends React.Component {
       timestamp: new Date().toISOString(),
       url: window.location.href,
     };
+    const fingerprint = buildErrorFingerprint(errorReport);
 
     try {
+      if (wasRecentlyReported(fingerprint)) {
+        this.showTemporaryReportSuccess();
+        return;
+      }
+
       // Import errorReportService dynamically to avoid circular dependencies
       const { reportError } = await import("./api/errorReportService");
       const result = await reportError(errorReport);
 
+      if (!result) {
+        throw new Error("Error report request did not complete successfully.");
+      }
+
       console.log("Error report sent:", errorReport);
-
-      this.setState({ isReporting: false, reportSuccess: true });
-
-      // Reset success message after 3 seconds
-      setTimeout(() => {
-        this.setState({ reportSuccess: false });
-      }, 3000);
+      markReported(fingerprint);
+      this.showTemporaryReportSuccess();
     } catch (err) {
       console.error("Failed to report error:", err);
       this.setState({ isReporting: false });
@@ -178,8 +251,8 @@ User Agent: ${navigator.userAgent}
               }}
             >
               We're sorry for the inconvenience. The application encountered an
-              unexpected error. Our team has been notified and we're working to
-              fix it.
+              unexpected error. You can send the error details to the system so
+              the team can review and fix it.
             </p>
 
             {/* Action Buttons */}

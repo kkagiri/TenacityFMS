@@ -227,9 +227,11 @@ namespace FMS.Application.Features.Notification.Services
                 siteIds.Add(singleSiteId.Value);
             }
 
+            // Match the direct /Consumption/manualRefillsFiltered controller behaviour.
+            // Manual-refill consumption queries operate on local calendar dates, not UTC-shifted windows.
             var query = new Application.Queries.Database.FMSQuery.Consumption.GetVehicleConsumptionManualRefillQueryFiltered(
-                StartDate: startUtc,
-                EndDate: endUtc,
+                StartDate: startLocal,
+                EndDate: endLocal,
                 SiteId: singleSiteId,
                 SiteIds: siteIds.Count > 0 ? siteIds : null,
                 VehicleTypeId: GetIntParam(metadata, "vehicleTypeId"),

@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Mvc;
 
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace FMS.Webclient.Contollers;
 
@@ -38,6 +39,7 @@ public class ErrorManagementController : BaseApiController
     }
 
     [HttpPost("log")]
+    [EnableRateLimiting("FrontendErrorReports")]
     public async Task<IActionResult> GetErrorLogs([FromBody] ErrorLogReportDto errorLogReportDto)
     {
         try

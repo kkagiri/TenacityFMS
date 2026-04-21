@@ -206,6 +206,7 @@ public static class FmsApplicationBuilderExtensions
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter();
         app.UseUserActivity(); // extension on IApplicationBuilder
 
         // Map endpoints with explicit CORS
