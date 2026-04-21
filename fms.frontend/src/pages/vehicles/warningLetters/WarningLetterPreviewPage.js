@@ -24,6 +24,7 @@ const WarningLetterPreviewPage = () => {
     const { hasPermission, userInfo } = usePermissions();
 
     const canUpdate = hasPermission("_Update_WarningLetter");
+    const canEditAny = hasPermission("_Edit_any_warning_letters");
     const canSend = hasPermission("_Send_WarningLetter");
     const canViewPdf = hasPermission("_Generate_WarningLetter_PDF");
     const canUploadApproveLetter = hasPermission("_UploadApproveLetter_WarningLetter");
@@ -36,6 +37,7 @@ const WarningLetterPreviewPage = () => {
         id,
         canViewPdf,
         canUpdate,
+        canEditAny,
         canManageRecipientGroups: canEditSignatureRecipients,
         userInfo,
     });
@@ -56,7 +58,7 @@ const WarningLetterPreviewPage = () => {
                         <button type="button" className="m365-btn m365-btn--ghost" onClick={() => previewState.setHelpPanelOpen(true)}>
                             <i className="fa-light fa-circle-question" /> Document Procedure
                         </button>
-                        {canUpdate && previewState.letter?.status === 0 && (
+                        {previewState.canEditDraft && (
                             <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate(`/reports/warning-letters/${id}/edit`)}>
                                 <i className="fa-light fa-pen" /> Edit
                             </button>

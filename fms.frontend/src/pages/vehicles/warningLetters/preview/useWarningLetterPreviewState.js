@@ -22,6 +22,7 @@ import {
     sendWarningLetterEmail,
     uploadWarningLetterApproveLetter,
     uploadWarningLetterSignedCopy,
+    validateWarningLetterPdfUpload,
 } from "../warningLetterService";
 import { mapGroupToViewModel, mapUserToViewModel } from "./warningLetterPreviewConstants";
 import {
@@ -31,7 +32,7 @@ import {
     formatDocumentSize,
 } from "./warningLetterPreviewStateHelpers";
 
-export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canManageRecipientGroups, userInfo }) => {
+export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canEditAny, canManageRecipientGroups, userInfo }) => {
     const approveLetterInputRef = useRef(null);
     const signedCopyInputRef = useRef(null);
     const signatureRecipientTouchedRef = useRef(false);
@@ -84,8 +85,10 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         signatureRecipientsLoading,
         signatureSubmitting,
         canUpdate,
+        canEditAny,
         userInfo,
     }), [
+        canEditAny,
         canUpdate,
         letter,
         selectedSignatureRecipientId,
@@ -507,6 +510,12 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
             return;
         }
 
+        const validationMessage = validateWarningLetterPdfUpload(file, "signed copy");
+        if (validationMessage) {
+            notify(validationMessage, "warning", 3000);
+            return;
+        }
+
         try {
             setSignedCopyUploading(true);
             const updatedLetter = await uploadWarningLetterSignedCopy(id, file);
@@ -524,6 +533,12 @@ export const useWarningLetterPreviewState = ({ id, canViewPdf, canUpdate, canMan
         const file = event.target.files?.[0];
         event.target.value = "";
         if (!file) {
+            return;
+        }
+
+        const validationMessage = validateWarningLetterPdfUpload(file, "approved letter");
+        if (validationMessage) {
+            notify(validationMessage, "warning", 3000);
             return;
         }
 

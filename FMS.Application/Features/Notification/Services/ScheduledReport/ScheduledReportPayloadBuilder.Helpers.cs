@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using FMS.Application.Features.FMS.Consumption;
 using FMS.Application.Features.VehicleTrips.DTOs;
 using FMS.Domain.Entities;
 using Newtonsoft.Json.Linq;
@@ -58,6 +59,8 @@ namespace FMS.Application.Features.Notification.Services
             string distanceSummaryLabel,
             string avgConsumptionLabel,
             string consumptionModeLabel,
+            bool includeDriverColumn,
+            bool includePassengerColumn,
             object? siteGroups = null)
         {
             return new
@@ -75,6 +78,8 @@ namespace FMS.Application.Features.Notification.Services
                 distanceSummaryLabel,
                 avgConsumptionLabel,
                 consumptionModeLabel,
+                includeDriverColumn,
+                includePassengerColumn,
                 siteGroups,
                 records,
                 data = records,
@@ -380,6 +385,52 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             return null;
+        }
+
+        private static string? GetStringParam(JObject metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out var token) || token == null)
+            {
+                return null;
+            }
+
+            var value = token.ToString().Trim();
+            return string.IsNullOrWhiteSpace(value) ? null : value;
+        }
+
+        private static List<ManualDispenseConsumptionDTO> SortVehicleConsumptionRecords(
+            IEnumerable<ManualDispenseConsumptionDTO> records,
+            string? sortBy,
+            string? sortDirection)
+        {
+            var normalizedSortBy = (sortBy ?? string.Empty).Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(normalizedSortBy))
+            {
+                return records.ToList();
+            }
+
+            var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            Func<ManualDispenseConsumptionDTO, object> keySelector = normalizedSortBy switch
+            {
+                "vehiclename" => record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty,
+                "numberplate" => record => record.HyoungNo ?? string.Empty,
+                "sitename" => record => record.WorkingSiteName ?? string.Empty,
+                "drivername" => record => record.DriverName ?? string.Empty,
+                "passenger" => record => record.Passenger ?? string.Empty,
+                "refillcount" => record => record.RefillCount,
+                "volumeraw" or "totalvolume" => record => record.TotalFuelAmount,
+                "distanceraw" or "totaldistance" => record => record.DistanceOrEngineHours,
+                "consumptionraw" or "consumption" => record => record.Consumption,
+                _ => record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty,
+            };
+
+            var ordered = descending
+                ? records.OrderByDescending(keySelector)
+                : records.OrderBy(keySelector);
+
+            return ordered
+                .ThenBy(record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty)
+                .ToList();
         }
 
         private static (string DistanceHeader, string ConsumptionHeader, string DistanceSummaryLabel, string AvgConsumptionLabel, string ConsumptionModeLabel, string DistanceUnit, string ConsumptionUnit)

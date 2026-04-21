@@ -28,6 +28,7 @@ public class UpdateWarningLetterCommand : IRequest<FMSResponse<WarningLetterDto>
 {
     public UpdateWarningLetterDto WarningLetter { get; set; } = new();
     public string ModifiedBy { get; set; } = string.Empty;
+    public bool CanEditAny { get; set; }
 }
 
 public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLetterCommand, FMSResponse<WarningLetterDto>>
@@ -80,6 +81,16 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
         if (warningLetter == null)
         {
             return FMSResponse<WarningLetterDto>.NotFound("WARNING_LETTER_NOT_FOUND", "Warning letter not found");
+        }
+
+        var isCreator = !string.IsNullOrWhiteSpace(warningLetter.CreatedBy)
+            && string.Equals(warningLetter.CreatedBy, request.ModifiedBy, StringComparison.OrdinalIgnoreCase);
+
+        if (!isCreator && !request.CanEditAny)
+        {
+            return FMSResponse<WarningLetterDto>.Forbidden(
+                "WARNING_LETTER_EDIT_FORBIDDEN",
+                "Only the user who created this warning letter can edit it unless they have the override edit permission.");
         }
 
         if (warningLetter.Status != WarningLetterStatus.Draft)

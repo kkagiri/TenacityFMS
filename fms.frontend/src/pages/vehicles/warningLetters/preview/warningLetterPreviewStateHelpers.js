@@ -47,6 +47,7 @@ export const buildPreviewDerivedState = ({
     signatureRecipientsLoading,
     signatureSubmitting,
     canUpdate,
+    canEditAny,
     userInfo,
 }) => {
     const selectedSignatureRecipient = signatureRecipients.find((recipient) => recipient.id === selectedSignatureRecipientId) || null;
@@ -62,6 +63,7 @@ export const buildPreviewDerivedState = ({
     const isCreatedByCurrentUser = Boolean(letter?.createdBy && userInfo?.id)
         && String(letter.createdBy).toLowerCase() === String(userInfo.id).toLowerCase();
     const canAcknowledge = canUpdate && workflowStage === 3 && isCreatedByCurrentUser;
+    const canEditDraft = canUpdate && workflowStage === 0 && (isCreatedByCurrentUser || canEditAny);
     const status = workflowStageMap[workflowStage] || { label: "Unknown", cls: "m365-badge--neutral" };
     const approveLetterUploadedByLabel = letter?.approveLetterUploadedBy
         ? (isGuidLike(letter.approveLetterUploadedBy) ? "Refreshing uploader details..." : letter.approveLetterUploadedBy)
@@ -97,6 +99,7 @@ export const buildPreviewDerivedState = ({
         workflowLocked,
         canUploadWorkflowDocuments,
         approvedLetterLocked,
+        canEditDraft,
         canAcknowledge,
         status,
         approveLetterUploadedByLabel,

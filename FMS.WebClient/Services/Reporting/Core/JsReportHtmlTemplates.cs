@@ -899,9 +899,9 @@ namespace FMS.WebClient.Services.Reporting
     </div>{{/if}}";
 
         private static string ConsumptionByRefillsTable() => @"    {{#if records}}
-    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th><th class=""text-right"">Refills</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th></tr></thead>
+    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th>{{#if includeDriverColumn}}<th>Driver</th>{{/if}}{{#if includePassengerColumn}}<th>Passenger</th>{{/if}}<th class=""text-right"">Refills</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th></tr></thead>
         <tbody>{{#each records}}<tr>
-            <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>
+            <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>{{#if ../includeDriverColumn}}<td>{{driverName}}</td>{{/if}}{{#if ../includePassengerColumn}}<td>{{passenger}}</td>{{/if}}
             <td class=""text-center"">{{refillCount}}</td><td class=""text-right text-success font-bold"">{{totalVolume}}</td><td class=""text-right"">{{totalDistance}}</td><td class=""text-right font-bold"">{{consumption}}</td>
         </tr>{{/each}}</tbody></table>{{/if}}";
     }

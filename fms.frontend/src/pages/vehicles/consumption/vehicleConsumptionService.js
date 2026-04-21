@@ -2,7 +2,7 @@
  * File: vehicleConsumptionService.js
  * Purpose: Wraps vehicle consumption module API calls and normalizes payloads for the vehicle operations pages.
  * Dependencies: axiosInstance
- * Last Modified: 2026-04-20
+ * Last Modified: 2026-04-21
  */
 import axiosInstance from "../../../api/axiosInstance";
 
@@ -111,6 +111,30 @@ export const formatNumber = (value, precision = 2) =>
 
 export const getModeLabel = (isKmPerLiter) => (isKmPerLiter ? "km/L" : "L/hr");
 
+const getLocalDateObject = (value) => {
+    const parts = toLocalDateParts(value);
+    if (!parts) {
+        return null;
+    }
+
+    return new Date(parts.year, parts.month - 1, parts.day);
+};
+
+const getDayDateRange = (value) => {
+    const day = getLocalDateObject(value);
+    if (!day) {
+        return null;
+    }
+
+    const from = new Date(day);
+    from.setHours(0, 0, 0, 0);
+
+    const to = new Date(day);
+    to.setHours(23, 59, 59, 999);
+
+    return { from, to };
+};
+
 const getDateDaysAgo = (days) => {
     const value = new Date();
     value.setDate(value.getDate() - days);
@@ -118,7 +142,7 @@ const getDateDaysAgo = (days) => {
 };
 
 export const getDefaultConsumptionFilters = () => ({
-    startDate: getDateDaysAgo(29),
+    startDate: getDateDaysAgo(5),
     endDate: toLocalInputDateValue(new Date()),
     siteId: "",
     vehicleTypeId: "",
@@ -242,6 +266,48 @@ const normalizeRecordDetail = (item = {}) => ({
     modifiedDate: pickValue(item, ["modifiedDate", "ModifiedDate"], null),
 });
 
+const normalizeHistoryRecord = (item = {}) => ({
+    id: toNumber(pickValue(item, ["id", "Id"])),
+    vehicleId: toNumber(pickValue(item, ["vehicleId", "VehicleId"])),
+    totalFuel: toNumber(pickValue(item, ["totalFuel", "TotalFuel"])),
+    expectedAverage: toNumber(pickValue(item, ["expectedAveraged", "ExpectedAveraged", "expectedAverage", "ExpectedAverage"])),
+    employeeName: pickValue(item, ["employee", "Employee", "employeeName", "EmployeeName"], ""),
+    siteName: pickValue(item, ["site", "Site", "siteName", "SiteName"], "Unknown"),
+    date: pickValue(item, ["date", "Date"], null),
+    maxSpeed: toNumber(pickValue(item, ["maxSpeed", "MaxSpeed"])),
+    avgSpeed: toNumber(pickValue(item, ["avgSpeed", "AvgSpeed"])),
+    totalDistance: toNumber(pickValue(item, ["totalDistance", "TotalDistance"])),
+    fuelLost: toNumber(pickValue(item, ["fuelLost", "FuelLost"])),
+    isKmPerLiter: toBoolean(pickValue(item, ["isAverageKm", "IsAverageKm", "isKmPerLiter", "IsKmPerLiter"]), true),
+    flowMeterFuelUsed: toNumber(pickValue(item, ["flowMeterFuelUsed", "FlowMeterFuelUsed"])),
+    flowMeterFuelLost: toNumber(pickValue(item, ["flowMeterFuelLost", "FlowMeterFuelLost"])),
+    flowMeterEfficiency: toNumber(pickValue(item, ["flowMeterEffiency", "FlowMeterEffiency", "flowMeterEfficiency", "FlowMeterEfficiency"])),
+    fuelEfficiency: toNumber(pickValue(item, ["fuelEfficiency", "FuelEfficiency"])),
+    engineHours: toNumber(pickValue(item, ["engHours", "EngHours", "engineHours", "EngineHours"])),
+    flowMeterEngineHours: toNumber(pickValue(item, ["flowMeterEngineHrs", "FlowMeterEngineHrs", "flowMeterEngineHours", "FlowMeterEngineHours"])),
+    comments: pickValue(item, ["comments", "Comments"], ""),
+    isModified: toBoolean(pickValue(item, ["isModified", "IsModified"]), false),
+});
+
+const normalizeTrackPoint = (item = {}, index = 0) => ({
+    id: pickValue(item, ["trackInfoId", "TrackInfoId"], `${pickValue(item, ["timestamp", "Timestamp"], "point")}-${index}`),
+    timestamp: pickValue(item, ["timestamp", "Timestamp"], null),
+    latitude: toNumber(pickValue(item, ["latitude", "Latitude"])),
+    longitude: toNumber(pickValue(item, ["longitude", "Longitude"])),
+    altitude: toNumber(pickValue(item, ["altitude", "Altitude"])),
+    speed: toNumber(pickValue(item, ["speed", "Speed"])),
+    heading: toNumber(pickValue(item, ["heading", "Heading"])),
+    odometer: toNumber(pickValue(item, ["odometer", "Odometer"])),
+    fuelLevel: toNumber(pickValue(item, ["fuelLevel", "FuelLevel"])),
+    satelliteCount: toNumber(pickValue(item, ["satelliteCount", "SatelliteCount"])),
+    address: pickValue(item, ["address", "Address"], ""),
+    containingSiteName: pickValue(item, ["containingSiteName", "ContainingSiteName"], ""),
+    ignitionStatus: pickValue(item, ["ignitionStatus", "IgnitionStatus"], null),
+    distanceFromPreviousKm: toNumber(pickValue(item, ["distanceFromPreviousKm", "DistanceFromPreviousKm"])),
+    timeDeltaSeconds: toNumber(pickValue(item, ["timeDeltaSeconds", "TimeDeltaSeconds"])),
+    isValid: toBoolean(pickValue(item, ["isValid", "IsValid"]), true),
+});
+
 export const getVehicleConsumptionFilterOptions = async () => {
     const [sitesResponse, vehiclesResponse] = await Promise.all([
         axiosInstance.get("/site"),
@@ -299,4 +365,45 @@ export const getVehicleConsumptionComparisonData = async (filters = {}) => {
 export const getVehicleConsumptionRecordDetail = async (consumptionId) => {
     const response = await axiosInstance.get(`/Consumption/recordDetail/${consumptionId}`);
     return normalizeRecordDetail(response.data || {});
+};
+
+export const getVehicleConsumptionHistory = async (vehicleId, targetDate, entry = 5) => {
+    const dateString = toLocalInputDateValue(targetDate);
+    const response = await axiosInstance.get("/consumption/gethistoryconsumptionbyvehicle", {
+        params: {
+            vehicleId: Number(vehicleId),
+            datestring: dateString,
+            entry,
+        },
+    });
+
+    return ensureArray(response.data).map(normalizeHistoryRecord);
+};
+
+export const getVehicleConsumptionTrackPoints = async (vehicleId, targetDate, maxPoints = 5000) => {
+    const dateRange = getDayDateRange(targetDate);
+    if (!dateRange) {
+        return [];
+    }
+
+    const response = await axiosInstance.get(`/vehicletracking/${Number(vehicleId)}/track-points`, {
+        params: {
+            from: dateRange.from.toISOString(),
+            to: dateRange.to.toISOString(),
+            maxPoints,
+        },
+    });
+
+    const payload = response.data;
+    const points = payload?.data || payload?.Data || [];
+    return ensureArray(points).map(normalizeTrackPoint);
+};
+
+export const getGoogleMapsApiKey = async () => {
+    const response = await axiosInstance.get("/SystemConfiguration/by-key/GoogleMaps.ApiKey");
+    if (response.data?.success || response.data?.isSuccess) {
+        return response.data?.data?.configurationValue || "";
+    }
+
+    return "";
 };

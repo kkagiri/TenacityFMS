@@ -16,7 +16,6 @@ import {
   fetchEmployees,
   updateEmployee,
 } from "../../redux/actions/employeeActions";
-import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import { fetchVehicleList } from "../../redux/actions/vehicleActions";
 import DataGrid, {
@@ -43,6 +42,7 @@ import { exportDataGrid as exportDataGridToExcel } from "devextreme/excel_export
 import SlidePanel from "../../components/ui/SlidePanel";
 import EmployeeDetailPanel from "./components/EmployeeDetailPanel";
 import EmployeeFormPanel from "./components/EmployeeFormPanel";
+import { usePermissions } from "../../hooks/usePermissions";
 import "./employeePage.scss";
 
 const EXPORT_FORMATS = ["xlsx", "pdf"];
@@ -63,11 +63,10 @@ const EmployeePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const gridRef = useRef(null);
+  const { hasPermission } = usePermissions();
 
   const employees = useSelector((state) => state.employee?.employees || []);
   const loading = useSelector((state) => state.employee?.loading);
-  const permissions = useSelector((state) => state.permission?.permissions || []);
-  const user = useSelector((state) => state.auth?.user);
   const sites = useSelector((state) => state.site?.sites || []);
   const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
 
@@ -85,9 +84,9 @@ const EmployeePage = () => {
     [activeOnly]
   );
 
-  const canEdit = permissions.includes("_Edit_Employee");
-  const canDelete = permissions.includes("_Delete_Employee");
-  const canCreate = permissions.includes("_Create_Employee");
+  const canEdit = hasPermission("_Edit_Employee");
+  const canDelete = hasPermission("_Delete_Employee");
+  const canCreate = hasPermission("_Create_Employee");
 
   const siteMap = useMemo(() => {
     const result = new Map();
@@ -99,20 +98,13 @@ const EmployeePage = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const requests = [
-        dispatch(fetchEmployees(activeOnly)),
-        dispatch(fetchSiteList()),
-      ];
-
-      if (user?.id) {
-        requests.push(dispatch(fetchpermissionbyUserId(user.id)));
-      }
+      const requests = [dispatch(fetchEmployees(activeOnly)), dispatch(fetchSiteList())];
 
       await Promise.all(requests);
     } catch (error) {
       notify("Failed to refresh employee data.", "error", 3000);
     }
-  }, [activeOnly, dispatch, user?.id]);
+  }, [activeOnly, dispatch]);
 
   useEffect(() => {
     fetchData();

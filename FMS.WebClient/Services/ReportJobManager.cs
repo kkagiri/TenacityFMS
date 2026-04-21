@@ -824,6 +824,7 @@ namespace FMS.WebClient.Services
                 string.IsNullOrWhiteSpace(request.ReportTitle)
                     ? BuildDefaultReportTitle(request.SourceId)
                     : request.ReportTitle,
+                GetDateParam(request.Parameters, "startDate")?.Date ?? DateTime.Today.AddDays(-7),
                 GetDateParam(request.Parameters, "endDate")?.Date ?? DateTime.Today);
         }
 

@@ -29,6 +29,8 @@ import {
     deleteWarningLetter,
     getSites,
     getWarningLetters,
+    uploadWarningLetterSignedCopy,
+    validateWarningLetterPdfUpload,
 } from "./warningLetterService";
 import WarningLetterSettingsPanelContent from "./WarningLetterSettingsPanelContent";
 import "./WarningLetters.scss";
@@ -85,6 +87,7 @@ const WarningLetterListPage = () => {
     const gridRef = useRef(null);
     const employeeSearchRef = useRef(null);
     const employeeSearchTimeoutRef = useRef(null);
+    const signedCopyInputRef = useRef(null);
     const { hasPermission } = usePermissions();
 
     const [letters, setLetters] = useState([]);
@@ -95,6 +98,8 @@ const WarningLetterListPage = () => {
     const [employeeSuggestions, setEmployeeSuggestions] = useState([]);
     const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
     const [employeeSearchLoading, setEmployeeSearchLoading] = useState(false);
+    const [signedCopyTargetId, setSignedCopyTargetId] = useState(null);
+    const [signedCopyUploadingId, setSignedCopyUploadingId] = useState(null);
     const [filters, setFilters] = useState({
         siteId: "",
         employeeId: searchParams.get("employeeId") || "",
@@ -106,10 +111,12 @@ const WarningLetterListPage = () => {
 
     const canCreate = hasPermission("_Create_WarningLetter");
     const canUpdate = hasPermission("_Update_WarningLetter");
+    const canEditAny = hasPermission("_Edit_any_warning_letters");
     const canDelete = hasPermission("_Delete_WarningLetter");
-    const canDeleteAny = hasPermission("_delete_any_letter");
+    const canDeleteAny = hasPermission("_Delete_any_warning_letters");
     const canSend = hasPermission("_Send_WarningLetter");
     const canManageSettings = hasPermission("_Update_WarningLetter");
+    const canUploadSignedCopy = hasPermission("_UploadSignedCopy_WarningLetter");
     const currentUserId = String(getUserId(currentUser) || "");
 
     const loadReferenceData = useCallback(async () => {
@@ -319,6 +326,39 @@ const WarningLetterListPage = () => {
         }
     };
 
+    const openSignedCopyPicker = useCallback((row) => {
+        setSignedCopyTargetId(row?.id ?? null);
+        signedCopyInputRef.current?.click();
+    }, []);
+
+    const handleSignedCopySelected = useCallback(async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!file || !signedCopyTargetId) {
+            return;
+        }
+
+        const validationMessage = validateWarningLetterPdfUpload(file, "signed copy");
+        if (validationMessage) {
+            notify(validationMessage, "warning", 3000);
+            setSignedCopyTargetId(null);
+            return;
+        }
+
+        try {
+            setSignedCopyUploadingId(signedCopyTargetId);
+            await uploadWarningLetterSignedCopy(signedCopyTargetId, file);
+            notify("Signed copy uploaded.", "success", 2500);
+            await loadLetters();
+        } catch (error) {
+            notify(error.message || "Failed to upload signed copy.", "error", 4000);
+        } finally {
+            setSignedCopyUploadingId(null);
+            setSignedCopyTargetId(null);
+        }
+    }, [loadLetters, signedCopyTargetId]);
+
     const renderStatus = ({ data, value }) => {
         const item = workflowStageMap[data?.workflowStage ?? value] || { label: value || "Unknown", cls: "m365-badge--neutral" };
         return <span className={`m365-badge ${item.cls}`}>{item.label}</span>;
@@ -331,28 +371,47 @@ const WarningLetterListPage = () => {
 
     const renderCreatedBy = ({ data }) => data?.createdByName || data?.createdBy || "-";
 
-    const renderActions = ({ data }) => (
-        <div className="warning-letter-list__actions">
-            <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/preview`)}>
-                Preview
-            </button>
-            {canUpdate && data.workflowStage === 0 && (
-                <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/edit`)}>
-                    Edit
+    const renderActions = ({ data }) => {
+        const workflowStage = Number(data?.workflowStage);
+        const isUploadingSignedCopy = signedCopyUploadingId === data?.id;
+        const isCreatedByCurrentUser = Boolean(data?.createdBy && currentUserId)
+            && String(data.createdBy).toLowerCase() === String(currentUserId).toLowerCase();
+
+        return (
+            <div className="warning-letter-list__actions">
+                <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/preview`)}>
+                    Preview
                 </button>
-            )}
-            {canUpdate && data.workflowStage === 3 && (
-                <button type="button" className="m365-btn m365-btn--success warning-letter-list__action-button" onClick={() => handleAcknowledge(data)}>
-                    Acknowledge
-                </button>
-            )}
-            {canDelete && canDeleteWarningLetterInStage(data.workflowStage) && (canDeleteAny || String(data.createdBy || "") === currentUserId) && (
-                <button type="button" className="m365-btn m365-btn--danger warning-letter-list__action-button" onClick={() => handleDelete(data)}>
-                    Delete
-                </button>
-            )}
-        </div>
-    );
+                {canUpdate && workflowStage === 0 && (isCreatedByCurrentUser || canEditAny) && (
+                    <button type="button" className="m365-btn m365-btn--ghost warning-letter-list__action-button" onClick={() => navigate(`/reports/warning-letters/${data.id}/edit`)}>
+                        Edit
+                    </button>
+                )}
+                {canUploadSignedCopy && workflowStage === 2 && (
+                    <button
+                        type="button"
+                        className="m365-btn m365-btn--ghost warning-letter-list__action-button"
+                        onClick={() => openSignedCopyPicker(data)}
+                        disabled={Boolean(signedCopyUploadingId)}
+                        title="Upload the returned signed PDF. The backend validates the QR reference before accepting it."
+                    >
+                        <i className={`fa-light ${isUploadingSignedCopy ? "fa-spinner-third fa-spin" : "fa-upload"}`} />
+                        {isUploadingSignedCopy ? "Uploading..." : "Upload Signed Copy"}
+                    </button>
+                )}
+                {canUpdate && workflowStage === 3 && (
+                    <button type="button" className="m365-btn m365-btn--success warning-letter-list__action-button" onClick={() => handleAcknowledge(data)}>
+                        Acknowledge
+                    </button>
+                )}
+                {canDelete && canDeleteWarningLetterInStage(workflowStage) && (canDeleteAny || isCreatedByCurrentUser) && (
+                    <button type="button" className="m365-btn m365-btn--danger warning-letter-list__action-button" onClick={() => handleDelete(data)}>
+                        Delete
+                    </button>
+                )}
+            </div>
+        );
+    };
 
     const stageTickerItems = workflowStageTickerOrder.map((stage) => {
         const meta = workflowStageMap[stage];
@@ -370,6 +429,13 @@ const WarningLetterListPage = () => {
 
     return (
         <div className="warning-letter-page warning-letter-list">
+            <input
+                ref={signedCopyInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="tw-hidden"
+                onChange={handleSignedCopySelected}
+            />
             <div className="m365-page-header">
                 <div className="m365-page-header__left">
                     <i className="fa-light fa-triangle-exclamation m365-page-header__icon" />
@@ -495,7 +561,7 @@ const WarningLetterListPage = () => {
                             <option value="">All types</option>
                             <option value="1">Excess Fuel</option>
                             <option value="2">Excess Speed</option>
-                            <option value="3">Excess Idling</option>
+                            {/* <option value="3">Excess Idling</option> */}
                         </select>
                     </label>
                     <label className="warning-letter-page__field">
@@ -581,7 +647,7 @@ const WarningLetterListPage = () => {
                     <Column dataField="signatureRequestedAt" caption="Sent At" cellRender={renderDate} width={120} />
                     <Column dataField="signedCopyUploadedAt" caption="Signed At" cellRender={renderDate} width={120} />
                     <Column dataField="employeeAcknowledgedAt" caption="Acknowledged At" cellRender={renderDate} width={140} />
-                    <Column caption="Actions" width={320} allowSorting={false} allowFiltering={false} cellRender={renderActions} fixed={true} fixedPosition="right" />
+                    <Column caption="Actions" width={430} allowSorting={false} allowFiltering={false} cellRender={renderActions} fixed={true} fixedPosition="right" />
                 </DataGrid>
             </div>
 

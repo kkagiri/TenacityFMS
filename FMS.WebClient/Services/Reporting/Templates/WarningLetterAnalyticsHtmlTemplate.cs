@@ -45,7 +45,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .report-header .meta { font-size:10px; color:var(--text-muted); text-align:right; }
     .badge-period { display:inline-block; background:var(--primary); color:#fff; border-radius:10px; padding:2px 10px; font-size:10px; font-weight:600; margin-top:4px; }
 
-    .summary-section { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+    .summary-section { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:20px; }
     .summary-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; border-top:3px solid var(--primary); }
     .summary-card.success { border-top-color:var(--success); }
     .summary-card.danger { border-top-color:var(--danger); }
@@ -53,6 +53,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .summary-card .label { font-size:10px; color:var(--text-muted); text-transform:uppercase; font-weight:600; letter-spacing:0.5px; }
     .summary-card .value { font-size:22px; font-weight:700; margin-top:4px; }
     .summary-card .sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
+    .summary-card .meta { font-size:10px; color:var(--text-muted); margin-top:6px; line-height:1.35; }
 
     .workflow-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:-4px 0 20px; }
     .workflow-step { position:relative; background:var(--bg-card); border:1px solid var(--border); border-top:3px solid var(--primary); border-radius:8px; padding:12px 14px; min-height:84px; }
@@ -68,7 +69,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .chart-card-header { padding:12px 16px; border-bottom:1px solid var(--border); }
     .chart-card-title { font-size:13px; font-weight:700; }
     .chart-card-sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
-    .chart-card-body { padding:12px 16px; }
+    .chart-card-body { padding:8px 10px; }
 
     .kpi-strip { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--border); }
     .kpi-item { padding:10px 16px; text-align:center; border-right:1px solid var(--border); }
@@ -78,14 +79,12 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .kpi-value.good { color:var(--success); }
     .kpi-value.bad { color:var(--danger); }
 
-    .employee-list { padding:8px 16px; }
-    .employee-row { display:grid; grid-template-columns:140px 1fr 60px 80px; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border); }
-    .employee-row:last-child { border-bottom:none; }
-    .employee-name { font-size:11px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .employee-bar-track { height:8px; background:var(--bg-light); border-radius:4px; overflow:hidden; }
-    .employee-bar-fill { height:100%; border-radius:4px; background:var(--primary); }
-    .employee-count { font-size:11px; font-weight:700; text-align:right; }
-    .employee-cost { font-size:10px; color:var(--text-muted); text-align:right; }
+    .ranking-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+    .ranking-card { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .ranking-card__header { padding:12px 16px; border-bottom:1px solid var(--border); }
+    .ranking-card__title { font-size:13px; font-weight:700; }
+    .ranking-card__sub { font-size:10px; color:var(--text-muted); margin-top:2px; }
+    .ranking-card__body { padding:0 16px 12px; }
 
     .section-label { margin:24px 0 12px; }
     .section-label h2 { font-size:14px; font-weight:700; color:var(--text-main); border-bottom:2px solid var(--primary); padding-bottom:4px; display:inline-block; }
@@ -107,8 +106,15 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     .stage-pill .days { font-weight:700; color:var(--primary); }
 
     .report-footer { display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:32px; }
+    .keep-together { break-inside: avoid-page; page-break-inside: avoid; }
+    .detail-table thead { display: table-header-group; }
+    .detail-table tr { break-inside: avoid-page; page-break-inside: avoid; }
 
-    @media print { .page { padding:12px; } }
+    @media print {
+        .page { padding:12px; }
+        .keep-together { break-inside: avoid-page; page-break-inside: avoid; }
+        .detail-table thead { display: table-header-group; }
+    }
 </style>
 </head>
 <body>
@@ -152,9 +158,16 @@ internal static class WarningLetterAnalyticsHtmlTemplate
             <div class=""sub"">From creation to acknowledged</div>
         </div>
         <div class=""summary-card success"">
-            <div class=""label"">Top Employee</div>
-            <div class=""value"" style=""font-size:14px;"">{{analytics.employeeWithMostWarnings.employeeName}}</div>
-            <div class=""sub"">{{analytics.employeeWithMostWarnings.count}} warnings</div>
+            <div class=""label"">Top Speed Employee</div>
+            <div class=""value"" style=""font-size:14px;"">{{analytics.topSpeedEmployee.employeeName}}</div>
+            <div class=""sub"">{{analytics.topSpeedEmployee.warningCount}} speed warnings</div>
+            <div class=""meta"">Vehicle: {{analytics.topSpeedEmployee.vehicleHyoungNo}}</div>
+        </div>
+        <div class=""summary-card"">
+            <div class=""label"">Top Fuel Employee</div>
+            <div class=""value"" style=""font-size:14px;"">{{analytics.topFuelEmployee.employeeName}}</div>
+            <div class=""sub"">{{analytics.topFuelEmployee.warningCount}} fuel warnings</div>
+            <div class=""meta"">Vehicle: {{analytics.topFuelEmployee.vehicleHyoungNo}}</div>
         </div>
     </div>
     {{#if analytics.workflowStages}}
@@ -197,13 +210,13 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         </div>
     </div>
 
-    <!-- Monthly Trend + Excess Fuel by Site -->
+    <!-- Monthly Trend + Excess Warning Letters by Site -->
     <div class=""analytics-grid"">
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>
                     <div class=""chart-card-title"">Monthly Trend</div>
-                    <div class=""chart-card-sub"">Issue-date distribution on an evenly spaced day axis; 0 marks the first day of the month and the scale extends to today.</div>
+                    <div class=""chart-card-sub"">Number of warning letters issued across the selected period, shown by issue date.</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
@@ -213,8 +226,8 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>
-                    <div class=""chart-card-title"">Excess Fuel by Site</div>
-                    <div class=""chart-card-sub"">Total fuel loss per site in litres</div>
+                    <div class=""chart-card-title"">Excess Warning Letters by Site</div>
+                    <div class=""chart-card-sub"">Stacked count of excess fuel consumption and excessive speed warning letters by site</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
@@ -223,13 +236,13 @@ internal static class WarningLetterAnalyticsHtmlTemplate
         </div>
     </div>
 
-    <!-- Excess Fuel by Vehicle Type + Stage Duration -->
+    <!-- Warning Letters by Vehicle Type + Stage Duration -->
     <div class=""analytics-grid"">
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>
-                    <div class=""chart-card-title"">Excess Fuel by Vehicle Type</div>
-                    <div class=""chart-card-sub"">Total fuel loss per vehicle category in litres</div>
+                    <div class=""chart-card-title"">Warning Letters by Vehicle Type</div>
+                    <div class=""chart-card-sub"">Stacked count of excess fuel consumption and excessive speed warning letters by vehicle type</div>
                 </div>
             </div>
             <div class=""chart-card-body"" style=""height:220px;"">
@@ -268,57 +281,80 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     </div>
 
     <!-- Employee Ranking -->
-    <div class=""chart-card"" style=""margin-bottom:20px;"">
-        <div class=""chart-card-header"">
-            <div>
-                <div class=""chart-card-title"">Top 10 Employees by Warnings</div>
-                <div class=""chart-card-sub"">Employee ranking by warning count and fuel loss litres</div>
+    <div class=""keep-together"">
+    <div class=""section-label""><h2>Top 10 Employees by Warnings</h2></div>
+    <div class=""section-sub"">Split by warning type for excessive speed and fuel consumption.</div>
+    <div class=""ranking-grid"">
+        <div class=""ranking-card"">
+            <div class=""ranking-card__header"">
+                <div class=""ranking-card__title"">Excessive Speed Warnings</div>
+                <div class=""ranking-card__sub"">Top employees ranked by speed warning count.</div>
+            </div>
+            <div class=""ranking-card__body"">
+                <table class=""data-table"" style=""margin-bottom:0;"">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Vehicle</th>
+                            <th>Warning Type</th>
+                            <th class=""text-center"">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each analytics.speedEmployeeRanking}}
+                        <tr>
+                            <td>{{employeeName}}</td>
+                            <td>{{vehicleHyoungNo}}</td>
+                            <td>{{warningType}}</td>
+                            <td class=""text-center"">{{warningCount}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class=""employee-list"">
-            {{#each analytics.employeeRanking}}
-            <div class=""employee-row"">
-                <span class=""employee-name"">{{employeeName}}</span>
-                <div class=""employee-bar-track""><div class=""employee-bar-fill"" style=""width:{{widthPercent}}%""></div></div>
-                <span class=""employee-count"">{{warningCount}}</span>
-                <span class=""employee-cost"">{{totalExcessFuelLitresFormatted}} L</span>
+        <div class=""ranking-card"">
+            <div class=""ranking-card__header"">
+                <div class=""ranking-card__title"">Excess Fuel Consumption Warnings</div>
+                <div class=""ranking-card__sub"">Top employees ranked by fuel warning count and litres lost.</div>
             </div>
-            {{/each}}
+            <div class=""ranking-card__body"">
+                <table class=""data-table"" style=""margin-bottom:0;"">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Vehicle</th>
+                            <th>Warning Type</th>
+                            <th class=""text-center"">Count</th>
+                            <th class=""text-right"">Fuel Loss (L)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each analytics.fuelEmployeeRanking}}
+                        <tr>
+                            <td>{{employeeName}}</td>
+                            <td>{{vehicleHyoungNo}}</td>
+                            <td>{{warningType}}</td>
+                            <td class=""text-center"">{{warningCount}}</td>
+                            <td class=""text-right"">{{totalExcessFuelLitresFormatted}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+    </div>
 
-    <!-- Last Warning by Employee -->
-    <div class=""section-label""><h2>Latest Warning by Employee</h2></div>
-    <div class=""section-sub"">Most recent warning letter inside the selected report scope for each employee.</div>
-    <table class=""data-table"">
-        <thead>
-            <tr>
-                <th>Employee</th>
-                <th>Last Letter Date</th>
-                <th>Letter Type</th>
-                <th>Stage</th>
-                <th class=""text-center"">Warnings in Scope</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{#each analytics.lastWarningByEmployee}}
-            <tr>
-                <td>{{employeeName}}</td>
-                <td>{{lastLetterDateFormatted}}</td>
-                <td>{{letterType}}</td>
-                <td><span class=""stage-badge"" style=""background:{{workflowStageTint}}; border-color:{{workflowStageBorderColor}}; color:{{workflowStageColor}};"">{{workflowStageName}}</span></td>
-                <td class=""text-center"">{{warningCount}}</td>
-            </tr>
-            {{/each}}
-        </tbody>
-    </table>
     {{/if}}
 
     <!-- Detail Table -->
-    <div class=""section-label""><h2>Warning Letters Detail</h2></div>
     {{#if records}}
-    <table class=""data-table"">
+    <table class=""data-table detail-table"">
         <thead>
+            <tr>
+                <th colspan=""8"">Warning Letters Detail</th>
+            </tr>
             <tr>
                 <th>#</th>
                 <th>Date</th>
@@ -373,11 +409,95 @@ if (typeof Chart !== 'undefined') {
     var BORDER  = '#E5E7EB';
 
     var cd = {{{analyticsJson}}};
+    var doughnutPercentageLabels = {
+        id: 'doughnutPercentageLabels',
+        afterDatasetsDraw: function(chart) {
+            if (chart.config.type !== 'doughnut') {
+                return;
+            }
+
+            var dataset = chart.data.datasets && chart.data.datasets[0];
+            if (!dataset || !dataset.data || !dataset.data.length) {
+                return;
+            }
+
+            var total = dataset.data.reduce(function(sum, value) {
+                return sum + (Number(value) || 0);
+            }, 0);
+
+            if (!total) {
+                return;
+            }
+
+            var ctx = chart.ctx;
+            var meta = chart.getDatasetMeta(0);
+
+            ctx.save();
+            ctx.font = ""600 9px 'Segoe UI', Arial, sans-serif"";
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            meta.data.forEach(function(element, index) {
+                var value = Number(dataset.data[index]) || 0;
+                if (!value) {
+                    return;
+                }
+
+                var props = element.getProps(['x', 'y', 'startAngle', 'endAngle', 'innerRadius', 'outerRadius'], true);
+                var angle = (props.startAngle + props.endAngle) / 2;
+                var radius = props.innerRadius + ((props.outerRadius - props.innerRadius) * 0.58);
+                var x = props.x + Math.cos(angle) * radius;
+                var y = props.y + Math.sin(angle) * radius;
+                var percentage = Math.round((value / total) * 100);
+
+                ctx.fillText(String(percentage) + '%', x, y);
+            });
+
+            ctx.restore();
+        }
+    };
+    var stackedBarValueLabels = {
+        id: 'stackedBarValueLabels',
+        afterDatasetsDraw: function(chart) {
+            var ctx = chart.ctx;
+            ctx.save();
+            ctx.font = ""600 10px 'Segoe UI', Arial, sans-serif"";
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            chart.data.datasets.forEach(function(dataset, datasetIndex) {
+                var meta = chart.getDatasetMeta(datasetIndex);
+                if (!meta || meta.hidden) {
+                    return;
+                }
+
+                meta.data.forEach(function(element, index) {
+                    var value = dataset.data[index];
+                    if (!value) {
+                        return;
+                    }
+
+                    var props = element.getProps(['x', 'y', 'base'], true);
+                    var centerY = props.y + ((props.base - props.y) / 2);
+                    if (Math.abs(props.base - props.y) < 16) {
+                        centerY = props.y - 8;
+                    }
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(String(value), props.x, centerY);
+                });
+            });
+
+            ctx.restore();
+        }
+    };
 
     // 1. Stage Breakdown Doughnut
     if (cd.stageBreakdown && cd.stageBreakdown.labels.length > 0) {
         new Chart(document.getElementById('stageChart'), {
             type: 'doughnut',
+            plugins: [doughnutPercentageLabels],
             data: {
                 labels: cd.stageBreakdown.labels,
                 datasets: [{
@@ -391,8 +511,12 @@ if (typeof Chart !== 'undefined') {
             options: {
                 responsive: true, maintainAspectRatio: false,
                 cutout: '62%',
+                layout: { padding: { top: 2, right: 2, bottom: 2, left: 2 } },
                 plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } }
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 9, padding: 6, font: { size: 9 }, usePointStyle: true, pointStyle: 'circle' }
+                    }
                 }
             }
         });
@@ -402,6 +526,7 @@ if (typeof Chart !== 'undefined') {
     if (cd.letterTypeBreakdown && cd.letterTypeBreakdown.labels.length > 0) {
         new Chart(document.getElementById('letterTypeChart'), {
             type: 'doughnut',
+            plugins: [doughnutPercentageLabels],
             data: {
                 labels: cd.letterTypeBreakdown.labels,
                 datasets: [{
@@ -415,8 +540,12 @@ if (typeof Chart !== 'undefined') {
             options: {
                 responsive: true, maintainAspectRatio: false,
                 cutout: '62%',
+                layout: { padding: { top: 2, right: 2, bottom: 2, left: 2 } },
                 plugins: {
-                    legend: { position: 'right', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } }
+                    legend: {
+                        position: 'bottom',
+                        labels: { boxWidth: 9, padding: 6, font: { size: 9 }, usePointStyle: true, pointStyle: 'circle' }
+                    }
                 }
             }
         });
@@ -428,6 +557,7 @@ if (typeof Chart !== 'undefined') {
             type: 'line',
             data: {
                 datasets: [{
+                    label: 'No. of Warning Letters',
                     data: cd.monthlyTrend.points,
                     parsing: false,
                     borderColor: PRIMARY,
@@ -442,7 +572,7 @@ if (typeof Chart !== 'undefined') {
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true, position: 'top' } },
                 scales: {
                     x: {
                         type: 'linear',
@@ -457,68 +587,112 @@ if (typeof Chart !== 'undefined') {
                         ticks: {
                             callback: function(value) {
                                 if (value === 0) {
-                                    return '0 (' + (cd.monthlyTrend.monthStartLabel || 'Month Start') + ')';
+                                    return cd.monthlyTrend.rangeStartLabel || 'Start';
                                 }
-                                if (value === cd.monthlyTrend.todayOffset) {
-                                    return 'Today';
+                                if (value === cd.monthlyTrend.endOffset) {
+                                    return cd.monthlyTrend.rangeEndLabel || 'End';
                                 }
                                 return value;
                             }
                         },
-                        title: { display: true, text: 'Day offset from month start' }
+                        title: { display: true, text: 'Days from selected start date' }
                     },
-                    y: { grid: { color: BORDER }, beginAtZero: true, ticks: { stepSize: 1 } }
+                    y: {
+                        grid: { color: BORDER },
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 },
+                        title: { display: true, text: 'No. of Warning Letters' }
+                    }
                 }
             }
         });
     }
 
         // 4. Excess Fuel by Site Bar
-        if (cd.excessFuelBySite && cd.excessFuelBySite.labels.length > 0) {
+        if (cd.warningLettersBySite && cd.warningLettersBySite.labels.length > 0) {
             new Chart(document.getElementById('excessFuelBySiteChart'), {
                 type: 'bar',
                 data: {
-                    labels: cd.excessFuelBySite.labels,
-                    datasets: [{
-                        label: 'Excess Fuel (L)',
-                        data: cd.excessFuelBySite.data,
-                        backgroundColor: DANGER,
-                        borderRadius: 4,
-                        barPercentage: 0.6
-                    }]
+                    labels: cd.warningLettersBySite.labels,
+                    datasets: [
+                        {
+                            label: 'Excess Fuel Consumption',
+                            data: cd.warningLettersBySite.fuelCounts,
+                            backgroundColor: DANGER,
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            stack: 'warningLettersBySite'
+                        },
+                        {
+                            label: 'Excessive Speed',
+                            data: cd.warningLettersBySite.speedCounts,
+                            backgroundColor: WARNING,
+                            borderRadius: 4,
+                            barPercentage: 0.6,
+                            stack: 'warningLettersBySite'
+                        }
+                    ]
                 },
+                plugins: [stackedBarValueLabels],
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: {
+                        legend: { display: true, position: 'top' }
+                    },
                     scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: BORDER }, beginAtZero: true }
+                        x: { stacked: true, grid: { display: false } },
+                        y: {
+                            stacked: true,
+                            grid: { color: BORDER },
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 },
+                            title: { display: true, text: 'Warning Letter Count' }
+                        }
                     }
                 }
             });
         }
 
         // 5. Excess Fuel by Vehicle Type Horizontal Bar
-        if (cd.excessFuelByVehicleType && cd.excessFuelByVehicleType.labels.length > 0) {
+        if (cd.warningLettersByVehicleType && cd.warningLettersByVehicleType.labels.length > 0) {
             new Chart(document.getElementById('excessFuelByVehicleTypeChart'), {
                 type: 'bar',
                 data: {
-                    labels: cd.excessFuelByVehicleType.labels,
-                    datasets: [{
-                        label: 'Excess Fuel (L)',
-                        data: cd.excessFuelByVehicleType.data,
-                        backgroundColor: [PRIMARY, SUCCESS, WARNING, PURPLE, DANGER, '#0EA5E9'],
-                        borderRadius: 4,
-                        barPercentage: 0.6
-                    }]
+                    labels: cd.warningLettersByVehicleType.labels,
+                    datasets: [
+                        {
+                            label: 'Excess Fuel Consumption',
+                            data: cd.warningLettersByVehicleType.fuelCounts,
+                            backgroundColor: SUCCESS,
+                            borderRadius: 4,
+                            barPercentage: 0.9,
+                            categoryPercentage: 0.9,
+                            stack: 'warningLettersByVehicleType'
+                        },
+                        {
+                            label: 'Excessive Speed',
+                            data: cd.warningLettersByVehicleType.speedCounts,
+                            backgroundColor: PRIMARY,
+                            borderRadius: 4,
+                            barPercentage: 0.9,
+                            categoryPercentage: 0.9,
+                            stack: 'warningLettersByVehicleType'
+                        }
+                    ]
                 },
+                plugins: [stackedBarValueLabels],
                 options: {
-                    indexAxis: 'y',
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: true, position: 'top' } },
                     scales: {
-                        x: { grid: { color: BORDER }, beginAtZero: true },
-                        y: { grid: { display: false }, ticks: { font: { size: 10, weight: '700' } } }
+                        x: { stacked: true, grid: { display: false } },
+                        y: {
+                            stacked: true,
+                            grid: { color: BORDER },
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 },
+                            title: { display: true, text: 'Warning Letter Count' }
+                        }
                     }
                 }
             });

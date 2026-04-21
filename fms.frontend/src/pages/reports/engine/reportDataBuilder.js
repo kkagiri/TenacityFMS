@@ -151,6 +151,43 @@ const normalizeText = (value, fallback = '-') => {
     return cleaned || fallback;
 };
 
+const VEHICLE_CONSUMPTION_NUMERIC_SORT_FIELDS = new Set([
+    'refillCount',
+    'volumeRaw',
+    'distanceRaw',
+    'consumptionRaw',
+]);
+
+const sortVehicleConsumptionRecords = (records, queryParams = {}) => {
+    const sortBy = String(queryParams?.sortBy || '').trim();
+    if (!sortBy) {
+        return records;
+    }
+
+    const sortMultiplier = String(queryParams?.sortDirection || 'asc').trim().toLowerCase() === 'desc' ? -1 : 1;
+
+    return [...records].sort((left, right) => {
+        const leftValue = left?.[sortBy];
+        const rightValue = right?.[sortBy];
+
+        let comparison = 0;
+        if (VEHICLE_CONSUMPTION_NUMERIC_SORT_FIELDS.has(sortBy)) {
+            comparison = numberOrZero(leftValue) - numberOrZero(rightValue);
+        } else {
+            comparison = normalizeText(leftValue, '').localeCompare(normalizeText(rightValue, ''), undefined, {
+                numeric: true,
+                sensitivity: 'base',
+            });
+        }
+
+        if (comparison === 0) {
+            comparison = numberOrZero(left?.rowNumber) - numberOrZero(right?.rowNumber);
+        }
+
+        return comparison * sortMultiplier;
+    });
+};
+
 const formatWarningLetterTypeName = (value) => {
     const normalized = normalizeText(value, 'Unknown');
 
@@ -260,6 +297,15 @@ const resolveWarningLetterTrendReferenceDate = (queryParams) => {
     return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 };
 
+const resolveWarningLetterTrendStartDate = (queryParams, referenceDate) => {
+    const queryStart = queryParams?.startDate ? new Date(queryParams.startDate) : null;
+    if (queryStart && !Number.isNaN(queryStart.getTime())) {
+        return new Date(queryStart.getFullYear(), queryStart.getMonth(), queryStart.getDate());
+    }
+
+    return new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+};
+
 const formatWarningLetterTrendDateLabel = (value) => {
     const date = parseWarningLetterTrendDate(value);
     if (!date) {
@@ -269,8 +315,8 @@ const formatWarningLetterTrendDateLabel = (value) => {
     return date.toLocaleString(undefined, { day: '2-digit', month: 'short', timeZone: 'UTC' });
 };
 
-const buildWarningLetterTrendAxis = (trendItems, referenceDate) => {
-    const monthStart = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+const buildWarningLetterTrendAxis = (trendItems, startDate, referenceDate) => {
+    const rangeStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const msPerDay = 24 * 60 * 60 * 1000;
 
     const points = trendItems
@@ -282,29 +328,26 @@ const buildWarningLetterTrendAxis = (trendItems, referenceDate) => {
 
             const localTrendDate = new Date(trendDate.getUTCFullYear(), trendDate.getUTCMonth(), trendDate.getUTCDate());
             return {
-                x: Math.round((localTrendDate.getTime() - monthStart.getTime()) / msPerDay),
+                x: Math.round((localTrendDate.getTime() - rangeStart.getTime()) / msPerDay),
                 y: item.count,
             };
         })
         .filter(Boolean);
 
-    const todayOffset = Math.max(0, Math.round((referenceDate.getTime() - monthStart.getTime()) / msPerDay));
-    const minPointOffset = points.length ? Math.min(...points.map((item) => item.x)) : 0;
-    const minOffset = Math.min(-30, minPointOffset);
-    const midpointOffset = todayOffset > 0 ? Math.round(todayOffset / 2) : 0;
+    const endOffset = Math.max(0, Math.round((referenceDate.getTime() - rangeStart.getTime()) / msPerDay));
+    const midpointOffset = endOffset > 0 ? Math.round(endOffset / 2) : 0;
     const tickValues = Array.from(new Set([
-        minOffset,
-        -15,
         0,
         midpointOffset,
-        todayOffset,
-    ].filter((value) => value >= minOffset && value <= todayOffset))).sort((left, right) => left - right);
+        endOffset,
+    ].filter((value) => value >= 0 && value <= endOffset))).sort((left, right) => left - right);
 
     return {
-        monthStartLabel: monthStart.toLocaleString(undefined, { day: '2-digit', month: 'short' }),
-        todayOffset,
-        minOffset,
-        maxOffset: todayOffset,
+        rangeStartLabel: `${rangeStart.getDate()}/${rangeStart.getMonth() + 1}`,
+        rangeEndLabel: `${referenceDate.getDate()}/${referenceDate.getMonth() + 1}`,
+        endOffset,
+        minOffset: 0,
+        maxOffset: endOffset,
         tickValues,
         points,
     };
@@ -680,6 +723,8 @@ const mapFuelRefill = (rawRecords) => {
 
 const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
     const labels = buildConsumptionLabelMetadata(rawRecords, queryParams?.averageKmL);
+    const includeDriverColumn = queryParams?.includeDriverColumn === true || queryParams?.includeDriverColumn === 'true';
+    const includePassengerColumn = queryParams?.includePassengerColumn === true || queryParams?.includePassengerColumn === 'true';
     const mapped = rawRecords.map((record, index) => {
         const volumeValue = numberOrZero(getValue(record, ['totalFuelAmount', 'volume', 'totalVolume']));
         const distanceValue = numberOrZero(getValue(record, ['distanceOrEngineHours', 'distance', 'totalDistance']));
@@ -695,6 +740,8 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
             numberPlate: getValue(record, ['numberPlate', 'hyoungNo']) || '-',
             vehicleType: getValue(record, ['vehicleType']) || '-',
             siteName: getValue(record, ['workingSiteName', 'siteName']) || '-',
+            driverName: normalizeText(getValue(record, ['driverName', 'employeeName']), '-'),
+            passenger: normalizeText(getValue(record, ['passenger']), '-'),
             refillCount: numberOrZero(getValue(record, ['refillCount'])),
             volume: formatNumber(volumeValue),
             totalVolume: formatNumber(volumeValue),
@@ -714,7 +761,13 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
         };
     });
 
-    const siteGroups = buildVehicleConsumptionSiteGroups(mapped);
+    const ordered = sortVehicleConsumptionRecords(mapped, queryParams)
+        .map((record, index) => ({
+            ...record,
+            rowNumber: index + 1,
+        }));
+
+    const siteGroups = buildVehicleConsumptionSiteGroups(ordered);
 
     const totalVolume = sumBy(rawRecords, (r) => getValue(r, ['totalFuelAmount', 'volume', 'totalVolume']));
     const totalCost = sumBy(rawRecords, (r) => getValue(r, ['cost', 'totalCost']));
@@ -724,14 +777,16 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
 
     return {
         ...labels,
-        records: mapped,
+        includeDriverColumn,
+        includePassengerColumn,
+        records: ordered,
         siteGroups,
         siteName: siteGroups.length === 1
             ? siteGroups[0].siteName
             : (siteGroups.length > 1 ? `${siteGroups.length} Sites` : (queryParams?.siteIds ? 'Selected Sites' : 'All Sites')),
         summary: {
-            totalRecords: mapped.length,
-            totalVehicles: mapped.length,
+            totalRecords: ordered.length,
+            totalVehicles: ordered.length,
             totalVolume: formatNumber(totalVolume),
             totalFuel: formatNumber(totalVolume),
             totalFuelDisplay: `${formatNumber(totalVolume)} L`,
@@ -2159,6 +2214,9 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             excessValue: formatNumber(numberOrZero(getValue(record, ['excessValue']))),
             expectedValue: formatNumber(numberOrZero(getValue(record, ['expectedValue']))),
             actualValue: formatNumber(numberOrZero(getValue(record, ['actualValue']))),
+            expectedMetricDisplay: normalizeText(getValue(record, ['expectedMetricDisplay']), '-'),
+            actualMetricDisplay: normalizeText(getValue(record, ['actualMetricDisplay']), '-'),
+            excessMetricDisplay: normalizeText(getValue(record, ['excessMetricDisplay']), '-'),
             violationSummary: normalizeText(getValue(record, ['violationSummary']), '-'),
         };
     });
@@ -2188,52 +2246,104 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         count: numberOrZero(getValue(item, ['count'])),
     }));
 
-    const trendAxis = buildWarningLetterTrendAxis(monthlyTrend, resolveWarningLetterTrendReferenceDate(queryParams));
+    const trendReferenceDate = resolveWarningLetterTrendReferenceDate(queryParams);
+    const trendStartDate = resolveWarningLetterTrendStartDate(queryParams, trendReferenceDate);
+    const trendAxis = buildWarningLetterTrendAxis(monthlyTrend, trendStartDate, trendReferenceDate);
 
     const fuelRecords = mapped.filter((item) => item.letterTypeName === 'Excess Fuel');
+    const speedRecords = mapped.filter((item) => item.letterTypeName === 'Excessive Speed');
 
     const sumFuelLitres = (items) => roundTo(items.reduce((total, item) => total + numberOrZero(item.excessValueRaw), 0), 2);
 
-    const excessFuelBySite = Array.from(fuelRecords.reduce((groups, item) => {
-        const key = item.siteName || '-';
-        groups.set(key, (groups.get(key) || 0) + numberOrZero(item.excessValueRaw));
-        return groups;
-    }, new Map()).entries())
-        .map(([name, totalExcessFuelLitres]) => ({
-            name,
-            totalExcessFuelLitres: roundTo(totalExcessFuelLitres, 2),
-            totalExcessFuelLitresFormatted: formatNumber(roundTo(totalExcessFuelLitres, 2)),
-        }))
-        .sort((left, right) => right.totalExcessFuelLitres - left.totalExcessFuelLitres);
+    const warningLettersBySite = Array.from(mapped.reduce((groups, item) => {
+        if (item.letterTypeName !== 'Excess Fuel' && item.letterTypeName !== 'Excessive Speed') {
+            return groups;
+        }
 
-    const excessFuelByVehicleType = Array.from(fuelRecords.reduce((groups, item) => {
-        const key = item.vehicleTypeName || '-';
-        groups.set(key, (groups.get(key) || 0) + numberOrZero(item.excessValueRaw));
+        const key = item.siteName || '-';
+        const existing = groups.get(key) || {
+            name: key,
+            excessFuelCount: 0,
+            excessiveSpeedCount: 0,
+        };
+
+        if (item.letterTypeName === 'Excess Fuel') {
+            existing.excessFuelCount += 1;
+        }
+
+        if (item.letterTypeName === 'Excessive Speed') {
+            existing.excessiveSpeedCount += 1;
+        }
+
+        groups.set(key, existing);
         return groups;
-    }, new Map()).entries())
-        .map(([name, totalExcessFuelLitres]) => ({
-            name,
-            totalExcessFuelLitres: roundTo(totalExcessFuelLitres, 2),
-            totalExcessFuelLitresFormatted: formatNumber(roundTo(totalExcessFuelLitres, 2)),
+    }, new Map()).values())
+        .map((item) => ({
+            ...item,
+            totalWarnings: item.excessFuelCount + item.excessiveSpeedCount,
         }))
-        .sort((left, right) => right.totalExcessFuelLitres - left.totalExcessFuelLitres);
+        .sort((left, right) => right.totalWarnings - left.totalWarnings || left.name.localeCompare(right.name));
+
+    const warningLettersByVehicleType = Array.from(mapped.reduce((groups, item) => {
+        if (item.letterTypeName !== 'Excess Fuel' && item.letterTypeName !== 'Excessive Speed') {
+            return groups;
+        }
+
+        const key = item.vehicleTypeName || '-';
+        const existing = groups.get(key) || {
+            name: key,
+            excessFuelCount: 0,
+            excessiveSpeedCount: 0,
+        };
+
+        if (item.letterTypeName === 'Excess Fuel') {
+            existing.excessFuelCount += 1;
+        }
+
+        if (item.letterTypeName === 'Excessive Speed') {
+            existing.excessiveSpeedCount += 1;
+        }
+
+        groups.set(key, existing);
+        return groups;
+    }, new Map()).values())
+        .map((item) => ({
+            ...item,
+            totalWarnings: item.excessFuelCount + item.excessiveSpeedCount,
+        }))
+        .sort((left, right) => right.totalWarnings - left.totalWarnings || left.name.localeCompare(right.name));
 
     const averageDaysBetweenStages = (rawAnalytics.averageDaysBetweenStages || rawAnalytics.AverageDaysBetweenStages || []).map((item) => ({
         transition: normalizeText(getValue(item, ['transition']), '-'),
         averageDays: roundTo(numberOrZero(getValue(item, ['averageDays'])), 1),
     }));
 
-    const employeeRankingBase = Array.from(mapped.reduce((groups, item) => {
+    const buildEmployeeRankingByType = (targetType) => Array.from(mapped.reduce((groups, item) => {
+        if (item.letterTypeName !== targetType) {
+            return groups;
+        }
+
         const key = `${item.employeeId}:${item.employeeName}`;
         const existing = groups.get(key) || {
             employeeName: item.employeeName,
             warningCount: 0,
             totalExcessFuelLitres: 0,
+            latestLetterDate: item.letterDate || '',
+            vehicleHyoungNo: item.vehicleHyoungNo || '-',
+            warningType: item.letterTypeName || '-',
         };
 
         existing.warningCount += 1;
-        if (item.letterTypeName === 'Excess Fuel') {
+        if (targetType === 'Excess Fuel') {
             existing.totalExcessFuelLitres += numberOrZero(item.excessValueRaw);
+        }
+
+        const existingDate = existing.latestLetterDate ? new Date(existing.latestLetterDate).getTime() : Number.NEGATIVE_INFINITY;
+        const itemDate = item.letterDate ? new Date(item.letterDate).getTime() : Number.NEGATIVE_INFINITY;
+        if (itemDate >= existingDate) {
+            existing.latestLetterDate = item.letterDate || existing.latestLetterDate;
+            existing.vehicleHyoungNo = item.vehicleHyoungNo || '-';
+            existing.warningType = item.letterTypeName || '-';
         }
 
         groups.set(key, existing);
@@ -2243,15 +2353,28 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             ...item,
             totalExcessFuelLitres: roundTo(item.totalExcessFuelLitres, 2),
             totalExcessFuelLitresFormatted: formatNumber(roundTo(item.totalExcessFuelLitres, 2)),
+            vehicleHyoungNo: normalizeText(item.vehicleHyoungNo, '-'),
+            warningType: normalizeText(item.warningType, '-'),
         }))
         .sort((left, right) => right.warningCount - left.warningCount || left.employeeName.localeCompare(right.employeeName))
         .slice(0, 10);
 
-    const maxWarningCount = employeeRankingBase.reduce((max, item) => Math.max(max, item.warningCount), 0) || 1;
-    const employeeRanking = employeeRankingBase.map((item) => ({
-        ...item,
-        widthPercent: Math.max(8, Math.round((item.warningCount / maxWarningCount) * 100)),
-    }));
+    const speedEmployeeRanking = buildEmployeeRankingByType('Excessive Speed');
+    const fuelEmployeeRanking = buildEmployeeRankingByType('Excess Fuel');
+    const topSpeedEmployee = speedEmployeeRanking[0]
+        ? {
+            employeeName: speedEmployeeRanking[0].employeeName,
+            warningCount: speedEmployeeRanking[0].warningCount,
+            vehicleHyoungNo: speedEmployeeRanking[0].vehicleHyoungNo,
+        }
+        : { employeeName: '-', warningCount: 0, vehicleHyoungNo: '-' };
+    const topFuelEmployee = fuelEmployeeRanking[0]
+        ? {
+            employeeName: fuelEmployeeRanking[0].employeeName,
+            warningCount: fuelEmployeeRanking[0].warningCount,
+            vehicleHyoungNo: fuelEmployeeRanking[0].vehicleHyoungNo,
+        }
+        : { employeeName: '-', warningCount: 0, vehicleHyoungNo: '-' };
 
     const lastWarningByEmployee = (rawAnalytics.lastWarningByEmployee || rawAnalytics.LastWarningByEmployee || []).map((item) => {
         const stageMeta = getWarningLetterWorkflowStageMeta(getValue(item, ['workflowStageName']));
@@ -2287,10 +2410,13 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         workflowStages: stageBreakdown,
         letterTypeBreakdown,
         monthlyTrend,
-        excessFuelBySite,
-        excessFuelByVehicleType,
+        warningLettersBySite,
+        warningLettersByVehicleType,
         averageDaysBetweenStages,
-        employeeRanking,
+        speedEmployeeRanking,
+        fuelEmployeeRanking,
+        topSpeedEmployee,
+        topFuelEmployee,
         employeeWithMostWarnings,
         lastWarningByEmployee,
     };
@@ -2308,18 +2434,21 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         monthlyTrend: {
             points: trendAxis.points,
             tickValues: trendAxis.tickValues,
-            monthStartLabel: trendAxis.monthStartLabel,
-            todayOffset: trendAxis.todayOffset,
+            rangeStartLabel: trendAxis.rangeStartLabel,
+            rangeEndLabel: trendAxis.rangeEndLabel,
+            endOffset: trendAxis.endOffset,
             minOffset: trendAxis.minOffset,
             maxOffset: trendAxis.maxOffset,
         },
-        excessFuelBySite: {
-            labels: excessFuelBySite.map((item) => item.name),
-            data: excessFuelBySite.map((item) => item.totalExcessFuelLitres),
+        warningLettersBySite: {
+            labels: warningLettersBySite.map((item) => item.name),
+            fuelCounts: warningLettersBySite.map((item) => item.excessFuelCount),
+            speedCounts: warningLettersBySite.map((item) => item.excessiveSpeedCount),
         },
-        excessFuelByVehicleType: {
-            labels: excessFuelByVehicleType.map((item) => item.name),
-            data: excessFuelByVehicleType.map((item) => item.totalExcessFuelLitres),
+        warningLettersByVehicleType: {
+            labels: warningLettersByVehicleType.map((item) => item.name),
+            fuelCounts: warningLettersByVehicleType.map((item) => item.excessFuelCount),
+            speedCounts: warningLettersByVehicleType.map((item) => item.excessiveSpeedCount),
         },
     };
 

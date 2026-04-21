@@ -47,7 +47,7 @@ public class DeleteWarningLetterCommandHandler : IRequestHandler<DeleteWarningLe
         var isCreator = string.Equals(warningLetter.CreatedBy, request.RequestedBy, StringComparison.OrdinalIgnoreCase);
         if (!isCreator && !request.CanDeleteAny)
         {
-            return FMSResponse.BusinessLogicError("WARNING_LETTER_DELETE_FORBIDDEN", "Only the user who created this warning letter can delete it unless they have the override delete permission.");
+            return FMSResponse.Forbidden("WARNING_LETTER_DELETE_FORBIDDEN", "Only the user who created this warning letter can delete it unless they have the override delete permission.");
         }
 
         var hasLockedWorkflowArtifacts = warningLetter.SignedCopyUploadedAt.HasValue

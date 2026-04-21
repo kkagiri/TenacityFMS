@@ -10,6 +10,23 @@ const averageKmLOptions = [
     { id: false, name: 'L/hr Equipment' },
 ];
 
+const sortByOptions = [
+    { id: 'vehicleName', name: 'Vehicle' },
+    { id: 'numberPlate', name: 'Plate' },
+    { id: 'siteName', name: 'Site' },
+    { id: 'driverName', name: 'Driver' },
+    { id: 'passenger', name: 'Passenger' },
+    { id: 'refillCount', name: 'Refill Count' },
+    { id: 'volumeRaw', name: 'Fuel Amount' },
+    { id: 'distanceRaw', name: 'Distance / Engine Hours' },
+    { id: 'consumptionRaw', name: 'Consumption' },
+];
+
+const sortDirectionOptions = [
+    { id: 'asc', name: 'Ascending (A-Z / Smallest First)' },
+    { id: 'desc', name: 'Descending (Z-A / Largest First)' },
+];
+
 const createYesterdayDate = () => {
     const date = new Date();
     date.setDate(date.getDate() - 1);
@@ -88,6 +105,44 @@ const consumptionByRefills = {
             required: false,
             placeholder: 'All Vehicles',
         },
+        {
+            key: 'sortBy',
+            queryParam: 'sortBy',
+            label: 'Sort By',
+            type: 'select',
+            options: sortByOptions,
+            valueExpr: 'id',
+            displayExpr: 'name',
+            required: false,
+            multiSelect: false,
+            placeholder: 'Default order',
+        },
+        {
+            key: 'sortDirection',
+            queryParam: 'sortDirection',
+            label: 'Sort Order',
+            type: 'select',
+            options: sortDirectionOptions,
+            valueExpr: 'id',
+            displayExpr: 'name',
+            required: false,
+            multiSelect: false,
+            placeholder: 'Ascending',
+        },
+        {
+            key: 'includeDriverColumn',
+            queryParam: 'includeDriverColumn',
+            label: 'Include Driver Column',
+            type: 'checkbox',
+            required: false,
+        },
+        {
+            key: 'includePassengerColumn',
+            queryParam: 'includePassengerColumn',
+            label: 'Include Passenger Column',
+            type: 'checkbox',
+            required: false,
+        },
     ],
     defaultFilters: {
         dateFrom: null,
@@ -96,6 +151,10 @@ const consumptionByRefills = {
         vehicleTypeId: null,
         vehicleId: null,
         averageKmL: null,
+        sortBy: null,
+        sortDirection: 'asc',
+        includeDriverColumn: false,
+        includePassengerColumn: false,
     },
 };
 

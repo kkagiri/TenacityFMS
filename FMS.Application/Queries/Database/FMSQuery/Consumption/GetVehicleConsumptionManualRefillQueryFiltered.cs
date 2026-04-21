@@ -59,6 +59,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     .Include(v => v.VehicleModel)
                     .Include(v => v.DefaultExptdAvg)
                     .Include(v => v.WorkingSite)
+                    .Include(v => v.EmployeeVehicles)
+                        .ThenInclude(employeeVehicle => employeeVehicle.Employee)
                     .AsQueryable();
 
                 // Apply vehicle type filter
@@ -144,45 +146,47 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 var fuelRefills = await fuelRefillsQuery.ToListAsync(cancellationToken);
 
                 // Process the results - same logic as the original query
-                var result = vehicles
-                    .Select(v =>
+                var result = new List<ManualDispenseConsumptionDTO>();
+
+                foreach (var vehicle in vehicles)
+                {
+                    var vehicleRefills = fuelRefills
+                        .Where(f => f.VehicleId == vehicle.VehicleId)
+                        .OrderBy(f => f.Date)
+                        .ToList();
+
+                    if (!vehicleRefills.Any())
                     {
-                        var vehicleRefills = fuelRefills
-                            .Where(f => f.VehicleId == v.VehicleId)
-                            .OrderBy(f => f.Date)
-                            .ToList();
+                        continue;
+                    }
 
-                        if (vehicleRefills.Any())
-                        {
-                            var totalFuelAmount = vehicleRefills.Sum(f => f.ManualFuelrefillAmount ?? 0);
-                            var distanceOrEngineHours = v.AverageKmL ?
-                                vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0)) :
-                                vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0));
+                    var totalFuelAmount = vehicleRefills.Sum(f => f.ManualFuelrefillAmount ?? 0);
+                    var distanceOrEngineHours = vehicle.AverageKmL
+                        ? vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0))
+                        : vehicleRefills.Sum(f => (f.CurrentMeterReading ?? 0) - (f.PreviousMeterReading ?? 0));
 
-                            var consumption = CalculateConsumption(totalFuelAmount, distanceOrEngineHours, v.AverageKmL);
-
-                            return new ManualDispenseConsumptionDTO
-                            {
-                                Id = v.VehicleId,
-                                VehicleId = v.VehicleId,
-                                HyoungNo = v.HyoungNo ?? string.Empty,
-                                Passenger = v.Passenger,
-                                VehicleType = v.VehicleType?.Name ?? "Unknown",
-                                WorkingSiteId = v.WorkingSiteId ?? 0,
-                                WorkingSiteName = v.WorkingSite?.Name ?? "Unknown",
-                                TotalFuelAmount = totalFuelAmount,
-                                DistanceOrEngineHours = distanceOrEngineHours,
-                                IsKmL = v.AverageKmL,
-                                RefillCount = vehicleRefills.Count,
-                                Consumption = consumption,
-                                ExpectedAverage = v.DefaultExptdAvg?.ExpectedAverageValue ?? 0,
-                                VehicleInfo = $"{v.VehicleManufacturer?.Name ?? "Unknown"} {v.VehicleModel?.Name ?? "Unknown"}"
-                            };
-                        }
-                        return null;
-                    })
-                    .OfType<ManualDispenseConsumptionDTO>()
-                    .ToList();
+                    var consumption = CalculateConsumption(totalFuelAmount, distanceOrEngineHours, vehicle.AverageKmL);
+#pragma warning disable CS8601
+                    result.Add(new ManualDispenseConsumptionDTO
+                    {
+                        Id = vehicle.VehicleId,
+                        VehicleId = vehicle.VehicleId,
+                        HyoungNo = vehicle.HyoungNo ?? string.Empty,
+                        DriverName = ResolveAssignedDriverName(vehicle),
+                        Passenger = vehicle.Passenger ?? string.Empty,
+                        VehicleType = vehicle.VehicleType?.Name ?? "Unknown",
+                        WorkingSiteId = vehicle.WorkingSiteId ?? 0,
+                        WorkingSiteName = vehicle.WorkingSite?.Name ?? "Unknown",
+                        TotalFuelAmount = totalFuelAmount,
+                        DistanceOrEngineHours = distanceOrEngineHours,
+                        IsKmL = vehicle.AverageKmL,
+                        RefillCount = vehicleRefills.Count,
+                        Consumption = consumption,
+                        ExpectedAverage = vehicle.DefaultExptdAvg?.ExpectedAverageValue ?? 0,
+                        VehicleInfo = $"{vehicle.VehicleManufacturer?.Name ?? "Unknown"} {vehicle.VehicleModel?.Name ?? "Unknown"}"
+                    });
+#pragma warning restore CS8601
+                }
 
                 _logger.LogInformation(
                     "Filtered consumption query completed. Date range: {StartDate} to {EndDate}, " +
@@ -214,6 +218,32 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     Math.Round(fuelAmount / distanceOrHours, 2);
             }
             return 0;
+        }
+
+        private static string ResolveAssignedDriverName(Vehicle vehicle)
+        {
+            if (vehicle.EmployeeVehicles == null)
+            {
+                return string.Empty;
+            }
+
+            var assignedDriverName = string.Empty;
+
+            foreach (var employeeVehicle in vehicle.EmployeeVehicles)
+            {
+                var fullName = employeeVehicle.Employee?.FullName;
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(assignedDriverName) || string.CompareOrdinal(fullName, assignedDriverName) < 0)
+                {
+                    assignedDriverName = fullName;
+                }
+            }
+
+            return assignedDriverName;
         }
     }
 }

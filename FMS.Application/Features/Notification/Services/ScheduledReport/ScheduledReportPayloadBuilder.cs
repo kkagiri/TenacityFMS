@@ -216,6 +216,10 @@ namespace FMS.Application.Features.Notification.Services
             bool isConsumptionByRefills)
         {
             var averageKmL = GetBoolParam(metadata, "averageKmL");
+            var includeDriverColumn = GetBoolParam(metadata, "includeDriverColumn") ?? false;
+            var includePassengerColumn = GetBoolParam(metadata, "includePassengerColumn") ?? false;
+            var sortBy = GetStringParam(metadata, "sortBy");
+            var sortDirection = GetStringParam(metadata, "sortDirection");
             var siteIds = ParseIntList(metadata["siteIds"]);
             var singleSiteId = GetIntParam(metadata, "siteId");
             if (singleSiteId.HasValue && !siteIds.Contains(singleSiteId.Value))
@@ -271,19 +275,25 @@ namespace FMS.Application.Features.Notification.Services
                     consumptionHeader,
                     distanceSummaryLabel,
                     avgConsumptionLabel,
-                    consumptionModeLabel);
+                        consumptionModeLabel,
+                        includeDriverColumn,
+                        includePassengerColumn);
             }
 
-            (distanceHeader, consumptionHeader, distanceSummaryLabel, avgConsumptionLabel, consumptionModeLabel, distanceUnit, consumptionUnit) =
-                BuildConsumptionLabels(averageKmL, records.Select(r => r.IsKmL));
+            var orderedRecords = SortVehicleConsumptionRecords(records, sortBy, sortDirection);
 
-            var mapped = records.Select((r, i) => new
+            (distanceHeader, consumptionHeader, distanceSummaryLabel, avgConsumptionLabel, consumptionModeLabel, distanceUnit, consumptionUnit) =
+                BuildConsumptionLabels(averageKmL, orderedRecords.Select(r => r.IsKmL));
+
+            var mapped = orderedRecords.Select((r, i) => new
             {
                 rowNumber = i + 1,
                 vehicleName = r.HyoungNo ?? r.VehicleInfo ?? "-",
                 numberPlate = r.HyoungNo ?? "-",
                 vehicleType = r.VehicleType ?? "-",
                 siteName = r.WorkingSiteName ?? "-",
+                driverName = string.IsNullOrWhiteSpace(r.DriverName) ? "-" : r.DriverName,
+                passenger = string.IsNullOrWhiteSpace(r.Passenger) ? "-" : r.Passenger,
                 refillCount = r.RefillCount,
                 volume = Fmt(r.TotalFuelAmount),
                 totalVolume = Fmt(r.TotalFuelAmount),
@@ -308,17 +318,17 @@ namespace FMS.Application.Features.Notification.Services
 
             var siteGroups = BuildVehicleConsumptionSiteGroups(mapped);
 
-            var totalVolume = records.Sum(r => r.TotalFuelAmount);
-            var totalDistance = records.Sum(r => r.DistanceOrEngineHours);
-            var avgConsumption = records.Count > 0 ? records.Average(r => r.Consumption) : 0m;
-            var validDistanceRows = records.Where(r => r.DistanceOrEngineHours > 0).ToList();
+            var totalVolume = orderedRecords.Sum(r => r.TotalFuelAmount);
+            var totalDistance = orderedRecords.Sum(r => r.DistanceOrEngineHours);
+            var avgConsumption = orderedRecords.Count > 0 ? orderedRecords.Average(r => r.Consumption) : 0m;
+            var validDistanceRows = orderedRecords.Where(r => r.DistanceOrEngineHours > 0).ToList();
             var validKmRows = validDistanceRows.Where(r => r.IsKmL).ToList();
             var validHrRows = validDistanceRows.Where(r => !r.IsKmL).ToList();
             var totalDistanceKm = validKmRows.Sum(r => r.DistanceOrEngineHours);
             var totalEngineHours = validHrRows.Sum(r => r.DistanceOrEngineHours);
             var avgConsumptionKmL = validKmRows.Count > 0 ? validKmRows.Average(r => r.Consumption) : 0m;
             var avgConsumptionLHr = validHrRows.Count > 0 ? validHrRows.Average(r => r.Consumption) : 0m;
-            var validExpectedRows = records.Where(r => r.ExpectedAverage > 0).ToList();
+            var validExpectedRows = orderedRecords.Where(r => r.ExpectedAverage > 0).ToList();
             var avgExpectedAverage = validExpectedRows.Count > 0 ? validExpectedRows.Average(r => r.ExpectedAverage) : 0m;
 
             return BuildConsumptionPayload(reportTitle, startLocal, endLocal, mapped, new
@@ -349,6 +359,8 @@ namespace FMS.Application.Features.Notification.Services
             distanceSummaryLabel,
             avgConsumptionLabel,
             consumptionModeLabel,
+            includeDriverColumn,
+            includePassengerColumn,
             siteGroups);
         }
 
@@ -414,7 +426,9 @@ namespace FMS.Application.Features.Notification.Services
                     consumptionHeader,
                     distanceSummaryLabel,
                     avgConsumptionLabel,
-                    consumptionModeLabel);
+                    consumptionModeLabel,
+                    false,
+                    false);
             }
 
             (distanceHeader, consumptionHeader, distanceSummaryLabel, avgConsumptionLabel, consumptionModeLabel, distanceUnit, consumptionUnit) =
@@ -492,6 +506,8 @@ namespace FMS.Application.Features.Notification.Services
             distanceSummaryLabel,
             avgConsumptionLabel,
             consumptionModeLabel,
+            false,
+            false,
             siteGroups);
         }
 

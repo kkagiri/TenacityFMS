@@ -135,6 +135,58 @@
     color: #605e5c;
   }
 
+  &__hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__hero-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &__hero-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #deecf9;
+    color: #0078d4;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  &__hero-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #201f1e;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #605e5c;
+    }
+  }
+
+  &__hero-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
   &__empty {
     display: flex;
     flex-direction: column;
@@ -257,6 +309,12 @@
     gap: 12px;
   }
 
+  &__detail-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
   &__info-cell {
     border: 1px solid #edebe9;
     border-radius: 8px;
@@ -265,6 +323,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  &__info-cell--wide {
+    grid-column: 1 / -1;
   }
 
   &__info-label {
@@ -293,6 +355,131 @@
 
   &__accent-success {
     color: #107c10;
+  }
+
+  &__tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  &__tab-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__tab-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #605e5c;
+    font-size: 12px;
+  }
+
+  &__tab-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__tab-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 14px;
+    border: 1px solid #c8c6c4;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #323130;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      background: #f3f2f1;
+      border-color: #605e5c;
+    }
+  }
+
+  &__tab-button--active {
+    background: #deecf9;
+    border-color: #0078d4;
+    color: #005a9e;
+  }
+
+  &__tab-panel,
+  &__tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__gps-grid-shell {
+    gap: 16px;
+  }
+
+  &__history-row--active > td {
+    background: #eff6fc !important;
+  }
+
+  &__map-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__map-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    strong {
+      display: block;
+      font-size: 14px;
+      color: #201f1e;
+    }
+
+    p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #605e5c;
+    }
+  }
+
+  &__map-frame {
+    position: relative;
+    min-height: 420px;
+    border: 1px solid #edebe9;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f3f2f1;
+  }
+
+  &__map-canvas {
+    width: 100%;
+    min-height: 420px;
+  }
+
+  &__map-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(250, 249, 248, 0.88);
+    color: #605e5c;
+    font-size: 13px;
   }
 
   .dx-datagrid {
@@ -332,6 +519,22 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    &__hero {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    &__hero-tags {
+      justify-content: flex-start;
+    }
+
+    &__map-toolbar,
+    &__tab-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
     &__header-actions,
     &__filter-actions {
       justify-content: flex-start;
@@ -342,6 +545,10 @@
 @media (max-width: 640px) {
   .vehicle-consumption-module {
     padding: 12px;
+
+    &__hero-main {
+      align-items: flex-start;
+    }
 
     &__comparison-grid,
     &__filter-grid,
@@ -358,6 +565,11 @@
 
     &__summary-value {
       font-size: 22px;
+    }
+
+    &__map-frame,
+    &__map-canvas {
+      min-height: 320px;
     }
   }
 }

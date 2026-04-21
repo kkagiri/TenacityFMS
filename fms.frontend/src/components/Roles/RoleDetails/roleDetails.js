@@ -7,7 +7,7 @@
  * Key Functions:
  * - RoleDetails(): Loads and saves the selected role workspace with inline loading feedback
  */
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Accordion, { Item as AccordionItem } from "devextreme-react/accordion";
 import notify from "devextreme/ui/notify";
 
@@ -18,6 +18,7 @@ import {
   setRolePermissions,
   clearPermissions,
   clearUsers,
+  resetRoleDetailsView,
   updateRole,
   updateRoleForUsers,
 } from "../../../redux/actions/roleActions";
@@ -29,6 +30,7 @@ import UserDataList from "./../../user/userdatalist";
 const RoleDetails = ({ roleId }) => {
   const [saving, setSaving] = useState(false);
   const [detailLoading, setDetailLoading] = useState(true);
+  const requestCounterRef = useRef(0);
   const dispatch = useDispatch();
   const {
     roleDetails,
@@ -52,8 +54,12 @@ const RoleDetails = ({ roleId }) => {
         setDetailLoading(true);
       }
 
+      dispatch(resetRoleDetailsView());
+
       try {
-        await dispatch(fetchRoleDetails(roleId));
+        requestCounterRef.current += 1;
+        const requestId = `${roleId}-${requestCounterRef.current}`;
+        await dispatch(fetchRoleDetails(roleId, requestId));
       } finally {
         if (active) {
           setDetailLoading(false);
@@ -65,6 +71,7 @@ const RoleDetails = ({ roleId }) => {
 
     return () => {
       active = false;
+      dispatch(resetRoleDetailsView());
       dispatch(clearPermissions());
       dispatch(clearUsers());
     };

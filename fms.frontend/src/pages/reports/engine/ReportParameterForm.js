@@ -535,6 +535,18 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                         />
                     );
 
+                case 'checkbox':
+                    return (
+                        <label className="m365-checkbox">
+                            <input
+                                type="checkbox"
+                                checked={Boolean(value)}
+                                onChange={(e) => handleChange(param.key, e.target.checked)}
+                            />
+                            <span className="m365-checkbox__label">{param.checkboxLabel || param.label}</span>
+                        </label>
+                    );
+
                 case 'text':
                 default:
                     return (
@@ -562,10 +574,12 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
         <div className="report-parameter-form">
             {effectiveParameters.map((param) => (
                 <div key={param.key} className="tw-mb-4">
-                    <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                        {param.label}
-                        {param.required && <span className="tw-text-red-500 tw-ml-1">*</span>}
-                    </label>
+                    {param.type !== 'checkbox' && (
+                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                            {param.label}
+                            {param.required && <span className="tw-text-red-500 tw-ml-1">*</span>}
+                        </label>
+                    )}
                     {renderControl(param)}
                 </div>
             ))}

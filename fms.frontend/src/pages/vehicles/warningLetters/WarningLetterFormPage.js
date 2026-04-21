@@ -37,7 +37,7 @@ import "./WarningLetters.scss";
 const typeOptions = [
     { value: 1, label: "Excess Fuel Consumption" },
     { value: 2, label: "Excessive Speed" },
-    { value: 3, label: "Excessive Idling" },
+    // { value: 3, label: "Excessive Idling" },
 ];
 
 const metricLabelsByType = {

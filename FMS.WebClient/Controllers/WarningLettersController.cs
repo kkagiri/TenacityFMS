@@ -167,10 +167,13 @@ public class WarningLettersController : BaseApiController
             return BadRequest("Invalid user ID");
         }
 
+        var canEditAny = User.HasClaim("permissions", Permissions.WarningLetter.EditAny);
+
         var result = await _mediator.Send(new UpdateWarningLetterCommand
         {
             WarningLetter = warningLetterDto,
-            ModifiedBy = userId
+            ModifiedBy = userId,
+            CanEditAny = canEditAny,
         });
 
         return StatusCode(result.StatusCode, result);

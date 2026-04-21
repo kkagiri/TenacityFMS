@@ -112,6 +112,21 @@ const extractFileName = (headers, fallback) => {
     return decodeURIComponent(match?.[1] || match?.[2] || fallback);
 };
 
+export const validateWarningLetterPdfUpload = (file, documentLabel) => {
+    const normalizedLabel = (documentLabel || "document").trim();
+
+    if (!file || !file.size) {
+        return `A ${normalizedLabel} file is required.`;
+    }
+
+    const fileName = String(file.name || "");
+    if (!fileName.toLowerCase().endsWith(".pdf")) {
+        return `Only PDF ${normalizedLabel}s are allowed.`;
+    }
+
+    return null;
+};
+
 export const getWarningLetters = async (filters = {}) => {
     const params = buildParams(filters);
     const suffix = params.toString() ? `?${params.toString()}` : "";

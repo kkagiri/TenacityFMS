@@ -1,6 +1,7 @@
 import axiosInstance from "./../../api/axiosInstance";
 
 import {
+  FETCH_ROLE_DETAILS_REQUEST,
   FETCH_ROLE_DETAILS_SUCCESS,
   FETCH_ROLE_DETAILS_FAILURE,
   ASSIGN_PERMISSIONS_SUCCESS,
@@ -9,25 +10,33 @@ import {
   SET_USERS,
   CLEAR_PERMISSIONS,
   CLEAR_USERS,
+  RESET_ROLE_DETAILS_VIEW,
   UPDATE_ROLE_SUCCESS,
   UPDATE_ROLE_FAILURE,
   UPDATE_ROLE_USERS_SUCCESS,
   UPDATE_ROLE_USERS_FAILURE,
 } from "./types";
 
-export const fetchRoleDetails = (roleId) => async (dispatch) => {
+export const fetchRoleDetails = (roleId, requestId = roleId) => async (dispatch) => {
+  dispatch({
+    type: FETCH_ROLE_DETAILS_REQUEST,
+    payload: { roleId, requestId },
+  });
+
   try {
-    const roleDetails = await axiosInstance.get(`/role/${roleId}`);
-    const allPermissions = await axiosInstance.get(`/permission`);
-    const rolePermissions = await axiosInstance.get(
-      `/permission/role/${roleId}`
-    );
-    const users = await axiosInstance.get(`/role/UsersInRole/${roleId}`);
-    const allUsers = await axiosInstance.get(`/user`);
+    const [roleDetails, allPermissions, rolePermissions, users, allUsers] = await Promise.all([
+      axiosInstance.get(`/role/${roleId}`),
+      axiosInstance.get(`/permission`),
+      axiosInstance.get(`/permission/role/${roleId}`),
+      axiosInstance.get(`/role/UsersInRole/${roleId}`),
+      axiosInstance.get(`/user`),
+    ]);
 
     dispatch({
       type: FETCH_ROLE_DETAILS_SUCCESS,
       payload: {
+        roleId,
+        requestId,
         roleDetails: roleDetails.data,
         allPermissions: allPermissions.data,
         rolePermissions: rolePermissions.data.map((p) => p.id),
@@ -38,7 +47,11 @@ export const fetchRoleDetails = (roleId) => async (dispatch) => {
   } catch (error) {
     dispatch({
       type: FETCH_ROLE_DETAILS_FAILURE,
-      payload: error.message,
+      payload: {
+        roleId,
+        requestId,
+        error: error.message,
+      },
     });
   }
 };
@@ -74,6 +87,7 @@ export const updateRoleForUsers = (roleId, userIds) => async (dispatch) => {
 
 export const clearPermissions = () => ({ type: CLEAR_PERMISSIONS });
 export const clearUsers = () => ({ type: CLEAR_USERS });
+export const resetRoleDetailsView = () => ({ type: RESET_ROLE_DETAILS_VIEW });
 export const setRolePermissions = (permissions) => ({
   type: SET_ROLE_PERMISSIONS,
   payload: permissions,

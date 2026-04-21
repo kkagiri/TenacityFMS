@@ -9,6 +9,8 @@ const initialState = {
   selectedUsers: [],
   loading: false,
   error: null,
+  activeRoleDetailsRequestId: null,
+  activeRoleDetailsRoleId: null,
 };
 
 const roleReducer = (state = initialState, action) => {
@@ -16,6 +18,14 @@ const roleReducer = (state = initialState, action) => {
     case "LOADING_ROLES":
     case "LOADING_ROLE":
       return { ...state, loading: true };
+    case "FETCH_ROLE_DETAILS_REQUEST":
+      return {
+        ...state,
+        loading: true,
+        error: null,
+        activeRoleDetailsRequestId: action.payload.requestId,
+        activeRoleDetailsRoleId: action.payload.roleId,
+      };
     case "GET_ROLES_SUCCESS":
       return { ...state, roles: action.payload, loading: false };
     case "GET_ROLES_FAILURE":
@@ -32,7 +42,15 @@ const roleReducer = (state = initialState, action) => {
       };
 
     case "FETCH_ROLE_DETAILS_FAILURE":
-      return { ...state, loading: false, error: action.payload };
+      if (state.activeRoleDetailsRequestId !== action.payload.requestId) {
+        return state;
+      }
+
+      return {
+        ...state,
+        loading: false,
+        error: action.payload.error,
+      };
     case "GET_ROLE_BY_ID_SUCCESS":
       return { ...state, selectedRole: action.payload, loading: false };
     case "ASSIGN_PERMISSIONS_SUCCESS":
@@ -79,10 +97,10 @@ const roleReducer = (state = initialState, action) => {
         loading: false,
       };
     case "FETCH_ROLE_DETAILS_SUCCESS":
-      console.log(
-        "selectedUsera",
-        action.payload.users.map((u) => u.id)
-      );
+      if (state.activeRoleDetailsRequestId !== action.payload.requestId) {
+        return state;
+      }
+
       return {
         ...state,
         roleDetails: action.payload.roleDetails,
@@ -92,6 +110,7 @@ const roleReducer = (state = initialState, action) => {
         allUsers: action.payload.allUsers, // Set allUsers state
         selectedUsers: action.payload.users.map((u) => u.id), //Cursor: Set selectedUsers to user IDs in the role
         loading: false,
+        error: null,
       };
 
     case "SET_ROLE_PERMISSIONS":
@@ -125,6 +144,17 @@ const roleReducer = (state = initialState, action) => {
       return {
         ...state,
         users: [],
+      };
+    case "RESET_ROLE_DETAILS_VIEW":
+      return {
+        ...state,
+        roleDetails: {},
+        allPermissions: [],
+        rolePermissions: [],
+        users: [],
+        allUsers: [],
+        selectedUsers: [],
+        error: null,
       };
     default:
       return state;

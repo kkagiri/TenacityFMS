@@ -80,7 +80,7 @@ const warningLetterCandidates = {
             options: [
                 { value: '1', label: 'Excess Fuel' },
                 { value: '2', label: 'Excessive Speed' },
-                { value: '3', label: 'Excessive Idling' },
+                // { value: '3', label: 'Excessive Idling' },
             ],
             valueExpr: 'value',
             displayExpr: 'label',

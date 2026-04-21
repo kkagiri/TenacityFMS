@@ -87,11 +87,12 @@ const warningLetterAnalytics = {
             key: 'letterType',
             label: 'Letter Type',
             type: 'select',
+            multiSelect: false,
             options: [
                 { value: '', label: 'All Types' },
                 { value: '0', label: 'Excess Fuel' },
                 { value: '1', label: 'Excessive Speed' },
-                { value: '2', label: 'Excessive Idling' },
+                // { value: '2', label: 'Excessive Idling' },
             ],
             valueExpr: 'value',
             displayExpr: 'label',
@@ -101,6 +102,7 @@ const warningLetterAnalytics = {
             key: 'workflowStage',
             label: 'Workflow Stage',
             type: 'select',
+            multiSelect: false,
             options: [
                 { value: '', label: 'All Stages' },
                 { value: '0', label: 'Draft' },
