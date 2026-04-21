@@ -14,6 +14,65 @@
 
 import React from "react";
 
+const REPORT_THROTTLE_WINDOW_MS = 60 * 1000;
+const REPORT_THROTTLE_STORAGE_KEY = "fms:error-report:last-send";
+
+const normalizeReportValue = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildReportFingerprint = (errorReport) => {
+  const stackPreview = normalizeReportValue(errorReport.stack)
+    .split("\n")
+    .slice(0, 3)
+    .join("\n");
+
+  return [
+    normalizeReportValue(errorReport.message).toLowerCase(),
+    stackPreview.toLowerCase(),
+    normalizeReportValue(errorReport.componentStack).toLowerCase(),
+    normalizeReportValue(errorReport.url).toLowerCase(),
+  ].join("||");
+};
+
+const readThrottleState = () => {
+  try {
+    const rawState = window.localStorage.getItem(REPORT_THROTTLE_STORAGE_KEY);
+    if (!rawState) {
+      return null;
+    }
+
+    const parsedState = JSON.parse(rawState);
+    if (!parsedState?.fingerprint || !parsedState?.sentAt) {
+      return null;
+    }
+
+    return parsedState;
+  } catch (error) {
+    console.warn("Failed to read error report throttle state", error);
+    return null;
+  }
+};
+
+const writeThrottleState = (fingerprint, sentAt) => {
+  try {
+    window.localStorage.setItem(
+      REPORT_THROTTLE_STORAGE_KEY,
+      JSON.stringify({ fingerprint, sentAt })
+    );
+  } catch (error) {
+    console.warn("Failed to persist error report throttle state", error);
+  }
+};
+
+const wasRecentlyReported = (fingerprint) => {
+  const state = readThrottleState();
+  if (!state || state.fingerprint !== fingerprint) {
+    return false;
+  }
+
+  return Date.now() - state.sentAt < REPORT_THROTTLE_WINDOW_MS;
+};
+
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -71,14 +130,20 @@ class GlobalErrorBoundary extends React.Component {
   };
 
   showTemporaryReportSuccess = () => {
-    this.setState({ isReporting: false, reportSuccess: true });
+    this.setState({
+      isReporting: false,
+      reportSuccess: true,
+      reportFeedback: "This error was already reported recently.",
+    });
 
     setTimeout(() => {
-      this.setState({ reportSuccess: false });
+      this.setState({ reportSuccess: false, reportFeedback: "" });
     }, 3000);
   };
 
   handleReportError = async () => {
+    this.setState({ isReporting: true, reportFeedback: "" });
+
     const errorReport = {
       message: this.state.error?.message || "Unknown error",
       stack: this.state.error?.stack || "",
@@ -87,6 +152,7 @@ class GlobalErrorBoundary extends React.Component {
       timestamp: new Date().toISOString(),
       url: window.location.href,
     };
+    const fingerprint = buildReportFingerprint(errorReport);
 
     try {
       if (wasRecentlyReported(fingerprint)) {
@@ -104,11 +170,19 @@ class GlobalErrorBoundary extends React.Component {
 
       console.log("Error report sent:", errorReport);
 
-      this.setState({ isReporting: false, reportSuccess: true });
+      writeThrottleState(fingerprint, Date.now());
+
+      this.setState({
+        isReporting: false,
+        reportSuccess: true,
+        reportFeedback: result?.wasAggregated
+          ? "This error matched a recent report and was aggregated on the server."
+          : "Error report sent successfully.",
+      });
 
       // Reset success message after 3 seconds
       setTimeout(() => {
-        this.setState({ reportSuccess: false });
+        this.setState({ reportSuccess: false, reportFeedback: "" });
       }, 3000);
     } catch (err) {
       console.error("Failed to report error:", err);

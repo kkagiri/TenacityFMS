@@ -2,26 +2,26 @@
  * File: CreateLogErrorCommand.cs
  * Purpose: Defines the command and handler for logging client-side errors.
  * Dependencies: MediatR, GpsdataContext, ErrorLog
- * Last Modified: 2026-01-26
+ * Last Modified: 2026-04-21
  *
  * Key Classes:
  * - CreateLogErrorCommand: Request model for error logging
- * - CreateLogErrorCommandHandler: Persists error logs
+ * - CreateLogErrorCommandHandler: Persists error logs while aggregating duplicates
  */
-using FMS.Application.CommonInterface;
+using System;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using FMS.Domain.Entities.Features.ErrorManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+
 namespace FMS.Application.Features.ErrorHandling.Commands
 {
-
-
     public class CreateLogErrorResult
     {
         public bool Success { get; set; }
@@ -38,23 +38,29 @@ namespace FMS.Application.Features.ErrorHandling.Commands
         public string ComponentStack { get; set; }
         public string UserAgent { get; set; }
         public string Url { get; set; }
-        public string? UserId { get; set; }
+        public string UserId { get; set; }
     }
 
     public class CreateLogErrorCommandHandler : IRequestHandler<CreateLogErrorCommand, CreateLogErrorResult>
     {
+        private static readonly TimeSpan AggregationWindow = TimeSpan.FromMinutes(5);
         private readonly GpsdataContext _context;
         private readonly ILogger<CreateLogErrorCommandHandler> _logger;
 
-        public CreateLogErrorCommandHandler(GpsdataContext context, ILogger<CreateLogErrorCommandHandler> logger)
+        public CreateLogErrorCommandHandler(
+            GpsdataContext context,
+            ILogger<CreateLogErrorCommandHandler> logger)
         {
             _context = context;
             _logger = logger;
         }
 
-        public async Task<CreateLogErrorResult> Handle(CreateLogErrorCommand request, CancellationToken cancellationToken)
+        public async Task<CreateLogErrorResult> Handle(
+            CreateLogErrorCommand request,
+            CancellationToken cancellationToken)
         {
             var nowUtc = DateTime.UtcNow;
+            var windowStartUtc = nowUtc.Subtract(AggregationWindow);
             var normalizedRequest = ErrorLogFingerprintBuilder.Normalize(
                 request.Message,
                 request.Stack,
@@ -62,20 +68,39 @@ namespace FMS.Application.Features.ErrorHandling.Commands
                 request.UserAgent,
                 request.Url,
                 request.UserId);
-            var deduplicationFingerprint = ErrorLogFingerprintBuilder.BuildForDeduplication(normalizedRequest);
+            var deduplicationFingerprint = ErrorLogFingerprintBuilder.BuildForDeduplication(
+                normalizedRequest);
 
             try
             {
+                var hasRecentDuplicate = await HasRecentDuplicateAsync(
+                    request,
+                    deduplicationFingerprint,
+                    windowStartUtc,
+                    cancellationToken);
+
+                if (hasRecentDuplicate)
+                {
+                    return new CreateLogErrorResult
+                    {
+                        Success = true,
+                        WasAggregated = true,
+                        Fingerprint = deduplicationFingerprint,
+                        CreatedAt = nowUtc,
+                        WindowStartUtc = windowStartUtc
+                    };
+                }
+
                 var errorLog = new ErrorLog
                 {
                     Id = Guid.NewGuid(),
-                    CreatedAt = DateTime.UtcNow,
-                    Message = request.Message,
-                    Stack = request.Stack,
-                    ComponentStack = request.ComponentStack,
-                    UserAgent = request.UserAgent,
-                    Url = request.Url,
-                    UserId = request.UserId
+                    CreatedAt = nowUtc,
+                    Message = normalizedRequest.Message,
+                    Stack = normalizedRequest.Stack,
+                    ComponentStack = normalizedRequest.ComponentStack,
+                    UserAgent = normalizedRequest.UserAgent,
+                    Url = normalizedRequest.Url,
+                    UserId = normalizedRequest.UserId
                 };
 
                 _context.ErrorLogs.Add(errorLog);
@@ -93,13 +118,14 @@ namespace FMS.Application.Features.ErrorHandling.Commands
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while logging error");
+
                 return new CreateLogErrorResult
                 {
                     Success = false,
                     WasAggregated = false,
                     Fingerprint = deduplicationFingerprint,
                     CreatedAt = nowUtc,
-                    WindowStartUtc = nowUtc.Subtract(AggregationWindow)
+                    WindowStartUtc = windowStartUtc
                 };
             }
         }
@@ -146,19 +172,43 @@ namespace FMS.Application.Features.ErrorHandling.Commands
                     log.UserAgent,
                     log.Url,
                     log.UserId);
-                var existingFingerprint = ErrorLogFingerprintBuilder.BuildForDeduplication(normalizedLog);
+                var existingFingerprint = ErrorLogFingerprintBuilder.BuildForDeduplication(
+                    normalizedLog);
                 return existingFingerprint == deduplicationFingerprint;
             });
         }
     }
 
-    internal sealed record NormalizedErrorPayload(
-        string Message,
-        string Stack,
-        string ComponentStack,
-        string UserAgent,
-        string Url,
-        string UserId);
+    internal sealed class NormalizedErrorPayload
+    {
+        public NormalizedErrorPayload(
+            string message,
+            string stack,
+            string componentStack,
+            string userAgent,
+            string url,
+            string userId)
+        {
+            Message = message;
+            Stack = stack;
+            ComponentStack = componentStack;
+            UserAgent = userAgent;
+            Url = url;
+            UserId = userId;
+        }
+
+        public string Message { get; }
+
+        public string Stack { get; }
+
+        public string ComponentStack { get; }
+
+        public string UserAgent { get; }
+
+        public string Url { get; }
+
+        public string UserId { get; }
+    }
 
     internal static class ErrorLogFingerprintBuilder
     {
@@ -181,26 +231,26 @@ namespace FMS.Application.Features.ErrorHandling.Commands
 
         public static string BuildForDeduplication(NormalizedErrorPayload payload)
         {
-            return ComputeHash(string.Join("|", new[]
-            {
-                payload.Message,
-                payload.Stack,
-                payload.ComponentStack,
-                payload.UserAgent,
-                payload.Url,
-                payload.UserId
-            }));
+            return ComputeHash(
+                string.Join(
+                    "|",
+                    new[]
+                    {
+                        payload.Message,
+                        payload.Stack,
+                        payload.ComponentStack,
+                        payload.UserAgent,
+                        payload.Url,
+                        payload.UserId
+                    }));
         }
 
         public static string BuildForGrouping(NormalizedErrorPayload payload)
         {
-            return ComputeHash(string.Join("|", new[]
-            {
-                payload.Message,
-                payload.Stack,
-                payload.ComponentStack,
-                payload.Url
-            }));
+            return ComputeHash(
+                string.Join(
+                    "|",
+                    new[] { payload.Message, payload.Stack, payload.ComponentStack, payload.Url }));
         }
 
         private static string NormalizeText(string value)
@@ -211,7 +261,9 @@ namespace FMS.Application.Features.ErrorHandling.Commands
             }
 
             var normalized = value.Trim().ToLowerInvariant();
-            var parts = normalized.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = normalized.Split(
+                new[] { ' ', '\t', '\r', '\n' },
+                StringSplitOptions.RemoveEmptyEntries);
             return string.Join(" ", parts);
         }
 
@@ -237,10 +289,12 @@ namespace FMS.Application.Features.ErrorHandling.Commands
                 return string.Empty;
             }
 
-            if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var absoluteUri)
-                && !Uri.TryCreate(value.Trim(), UriKind.Relative, out var relativeUri))
+            var trimmedValue = value.Trim();
+
+            if (!Uri.TryCreate(trimmedValue, UriKind.Absolute, out var absoluteUri)
+                && !Uri.TryCreate(trimmedValue, UriKind.Relative, out var relativeUri))
             {
-                return NormalizeText(value);
+                return NormalizeText(trimmedValue);
             }
 
             if (absoluteUri != null)
@@ -254,75 +308,11 @@ namespace FMS.Application.Features.ErrorHandling.Commands
 
         private static string ComputeHash(string value)
         {
-            using var sha256 = SHA256.Create();
-            var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
-            return Convert.ToHexString(bytes);
-        }
-
-        private async Task<bool> HasRecentDuplicateAsync(
-            string normalizedMessage,
-            string normalizedStack,
-            string normalizedComponentStack,
-            string normalizedUrl,
-            DateTime utcNow,
-            CancellationToken cancellationToken)
-        {
-            var windowStart = utcNow.AddMinutes(-DuplicateWindowMinutes);
-
-            var recentCandidates = await _context.ErrorLogs
-                .AsNoTracking()
-                .Where(log => log.CreatedAt >= windowStart)
-                .OrderByDescending(log => log.CreatedAt)
-                .Take(DuplicateCandidateLimit)
-                .ToListAsync(cancellationToken);
-
-            return recentCandidates.Any(log =>
-                NormalizeForSignature(log.Message) == normalizedMessage &&
-                NormalizeForSignature(log.Stack) == normalizedStack &&
-                NormalizeForSignature(log.ComponentStack) == normalizedComponentStack &&
-                NormalizeUrl(log.Url) == normalizedUrl);
-        }
-
-        private static string NormalizeForSignature(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
+            using (var sha256 = SHA256.Create())
             {
-                return string.Empty;
+                var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
+                return Convert.ToHexString(bytes);
             }
-
-            var compact = string.Join(" ", value
-                .Split(new[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(segment => segment.Trim())
-                .Where(segment => segment.Length > 0));
-
-            if (compact.Length <= SignatureSegmentLength)
-            {
-                return compact;
-            }
-
-            return compact[..SignatureSegmentLength];
-        }
-
-        private static string NormalizeUrl(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return string.Empty;
-            }
-
-            var trimmed = value.Trim();
-
-            if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
-            {
-                return trimmed.Length <= SignatureSegmentLength
-                    ? trimmed
-                    : trimmed[..SignatureSegmentLength];
-            }
-
-            var normalized = uri.GetLeftPart(UriPartial.Path);
-            return normalized.Length <= SignatureSegmentLength
-                ? normalized
-                : normalized[..SignatureSegmentLength];
         }
     }
 }

@@ -10,108 +10,111 @@
  */
 using System;
 using FMS.Application.Features.ErrorHandling.Commands;
+using FMS.Application.Common.Constants;
 using FMS.Application.Features.ErrorHandling.Dtos;
 using FMS.Application.Features.ErrorHandling.Queries;
+using FMS.WebClient.Attributes;
 using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
-using FMS.WebClient.Attributes;
-using FMS.Application.Common.Constants;
-using Microsoft.AspNetCore.RateLimiting;
-
-namespace FMS.Webclient.Contollers;
-
-[ApiController]
-[Route("api/v1/errors")]
-[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-public class ErrorManagementController : BaseApiController
+namespace FMS.Webclient.Contollers
 {
-    private readonly IMediator _mediator;
-    private readonly ILogger<ErrorManagementController> _logger;
-
-    public ErrorManagementController(IMediator mediator, ILogger<ErrorManagementController> logger)
+    [ApiController]
+    [Route("api/v1/errors")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public class ErrorManagementController : BaseApiController
     {
-        _mediator = mediator;
-        _logger = logger;
-    }
+        private readonly IMediator _mediator;
+        private readonly ILogger<ErrorManagementController> _logger;
 
-    [HttpPost("log")]
-    [EnableRateLimiting("FrontendErrorReports")]
-    public async Task<IActionResult> GetErrorLogs([FromBody] ErrorLogReportDto errorLogReportDto)
-    {
-        try
+        public ErrorManagementController(IMediator mediator, ILogger<ErrorManagementController> logger)
         {
-            string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+            _mediator = mediator;
+            _logger = logger;
+        }
 
-            var command = new CreateLogErrorCommand
+        [HttpPost("log")]
+        [EnableRateLimiting("FrontendErrorReports")]
+        public async Task<IActionResult> GetErrorLogs([FromBody] ErrorLogReportDto errorLogReportDto)
+        {
+            try
             {
-                UserId = userId,
-                Message = errorLogReportDto.Message,
-                ComponentStack = errorLogReportDto.ComponentStack,
-                UserAgent = errorLogReportDto.UserAgent,
-                Url = errorLogReportDto.Url,
-                Stack = errorLogReportDto.Stack
+                var userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
-            };
-            var result = await _mediator.Send(command);
+                var command = new CreateLogErrorCommand
+                {
+                    UserId = userId,
+                    Message = errorLogReportDto.Message,
+                    ComponentStack = errorLogReportDto.ComponentStack,
+                    UserAgent = errorLogReportDto.UserAgent,
+                    Url = errorLogReportDto.Url,
+                    Stack = errorLogReportDto.Stack
+                };
 
-            if (result.Success)
-            {
-                if (result.WasAggregated)
+                var result = await _mediator.Send(command);
+
+                if (result.Success)
                 {
-                    _logger.LogInformation(
-                        "Aggregated duplicate frontend error for User {UserId}. Fingerprint: {Fingerprint}, URL: {Url}",
-                        userId,
-                        result.Fingerprint,
-                        errorLogReportDto.Url);
+                    if (result.WasAggregated)
+                    {
+                        _logger.LogInformation(
+                            "Aggregated duplicate frontend error for User {UserId}. Fingerprint: {Fingerprint}, URL: {Url}",
+                            userId,
+                            result.Fingerprint,
+                            errorLogReportDto.Url);
+                    }
+                    else
+                    {
+                        _logger.LogError(
+                            "Frontend Error Reported by User {UserId}, Message: {ErrorMessage}, UserAgent: {UserAgent}, URL: {Url}, Fingerprint: {Fingerprint}",
+                            userId,
+                            errorLogReportDto.Message,
+                            errorLogReportDto.UserAgent,
+                            errorLogReportDto.Url,
+                            result.Fingerprint);
+                    }
                 }
-                else
-                {
-                    _logger.LogError(
-                        "Frontend Error Reported by User {UserId}, Message: {ErrorMessage}, UserAgent: {UserAgent}, URL: {Url}, Fingerprint: {Fingerprint}",
-                        userId,
-                        errorLogReportDto.Message,
-                        errorLogReportDto.UserAgent,
-                        errorLogReportDto.Url,
-                        result.Fingerprint);
-                }
+
+                return Ok(result);
             }
-
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error occurred while reporting frontend error");
-            return StatusCode(500, "Internal server error");
-        }
-    }
-    [HttpGet("logs")]
-    [RequirePermission(Permissions.Admin.Users)]
-    public async Task<ActionResult<FMS.Application.Common.FMSResponse<ErrorLogDashboardDto>>> GetErrorLogs(
-        [FromQuery] int pageSize = 50, [FromQuery] int pageNumber = 1,
-        [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null
-    )
-    {
-        try
-        {
-            var query = new GetErrorLogQuery
+            catch (Exception ex)
             {
-                PageSize = pageSize,
-                PageNumber = pageNumber,
-                FromDate = fromDate,
-                ToDate = toDate
-            };
-            var result = await _mediator.Send(query);
-
-            return Ok(result);
+                _logger.LogError(ex, "Error occurred while reporting frontend error");
+                return StatusCode(500, "Internal server error");
+            }
         }
-        catch (Exception ex)
+
+        [HttpGet("logs")]
+        [RequirePermission(Permissions.Admin.Users)]
+        public async Task<ActionResult<FMS.Application.Common.FMSResponse<ErrorLogDashboardDto>>> GetErrorLogs(
+            [FromQuery] int pageSize = 50,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
         {
-            _logger.LogError(ex, "Error occurred while retrieving error logs");
-            return StatusCode(500, "Internal server error");
+            try
+            {
+                var query = new GetErrorLogQuery
+                {
+                    PageSize = pageSize,
+                    PageNumber = pageNumber,
+                    FromDate = fromDate,
+                    ToDate = toDate
+                };
+
+                var result = await _mediator.Send(query);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while retrieving error logs");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
 }
