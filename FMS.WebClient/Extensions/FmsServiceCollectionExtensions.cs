@@ -84,6 +84,8 @@ using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
 using FMS.BackgroundServices.IssueTracker;
 using FMS.Application.Features.VehicleTrips.StateMachines;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 // DevExpress Reporting
 using DevExpress.AspNetCore;
@@ -150,6 +152,7 @@ public static class FmsServiceCollectionExtensions
         RegisterRedis(services);
         RegisterCustom(services, configuration);
         RegisterDistributedCache(services);
+        RegisterRateLimiting(services);
 
         // Register dashboard widget services (factories, coordinators)
         services.AddDashboardWidgetServices();
@@ -264,10 +267,10 @@ public static class FmsServiceCollectionExtensions
             }, LogLevel.Information)
             .EnableDetailedErrors();
 
-                if (env.IsDevelopment())
-                {
-                    opt.EnableSensitiveDataLogging();
-                }
+            if (env.IsDevelopment())
+            {
+                opt.EnableSensitiveDataLogging();
+            }
         });
 
         // Register IDbContextFactory for services that need to create independent DbContext instances
@@ -385,6 +388,43 @@ public static class FmsServiceCollectionExtensions
                     .AllowAnyMethod()
                     .AllowCredentials()
                     .WithExposedHeaders("X-Correlation-ID");
+            });
+        });
+    }
+
+    private static void RegisterRateLimiting(IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.ContentType = "application/json";
+                await context.HttpContext.Response.WriteAsJsonAsync(new
+                {
+                    success = false,
+                    message = "Too many error reports were submitted. Please wait a moment and try again."
+                }, cancellationToken);
+            };
+
+            options.AddPolicy("FrontendErrorReports", httpContext =>
+            {
+                var userId = httpContext.User?.FindFirst("sub")?.Value
+                    ?? httpContext.User?.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+                var clientIp = httpContext.Connection.RemoteIpAddress?.ToString();
+                var partitionKey = !string.IsNullOrWhiteSpace(userId)
+                    ? $"frontend-error:user:{userId}"
+                    : $"frontend-error:ip:{clientIp ?? "unknown"}";
+
+                return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
             });
         });
     }

@@ -12,11 +12,9 @@ using FMS.Application.CommonInterface;
 using FMS.Domain.Entities.Features.ErrorManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +43,6 @@ namespace FMS.Application.Features.ErrorHandling.Commands
 
     public class CreateLogErrorCommandHandler : IRequestHandler<CreateLogErrorCommand, CreateLogErrorResult>
     {
-        private static readonly TimeSpan AggregationWindow = TimeSpan.FromMinutes(5);
         private readonly GpsdataContext _context;
         private readonly ILogger<CreateLogErrorCommandHandler> _logger;
 
@@ -69,35 +66,16 @@ namespace FMS.Application.Features.ErrorHandling.Commands
 
             try
             {
-                var windowStartUtc = nowUtc.Subtract(AggregationWindow);
-                var hasRecentDuplicate = await HasRecentDuplicateAsync(
-                    request,
-                    deduplicationFingerprint,
-                    windowStartUtc,
-                    cancellationToken);
-
-                if (hasRecentDuplicate)
-                {
-                    return new CreateLogErrorResult
-                    {
-                        Success = true,
-                        WasAggregated = true,
-                        Fingerprint = deduplicationFingerprint,
-                        CreatedAt = nowUtc,
-                        WindowStartUtc = windowStartUtc
-                    };
-                }
-
                 var errorLog = new ErrorLog
                 {
                     Id = Guid.NewGuid(),
-                    CreatedAt = nowUtc,
-                    Message = normalizedRequest.Message,
-                    Stack = normalizedRequest.Stack,
-                    ComponentStack = normalizedRequest.ComponentStack,
-                    UserAgent = normalizedRequest.UserAgent,
-                    Url = normalizedRequest.Url,
-                    UserId = normalizedRequest.UserId
+                    CreatedAt = DateTime.UtcNow,
+                    Message = request.Message,
+                    Stack = request.Stack,
+                    ComponentStack = request.ComponentStack,
+                    UserAgent = request.UserAgent,
+                    Url = request.Url,
+                    UserId = request.UserId
                 };
 
                 _context.ErrorLogs.Add(errorLog);
@@ -279,6 +257,72 @@ namespace FMS.Application.Features.ErrorHandling.Commands
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(value));
             return Convert.ToHexString(bytes);
+        }
+
+        private async Task<bool> HasRecentDuplicateAsync(
+            string normalizedMessage,
+            string normalizedStack,
+            string normalizedComponentStack,
+            string normalizedUrl,
+            DateTime utcNow,
+            CancellationToken cancellationToken)
+        {
+            var windowStart = utcNow.AddMinutes(-DuplicateWindowMinutes);
+
+            var recentCandidates = await _context.ErrorLogs
+                .AsNoTracking()
+                .Where(log => log.CreatedAt >= windowStart)
+                .OrderByDescending(log => log.CreatedAt)
+                .Take(DuplicateCandidateLimit)
+                .ToListAsync(cancellationToken);
+
+            return recentCandidates.Any(log =>
+                NormalizeForSignature(log.Message) == normalizedMessage &&
+                NormalizeForSignature(log.Stack) == normalizedStack &&
+                NormalizeForSignature(log.ComponentStack) == normalizedComponentStack &&
+                NormalizeUrl(log.Url) == normalizedUrl);
+        }
+
+        private static string NormalizeForSignature(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var compact = string.Join(" ", value
+                .Split(new[] { '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(segment => segment.Trim())
+                .Where(segment => segment.Length > 0));
+
+            if (compact.Length <= SignatureSegmentLength)
+            {
+                return compact;
+            }
+
+            return compact[..SignatureSegmentLength];
+        }
+
+        private static string NormalizeUrl(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var trimmed = value.Trim();
+
+            if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri))
+            {
+                return trimmed.Length <= SignatureSegmentLength
+                    ? trimmed
+                    : trimmed[..SignatureSegmentLength];
+            }
+
+            var normalized = uri.GetLeftPart(UriPartial.Path);
+            return normalized.Length <= SignatureSegmentLength
+                ? normalized
+                : normalized[..SignatureSegmentLength];
         }
     }
 }

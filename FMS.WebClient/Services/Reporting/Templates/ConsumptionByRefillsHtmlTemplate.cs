@@ -25,6 +25,8 @@ namespace FMS.WebClient.Services.Reporting
     <title>{{reportTitle}} - Hyoung FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet"">
     <style>
+        @page { size: A4 portrait; margin: 10mm; }
+
         :root {
             --primary:       #20c997;
             --primary-dark:  #0f766e;
@@ -46,7 +48,12 @@ namespace FMS.WebClient.Services.Reporting
             font-size: 12px;
             line-height: 1.5;
         }
-        .page { max-width: 1150px; margin: 0 auto; padding: 28px 32px 48px; }
+        .page {
+            width: 100%;
+            max-width: 190mm;
+            margin: 0 auto;
+            padding: 10mm 8mm 12mm;
+        }
 
         .report-header {
             display: flex; justify-content: space-between; align-items: flex-end;
@@ -80,7 +87,7 @@ namespace FMS.WebClient.Services.Reporting
         .filter-label { font-weight: 700; color: var(--text-body); text-transform: uppercase; font-size: 9px; letter-spacing: 0.3px; }
         .filter-value { color: var(--text-muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        .summary-section { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 24px; }
+        .summary-section { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
         .summary-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -98,18 +105,24 @@ namespace FMS.WebClient.Services.Reporting
         .summary-card .meta { font-size: 9px; color: var(--text-muted); margin-top: 4px; }
 
         .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
-        .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
         .data-table thead th {
             background: var(--dark-header);
             color: #E5E7EB;
-            padding: 10px 12px;
+            padding: 8px 6px;
             text-align: left;
             font-weight: 700;
-            font-size: 10.5px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .data-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-body); vertical-align: middle; }
+        .data-table tbody td {
+            padding: 8px 6px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-body);
+            vertical-align: middle;
+            word-break: break-word;
+        }
         .data-table tbody tr:last-child td { border-bottom: none; }
         .data-table tbody tr:nth-child(even) td { background: #FAFAFA; }
         .text-right { text-align: right; }
@@ -117,6 +130,17 @@ namespace FMS.WebClient.Services.Reporting
         .text-muted { color: var(--text-muted); }
         .text-success { color: var(--success); }
         .font-bold { font-weight: 700; }
+
+        .col-vehicle { width: 14%; }
+        .col-plate { width: 10%; }
+        .col-site { width: 12%; }
+        .col-driver { width: 11%; }
+        .col-passenger { width: 9%; }
+        .col-refills { width: 7%; }
+        .col-fuel { width: 9%; }
+        .col-distance { width: 12%; }
+        .col-consumption { width: 9%; }
+        .col-expected { width: 10%; }
 
         .empty-state { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: center; padding: 40px 20px; color: var(--text-muted); }
 
@@ -167,10 +191,10 @@ namespace FMS.WebClient.Services.Reporting
 
     {{#if records}}
     <div class=""table-wrapper"">
-        <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th><th class=""text-right"">Refills</th><th class=""text-right"">Fuel (L)</th><th class=""text-right"">Distance / Eng Hrs</th><th class=""text-right"">Consumption</th><th class=""text-right"">Expected Avg</th></tr></thead>
+        <table class=""data-table""><thead><tr><th>#</th><th class=""col-vehicle"">Vehicle</th><th class=""col-plate"">Plate</th><th class=""col-site"">Site</th>{{#if includeDriverColumn}}<th class=""col-driver"">Driver</th>{{/if}}{{#if includePassengerColumn}}<th class=""col-passenger"">Passenger</th>{{/if}}<th class=""text-right col-refills"">Refills</th><th class=""text-right col-fuel"">Fuel (L)</th><th class=""text-right col-distance"">Distance / Eng Hrs</th><th class=""text-right col-consumption"">Consumption</th><th class=""text-right col-expected"">Expected Avg</th></tr></thead>
             <tbody>{{#each records}}<tr>
-                <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>
-                <td class=""text-center"">{{refillCount}}</td><td class=""text-right text-success font-bold"">{{totalVolume}}</td><td class=""text-right"">{{distanceDisplay}}</td><td class=""text-right font-bold"">{{consumptionDisplay}}</td><td class=""text-right"">{{expectedAverageDisplay}}</td>
+            <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>{{#if ../includeDriverColumn}}<td>{{driverName}}</td>{{/if}}{{#if ../includePassengerColumn}}<td>{{passenger}}</td>{{/if}}
+            <td class=""text-center"">{{refillCount}}</td><td class=""text-right text-success font-bold"">{{totalVolume}}</td><td class=""text-right"">{{distanceDisplay}}</td><td class=""text-right font-bold"">{{consumptionDisplay}}</td><td class=""text-right"">{{expectedAverageDisplay}}</td>
             </tr>{{/each}}</tbody></table>
     </div>
     {{/if}}
