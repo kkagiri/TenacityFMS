@@ -290,9 +290,11 @@ namespace FMS.Application.Features.ErrorHandling.Commands
             }
 
             var trimmedValue = value.Trim();
+            Uri? absoluteUri = null;
+            Uri? relativeUri = null;
 
-            if (!Uri.TryCreate(trimmedValue, UriKind.Absolute, out var absoluteUri)
-                && !Uri.TryCreate(trimmedValue, UriKind.Relative, out var relativeUri))
+            if (!Uri.TryCreate(trimmedValue, UriKind.Absolute, out absoluteUri)
+                && !Uri.TryCreate(trimmedValue, UriKind.Relative, out relativeUri))
             {
                 return NormalizeText(trimmedValue);
             }

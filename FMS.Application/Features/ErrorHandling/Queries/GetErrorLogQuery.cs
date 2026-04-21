@@ -3,6 +3,7 @@ using MediatR;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.ErrorHandling.Commands;
 using FMS.Application.Features.ErrorHandling.Dtos;
+using FMS.Domain.Entities.Features.ErrorManagement;
 using FMS.Persistence.DataAccess;
 using FMS.Application.Common;
 using System.Collections.Generic;
@@ -104,7 +105,7 @@ namespace FMS.Application.Features.ErrorHandling.Queries
             }
         }
 
-        private static List<ErrorLogGroupDto> BuildGroupedErrors(List<FMS.Domain.Entities.Features.ErrorManagement.ErrorLog> logs)
+        private static List<ErrorLogGroupDto> BuildGroupedErrors(List<ErrorLog> logs)
         {
             return logs
                 .GroupBy(log => ErrorLogFingerprintBuilder.BuildForGrouping(
@@ -124,7 +125,7 @@ namespace FMS.Application.Features.ErrorHandling.Queries
 
         private static IEnumerable<ErrorLogGroupDto> BuildRollingWindows(
             string fingerprint,
-            List<FMS.Domain.Entities.Features.ErrorManagement.ErrorLog> orderedLogs)
+            List<ErrorLog> orderedLogs)
         {
             ErrorLogGroupDto currentWindow = null;
 
