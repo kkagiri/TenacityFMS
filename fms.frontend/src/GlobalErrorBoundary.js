@@ -14,6 +14,73 @@
 
 import React from "react";
 
+const REPORT_THROTTLE_WINDOW_MS = 60 * 1000;
+const REPORT_THROTTLE_STORAGE_KEY = "fms:error-report:last-send";
+
+const normalizeReportValue = (value) =>
+  typeof value === "string" ? value.trim() : "";
+
+const buildThrottleKey = (errorReport) => {
+  const stackTopFrame = normalizeReportValue(errorReport.stack)
+    .split("\n")
+    .slice(0, 3)
+    .join("\n");
+
+  return [
+    normalizeReportValue(errorReport.message).toLowerCase(),
+    stackTopFrame.toLowerCase(),
+    normalizeReportValue(errorReport.componentStack).toLowerCase(),
+    normalizeReportValue(errorReport.url).toLowerCase(),
+  ].join("||");
+};
+
+const readThrottleState = () => {
+  try {
+    const rawState = window.localStorage.getItem(REPORT_THROTTLE_STORAGE_KEY);
+    if (!rawState) {
+      return null;
+    }
+
+    const parsedState = JSON.parse(rawState);
+    if (!parsedState?.key || !parsedState?.sentAt) {
+      return null;
+    }
+
+    return parsedState;
+  } catch (error) {
+    console.warn("Failed to read error report throttle state", error);
+    return null;
+  }
+};
+
+const writeThrottleState = (key, sentAt) => {
+  try {
+    window.localStorage.setItem(
+      REPORT_THROTTLE_STORAGE_KEY,
+      JSON.stringify({ key, sentAt })
+    );
+  } catch (error) {
+    console.warn("Failed to persist error report throttle state", error);
+  }
+};
+
+const getThrottleState = (errorReport) => {
+  const throttleKey = buildThrottleKey(errorReport);
+  const throttleState = readThrottleState();
+
+  if (!throttleState || throttleState.key !== throttleKey) {
+    return { throttleKey, remainingMs: 0 };
+  }
+
+  const elapsedMs = Date.now() - throttleState.sentAt;
+  const remainingMs = REPORT_THROTTLE_WINDOW_MS - elapsedMs;
+
+  return {
+    throttleKey,
+    remainingMs: remainingMs > 0 ? remainingMs : 0,
+  };
+};
+
 class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -24,6 +91,7 @@ class GlobalErrorBoundary extends React.Component {
       showDetails: false,
       isReporting: false,
       reportSuccess: false,
+      reportFeedback: "",
     };
   }
 
@@ -70,8 +138,6 @@ class GlobalErrorBoundary extends React.Component {
   };
 
   handleReportError = async () => {
-    this.setState({ isReporting: true });
-
     const errorReport = {
       message: this.state.error?.message || "Unknown error",
       stack: this.state.error?.stack || "",
@@ -81,6 +147,22 @@ class GlobalErrorBoundary extends React.Component {
       url: window.location.href,
     };
 
+    const { throttleKey, remainingMs } = getThrottleState(errorReport);
+
+    if (remainingMs > 0) {
+      const retryInSeconds = Math.ceil(remainingMs / 1000);
+      this.setState({
+        reportSuccess: false,
+        reportFeedback: `This error was already reported recently. Try again in ${retryInSeconds}s.`,
+      });
+      return;
+    }
+
+    this.setState({
+      isReporting: true,
+      reportFeedback: "",
+    });
+
     try {
       // Import errorReportService dynamically to avoid circular dependencies
       const { reportError } = await import("./api/errorReportService");
@@ -88,15 +170,26 @@ class GlobalErrorBoundary extends React.Component {
 
       console.log("Error report sent:", errorReport);
 
-      this.setState({ isReporting: false, reportSuccess: true });
+      writeThrottleState(throttleKey, Date.now());
+
+      this.setState({
+        isReporting: false,
+        reportSuccess: true,
+        reportFeedback: result?.wasAggregated
+          ? "This error matched a recent report and was aggregated on the server."
+          : "Error report sent successfully.",
+      });
 
       // Reset success message after 3 seconds
       setTimeout(() => {
-        this.setState({ reportSuccess: false });
+        this.setState({ reportSuccess: false, reportFeedback: "" });
       }, 3000);
     } catch (err) {
       console.error("Failed to report error:", err);
-      this.setState({ isReporting: false });
+      this.setState({
+        isReporting: false,
+        reportFeedback: "Failed to send error report. Please try again.",
+      });
       alert("Failed to send error report. Please try again.");
     }
   };
@@ -381,6 +474,19 @@ User Agent: ${navigator.userAgent}
                   </div>
                 </div>
               )}
+
+              {this.state.reportFeedback ? (
+                <p
+                  style={{
+                    marginTop: "12px",
+                    marginBottom: 0,
+                    fontSize: "12px",
+                    color: this.state.reportSuccess ? "#107c10" : "#605e5c",
+                  }}
+                >
+                  {this.state.reportFeedback}
+                </p>
+              ) : null}
             </div>
 
             {/* Help Text */}

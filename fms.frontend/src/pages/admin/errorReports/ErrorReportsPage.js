@@ -53,12 +53,42 @@ const buildDetailsText = (log) => {
     ].join("\n");
 };
 
+const buildGroupDetailsText = (group) => {
+    if (!group) {
+        return "No grouped error selected.";
+    }
+
+    return [
+        `First Seen: ${formatDateTime(group.firstSeenAt)}`,
+        `Last Seen: ${formatDateTime(group.lastSeenAt)}`,
+        `Occurrences: ${group.occurrenceCount || 0}`,
+        `Distinct Users: ${group.distinctUserCount || 0}`,
+        `Users: ${(group.userIds || []).join(", ") || "Anonymous"}`,
+        `URL: ${group.url || "Unknown"}`,
+        `User Agent: ${group.userAgent || "Unknown"}`,
+        `Fingerprint: ${group.fingerprint || "Unknown"}`,
+        "",
+        "Message:",
+        group.message || "No message",
+        "",
+        "Stack:",
+        group.stack || "No stack trace",
+        "",
+        "Component Stack:",
+        group.componentStack || "No component stack",
+    ].join("\n");
+};
+
 const ErrorReportsPage = () => {
     const [filters, setFilters] = useState(defaultFilters);
+    const [groupedErrors, setGroupedErrors] = useState([]);
     const [logs, setLogs] = useState([]);
-    const [selectedLog, setSelectedLog] = useState(null);
+    const [selectedEntry, setSelectedEntry] = useState(null);
+    const [selectedEntryType, setSelectedEntryType] = useState("group");
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [hasMore, setHasMore] = useState(false);
+    const [totalRecentRecords, setTotalRecentRecords] = useState(0);
 
     const loadLogs = async (nextFilters = filters) => {
         try {
@@ -79,27 +109,48 @@ const ErrorReportsPage = () => {
             }
 
             const result = await getErrorLogs(payload);
-            const nextLogs = Array.isArray(result) ? result : [];
+            const nextGroupedErrors = Array.isArray(result?.groupedErrors) ? result.groupedErrors : [];
+            const nextLogs = Array.isArray(result?.recentErrors) ? result.recentErrors : [];
+
+            setGroupedErrors(nextGroupedErrors);
+            setHasMore(Boolean(result?.hasMore));
+            setTotalRecentRecords(Number(result?.totalRecentRecords || 0));
 
             setLogs(nextLogs);
-            setSelectedLog((current) => {
-                if (!nextLogs.length) {
+            setSelectedEntry((current) => {
+                if (!nextGroupedErrors.length && !nextLogs.length) {
                     return null;
                 }
 
                 if (current) {
-                    const matchingLog = nextLogs.find((log) => log.id === current.id);
-                    if (matchingLog) {
-                        return matchingLog;
+                    if (selectedEntryType === "group") {
+                        const matchingGroup = nextGroupedErrors.find((group) => group.fingerprint === current.fingerprint && group.lastSeenAt === current.lastSeenAt);
+                        if (matchingGroup) {
+                            return matchingGroup;
+                        }
+                    }
+
+                    if (selectedEntryType === "log") {
+                        const matchingLog = nextLogs.find((log) => log.id === current.id);
+                        if (matchingLog) {
+                            return matchingLog;
+                        }
                     }
                 }
 
+                if (nextGroupedErrors.length) {
+                    setSelectedEntryType("group");
+                    return nextGroupedErrors[0];
+                }
+
+                setSelectedEntryType("log");
                 return nextLogs[0];
             });
         } catch (error) {
             console.error("Failed to load frontend error reports:", error);
+            setGroupedErrors([]);
             setLogs([]);
-            setSelectedLog(null);
+            setSelectedEntry(null);
             setErrorMessage("Failed to load frontend error reports.");
         } finally {
             setLoading(false);
@@ -151,16 +202,30 @@ const ErrorReportsPage = () => {
     };
 
     const handleCopyDetails = async () => {
-        if (!selectedLog) {
+        if (!selectedEntry) {
             return;
         }
 
         try {
-            await navigator.clipboard.writeText(buildDetailsText(selectedLog));
+            await navigator.clipboard.writeText(
+                selectedEntryType === "group"
+                    ? buildGroupDetailsText(selectedEntry)
+                    : buildDetailsText(selectedEntry)
+            );
         } catch (error) {
             console.error("Failed to copy error report details:", error);
             setErrorMessage("Failed to copy error report details.");
         }
+    };
+
+    const handleSelectGroup = (group) => {
+        setSelectedEntryType("group");
+        setSelectedEntry(group);
+    };
+
+    const handleSelectLog = (log) => {
+        setSelectedEntryType("log");
+        setSelectedEntry(log);
     };
 
     return (
@@ -172,7 +237,7 @@ const ErrorReportsPage = () => {
                         Frontend Error Reports
                     </h2>
                     <p className="error-reports-page__subtitle">
-                        Review errors submitted from the application error page.
+                        Review grouped frontend error windows first, then inspect the raw recent submissions behind them.
                     </p>
                 </div>
                 <div className="error-reports-page__actions">
@@ -189,7 +254,7 @@ const ErrorReportsPage = () => {
                         type="button"
                         className="m365-btn m365-btn--primary"
                         onClick={handleCopyDetails}
-                        disabled={!selectedLog}
+                        disabled={!selectedEntry}
                     >
                         <i className="fa-light fa-copy"></i>
                         Copy Selected Details
@@ -259,75 +324,127 @@ const ErrorReportsPage = () => {
             </section>
 
             <section className="error-reports-page__content">
-                <div className="error-reports-page__table-card">
-                    <div className="error-reports-page__table-header">
-                        <div>
-                            <h3>Submitted Errors</h3>
-                            <p>{loading ? "Loading reports..." : `${logs.length} report(s) on this page`}</p>
+                <div className="error-reports-page__overview-column">
+                    <div className="error-reports-page__group-card">
+                        <div className="error-reports-page__table-header">
+                            <div>
+                                <h3>Grouped Errors</h3>
+                                <p>
+                                    {loading
+                                        ? "Building grouped windows..."
+                                        : `${groupedErrors.length} grouped error window(s)`}
+                                </p>
+                            </div>
                         </div>
-                        <div className="error-reports-page__pager">
-                            <button
-                                type="button"
-                                className="m365-btn m365-btn--ghost"
-                                onClick={() => handlePageChange("previous")}
-                                disabled={loading || filters.pageNumber === 1}
-                            >
-                                <i className="fa-light fa-chevron-left"></i>
-                                Previous
-                            </button>
-                            <span>Page {filters.pageNumber}</span>
-                            <button
-                                type="button"
-                                className="m365-btn m365-btn--ghost"
-                                onClick={() => handlePageChange("next")}
-                                disabled={loading || logs.length < filters.pageSize}
-                            >
-                                Next
-                                <i className="fa-light fa-chevron-right"></i>
-                            </button>
+
+                        <div className="error-reports-page__group-list">
+                            {groupedErrors.length ? (
+                                groupedErrors.map((group) => (
+                                    <button
+                                        key={`${group.fingerprint}-${group.lastSeenAt}`}
+                                        type="button"
+                                        className={`error-reports-page__group-item ${selectedEntryType === "group" && selectedEntry?.fingerprint === group.fingerprint && selectedEntry?.lastSeenAt === group.lastSeenAt ? "is-selected" : ""}`}
+                                        onClick={() => handleSelectGroup(group)}
+                                    >
+                                        <div className="error-reports-page__group-item-topline">
+                                            <span className="error-reports-page__group-count">
+                                                {group.occurrenceCount}x
+                                            </span>
+                                            <span className="error-reports-page__group-date">
+                                                Last seen {formatDateTime(group.lastSeenAt)}
+                                            </span>
+                                        </div>
+                                        <strong>{group.message || "Unknown error"}</strong>
+                                        <span className="error-reports-page__group-meta">
+                                            {group.distinctUserCount || 0} user(s) · First seen {formatDateTime(group.firstSeenAt)}
+                                        </span>
+                                        <span className="error-reports-page__group-url" title={group.url || ""}>
+                                            {group.url || "-"}
+                                        </span>
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="error-reports-page__empty">
+                                    {loading ? "Loading grouped errors..." : "No grouped error windows found for the selected filters."}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    <div className="error-reports-page__table-wrap">
-                        <table className="error-reports-page__table">
-                            <thead>
-                                <tr>
-                                    <th>Submitted</th>
-                                    <th>Message</th>
-                                    <th>User</th>
-                                    <th>URL</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {logs.length ? (
-                                    logs.map((log) => (
-                                        <tr
-                                            key={log.id}
-                                            className={selectedLog?.id === log.id ? "is-selected" : ""}
-                                            onClick={() => setSelectedLog(log)}
-                                        >
-                                            <td>{formatDateTime(log.createdAt || log.timeStamp)}</td>
-                                            <td>
-                                                <div className="error-reports-page__message-cell">
-                                                    <strong>{log.message || "Unknown error"}</strong>
-                                                    <span>{log.componentStack ? "Component stack attached" : "No component stack"}</span>
-                                                </div>
-                                            </td>
-                                            <td>{log.userId || "Unknown"}</td>
-                                            <td className="error-reports-page__url-cell" title={log.url || ""}>
-                                                {log.url || "-"}
+                    <div className="error-reports-page__table-card">
+                        <div className="error-reports-page__table-header">
+                            <div>
+                                <h3>Recent Raw Reports</h3>
+                                <p>
+                                    {loading
+                                        ? "Loading reports..."
+                                        : `${logs.length} report(s) on this page · ${totalRecentRecords} total`}
+                                </p>
+                            </div>
+                            <div className="error-reports-page__pager">
+                                <button
+                                    type="button"
+                                    className="m365-btn m365-btn--ghost"
+                                    onClick={() => handlePageChange("previous")}
+                                    disabled={loading || filters.pageNumber === 1}
+                                >
+                                    <i className="fa-light fa-chevron-left"></i>
+                                    Previous
+                                </button>
+                                <span>Page {filters.pageNumber}</span>
+                                <button
+                                    type="button"
+                                    className="m365-btn m365-btn--ghost"
+                                    onClick={() => handlePageChange("next")}
+                                    disabled={loading || !hasMore}
+                                >
+                                    Next
+                                    <i className="fa-light fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="error-reports-page__table-wrap">
+                            <table className="error-reports-page__table">
+                                <thead>
+                                    <tr>
+                                        <th>Submitted</th>
+                                        <th>Message</th>
+                                        <th>User</th>
+                                        <th>URL</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {logs.length ? (
+                                        logs.map((log) => (
+                                            <tr
+                                                key={log.id}
+                                                className={selectedEntryType === "log" && selectedEntry?.id === log.id ? "is-selected" : ""}
+                                                onClick={() => handleSelectLog(log)}
+                                            >
+                                                <td>{formatDateTime(log.createdAt || log.timeStamp)}</td>
+                                                <td>
+                                                    <div className="error-reports-page__message-cell">
+                                                        <strong>{log.message || "Unknown error"}</strong>
+                                                        <span>{log.componentStack ? "Component stack attached" : "No component stack"}</span>
+                                                    </div>
+                                                </td>
+                                                <td>{log.userId || "Unknown"}</td>
+                                                <td className="error-reports-page__url-cell" title={log.url || ""}>
+                                                    {log.url || "-"}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={4} className="error-reports-page__empty">
+                                                {loading ? "Loading error reports..." : "No frontend error reports found for the selected filters."}
                                             </td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={4} className="error-reports-page__empty">
-                                            {loading ? "Loading error reports..." : "No frontend error reports found for the selected filters."}
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -335,44 +452,82 @@ const ErrorReportsPage = () => {
                     <div className="error-reports-page__details-header">
                         <div>
                             <h3>Error Details</h3>
-                            <p>{selectedLog ? "Inspect the selected frontend error payload." : "Select a row to inspect its full details."}</p>
+                            <p>{selectedEntry ? "Inspect the selected grouped window or raw frontend report." : "Select a grouped error or raw report to inspect its full details."}</p>
                         </div>
                     </div>
 
-                    {selectedLog ? (
+                    {selectedEntry ? (
                         <div className="error-reports-page__details-body">
                             <div className="error-reports-page__detail-grid">
                                 <div>
-                                    <span className="error-reports-page__detail-label">Submitted</span>
-                                    <span>{formatDateTime(selectedLog.createdAt || selectedLog.timeStamp)}</span>
+                                    <span className="error-reports-page__detail-label">View</span>
+                                    <span>{selectedEntryType === "group" ? "Grouped window" : "Raw report"}</span>
                                 </div>
                                 <div>
-                                    <span className="error-reports-page__detail-label">User</span>
-                                    <span>{selectedLog.userId || "Unknown"}</span>
+                                    <span className="error-reports-page__detail-label">Fingerprint</span>
+                                    <span className="error-reports-page__detail-value">{selectedEntry.fingerprint || "-"}</span>
                                 </div>
                                 <div>
                                     <span className="error-reports-page__detail-label">URL</span>
-                                    <span className="error-reports-page__detail-value">{selectedLog.url || "-"}</span>
+                                    <span className="error-reports-page__detail-value">{selectedEntry.url || "-"}</span>
                                 </div>
                                 <div>
                                     <span className="error-reports-page__detail-label">User Agent</span>
-                                    <span className="error-reports-page__detail-value">{selectedLog.userAgent || "-"}</span>
+                                    <span className="error-reports-page__detail-value">{selectedEntry.userAgent || "-"}</span>
                                 </div>
+                                {selectedEntryType === "group" ? (
+                                    <>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">First Seen</span>
+                                            <span>{formatDateTime(selectedEntry.firstSeenAt)}</span>
+                                        </div>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">Last Seen</span>
+                                            <span>{formatDateTime(selectedEntry.lastSeenAt)}</span>
+                                        </div>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">Occurrences</span>
+                                            <span>{selectedEntry.occurrenceCount || 0}</span>
+                                        </div>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">Distinct Users</span>
+                                            <span>{selectedEntry.distinctUserCount || 0}</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">Submitted</span>
+                                            <span>{formatDateTime(selectedEntry.createdAt || selectedEntry.timeStamp)}</span>
+                                        </div>
+                                        <div>
+                                            <span className="error-reports-page__detail-label">User</span>
+                                            <span>{selectedEntry.userId || "Unknown"}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
+
+                            {selectedEntryType === "group" ? (
+                                <div className="error-reports-page__detail-block">
+                                    <h4>Affected Users</h4>
+                                    <pre>{(selectedEntry.userIds || []).join("\n") || "Anonymous"}</pre>
+                                </div>
+                            ) : null}
 
                             <div className="error-reports-page__detail-block">
                                 <h4>Message</h4>
-                                <pre>{selectedLog.message || "No message"}</pre>
+                                <pre>{selectedEntry.message || "No message"}</pre>
                             </div>
 
                             <div className="error-reports-page__detail-block">
                                 <h4>Stack Trace</h4>
-                                <pre>{selectedLog.stack || "No stack trace"}</pre>
+                                <pre>{selectedEntry.stack || "No stack trace"}</pre>
                             </div>
 
                             <div className="error-reports-page__detail-block">
                                 <h4>Component Stack</h4>
-                                <pre>{selectedLog.componentStack || "No component stack"}</pre>
+                                <pre>{selectedEntry.componentStack || "No component stack"}</pre>
                             </div>
                         </div>
                     ) : (

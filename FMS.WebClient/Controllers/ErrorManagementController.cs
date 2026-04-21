@@ -44,8 +44,6 @@ public class ErrorManagementController : BaseApiController
         {
             string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
-            _logger.LogError("Frontend Error Reported by User {UserId}, Message : {ErrorMessage} ,UserAgent: {UserAgent}, URL: {Url}",
-                userId, errorLogReportDto.Message, errorLogReportDto.UserAgent, errorLogReportDto.Url);
             var command = new CreateLogErrorCommand
             {
                 UserId = userId,
@@ -58,6 +56,28 @@ public class ErrorManagementController : BaseApiController
             };
             var result = await _mediator.Send(command);
 
+            if (result.Success)
+            {
+                if (result.WasAggregated)
+                {
+                    _logger.LogInformation(
+                        "Aggregated duplicate frontend error for User {UserId}. Fingerprint: {Fingerprint}, URL: {Url}",
+                        userId,
+                        result.Fingerprint,
+                        errorLogReportDto.Url);
+                }
+                else
+                {
+                    _logger.LogError(
+                        "Frontend Error Reported by User {UserId}, Message: {ErrorMessage}, UserAgent: {UserAgent}, URL: {Url}, Fingerprint: {Fingerprint}",
+                        userId,
+                        errorLogReportDto.Message,
+                        errorLogReportDto.UserAgent,
+                        errorLogReportDto.Url,
+                        result.Fingerprint);
+                }
+            }
+
             return Ok(result);
         }
         catch (Exception ex)
@@ -68,7 +88,7 @@ public class ErrorManagementController : BaseApiController
     }
     [HttpGet("logs")]
     [RequirePermission(Permissions.Admin.Users)]
-    public async Task<ActionResult<List<ErrorLogDto>>> GetErrorLogs(
+    public async Task<ActionResult<FMS.Application.Common.FMSResponse<ErrorLogDashboardDto>>> GetErrorLogs(
         [FromQuery] int pageSize = 50, [FromQuery] int pageNumber = 1,
         [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null
     )
