@@ -107,12 +107,14 @@ internal static class WarningLetterAnalyticsHtmlTemplate
 
     .report-footer { display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:10px; margin-top:32px; }
     .keep-together { break-inside: avoid-page; page-break-inside: avoid; }
+    .page-break-before { break-before: page; page-break-before: always; }
     .detail-table thead { display: table-header-group; }
     .detail-table tr { break-inside: avoid-page; page-break-inside: avoid; }
 
     @media print {
         .page { padding:12px; }
         .keep-together { break-inside: avoid-page; page-break-inside: avoid; }
+        .page-break-before { break-before: page; page-break-before: always; }
         .detail-table thead { display: table-header-group; }
     }
 </style>
@@ -211,7 +213,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
     </div>
 
     <!-- Monthly Trend + Excess Warning Letters by Site -->
-    <div class=""analytics-grid"">
+    <div class=""analytics-grid page-break-before"">
         <div class=""chart-card"">
             <div class=""chart-card-header"">
                 <div>

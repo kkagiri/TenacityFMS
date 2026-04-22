@@ -12,6 +12,7 @@ import React, { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import notify from 'devextreme/ui/notify';
+import PasswordPolicyGuidance, { getPasswordPolicyError, passwordMatchesPolicy } from '../../components/auth/PasswordPolicyGuidance';
 import { USER_LOADED } from '../../redux/actions/types';
 import { changePassword } from '../../redux/actions/userActions';
 
@@ -54,7 +55,9 @@ const ForcePasswordChangePage = () => {
         if (!form.currentPassword) nextErrors.currentPassword = 'Temporary password is required.';
         if (!form.newPassword) nextErrors.newPassword = 'New password is required.';
         if (!form.confirmPassword) nextErrors.confirmPassword = 'Please confirm your new password.';
-        if (form.newPassword && form.newPassword.length < 6) nextErrors.newPassword = 'New password must be at least 6 characters.';
+        if (form.newPassword && !passwordMatchesPolicy(form.newPassword)) {
+            nextErrors.newPassword = getPasswordPolicyError('New password');
+        }
         if (form.newPassword && form.confirmPassword && form.newPassword !== form.confirmPassword) {
             nextErrors.confirmPassword = 'Passwords do not match.';
         }
@@ -105,6 +108,8 @@ const ForcePasswordChangePage = () => {
                         This step is required on the first sign-in after account creation.
                     </span>
                 </div>
+
+                <PasswordPolicyGuidance intro="Choose a permanent password that meets the current sign-in rule:" />
 
                 {errors.api && (
                     <div className="m365-info-banner m365-info-banner--error">

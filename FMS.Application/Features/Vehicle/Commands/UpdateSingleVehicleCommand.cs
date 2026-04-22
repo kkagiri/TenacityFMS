@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Vehicle;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Domain.Entities;
@@ -24,12 +25,18 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateSingleVehicleCommandHandler> _logger;
     private readonly IMapper _mapper;
+    private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
 
-    public UpdateSingleVehicleCommandHandler(GpsdataContext context, ILogger<UpdateSingleVehicleCommandHandler> logger, IMapper mapper)
+    public UpdateSingleVehicleCommandHandler(
+        GpsdataContext context,
+        ILogger<UpdateSingleVehicleCommandHandler> logger,
+        IMapper mapper,
+        IGPSGateDriverNameService? gpsGateDriverNameService = null)
     {
         _context = context;
         _logger = logger;
         _mapper = mapper;
+        _gpsGateDriverNameService = gpsGateDriverNameService;
     }
 
     public async Task<FMSResponseMessage<VehicleDTO>> Handle(UpdateSingleVehicleCommand request, CancellationToken cancellationToken)
@@ -62,6 +69,8 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
             _context.Vehicles.Update(existingVehicle);
 
             await _context.SaveChangesAsync(cancellationToken);
+
+            await TrySyncDefaultEmployeeToGpsGateAsync(existingVehicle.VehicleId, request.VehicleDTO.DefaultEmployeeId, cancellationToken);
 
             return new FMSResponseMessage<VehicleDTO>(true, "Vehicle updated successfully", request.VehicleDTO);
         }
@@ -149,6 +158,35 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
         }
         return (errors.Count == 0, errors.ToArray());
 
+    }
+
+    private async Task TrySyncDefaultEmployeeToGpsGateAsync(int vehicleId, int? employeeId, CancellationToken cancellationToken)
+    {
+        if (_gpsGateDriverNameService == null || !employeeId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await _gpsGateDriverNameService.UpdateDriverNameAsync(vehicleId, employeeId.Value, cancellationToken);
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning(
+                    "Failed to sync GPSGate driver fields for vehicle {VehicleId} after vehicle update with employee {EmployeeId}: {Message}",
+                    vehicleId,
+                    employeeId.Value,
+                    result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Error syncing GPSGate driver fields for vehicle {VehicleId} after vehicle update with employee {EmployeeId}",
+                vehicleId,
+                employeeId.Value);
+        }
     }
 
 }

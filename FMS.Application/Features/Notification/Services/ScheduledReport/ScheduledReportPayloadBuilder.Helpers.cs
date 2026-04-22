@@ -358,8 +358,68 @@ namespace FMS.Application.Features.Notification.Services
 
         private static int? GetIntParam(JObject metadata, string key)
         {
-            var value = metadata.Value<int?>(key);
-            return value.HasValue && value.Value > 0 ? value : null;
+            if (!metadata.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out var token) || token == null)
+            {
+                return null;
+            }
+
+            return ExtractPositiveInt(token);
+        }
+
+        private static int? ExtractPositiveInt(JToken token)
+        {
+            switch (token.Type)
+            {
+                case JTokenType.Integer:
+                    {
+                        var value = token.Value<int>();
+                        return value > 0 ? value : null;
+                    }
+
+                case JTokenType.Float:
+                    {
+                        var value = Convert.ToInt32(token.Value<double>());
+                        return value > 0 ? value : null;
+                    }
+
+                case JTokenType.String:
+                    {
+                        var raw = token.ToString().Trim();
+                        return int.TryParse(raw, out var parsed) && parsed > 0 ? parsed : null;
+                    }
+
+                case JTokenType.Array:
+                    return token.Children()
+                        .Select(ExtractPositiveInt)
+                        .FirstOrDefault(value => value.HasValue);
+
+                case JTokenType.Object:
+                    {
+                        var objectToken = (JObject)token;
+                        foreach (var propertyName in new[] { "id", "value", "key" })
+                        {
+                            if (objectToken.TryGetValue(propertyName, StringComparison.OrdinalIgnoreCase, out var nestedToken)
+                                && nestedToken != null)
+                            {
+                                var nestedValue = ExtractPositiveInt(nestedToken);
+                                if (nestedValue.HasValue)
+                                {
+                                    return nestedValue;
+                                }
+                            }
+                        }
+
+                        return objectToken.Properties()
+                            .Select(property => ExtractPositiveInt(property.Value))
+                            .FirstOrDefault(value => value.HasValue);
+                    }
+
+                default:
+                    {
+                        var raw = token.ToString().Trim();
+                        return int.TryParse(raw, out var parsed) && parsed > 0 ? parsed : null;
+                    }
+            }
         }
 
         private static bool? GetBoolParam(JObject metadata, string key)

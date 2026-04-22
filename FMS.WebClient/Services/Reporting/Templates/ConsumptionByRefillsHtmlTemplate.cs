@@ -23,9 +23,8 @@ namespace FMS.WebClient.Services.Reporting
 <head>
     <meta charset=""UTF-8"">
     <title>{{reportTitle}} - Hyoung FMS System</title>
-    <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet"">
     <style>
-        @page { size: A4 portrait; margin: 10mm; }
+        @page { size: A4 landscape; margin: 8mm; }
 
         :root {
             --primary:       #20c997;
@@ -42,17 +41,93 @@ namespace FMS.WebClient.Services.Reporting
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             background: var(--bg);
             color: var(--text-body);
             font-size: 12px;
             line-height: 1.5;
+            font-kerning: none;
+            text-rendering: geometricPrecision;
         }
         .page {
             width: 100%;
-            max-width: 190mm;
+            max-width: 1440px;
             margin: 0 auto;
-            padding: 10mm 8mm 12mm;
+            padding: 28px 32px 48px;
+        }
+
+        @media print {
+            body { background: #fff; }
+            .page {
+                max-width: 280mm;
+                padding: 4mm 4mm 6mm;
+            }
+
+            .report-header {
+                margin-bottom: 14px;
+                padding-bottom: 12px;
+            }
+
+            .report-title h1 {
+                font-size: 18px;
+                letter-spacing: 0;
+            }
+
+            .report-title p,
+            .report-meta,
+            .filter-summary,
+            .report-footer {
+                font-size: 10px;
+            }
+
+            .filter-summary {
+                margin-bottom: 14px;
+                padding: 10px 12px;
+            }
+
+            .summary-section {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 14px;
+            }
+
+            .summary-card {
+                min-width: 0;
+                padding: 10px 12px 8px;
+            }
+
+            .summary-card .value {
+                font-size: 14px;
+                line-height: 1.15;
+                letter-spacing: 0;
+                font-kerning: none;
+                font-variant-numeric: tabular-nums lining-nums;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+
+            .summary-card .label {
+                font-size: 8px;
+                letter-spacing: 0.2px;
+            }
+
+            .table-wrapper {
+                margin-bottom: 14px;
+            }
+
+            .data-table {
+                font-size: 8.5px;
+            }
+
+            .data-table thead th {
+                padding: 6px 5px;
+                font-size: 8px;
+                letter-spacing: 0.2px;
+            }
+
+            .data-table tbody td {
+                padding: 6px 5px;
+            }
         }
 
         .report-header {
@@ -100,7 +175,16 @@ namespace FMS.WebClient.Services.Reporting
         .summary-card.card-primary::before { background: var(--primary); }
         .summary-card.card-success::before { background: var(--success); }
         .summary-card.card-info::before { background: var(--dark-header); }
-        .summary-card .value { font-size: 22px; font-weight: 800; color: var(--text-strong); line-height: 1.1; margin-bottom: 4px; letter-spacing: -0.4px; }
+        .summary-card .value {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-strong);
+            line-height: 1.1;
+            margin-bottom: 4px;
+            letter-spacing: 0;
+            font-kerning: none;
+            font-variant-numeric: tabular-nums lining-nums;
+        }
         .summary-card .label { font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
         .summary-card .meta { font-size: 9px; color: var(--text-muted); margin-top: 4px; }
 

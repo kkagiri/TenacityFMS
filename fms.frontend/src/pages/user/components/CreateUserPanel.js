@@ -11,6 +11,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import notify from 'devextreme/ui/notify';
+import PasswordPolicyGuidance from '../../../components/auth/PasswordPolicyGuidance';
 import { createUser } from '../../../redux/actions/userActions';
 import SlidePanel from '../../../components/ui/SlidePanel';
 
@@ -191,6 +192,10 @@ const CreateUserPanel = ({ visible, onHide, onSuccess, roleOptions = [], departm
                             A temporary password is always generated automatically. You can choose whether to email it, require email confirmation, and force a password change on first login.
                         </span>
                     </div>
+
+                    <PasswordPolicyGuidance
+                        intro="When the user creates a permanent password, it should meet this policy:"
+                    />
 
                     {/* First name */}
                     <div className="m365-field">

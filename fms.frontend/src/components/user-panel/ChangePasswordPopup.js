@@ -13,6 +13,7 @@ import React, { useState, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { useDispatch } from "react-redux";
 import notify from "devextreme/ui/notify";
+import PasswordPolicyGuidance, { getPasswordPolicyError, passwordMatchesPolicy } from "../auth/PasswordPolicyGuidance";
 import { changePassword } from "../../redux/actions/userActions";
 import "./ChangePasswordPopup.scss";
 
@@ -51,8 +52,8 @@ export default function ChangePasswordPopup({ visible, onClose }) {
             next.currentPassword = "Current password is required.";
         if (!form.newPassword)
             next.newPassword = "New password is required.";
-        else if (form.newPassword.length < 6)
-            next.newPassword = "Password must be at least 6 characters.";
+        else if (!passwordMatchesPolicy(form.newPassword))
+            next.newPassword = getPasswordPolicyError("New password");
         if (!form.confirmPassword)
             next.confirmPassword = "Please confirm your new password.";
         else if (form.newPassword !== form.confirmPassword)
@@ -139,6 +140,8 @@ export default function ChangePasswordPopup({ visible, onClose }) {
                             <span>{errors.api}</span>
                         </div>
                     )}
+
+                    <PasswordPolicyGuidance intro="Your new password must meet the current account security rule:" />
 
                     {fields.map(({ name, label, icon }) => (
                         <div className="chpwd-field" key={name}>

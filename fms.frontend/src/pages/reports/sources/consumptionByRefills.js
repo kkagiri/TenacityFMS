@@ -69,6 +69,7 @@ const consumptionByRefills = {
             valueExpr: 'id',
             displayExpr: 'name',
             required: false,
+            multiSelect: false,
             placeholder: 'All Sites',
         },
         {
@@ -80,6 +81,7 @@ const consumptionByRefills = {
             valueExpr: 'id',
             displayExpr: 'name',
             required: false,
+            multiSelect: false,
             placeholder: 'All Types',
         },
         {
@@ -93,6 +95,7 @@ const consumptionByRefills = {
             required: false,
             placeholder: 'All Vehicles',
             dependsOn: 'vehicleTypeId',
+            multiSelect: false,
         },
         {
             key: 'averageKmL',
@@ -103,6 +106,7 @@ const consumptionByRefills = {
             valueExpr: 'id',
             displayExpr: 'name',
             required: false,
+            multiSelect: false,
             placeholder: 'All Vehicles',
         },
         {

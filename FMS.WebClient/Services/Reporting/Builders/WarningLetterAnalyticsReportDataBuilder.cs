@@ -266,6 +266,8 @@ internal static class WarningLetterAnalyticsReportDataBuilder
         return new
         {
             reportTitle,
+            dateFrom = startDate.ToString("yyyy-MM-dd"),
+            dateTo = referenceDate.ToString("yyyy-MM-dd"),
             generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
             generatedBy = "System",
             reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",

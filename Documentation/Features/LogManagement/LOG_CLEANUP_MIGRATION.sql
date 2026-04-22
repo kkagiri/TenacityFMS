@@ -4,7 +4,7 @@
 -- Database: MySQL 5.5.6+
 
 -- Insert log cleanup retention configuration
-INSERT INTO `SystemConfigurations` (
+INSERT IGNORE INTO `SystemConfigurations` (
     `ConfigurationKey`,
     `ConfigurationValue`,
     `Description`,
@@ -39,5 +39,77 @@ VALUES (
     '30'
 );
 
--- Verify the insertion
-SELECT * FROM `SystemConfigurations` WHERE `ConfigurationKey` = 'Logging.RetentionDays';
+-- Insert log cleanup auto-cleanup enabled configuration
+INSERT IGNORE INTO `SystemConfigurations` (
+    `ConfigurationKey`,
+    `ConfigurationValue`,
+    `Description`,
+    `DataType`,
+    `IsActive`,
+    `IsEditable`,
+    `Category`,
+    `CreatedAt`,
+    `UpdatedAt`,
+    `CreatedBy`,
+    `UpdatedBy`,
+    `ValidationPattern`,
+    `MinValue`,
+    `MaxValue`,
+    `DefaultValue`
+)
+VALUES (
+    'Logging.AutoCleanupEnabled',
+    'true',
+    'Whether automatic log file cleanup is enabled',
+    'Boolean',
+    1,
+    1,
+    'Logging',
+    UTC_TIMESTAMP(),
+    UTC_TIMESTAMP(),
+    'System',
+    'System',
+    NULL,
+    NULL,
+    NULL,
+    'true'
+);
+
+-- Insert log cleanup hour configuration
+INSERT IGNORE INTO `SystemConfigurations` (
+    `ConfigurationKey`,
+    `ConfigurationValue`,
+    `Description`,
+    `DataType`,
+    `IsActive`,
+    `IsEditable`,
+    `Category`,
+    `CreatedAt`,
+    `UpdatedAt`,
+    `CreatedBy`,
+    `UpdatedBy`,
+    `ValidationPattern`,
+    `MinValue`,
+    `MaxValue`,
+    `DefaultValue`
+)
+VALUES (
+    'Logging.CleanupHour',
+    '2',
+    'Hour of day (0-23) at which automatic log cleanup runs',
+    'Int',
+    1,
+    1,
+    'Logging',
+    UTC_TIMESTAMP(),
+    UTC_TIMESTAMP(),
+    'System',
+    'System',
+    NULL,
+    0,
+    23,
+    '2'
+);
+
+-- Verify the insertions
+SELECT * FROM `SystemConfigurations` WHERE `ConfigurationKey` LIKE 'Logging.%' ORDER BY `ConfigurationKey`;

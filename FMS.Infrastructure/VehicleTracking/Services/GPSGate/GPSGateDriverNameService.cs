@@ -91,7 +91,9 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     return FMSResponse<bool>.Failed("Employee has no name configured");
                 }
 
-                return await UpdateDriverNameByNameAsync(vehicleId, fullName, cancellationToken);
+                var employeeWorkNo = employee.EmployeeWorkNo?.Trim() ?? string.Empty;
+
+                return await UpdateEmployeeFieldsAsync(vehicleId, fullName, employeeWorkNo, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -163,33 +165,18 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     return FMSResponse<bool>.Failed("GPSGate configuration not available");
                 }
 
-                // API Endpoint: PUT /applications/{appId}/users/{userId}/customfields/DriverName
-                var requestUrl = $"{baseUrl}/applications/{applicationId}/users/{gpsGateUserId}/customfields/DriverName";
+                var driverNameResult = await UpdateCustomFieldAsync(
+                    baseUrl,
+                    applicationId,
+                    authHeader,
+                    gpsGateUserId,
+                    "DriverName",
+                    driverFullName,
+                    cancellationToken);
 
-                _logger.LogInformation("Calling GPSGate API to update DriverName: {Url}", requestUrl);
-
-                // Build request payload
-                var payload = new
+                if (!driverNameResult.IsSuccess)
                 {
-                    name = "DriverName",
-                    value = driverFullName
-                };
-
-                var jsonContent = JsonSerializer.Serialize(payload, JsonOptions);
-
-                using var request = new HttpRequestMessage(HttpMethod.Put, requestUrl);
-                request.Headers.Authorization = authHeader;
-                request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.SendAsync(request, cancellationToken);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogWarning(
-                        "Failed to update GPSGate DriverName for user {GpsUserId}. Status: {StatusCode}, Response: {Response}",
-                        gpsGateUserId, response.StatusCode, errorContent);
-                    return FMSResponse<bool>.Failed($"GPSGate API error: {response.StatusCode} - {errorContent}");
+                    return driverNameResult;
                 }
 
                 _logger.LogInformation(
@@ -208,6 +195,124 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 _logger.LogError(ex, "Error updating GPSGate DriverName for user {GpsUserId}", gpsGateUserId);
                 return FMSResponse<bool>.Failed($"Error updating GPSGate DriverName: {ex.Message}");
             }
+        }
+
+        private async Task<FMSResponse<bool>> UpdateEmployeeFieldsAsync(
+            int vehicleId,
+            string driverFullName,
+            string employeeWorkNo,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(driverFullName))
+            {
+                return FMSResponse<bool>.Failed("Driver name cannot be empty");
+            }
+
+            await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+            var providerMapping = await context.VehicleProviderMappings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive && m.ExternalDeviceId != null,
+                    cancellationToken);
+
+            if (providerMapping == null || string.IsNullOrEmpty(providerMapping.ExternalDeviceId))
+            {
+                _logger.LogWarning("No active GPSGate mapping found for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<bool>.Failed($"No GPS provider mapping found for vehicle {vehicleId}");
+            }
+
+            if (!int.TryParse(providerMapping.ExternalDeviceId, out var gpsGateUserId))
+            {
+                _logger.LogWarning("Invalid GPSGate user ID '{ExternalDeviceId}' for vehicle {VehicleId}",
+                    providerMapping.ExternalDeviceId, vehicleId);
+                return FMSResponse<bool>.Failed($"Invalid GPS user ID format: {providerMapping.ExternalDeviceId}");
+            }
+
+            var (baseUrl, applicationId, authHeader) = await _configProvider.GetProviderSettingsAsync();
+
+            if (string.IsNullOrEmpty(baseUrl) || applicationId == 0)
+            {
+                _logger.LogError("GPSGate configuration not found");
+                return FMSResponse<bool>.Failed("GPSGate configuration not available");
+            }
+
+            var driverNameResult = await UpdateCustomFieldAsync(
+                baseUrl,
+                applicationId,
+                authHeader,
+                gpsGateUserId,
+                "DriverName",
+                driverFullName,
+                cancellationToken);
+
+            if (!driverNameResult.IsSuccess)
+            {
+                return driverNameResult;
+            }
+
+            var employeeNumberResult = await UpdateCustomFieldAsync(
+                baseUrl,
+                applicationId,
+                authHeader,
+                gpsGateUserId,
+                "EmpNO",
+                employeeWorkNo,
+                cancellationToken);
+
+            if (!employeeNumberResult.IsSuccess)
+            {
+                return employeeNumberResult;
+            }
+
+            _logger.LogInformation(
+                "Successfully updated GPSGate driver fields for vehicle {VehicleId}. DriverName='{DriverName}', EmpNO='{EmployeeWorkNo}'",
+                vehicleId,
+                driverFullName,
+                employeeWorkNo);
+
+            return FMSResponse<bool>.Success(true, $"Driver fields updated for '{driverFullName}'");
+        }
+
+        private async Task<FMSResponse<bool>> UpdateCustomFieldAsync(
+            string baseUrl,
+            int applicationId,
+            System.Net.Http.Headers.AuthenticationHeaderValue authHeader,
+            int gpsGateUserId,
+            string fieldName,
+            string fieldValue,
+            CancellationToken cancellationToken)
+        {
+            var requestUrl = $"{baseUrl}/applications/{applicationId}/users/{gpsGateUserId}/customfields/{fieldName}";
+
+            _logger.LogInformation("Calling GPSGate API to update custom field {FieldName}: {Url}", fieldName, requestUrl);
+
+            var payload = new
+            {
+                name = fieldName,
+                value = fieldValue
+            };
+
+            var jsonContent = JsonSerializer.Serialize(payload, JsonOptions);
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, requestUrl);
+            request.Headers.Authorization = authHeader;
+            request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning(
+                    "Failed to update GPSGate custom field {FieldName} for user {GpsUserId}. Status: {StatusCode}, Response: {Response}",
+                    fieldName,
+                    gpsGateUserId,
+                    response.StatusCode,
+                    errorContent);
+                return FMSResponse<bool>.Failed($"GPSGate API error updating {fieldName}: {response.StatusCode} - {errorContent}");
+            }
+
+            return FMSResponse<bool>.Success(true, $"{fieldName} updated");
         }
 
         /// <summary>

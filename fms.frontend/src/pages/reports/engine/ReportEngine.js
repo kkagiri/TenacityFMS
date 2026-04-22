@@ -397,6 +397,7 @@ const ReportEngine = () => {
         const useUnifiedBackendPath =
             activeSource?.id === 'tank-volume-history' ||
             activeSource?.id === 'transaction-history-summary' ||
+            activeSource?.id === 'consumption-by-refills' ||
             activeSource?.id === 'warning-letter-candidates' ||
             activeSource?.id === 'monthly-fleet-report' ||
             activeSource?.id === 'weekly-fleet-report';

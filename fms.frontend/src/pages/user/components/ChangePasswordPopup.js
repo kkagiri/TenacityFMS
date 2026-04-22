@@ -11,6 +11,7 @@ import React, { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
+import PasswordPolicyGuidance, { getPasswordPolicyError, passwordMatchesPolicy } from '../../../components/auth/PasswordPolicyGuidance';
 import { updateUser } from '../../../redux/actions/userActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ const ChangePasswordPopup = ({ visible, onHide, userId, userName, user }) => {
     const validate = useCallback(() => {
         const errs = {};
         if (!newPassword.trim()) errs.newPassword = 'New password is required.';
-        else if (newPassword.length < 6) errs.newPassword = 'Password must be at least 6 characters.';
+        else if (!passwordMatchesPolicy(newPassword)) errs.newPassword = getPasswordPolicyError('New password');
         if (!confirmPassword.trim()) errs.confirmPassword = 'Please confirm your password.';
         else if (newPassword !== confirmPassword)
             errs.confirmPassword = 'Passwords do not match.';
@@ -122,6 +123,7 @@ const ChangePasswordPopup = ({ visible, onHide, userId, userName, user }) => {
             <ToolbarItem widget="dxButton" toolbar="bottom" location="after" options={cancelBtn} />
 
             <div className="m365-popup-body" style={{ padding: '24px 24px 8px' }}>
+                <PasswordPolicyGuidance intro="Set a password that follows the current security rule for user accounts:" className="tw-mb-4" />
 
                 {/* New password */}
                 <div className="m365-field">
@@ -190,13 +192,9 @@ const ChangePasswordPopup = ({ visible, onHide, userId, userName, user }) => {
                         <span className="m365-field__error">{errors.confirmPassword}</span>
                     )}
                 </div>
-
-                <p
-                    className="m365-field__hint"
-                    style={{ marginTop: 12, color: 'var(--m365-text-secondary)', fontSize: 12 }}
-                >
+                <p className="m365-field__hint" style={{ marginTop: 12, color: 'var(--m365-text-secondary)', fontSize: 12 }}>
                     <i className="fa-light fa-circle-info" style={{ marginRight: 6 }} />
-                    Minimum 6 characters. The user will be prompted to log in again.
+                    The user will be prompted to log in again after this change.
                 </p>
             </div>
         </Popup>

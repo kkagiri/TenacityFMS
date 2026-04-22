@@ -44,6 +44,10 @@ import Form, {
   RequiredRule,
 } from "devextreme-react/form";
 import notify from "devextreme/ui/notify";
+import PasswordPolicyGuidance, {
+  getPasswordPolicyError,
+  passwordMatchesPolicy,
+} from "../../components/auth/PasswordPolicyGuidance";
 import "./userDetailsPage.scss";
 
 // Hook to detect mobile viewport
@@ -274,8 +278,8 @@ const UserDetailsPage = () => {
       return;
     }
 
-    if (passwordFormData.newPassword.length < 6) {
-      notify("Password must be at least 6 characters long", "error", 3000);
+    if (!passwordMatchesPolicy(passwordFormData.newPassword)) {
+      notify(getPasswordPolicyError("New password"), "error", 4000);
       return;
     }
 
@@ -919,6 +923,10 @@ const UserDetailsPage = () => {
         height={isMobile ? '100%' : 'auto'}
       >
         <div className="tw-p-4">
+          <PasswordPolicyGuidance
+            intro="Use a password that meets the current account security rule before saving this change:"
+            className="tw-mb-4"
+          />
           <Form
             formData={passwordFormData}
             labelMode="floating"

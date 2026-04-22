@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.NaftaATG;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle;
@@ -25,12 +26,18 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
         private readonly GpsdataContext _context;
         private readonly ILogger<UpdateVehiclesCommandHandler> _logger;
         private readonly IMapper _mapper;
+        private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
 
-        public UpdateVehiclesCommandHandler(GpsdataContext context, ILogger<UpdateVehiclesCommandHandler> logger, IMapper mapper)
+        public UpdateVehiclesCommandHandler(
+            GpsdataContext context,
+            ILogger<UpdateVehiclesCommandHandler> logger,
+            IMapper mapper,
+            IGPSGateDriverNameService? gpsGateDriverNameService = null)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
+            _gpsGateDriverNameService = gpsGateDriverNameService;
         }
 
         public async Task<FMSResponseMessage<List<VehicleDTO>>> Handle(UpdateVehiclesCommand request, CancellationToken cancellationToken)
@@ -99,6 +106,14 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
+
+                foreach (var updatedVehicle in updatedVehicles.Where(vehicle => vehicle.DefaultEmployeeId.HasValue))
+                {
+                    await TrySyncDefaultEmployeeToGpsGateAsync(
+                        updatedVehicle.VehicleId,
+                        updatedVehicle.DefaultEmployeeId,
+                        cancellationToken);
+                }
 
                 return new FMSResponseMessage<List<VehicleDTO>>(true, "Vehicles updated successfully", updatedVehicles);
             }
@@ -181,6 +196,35 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
             }
 
             return (errors.Count == 0, errors);
+        }
+
+        private async Task TrySyncDefaultEmployeeToGpsGateAsync(int vehicleId, int? employeeId, CancellationToken cancellationToken)
+        {
+            if (_gpsGateDriverNameService == null || !employeeId.HasValue)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = await _gpsGateDriverNameService.UpdateDriverNameAsync(vehicleId, employeeId.Value, cancellationToken);
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning(
+                        "Failed to sync GPSGate driver fields for vehicle {VehicleId} after bulk vehicle update with employee {EmployeeId}: {Message}",
+                        vehicleId,
+                        employeeId.Value,
+                        result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Error syncing GPSGate driver fields for vehicle {VehicleId} after bulk vehicle update with employee {EmployeeId}",
+                    vehicleId,
+                    employeeId.Value);
+            }
         }
     }
 }
