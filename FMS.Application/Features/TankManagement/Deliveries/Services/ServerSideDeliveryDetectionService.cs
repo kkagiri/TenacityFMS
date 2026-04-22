@@ -314,13 +314,12 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                 var duplicateExists = await _context.Intankdeliveries
                     .AnyAsync(d => d.TankId == tankId
                         && d.StartDateTime >= windowStart
-                        && d.StartDateTime <= windowEnd
-                        && d.Status != "Rejected", ct);
+                            && d.StartDateTime <= windowEnd, ct);
 
                 if (duplicateExists)
                 {
                     _logger.LogInformation(
-                        "[ServerITD] Tank {TankId} delivery already recorded by firmware within ±{Window}min window. Skipping.",
+                            "[ServerITD] Tank {TankId} delivery already recorded within ±{Window}min window. Skipping duplicate server-side detection.",
                         tankId, dupWindow);
                     return;
                 }

@@ -55,6 +55,7 @@ const buildFormData = (device) => {
   return {
     ...source,
     portNumber: source.portNumber ?? null,
+    phoneNumber: source.phoneNumber ?? "",
     site: source.site ?? null,
     vehicleProximityRadius: source.vehicleProximityRadius ?? 100,
     mobileAppProximityRadius: source.mobileAppProximityRadius ?? 50,
@@ -201,6 +202,10 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
 
         <SimpleItem dataField="login" editorType="dxTextBox">
           <Label text="Login" />
+        </SimpleItem>
+
+        <SimpleItem dataField="phoneNumber" editorType="dxTextBox">
+          <Label text="Phone Number" />
         </SimpleItem>
 
         <SimpleItem

@@ -2,7 +2,7 @@
  * File: UploadStatusEndOfTransactionService.cs
  * Purpose: Handles UploadStatus end-of-transaction payloads, correlation, and completion triggering.
  * Dependencies: Redis, PumpService, AutoTransactionCompletionService, TransactionCompletionService, TransactionContextService
- * Last Modified: 2026-03-27
+ * Last Modified: 2026-04-22
  *
  * Key Functions:
  * - ProcessAsync(): Processes EndOfTransactionStatus packets and triggers transaction completion flows.
@@ -12,7 +12,9 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using FMS.Application.Communication.Connection;
 using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
 using FMS.Domain.Entities.PTS.PTSStatus.PumpStatus;
@@ -33,6 +35,7 @@ namespace FMS.Application.Features.PTS.Services
         private readonly IDatabase _redisDb;
         private readonly IAuthorizationStateTracker _authTracker;
         private readonly IPumpService _pumpService;
+        private readonly IPTSConnectionManager _connectionManager;
         private readonly IAutoTransactionCompletionService _autoCompletionService;
         private readonly ITransactionCompletionService _transactionCompletionService;
         private readonly IUploadStatusForcedCompletionService _forcedCompletionService;
@@ -43,6 +46,7 @@ namespace FMS.Application.Features.PTS.Services
             IConnectionMultiplexer redisConnection,
             IAuthorizationStateTracker authTracker,
             IPumpService pumpService,
+            IPTSConnectionManager connectionManager,
             IAutoTransactionCompletionService autoCompletionService,
             ITransactionCompletionService transactionCompletionService,
             IUploadStatusForcedCompletionService forcedCompletionService,
@@ -52,6 +56,7 @@ namespace FMS.Application.Features.PTS.Services
             _redisDb = redisConnection.GetDatabase();
             _authTracker = authTracker;
             _pumpService = pumpService;
+            _connectionManager = connectionManager;
             _autoCompletionService = autoCompletionService;
             _transactionCompletionService = transactionCompletionService;
             _forcedCompletionService = forcedCompletionService;
@@ -344,6 +349,15 @@ namespace FMS.Application.Features.PTS.Services
         {
             try
             {
+                if (!await _connectionManager.IsConnectionValid(deviceId))
+                {
+                    _logger.LogWarning(
+                        "[UploadStatus] DEVICE QUERY SKIPPED - Device {DeviceId} connection is stale or inactive for transaction {TransactionId}; using fallback EOT data",
+                        deviceId,
+                        transactionId);
+                    return null;
+                }
+
                 _logger.LogInformation(
                     "[UploadStatus] DEVICE QUERY - Querying PumpTransactionInformation from device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
                     deviceId,
@@ -381,6 +395,17 @@ namespace FMS.Application.Features.PTS.Services
                     ["VehicleId"] = authState?.VehicleId,
                     ["DataSource"] = "DeviceQuery"
                 };
+            }
+            catch (PTSDeviceException ex) when (ex.ErrorType == FMS.Application.Common.ErrorType.SystemError
+                || ex.Message.Contains("stale", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("inactive", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[UploadStatus] DEVICE QUERY SKIPPED - Device {DeviceId} became stale or inactive while querying transaction {TransactionId}; using fallback EOT data",
+                    deviceId,
+                    transactionId);
+                return null;
             }
             catch (Exception ex)
             {

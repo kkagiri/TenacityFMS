@@ -574,6 +574,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         // // Task Management Configuration
         try { modelBuilder.ApplyConfiguration(new TaskConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring TaskConfiguration: {ex.Message}"); }
 
+        try { modelBuilder.ApplyConfiguration(new EmployeeDocumentConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring EmployeeDocumentConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleDocumentConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleComplianceRequirementConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleComplianceRequirementConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleDocumentUserPreferenceConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentUserPreferenceConfiguration: {ex.Message}"); }

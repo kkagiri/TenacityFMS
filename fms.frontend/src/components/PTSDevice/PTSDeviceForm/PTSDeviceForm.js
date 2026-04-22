@@ -46,6 +46,7 @@ const PTSDeviceForm = ({ visible, onClose, deviceId = null, onSave }) => {
     ipaddress: "",
     portNumber: 80,
     login: "",
+    phoneNumber: "",
     password: "", // nosecret - Form field initialization, not actual password
     protocolSecurityType: "None",
     authenticationType: "Basic",
@@ -85,6 +86,7 @@ const PTSDeviceForm = ({ visible, onClose, deviceId = null, onSave }) => {
         ipaddress: currentDevice.ipaddress || "",
         portNumber: currentDevice.portNumber || 80,
         login: currentDevice.login || "",
+        phoneNumber: currentDevice.phoneNumber || "",
         password: currentDevice.password || "", // nosecret - Loading existing device credential
         protocolSecurityType: currentDevice.protocolSecurityType || "None",
         authenticationType: currentDevice.authenticationType || "Basic",
@@ -106,6 +108,7 @@ const PTSDeviceForm = ({ visible, onClose, deviceId = null, onSave }) => {
         ipaddress: "",
         portNumber: 80,
         login: "",
+        phoneNumber: "",
         password: "", // nosecret - Form reset, empty value
         protocolSecurityType: "None",
         authenticationType: "Basic",
@@ -273,6 +276,17 @@ const PTSDeviceForm = ({ visible, onClose, deviceId = null, onSave }) => {
               }}
             >
               <Label text="Login" />
+            </SimpleItem>
+
+            <SimpleItem
+              dataField="phoneNumber"
+              editorType="dxTextBox"
+              editorOptions={{
+                stylingMode: "filled",
+                placeholder: "Enter Phone Number",
+              }}
+            >
+              <Label text="Phone Number" />
             </SimpleItem>
 
             <SimpleItem

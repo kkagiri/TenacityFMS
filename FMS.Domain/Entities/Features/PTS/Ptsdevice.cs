@@ -25,6 +25,8 @@ public partial class Ptsdevice
 
     public string? AuthenticationType { get; set; }
 
+    public string? PhoneNumber { get; set; }
+
     public int? Site { get; set; }
 
     //This means the device is allowed to connect to the server and save data to the database

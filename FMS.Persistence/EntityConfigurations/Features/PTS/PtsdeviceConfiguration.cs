@@ -39,6 +39,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.IsActive).HasColumnType("tinyint(4)");
                 builder.Property(e => e.IsAuthenticated).HasColumnType("tinyint(4)");
                 builder.Property(e => e.Login).HasMaxLength(145);
+                builder.Property(e => e.PhoneNumber)
+                    .HasMaxLength(50)
+                    .HasColumnName("PhoneNumber");
                 builder.Property(e => e.Password).HasMaxLength(1045);
                 builder.Property(e => e.PortNumber).HasColumnType("int(11)");
                 builder.Property(e => e.ProtocolSecurityType).HasMaxLength(145);

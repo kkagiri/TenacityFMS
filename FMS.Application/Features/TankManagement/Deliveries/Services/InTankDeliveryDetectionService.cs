@@ -136,13 +136,7 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                 }
 
                 // 1. Create alert/notification
-                var alertsEnabled = await _configService.GetItdAlertsEnabledAsync(cancellationToken);
-                if (alertsEnabled)
-                {
-                    await CreateItdAlertAsync(delivery, tank, absoluteVolume, cancellationToken);
-                }
-
-                // 2. Create ledger entry if configured and tank is resolved
+                // 1. Create ledger entry if configured and tank is resolved
                 var autoLedger = await _configService.GetItdAutoCreateLedgerEntryAsync(cancellationToken);
                 if (autoLedger && tank != null)
                 {
@@ -150,7 +144,8 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                     delivery.IsProcessed = true;
                 }
 
-                // 3. Try to match with manual delivery
+                // 2. Try to match with manual delivery before emitting events.
+                // Downstream consumers should observe the final status and match metadata.
                 var autoMatch = await _configService.GetItdAutoMatchManualDeliveryAsync(cancellationToken);
                 if (autoMatch && tank != null)
                 {
@@ -170,6 +165,13 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                 if (delivery.Status == "Detected")
                 {
                     delivery.Status = "Unmatched";
+                }
+
+                // 3. Emit alert/notification using the final status and match metadata.
+                var alertsEnabled = await _configService.GetItdAlertsEnabledAsync(cancellationToken);
+                if (alertsEnabled)
+                {
+                    await CreateItdAlertAsync(delivery, tank, absoluteVolume, cancellationToken);
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
