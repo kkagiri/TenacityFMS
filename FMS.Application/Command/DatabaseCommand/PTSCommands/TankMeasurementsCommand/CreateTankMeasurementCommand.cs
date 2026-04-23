@@ -119,7 +119,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                     }
 
                     //Cursor: Check system configuration for sensor-based physical stock updates
-                    var enableSensorPhysicalStock = await GetConfigurationValueAsync(SystemConfiguration.DB_CONFIG_TANK_ENABLE_SENSOR_PHYSICAL_STOCK_UPDATE_KEY, false, cancellationToken);
+                    var enableSensorPhysicalStock = await GetConfigurationValueAsync(global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_TANK_ENABLE_SENSOR_PHYSICAL_STOCK_UPDATE_KEY, false, cancellationToken);
                     var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(tank.ProbePhysicalStockUpdateSource);
                     var shouldUpdatePhysicalStockFromTankMeasurement =
                         string.Equals(normalizedPhysicalStockUpdateSource, TankProbeConfigurationOptions.TankMeasurement, StringComparison.Ordinal)

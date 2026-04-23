@@ -135,7 +135,7 @@ namespace FMS.BackgroundServices.TankStock
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
 
                 var configValue = await context.SystemConfigurations
-                    .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_SCHEDULE_TIME_KEY)
+                    .Where(c => c.ConfigurationKey == global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_SCHEDULE_TIME_KEY)
                     .Select(c => c.ConfigurationValue)
                     .FirstOrDefaultAsync();
 
@@ -146,7 +146,7 @@ namespace FMS.BackgroundServices.TankStock
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to read {ConfigurationKey} config, using default 10:00", SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_SCHEDULE_TIME_KEY);
+                _logger.LogWarning(ex, "Failed to read {ConfigurationKey} config, using default 10:00", global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_SCHEDULE_TIME_KEY);
             }
 
             return _defaultCheckTime;
@@ -158,7 +158,7 @@ namespace FMS.BackgroundServices.TankStock
         private async Task<bool> IsEnabledAsync(GpsdataContext context)
         {
             var enabledConfig = await context.SystemConfigurations
-                .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_ENABLED_KEY)
+                .Where(c => c.ConfigurationKey == global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_ENABLED_KEY)
                 .Select(c => c.ConfigurationValue)
                 .FirstOrDefaultAsync();
 

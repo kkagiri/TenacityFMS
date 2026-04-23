@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Configuration;
 using FMS.Application.Features.TankManagement.DTOs;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -21,6 +20,9 @@ namespace FMS.Application.Features.TankManagement.Queries;
 public class GetExpectedStockQueryHandler
     : IRequestHandler<GetExpectedStockQuery, FMSResponse<ExpectedStockResult>>
 {
+    private const string StockVarianceThresholdPercentageKey = "Stock.VarianceThreshold.Percentage";
+    private const string StockVarianceThresholdAbsoluteLitersKey = "Stock.VarianceThreshold.AbsoluteLiters";
+
     private readonly GpsdataContext _context;
     private readonly ILogger<GetExpectedStockQueryHandler> _logger;
 
@@ -62,7 +64,7 @@ public class GetExpectedStockQueryHandler
                 .Where(ts => ts.TankId == request.TankId
                     && ts.EntryType == VolumeChangeReasonEnum.ClosingStock
                     && ts.EntryDate < request.Timestamp
-                    && !ts.ImportBatchId.StartsWith("DELETED_"))
+                    && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
                 .OrderByDescending(ts => ts.EntryDate)
                 .Select(ts => new
                 {
@@ -102,7 +104,7 @@ public class GetExpectedStockQueryHandler
                     && ts.EntryType == VolumeChangeReasonEnum.Delivery
                     && ts.EntryDate > previousClosingStock.EntryDate
                     && ts.EntryDate <= request.Timestamp
-                    && !ts.ImportBatchId.StartsWith("DELETED_"))
+                    && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
                 .SumAsync(ts => ts.ManualAmount ?? 0, cancellationToken);
 
             var deliveriesCount = await _context.Tankstocks
@@ -110,7 +112,7 @@ public class GetExpectedStockQueryHandler
                     && ts.EntryType == VolumeChangeReasonEnum.Delivery
                     && ts.EntryDate > previousClosingStock.EntryDate
                     && ts.EntryDate <= request.Timestamp
-                    && !ts.ImportBatchId.StartsWith("DELETED_"))
+                    && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
                 .CountAsync(cancellationToken);
 
             // Calculate transfers in (to this tank)
@@ -149,7 +151,7 @@ public class GetExpectedStockQueryHandler
                 .Where(ts => ts.TankId == request.TankId
                     && ts.EntryDate > previousClosingStock.EntryDate
                     && ts.EntryDate <= request.Timestamp
-                    && !ts.ImportBatchId.StartsWith("DELETED_"))
+                    && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
                 .SumAsync(ts => ts.ManualCalculatedUsage ?? 0, cancellationToken);
 
             // Source 2: Dispensing from tankvolumehistory (ChangeReason = Dispensing OR AutomatedDispensing)
@@ -250,18 +252,18 @@ public class GetExpectedStockQueryHandler
         {
             var configs = await _context.SystemConfigurations
                 .Where(sc => sc.IsActive
-                    && (sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
-                        || sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY))
+                    && (sc.ConfigurationKey == StockVarianceThresholdPercentageKey
+                        || sc.ConfigurationKey == StockVarianceThresholdAbsoluteLitersKey))
                 .ToListAsync(cancellationToken);
 
             foreach (var config in configs)
             {
-                if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
+                if (config.ConfigurationKey == StockVarianceThresholdPercentageKey
                     && decimal.TryParse(config.ConfigurationValue, out var percentage))
                 {
                     thresholds.PercentageThreshold = percentage;
                 }
-                else if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY
+                else if (config.ConfigurationKey == StockVarianceThresholdAbsoluteLitersKey
                     && decimal.TryParse(config.ConfigurationValue, out var liters))
                 {
                     thresholds.AbsoluteLitersThreshold = liters;

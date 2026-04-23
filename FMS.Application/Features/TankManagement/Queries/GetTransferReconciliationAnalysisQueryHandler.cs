@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Configuration;
 using FMS.Application.Features.TankManagement.DTOs;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -22,6 +21,9 @@ namespace FMS.Application.Features.TankManagement.Queries;
 public class GetTransferReconciliationAnalysisQueryHandler
     : IRequestHandler<GetTransferReconciliationAnalysisQuery, FMSResponse<TransferReconciliationResult>>
 {
+    private const string StockVarianceThresholdPercentageKey = "Stock.VarianceThreshold.Percentage";
+    private const string StockVarianceThresholdAbsoluteLitersKey = "Stock.VarianceThreshold.AbsoluteLiters";
+
     private readonly GpsdataContext _context;
     private readonly ILogger<GetTransferReconciliationAnalysisQueryHandler> _logger;
 
@@ -74,7 +76,7 @@ public class GetTransferReconciliationAnalysisQueryHandler
                         || ts.EntryType == VolumeChangeReasonEnum.ClosingStock)
                     && ts.EntryDate >= request.StartDate
                     && ts.EntryDate <= request.EndDate
-                    && !ts.ImportBatchId.StartsWith("DELETED_"))
+                    && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
                 .OrderBy(ts => ts.EntryDate)
                 .ThenBy(ts => ts.EntryType) // Opening before Closing for same date
                 .Select(ts => new
@@ -200,7 +202,7 @@ public class GetTransferReconciliationAnalysisQueryHandler
             .Where(ts => ts.TankId == tankId
                 && ts.EntryDate > startDate
                 && ts.EntryDate <= endDate
-                && !ts.ImportBatchId.StartsWith("DELETED_"))
+                && (ts.ImportBatchId == null || !ts.ImportBatchId.StartsWith("DELETED_")))
             .SumAsync(ts => ts.ManualCalculatedUsage ?? 0, cancellationToken);
 
         // Source 2: Sensor dispensing from tankvolumehistory (Dispensing)
@@ -389,18 +391,18 @@ public class GetTransferReconciliationAnalysisQueryHandler
         {
             var configs = await _context.SystemConfigurations
                 .Where(sc => sc.IsActive
-                    && (sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
-                        || sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY))
+                    && (sc.ConfigurationKey == StockVarianceThresholdPercentageKey
+                        || sc.ConfigurationKey == StockVarianceThresholdAbsoluteLitersKey))
                 .ToListAsync(cancellationToken);
 
             foreach (var config in configs)
             {
-                if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
+                if (config.ConfigurationKey == StockVarianceThresholdPercentageKey
                     && decimal.TryParse(config.ConfigurationValue, out var percentage))
                 {
                     thresholds.PercentageThreshold = percentage;
                 }
-                else if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY
+                else if (config.ConfigurationKey == StockVarianceThresholdAbsoluteLitersKey
                     && decimal.TryParse(config.ConfigurationValue, out var liters))
                 {
                     thresholds.AbsoluteLitersThreshold = liters;

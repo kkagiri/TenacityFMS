@@ -1371,7 +1371,7 @@ public partial class LocationValidationService : ILocationValidationService
                 _logger.LogInformation("[LocationValidation] System-wide PERMANENT bypass is active");
                 var permanentReason = await _context.SystemConfigurations
                     .AsNoTracking()
-                    .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_FUELING_RULES_TEMPORARY_BYPASS_REASON_KEY)
+                    .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
                     .Select(c => c.ConfigurationValue)
                     .FirstOrDefaultAsync(cancellationToken);
                 return new TemporaryBypassCheckResult(true, null, permanentReason ?? "Permanent bypass");
@@ -1393,7 +1393,7 @@ public partial class LocationValidationService : ILocationValidationService
             // Get the reason if available
             var reason = await _context.SystemConfigurations
                 .AsNoTracking()
-                .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_FUELING_RULES_TEMPORARY_BYPASS_REASON_KEY)
+                .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
                 .Select(c => c.ConfigurationValue)
                 .FirstOrDefaultAsync(cancellationToken);
 

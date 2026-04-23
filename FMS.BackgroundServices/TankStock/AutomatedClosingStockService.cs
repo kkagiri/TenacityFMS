@@ -501,7 +501,7 @@ namespace FMS.BackgroundServices.TankStock
         private async Task<bool> IsEnabledAsync(GpsdataContext context)
         {
             var config = await context.SystemConfigurations
-                .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_AUTO_CLOSING_STOCK_ENABLED_KEY)
+                .Where(c => c.ConfigurationKey == global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_AUTO_CLOSING_STOCK_ENABLED_KEY)
                 .Select(c => c.ConfigurationValue)
                 .FirstOrDefaultAsync();
 

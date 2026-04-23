@@ -280,7 +280,7 @@ namespace FMS.Application.Services.TankStock
                 var maxDaysBack = await _configService.GetTankStockMaxHistoricalDaysAsync(cancellationToken);
 
                 // Note: AllowOverride is not in the current interface, using a default or configuration lookup
-                var allowOverride = bool.Parse(await _configService.GetConfigurationValueAsync(SystemConfiguration.DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_ALLOW_OVERRIDE_KEY, cancellationToken) ?? "true");
+                var allowOverride = bool.Parse(await _configService.GetConfigurationValueAsync(global::FMS.Application.Configuration.SystemConfiguration.DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_ALLOW_OVERRIDE_KEY, cancellationToken) ?? "true");
 
                 return new FutureRecordsPolicyConfig
                 {
