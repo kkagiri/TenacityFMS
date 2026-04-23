@@ -105,6 +105,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             var fromSite = transfer.FromSite?.Name ?? $"Site #{transfer.FromSiteId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
+            var reviewLink = NotificationLinkBuilder.ForVehicleTransferReview(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Alert,
@@ -112,6 +113,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.High,
                 Title = $"Approval Required: Vehicle Transfer #{transfer.DeliveryNoteNumber ?? transferId.ToString()}",
                 Message = $"Vehicle {vehicleLabel} transfer from {fromSite} to {toSite} requires your approval.",
+                Link = reviewLink.Link,
+                LinkLabel = reviewLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -171,6 +174,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
 
             var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
 
+            var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Info,
@@ -178,6 +182,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.High,
                 Title = $"Transfer Approved: {vehicleLabel}",
                 Message = $"Your vehicle transfer #{transfer.DeliveryNoteNumber ?? transferId.ToString()} has been approved. Please release the vehicle for dispatch.",
+                Link = transferLink.Link,
+                LinkLabel = transferLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -230,6 +236,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
 
             var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
 
+            var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Warning,
@@ -237,6 +244,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.Medium,
                 Title = $"Transfer Rejected: {vehicleLabel}",
                 Message = $"Your vehicle transfer #{transfer.DeliveryNoteNumber ?? transferId.ToString()} was rejected. Reason: {reason}",
+                Link = transferLink.Link,
+                LinkLabel = transferLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -294,6 +303,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             var fromSite = transfer.FromSite?.Name ?? $"Site #{transfer.FromSiteId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
+            var receiveLink = NotificationLinkBuilder.ForVehicleTransferReceive(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Alert,
@@ -301,6 +311,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.High,
                 Title = $"Vehicle Dispatched: {vehicleLabel}",
                 Message = $"Vehicle {vehicleLabel} has been dispatched from {fromSite} to {toSite}. Please confirm receipt upon arrival.",
+                Link = receiveLink.Link,
+                LinkLabel = receiveLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -358,6 +370,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
+            var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Info,
@@ -365,6 +378,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.High,
                 Title = $"Vehicle Received: {vehicleLabel}",
                 Message = $"Vehicle {vehicleLabel} has been received at {toSite}. Transfer #{transfer.DeliveryNoteNumber ?? transferId.ToString()} is now complete.",
+                Link = transferLink.Link,
+                LinkLabel = transferLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -435,6 +450,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 return FMSResponse.SuccessResponse("No stakeholders to notify");
             }
 
+            var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Warning,
@@ -442,6 +458,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 Priority = NotificationPriority.Medium,
                 Title = $"Transfer Cancelled: {vehicleLabel}",
                 Message = $"Vehicle transfer #{transfer.DeliveryNoteNumber ?? transferId.ToString()} for {vehicleLabel} has been cancelled.",
+                Link = transferLink.Link,
+                LinkLabel = transferLink.Label,
                 Data = new
                 {
                     TransferId = transferId,
@@ -505,6 +523,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                         ? (int)(DateTime.UtcNow - transfer.DispatchedAt.Value).TotalDays
                         : 0;
 
+                    var receiveLink = NotificationLinkBuilder.ForVehicleTransferReceive(transfer.TransferId);
                     var request = new CreateNotificationRequest
                     {
                         Type = NotificationType.Warning,
@@ -512,6 +531,8 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                         Priority = NotificationPriority.Medium,
                         Title = $"Reminder: Confirm Receipt of {vehicleLabel}",
                         Message = $"Vehicle {vehicleLabel} was dispatched from {fromSite} to {toSite} {daysInTransit} day(s) ago. Please confirm receipt.",
+                        Link = receiveLink.Link,
+                        LinkLabel = receiveLink.Label,
                         Data = new
                         {
                             TransferId = transfer.TransferId,

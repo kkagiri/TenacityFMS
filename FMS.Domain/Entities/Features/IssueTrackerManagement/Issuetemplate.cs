@@ -62,4 +62,9 @@ public partial class Issuetemplate
     /// Admin-configurable completion actions for this template
     /// </summary>
     public virtual ICollection<IssueTemplateAction> TemplateActions { get; set; } = new List<IssueTemplateAction>();
+
+    /// <summary>
+    /// Future staged workflow definition for completion actions.
+    /// </summary>
+    public virtual IssueTemplateWorkflow? Workflow { get; set; }
 }

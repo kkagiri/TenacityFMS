@@ -89,6 +89,41 @@ const resolveApiErrorMessage = (error, fallback) => {
         || fallback;
 };
 
+const normalizeUsersForFilterPayload = (payload) => {
+    const sourceUsers = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+
+    return sourceUsers
+        .filter((user) => user && typeof user === 'object')
+        .map((user) => {
+            const userId = user.userId ?? user.id ?? user.Id ?? user.UserId ?? null;
+            const userName = user.userName
+                ?? user.name
+                ?? user.fullName
+                ?? user.fullname
+                ?? user.UserName
+                ?? user.Name
+                ?? user.FullName
+                ?? [user.firstName ?? user.FirstName, user.lastName ?? user.LastName]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim()
+                ?? '';
+
+            return {
+                ...user,
+                id: userId,
+                userId,
+                name: userName || userId,
+                userName: userName || userId,
+            };
+        })
+        .filter((user) => user.id != null);
+};
+
 // Action Types
 export const FETCH_USERS_SUCCESS = 'FETCH_USERS_SUCCESS';
 export const FETCH_USERS_FAILURE = 'FETCH_USERS_FAILURE';
@@ -444,12 +479,21 @@ export const fetchUserPermissions = (userId) => async (dispatch) => {
 // Fetch users for filter dropdown
 export const fetchUsersForFilter = () => async (dispatch) => {
     try {
-        const response = await axiosInstance.get('/tankvolumehistory/users');
-        dispatch({ type: FETCH_USERS_FOR_FILTER_SUCCESS, payload: response.data });
-        return response.data;
+        let response;
+
+        try {
+            response = await axiosInstance.get('/user');
+        } catch (primaryError) {
+            response = await axiosInstance.get('/user/getlist');
+        }
+
+        const users = normalizeUsersForFilterPayload(response?.data);
+        dispatch({ type: FETCH_USERS_FOR_FILTER_SUCCESS, payload: users });
+        return users;
     } catch (error) {
-        dispatch({ type: FETCH_USERS_FOR_FILTER_FAILURE, payload: error.message });
-        throw new Error('Error loading users for filter');
+        const errorMessage = resolveApiErrorMessage(error, 'Error loading users for filter');
+        dispatch({ type: FETCH_USERS_FOR_FILTER_FAILURE, payload: errorMessage });
+        return [];
     }
 };
 

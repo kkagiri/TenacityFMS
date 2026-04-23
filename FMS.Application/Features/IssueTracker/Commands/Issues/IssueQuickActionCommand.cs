@@ -328,6 +328,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             notes,
             issueUrl);
 
+        var issueLink = NotificationLinkBuilder.ForIssue(issue.Id);
         var notificationRequest = new CreateNotificationRequest
         {
           Type = NotificationType.Alert,
@@ -335,6 +336,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
           Priority = NotificationPriority.Medium,
           Title = $"Issue Completed: {issue.ProblemTitle}",
           Message = $"Your issue #{issue.Id} has been marked as complete by {completedByName}.",
+          Link = issueLink.Link,
+          LinkLabel = issueLink.Label,
           Data = new
           {
             IssueId = issue.Id,
@@ -409,6 +412,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             notes,
             issueUrl);
 
+        var issueLink = NotificationLinkBuilder.ForIssue(issue.Id);
         var notificationRequest = new CreateNotificationRequest
         {
           Type = NotificationType.Alert,
@@ -416,6 +420,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
           Priority = NotificationPriority.High,
           Title = $"⚠️ Priority Escalated: {issue.ProblemTitle}",
           Message = $"Issue #{issue.Id} has been escalated to HIGH priority by {escalatedByName}. Please review immediately.",
+          Link = issueLink.Link,
+          LinkLabel = issueLink.Label,
           Data = new
           {
             IssueId = issue.Id,

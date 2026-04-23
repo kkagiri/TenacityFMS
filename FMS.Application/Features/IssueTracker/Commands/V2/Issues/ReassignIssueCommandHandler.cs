@@ -267,6 +267,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                     notes,
                     issueUrl);
 
+                var issueLink = NotificationLinkBuilder.ForIssue(issue.Id);
                 var notificationRequest = new CreateNotificationRequest
                 {
                     Type = NotificationType.Alert,
@@ -274,6 +275,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                     Priority = NotificationPriority.High,
                     Title = $"Issue Assigned to You: {issue.ProblemTitle}",
                     Message = $"Issue #{issue.Id} has been assigned to you by {reassignedByName}. Please review.",
+                    Link = issueLink.Link,
+                    LinkLabel = issueLink.Label,
                     Data = new
                     {
                         IssueId = issue.Id,

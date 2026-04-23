@@ -71,6 +71,20 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.CameraSimNumber)
                 .HasMaxLength(50);
 
+            // Sensor replacement fields
+            builder.Property(e => e.OldSensorType)
+                .HasMaxLength(100);
+
+            builder.Property(e => e.NewSensorType)
+                .HasMaxLength(100);
+
+            builder.Property(e => e.SensorReason)
+                .HasMaxLength(100);
+
+            // Sensor calibration fields
+            builder.Property(e => e.CalibrationResult)
+                .HasMaxLength(100);
+
             builder.Property(e => e.AdditionalNotes)
                 .HasMaxLength(2000);
 

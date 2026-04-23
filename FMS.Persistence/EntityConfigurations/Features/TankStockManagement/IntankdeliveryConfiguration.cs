@@ -140,7 +140,7 @@ namespace FMS.Persistence.EntityConfigurations
 
                             builder.Property(i => i.ConfigurationId)
                                    .HasColumnName("ConfigurationId")
-                                   .HasColumnType("varchar(8)")
+                                   .HasColumnType("varchar(50)")
                                    .HasMaxLength(8);
 
                             // Map "Ptsid" property to column "PTSId" (as defined in the table, case-sensitive).

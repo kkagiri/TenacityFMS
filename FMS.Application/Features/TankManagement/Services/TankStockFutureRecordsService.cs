@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Configuration;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -279,7 +280,7 @@ namespace FMS.Application.Services.TankStock
                 var maxDaysBack = await _configService.GetTankStockMaxHistoricalDaysAsync(cancellationToken);
 
                 // Note: AllowOverride is not in the current interface, using a default or configuration lookup
-                var allowOverride = bool.Parse(await _configService.GetConfigurationValueAsync("TankStock.FutureRecords.AllowOverride", cancellationToken) ?? "true");
+                var allowOverride = bool.Parse(await _configService.GetConfigurationValueAsync(SystemConfiguration.DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_ALLOW_OVERRIDE_KEY, cancellationToken) ?? "true");
 
                 return new FutureRecordsPolicyConfig
                 {

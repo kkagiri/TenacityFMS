@@ -98,6 +98,30 @@ public class IssueCompletionRecord
     /// </summary>
     public string? CameraSimNumber { get; set; }
 
+    // ===== Sensor Replacement Fields =====
+
+    /// <summary>
+    /// Old sensor type removed (e.g., "ES2", "Ligo", "Capacitive", "DUT-E")
+    /// </summary>
+    public string? OldSensorType { get; set; }
+
+    /// <summary>
+    /// New sensor type installed (e.g., "Ligo", "ES2", "Omnicomm")
+    /// </summary>
+    public string? NewSensorType { get; set; }
+
+    /// <summary>
+    /// Reason for sensor replacement (e.g., "Faulty", "Upgrade", "Missing", "Other")
+    /// </summary>
+    public string? SensorReason { get; set; }
+
+    // ===== Sensor Calibration Fields =====
+
+    /// <summary>
+    /// Calibration outcome (e.g., "Pass", "Fail", "Partial")
+    /// </summary>
+    public string? CalibrationResult { get; set; }
+
     /// <summary>
     /// Free text catch-all for anything that doesn't fit the structured fields
     /// </summary>

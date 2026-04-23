@@ -62,6 +62,21 @@ namespace FMS.Domain.Entities.Features.Notifications
         public string? Data { get; set; }
 
         /// <summary>
+        /// Optional in-app deep link the frontend should navigate to when the user
+        /// clicks the notification (e.g. "/reports/import-management", "/warning-letters/42").
+        /// Must start with "/" and match the frontend whitelist of allowed path prefixes.
+        /// </summary>
+        [MaxLength(500)]
+        public string? Link { get; set; }
+
+        /// <summary>
+        /// Optional label for the link button/action (e.g. "Open report", "Review &amp; sign").
+        /// Falls back to a generic "Open" label on the frontend when null.
+        /// </summary>
+        [MaxLength(100)]
+        public string? LinkLabel { get; set; }
+
+        /// <summary>
         /// How the notification was triggered (Manual, Scheduled, Alarm, System, API)
         /// </summary>
         [Required]

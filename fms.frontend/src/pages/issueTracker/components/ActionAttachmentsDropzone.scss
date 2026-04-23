@@ -1,0 +1,185 @@
+/**
+ * File: ActionAttachmentsDropzone.scss
+ * Purpose: M365 Fluent styling for the per-action attachment dropzone.
+ */
+
+.action-attachments {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: #faf9f8;
+    border: 1px solid #edebe9;
+    border-radius: 6px;
+
+    &--disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #201f1e;
+
+        &-icon {
+            color: #0078d4;
+            font-size: 14px;
+        }
+
+        &-title {
+            font-weight: 600;
+        }
+
+        &-tag {
+            margin-left: auto;
+            padding: 2px 8px;
+            font-size: 11px;
+            color: #605e5c;
+            background: #edebe9;
+            border-radius: 10px;
+        }
+    }
+
+    &__dropzone {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 16px 12px;
+        background: #ffffff;
+        border: 1px dashed #c8c6c4;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: border-color 0.15s ease, background-color 0.15s ease;
+
+        &:hover:not(:disabled) {
+            border-color: #0078d4;
+            background: #f3f9fd;
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+        }
+
+        &--active {
+            border-color: #0078d4;
+            background: #eff6fc;
+        }
+
+        &-icon {
+            font-size: 20px;
+            color: #0078d4;
+        }
+
+        &-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #201f1e;
+        }
+
+        &-hint {
+            font-size: 11px;
+            color: #605e5c;
+        }
+    }
+
+    &__input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &__error {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: #a4262c;
+        background: #fde7e9;
+        border: 1px solid #f1707b;
+        border-radius: 4px;
+    }
+
+    &__list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        background: #ffffff;
+        border: 1px solid #edebe9;
+        border-radius: 4px;
+
+        &--error {
+            border-color: #f1707b;
+            background: #fdf3f4;
+        }
+
+        &-icon {
+            color: #605e5c;
+        }
+
+        &-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            color: #201f1e;
+        }
+
+        &-size {
+            flex-shrink: 0;
+            color: #605e5c;
+        }
+
+        &-status {
+            flex-shrink: 0;
+            color: #605e5c;
+
+            &--ok {
+                color: #107c10;
+            }
+
+            &--error {
+                color: #a4262c;
+            }
+        }
+
+        &-remove {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            border-radius: 3px;
+            color: #605e5c;
+            cursor: pointer;
+
+            &:hover {
+                background: #f3f2f1;
+                color: #201f1e;
+            }
+        }
+    }
+}

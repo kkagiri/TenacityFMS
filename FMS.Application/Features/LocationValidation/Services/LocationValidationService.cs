@@ -1,5 +1,6 @@
 using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Configuration;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Enums;
@@ -1370,7 +1371,7 @@ public partial class LocationValidationService : ILocationValidationService
                 _logger.LogInformation("[LocationValidation] System-wide PERMANENT bypass is active");
                 var permanentReason = await _context.SystemConfigurations
                     .AsNoTracking()
-                    .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
+                    .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_FUELING_RULES_TEMPORARY_BYPASS_REASON_KEY)
                     .Select(c => c.ConfigurationValue)
                     .FirstOrDefaultAsync(cancellationToken);
                 return new TemporaryBypassCheckResult(true, null, permanentReason ?? "Permanent bypass");
@@ -1392,7 +1393,7 @@ public partial class LocationValidationService : ILocationValidationService
             // Get the reason if available
             var reason = await _context.SystemConfigurations
                 .AsNoTracking()
-                .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
+                .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_FUELING_RULES_TEMPORARY_BYPASS_REASON_KEY)
                 .Select(c => c.ConfigurationValue)
                 .FirstOrDefaultAsync(cancellationToken);
 

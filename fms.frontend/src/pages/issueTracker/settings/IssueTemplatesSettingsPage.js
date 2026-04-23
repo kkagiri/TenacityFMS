@@ -1,14 +1,14 @@
 /**
  * File: IssueTemplatesSettingsPage.js
- * Purpose: Manage issue templates and template actions for Issue Tracker V2
- * Dependencies: React, Redux, DevExtreme DataGrid, Popup, issueTrackerV2Service
- * Last Modified: 2026-02-23
+ * Purpose: Manage issue templates and completion workflow configuration for Issue Tracker V2
+ * Dependencies: React, Redux, DevExtreme DataGrid, SlidePanel, issueTrackerV2Service
+ * Last Modified: 2026-04-23
  *
  * Key Functions/Components:
  * - IssueTemplatesSettingsPage: CRUD screen for issue templates
- * - Completion Actions button opens a popup with TemplateActionsPanel
+ * - Workflow button opens a side panel with IssueTemplateWorkflowPanel
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, {
   Column,
@@ -25,16 +25,17 @@ import DataGrid, {
   Item as ToolbarItem
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import SlidePanel from '../../../components/ui/SlidePanel';
 import {
   fetchIssuePriorities,
   fetchIssueStatuses
 } from '../../../redux/actions/issueTrackerActions';
 import { fetchUsers } from '../../../redux/actions/userActions';
-import TemplateActionsPanel from './TemplateActionsPanel';
+
+const IssueTemplateWorkflowPanel = lazy(() => import('./IssueTemplateWorkflowPanel'));
 
 /**
  * Issue Templates Settings Page
@@ -48,39 +49,28 @@ const IssueTemplatesSettingsPage = () => {
   const [templates, setTemplates] = useState([]);
   const [deviceTypes, setDeviceTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionsPopup, setActionsPopup] = useState({ visible: false, templateId: null, templateName: '' });
-  const [actionCounts, setActionCounts] = useState({});
+  const [workflowPanel, setWorkflowPanel] = useState({ visible: false, templateId: null, templateName: '', closeSignal: 0 });
   const [showGuide, setShowGuide] = useState(false);
   const dataGridRef = useRef(null);
 
-  const openActionsPopup = (templateId, templateName) => {
-    setActionsPopup({ visible: true, templateId, templateName });
+  const openWorkflowPanel = (templateId, templateName) => {
+    setWorkflowPanel({ visible: true, templateId, templateName, closeSignal: 0 });
   };
 
-  const closeActionsPopup = () => {
-    setActionsPopup({ visible: false, templateId: null, templateName: '' });
-    // Refresh action counts when closing the actions popup
-    loadActionCounts(templates);
+  const closeWorkflowPanel = () => {
+    setWorkflowPanel((current) => current.visible
+      ? { ...current, closeSignal: current.closeSignal + 1 }
+      : { visible: false, templateId: null, templateName: '', closeSignal: 0 });
   };
+
+  const finalizeWorkflowPanelClose = useCallback(() => {
+    setWorkflowPanel({ visible: false, templateId: null, templateName: '', closeSignal: 0 });
+  }, []);
 
   // Get priorities and statuses from Redux
   const priorities = issueTrackerState?.priorities || [];
   const statuses = issueTrackerState?.statuses || [];
   const users = userState?.users || [];
-
-  // Load action counts for all templates
-  const loadActionCounts = useCallback(async (templateList) => {
-    const counts = {};
-    await Promise.all(
-      (templateList || []).map(async (t) => {
-        try {
-          const actions = await issueTrackerV2Service.getTemplateActions(t.id);
-          counts[t.id] = Array.isArray(actions) ? actions.filter(a => a.isActive).length : 0;
-        } catch { counts[t.id] = 0; }
-      })
-    );
-    setActionCounts(counts);
-  }, []);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -96,9 +86,6 @@ const IssueTemplatesSettingsPage = () => {
       const tList = templatesData || [];
       setTemplates(tList);
       setDeviceTypes(deviceTypesData || []);
-
-      // Load action counts
-      loadActionCounts(tList);
 
       // Load priorities and statuses from Redux if not already loaded
       if (!priorities.length) {
@@ -121,7 +108,7 @@ const IssueTemplatesSettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dispatch, priorities.length, statuses.length, users.length, loadActionCounts]);
+  }, [dispatch, priorities.length, statuses.length, users.length]);
 
   useEffect(() => {
     loadData();
@@ -189,23 +176,18 @@ const IssueTemplatesSettingsPage = () => {
     }
   };
 
-  // Render the Completion Actions button with count badge in each template row
-  const renderActionsCell = (cellInfo) => {
+  // Render the workflow button in each template row
+  const renderWorkflowCell = (cellInfo) => {
     const row = cellInfo.data;
-    const count = actionCounts[row.id] || 0;
     return (
       <button
         type="button"
         className="tw-inline-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-1 tw-rounded-md tw-text-xs tw-font-medium tw-transition-colors tw-border tw-border-gray-200 hover:tw-border-blue-400 hover:tw-bg-blue-50 tw-bg-white tw-text-gray-700 hover:tw-text-blue-700"
-        onClick={() => openActionsPopup(row.id, row.name)}
-        title="Manage Completion Actions"
+        onClick={() => openWorkflowPanel(row.id, row.name)}
+        title="Configure completion workflow"
       >
-        <i className="fa-light fa-list-check tw-text-sm"></i>
-        <span>Actions</span>
-        <span className={`tw-inline-flex tw-items-center tw-justify-center tw-min-w-[18px] tw-h-[18px] tw-rounded-full tw-text-[10px] tw-font-bold ${count > 0
-          ? 'tw-bg-blue-100 tw-text-blue-700'
-          : 'tw-bg-gray-100 tw-text-gray-400'
-          }`}>{count}</span>
+        <i className="fa-light fa-diagram-project tw-text-sm"></i>
+        <span>Workflow</span>
       </button>
     );
   };
@@ -295,27 +277,27 @@ const IssueTemplatesSettingsPage = () => {
               <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-p-3 tw-border tw-border-blue-100">
                 <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1.5">
                   <span className="tw-w-5 tw-h-5 tw-rounded-full tw-bg-blue-600 tw-text-white tw-flex tw-items-center tw-justify-center tw-text-[10px] tw-font-bold">2</span>
-                  <span className="tw-text-xs tw-font-semibold tw-text-gray-800">Add Completion Actions</span>
+                  <span className="tw-text-xs tw-font-semibold tw-text-gray-800">Configure Workflow</span>
                 </div>
                 <p className="tw-text-[11px] tw-text-gray-600 tw-leading-relaxed">
-                  Click the <strong>Actions</strong> button on a template row to define what steps technicians must record when completing an issue (e.g. "Replace Device", "Install Camera").
+                  Click the <strong>Workflow</strong> button on a template row to open a <strong>side panel</strong> where you define what steps technicians must record when completing an issue (for now as a linear action list, later as staged workflow lanes).
                 </p>
               </div>
               {/* Step 3 */}
               <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-p-3 tw-border tw-border-blue-100">
                 <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1.5">
                   <span className="tw-w-5 tw-h-5 tw-rounded-full tw-bg-blue-600 tw-text-white tw-flex tw-items-center tw-justify-center tw-text-[10px] tw-font-bold">3</span>
-                  <span className="tw-text-xs tw-font-semibold tw-text-gray-800">Users See the Wizard</span>
+                  <span className="tw-text-xs tw-font-semibold tw-text-gray-800">Users See the Completion Panel</span>
                 </div>
                 <p className="tw-text-[11px] tw-text-gray-600 tw-leading-relaxed">
-                  When someone marks an issue as complete, a <strong>step-by-step wizard</strong> appears showing your configured actions. They select which actions they performed and fill in details.
+                  When someone marks an issue as complete, a <strong>completion side panel</strong> appears showing your configured actions. They select which actions they performed and fill in details.
                 </p>
               </div>
             </div>
             <div className="tw-mt-3 tw-flex tw-items-start tw-gap-2 tw-p-2 tw-rounded tw-bg-amber-50 tw-border tw-border-amber-200">
               <i className="fa-light fa-lightbulb tw-text-amber-500 tw-text-sm tw-mt-0.5"></i>
               <p className="tw-text-[11px] tw-text-amber-800">
-                <strong>Tip:</strong> Even issues without a template will show the wizard — the user can add custom actions on-the-fly. Templates just pre-configure the available actions.
+                <strong>Tip:</strong> Even issues without a template can still be completed from the side panel because users may add a custom action on the fly. Templates simply pre-configure the workflow.
               </p>
             </div>
           </div>
@@ -338,17 +320,11 @@ const IssueTemplatesSettingsPage = () => {
         className="tw-shadow-sm tw-rounded-lg"
       >
         <Editing
-          mode="popup"
+          mode="form"
           allowAdding={true}
           allowUpdating={true}
           allowDeleting={true}
           useIcons={true}
-          popup={{
-            title: 'Issue Template',
-            showTitle: true,
-            width: 600,
-            height: 'auto'
-          }}
         />
         <Paging defaultPageSize={10} />
         <FilterRow visible={true} />
@@ -426,43 +402,44 @@ const IssueTemplatesSettingsPage = () => {
           format="yyyy-MM-dd HH:mm"
         />
         <Column
-          caption="Completion"
-          width={110}
+          caption="Workflow"
+          width={120}
           fixed={true}
           fixedPosition="right"
           allowEditing={false}
           allowSorting={false}
           allowFiltering={false}
           allowReordering={false}
-          cellRender={renderActionsCell}
+          cellRender={renderWorkflowCell}
           alignment="center"
         />
         <Column type="buttons" width={110} fixed={true} fixedPosition="right" />
       </DataGrid>
 
-      {/* Completion Actions Popup */}
-      <Popup
-        visible={actionsPopup.visible}
-        onHiding={closeActionsPopup}
-        title={`Completion Actions — ${actionsPopup.templateName}`}
-        showTitle={true}
-        showCloseButton={true}
-        width={900}
-        height={520}
-        minWidth={600}
-        minHeight={350}
-        maxHeight="90vh"
-        dragEnabled={true}
-        resizeEnabled={true}
-        contentRender={() => (
-          actionsPopup.templateId ? (
-            <TemplateActionsPanel
-              templateId={actionsPopup.templateId}
-              templateName={actionsPopup.templateName}
+      <SlidePanel
+        open={workflowPanel.visible}
+        onClose={closeWorkflowPanel}
+        title={`Completion Workflow - ${workflowPanel.templateName}`}
+        width="96vw"
+      >
+        <Suspense
+          fallback={(
+            <div className="issue-template-workflow-panel__loading">
+              <LoadIndicator visible={true} height={28} width={28} />
+              <span>Loading workflow editor...</span>
+            </div>
+          )}
+        >
+          {workflowPanel.templateId ? (
+            <IssueTemplateWorkflowPanel
+              templateId={workflowPanel.templateId}
+              templateName={workflowPanel.templateName}
+              closeSignal={workflowPanel.closeSignal}
+              onCloseApproved={finalizeWorkflowPanelClose}
             />
-          ) : null
-        )}
-      />
+          ) : null}
+        </Suspense>
+      </SlidePanel>
     </div>
   );
 };

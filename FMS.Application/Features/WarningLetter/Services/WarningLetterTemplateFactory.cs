@@ -454,6 +454,8 @@ internal sealed class WarningLetterWorkflowSupport
                 Action = "SignatureRequested",
                 Link = BuildWarningLetterPreviewPath(warningLetter.Id)
             },
+            Link = BuildWarningLetterPreviewPath(warningLetter.Id),
+            LinkLabel = "Review & sign",
             TriggerSource = "WarningLetter.RequestSignature",
             TriggeredBy = requestedBy,
             VehicleId = warningLetter.VehicleId,
@@ -511,6 +513,8 @@ internal sealed class WarningLetterWorkflowSupport
                 Action = "SignedCopyUploaded",
                 Link = $"/reports/warning-letters/{warningLetter.Id}"
             },
+            Link = $"/reports/warning-letters/{warningLetter.Id}",
+            LinkLabel = "View warning letter",
             TriggerSource = "WarningLetter.SignedCopyUploaded",
             TriggeredBy = uploadedBy,
             VehicleId = warningLetter.VehicleId,

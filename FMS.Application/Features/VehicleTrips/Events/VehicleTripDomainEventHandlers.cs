@@ -48,6 +48,7 @@ public class VehicleTripStartedEventHandler : INotificationHandler<VehicleTripSt
                 notification.OriginSiteName ?? "Unknown",
                 notification.StartTimeUtc);
 
+            var tripLink = NotificationLinkBuilder.ForVehicleTrip(notification.VehicleTripGroupId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Info,
@@ -55,6 +56,8 @@ public class VehicleTripStartedEventHandler : INotificationHandler<VehicleTripSt
                 Priority = NotificationPriority.Low,
                 Title = "Vehicle Trip Started",
                 Message = $"Vehicle {notification.VehicleId} departed from {notification.OriginSiteName ?? "unknown location"} at {notification.StartTimeUtc:u}.",
+                Link = tripLink.Link,
+                LinkLabel = tripLink.Label,
                 TriggerSource = "VehicleTripDetection",
                 VehicleId = notification.VehicleId,
                 DisableFallbackAllUsers = true,
@@ -137,6 +140,7 @@ public class VehicleTripCompletedEventHandler : INotificationHandler<VehicleTrip
                 notification.DistanceKm,
                 notification.Duration);
 
+            var tripLink = NotificationLinkBuilder.ForVehicleTrip(notification.VehicleTripGroupId);
             var request = new CreateNotificationRequest
             {
                 Type = NotificationType.Info,
@@ -144,6 +148,8 @@ public class VehicleTripCompletedEventHandler : INotificationHandler<VehicleTrip
                 Priority = NotificationPriority.Low,
                 Title = "Vehicle Trip Completed",
                 Message = $"Vehicle {notification.VehicleId} completed trip from {notification.OriginSiteName ?? "Unknown"} to {notification.DestinationSiteName ?? "Unknown"} — {notification.DistanceKm:F2} km in {notification.Duration:hh\\:mm\\:ss}.",
+                Link = tripLink.Link,
+                LinkLabel = tripLink.Label,
                 TriggerSource = "VehicleTripDetection",
                 VehicleId = notification.VehicleId,
                 DisableFallbackAllUsers = true,

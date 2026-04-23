@@ -51,6 +51,16 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasColumnType("tinyint(1)")
                 .HasDefaultValue(false);
 
+            builder.Property(e => e.StageId)
+                .HasColumnType("int(11)")
+                .HasColumnName("StageID");
+
+            builder.Property(e => e.PositionX)
+                .HasColumnType("double");
+
+            builder.Property(e => e.PositionY)
+                .HasColumnType("double");
+
             builder.Property(e => e.SortOrder)
                 .HasColumnType("int(11)")
                 .HasDefaultValue(0);
@@ -82,6 +92,12 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasForeignKey(e => e.IssueTemplateId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_issuetemplateaction_issuetemplate");
+
+            builder.HasOne(e => e.Stage)
+                .WithMany(s => s.Actions)
+                .HasForeignKey(e => e.StageId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_issuetemplateaction_workflowstage");
         }
     }
 }

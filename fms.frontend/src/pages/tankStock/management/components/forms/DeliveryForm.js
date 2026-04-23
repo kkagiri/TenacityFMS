@@ -2,23 +2,25 @@
  * File: DeliveryForm.js
  * Purpose: Form for creating/editing deliveries
  * Dependencies: react, react-redux, DevExtreme form components
- * Last Modified: 2025-11-18
+ * Last Modified: 2026-04-23
  */
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import Form, { SimpleItem, GroupItem, Label, RequiredRule } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
+import deliveryApi from '../../../../../api/deliveryApi';
 import './DeliveryForm.scss';
 
 const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
   const tanks = useSelector((state) => state.tank.tanks);
   const suppliers = useSelector((state) => state.supplier?.suppliers || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAutoDetections, setIsCheckingAutoDetections] = useState(false);
+  const [autoDetectedDeliveries, setAutoDetectedDeliveries] = useState([]);
 
   // Form data state - managed by DevExtreme Form component
-  // eslint-disable-next-line no-unused-vars
   const [formData, setFormData] = useState({
     tankId: delivery?.tankId || null,
     deliveryDate: delivery?.deliveryDate ? new Date(delivery.deliveryDate) : new Date(),
@@ -51,6 +53,99 @@ const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
       name: supplier.name,
     }));
   }, [suppliers]);
+
+  const selectedTank = useMemo(
+    () => tanks.find((tank) => Number(tank.tankId) === Number(formData.tankId)) || null,
+    [formData.tankId, tanks]
+  );
+
+  const selectedTankSiteId =
+    selectedTank?.siteId ??
+    selectedTank?.siteID ??
+    selectedTank?.site?.id ??
+    null;
+
+  const primaryAutoDetectedDelivery = useMemo(() => {
+    return [...autoDetectedDeliveries]
+      .sort((left, right) => {
+        const leftIsUnmatched = ['Unmatched', 'Detected'].includes(left?.status);
+        const rightIsUnmatched = ['Unmatched', 'Detected'].includes(right?.status);
+
+        if (leftIsUnmatched !== rightIsUnmatched) {
+          return leftIsUnmatched ? -1 : 1;
+        }
+
+        return Number(right?.absoluteProductVolume || 0) - Number(left?.absoluteProductVolume || 0);
+      })
+      .at(0);
+  }, [autoDetectedDeliveries]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadAutoDetectedDeliveries = async () => {
+      if (isEditMode || !formData.tankId || !formData.deliveryDate || !selectedTankSiteId) {
+        setAutoDetectedDeliveries([]);
+        return;
+      }
+
+      setIsCheckingAutoDetections(true);
+      try {
+        const rows = await deliveryApi.getAutoDetectedDeliveriesForTankDate({
+          siteId: selectedTankSiteId,
+          tankId: formData.tankId,
+          deliveryDate: formData.deliveryDate,
+        });
+
+        if (isCancelled) {
+          return;
+        }
+
+        setAutoDetectedDeliveries(rows);
+      } catch (error) {
+        if (!isCancelled) {
+          setAutoDetectedDeliveries([]);
+          notify('Failed to load system-detected deliveries for the selected day', 'warning', 2500);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingAutoDetections(false);
+        }
+      }
+    };
+
+    loadAutoDetectedDeliveries();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [formData.deliveryDate, formData.tankId, isEditMode, selectedTankSiteId]);
+
+  useEffect(() => {
+    if (
+      isEditMode ||
+      !primaryAutoDetectedDelivery ||
+      formData.sensorDeliveryAmount != null
+    ) {
+      return;
+    }
+
+    const detectedVolume = Number(primaryAutoDetectedDelivery.absoluteProductVolume || 0);
+    if (detectedVolume <= 0) {
+      return;
+    }
+
+    setFormData((current) => {
+      if (current.sensorDeliveryAmount != null) {
+        return current;
+      }
+
+      return {
+        ...current,
+        sensorDeliveryAmount: detectedVolume,
+      };
+    });
+  }, [formData.sensorDeliveryAmount, isEditMode, primaryAutoDetectedDelivery]);
 
   const handleSubmit = async (e) => {
     if (e?.preventDefault) {
@@ -105,7 +200,62 @@ const DeliveryForm = ({ delivery, isEditMode, onSubmit, onCancel }) => {
 
   return (
     <div className="delivery-form">
-      <Form formData={formData} labelLocation="top" showColonAfterLabel={false}>
+      {isCheckingAutoDetections && !isEditMode && (
+        <div className="delivery-form__system-check">
+          <LoadIndicator width={16} height={16} visible={true} />
+          <span>Checking system-detected deliveries for this tank and date...</span>
+        </div>
+      )}
+
+      {!isEditMode && primaryAutoDetectedDelivery && (
+        <div className="delivery-form__system-banner delivery-form__system-banner--warning">
+          <div className="delivery-form__system-banner-icon">
+            <i className="fa-light fa-triangle-exclamation"></i>
+          </div>
+          <div className="delivery-form__system-banner-content">
+            <div className="delivery-form__system-banner-title">
+              System-detected delivery found for this tank and day
+            </div>
+            <div className="delivery-form__system-banner-text">
+              The probe readings show a detected delivery of about{' '}
+              <strong>
+                {Number(primaryAutoDetectedDelivery.absoluteProductVolume || 0).toLocaleString(
+                  undefined,
+                  { maximumFractionDigits: 2 }
+                )}
+                L
+              </strong>{' '}
+              ending at{' '}
+              <strong>
+                {primaryAutoDetectedDelivery.endDateTime
+                  ? new Date(primaryAutoDetectedDelivery.endDateTime).toLocaleString()
+                  : 'an unknown time'}
+              </strong>
+              . Saving this manual delivery will keep your supplier and LPO details, and the backend
+              will attempt to match it to the detected event automatically.
+            </div>
+            {autoDetectedDeliveries.length > 1 && (
+              <div className="delivery-form__system-banner-meta">
+                {autoDetectedDeliveries.length} system-detected in-tank deliveries were found on the
+                selected day. Review the amount carefully before saving.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Form
+        formData={formData}
+        labelLocation="top"
+        showColonAfterLabel={false}
+        onFieldDataChanged={(event) => {
+          setFormData((current) => ({
+            ...current,
+            [event.dataField]: event.value,
+          }));
+        }}
+      >
+
         <GroupItem caption="Delivery Information">
           <SimpleItem
             dataField="tankId"

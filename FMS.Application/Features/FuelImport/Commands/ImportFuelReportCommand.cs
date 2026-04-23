@@ -821,6 +821,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                         latestRecord)
                 };
 
+                var importLink = NotificationLinkBuilder.ForFuelImportManagement();
                 var notificationRequest = new CreateNotificationRequest
                 {
                     Type = notificationType,
@@ -832,6 +833,8 @@ namespace FMS.Application.Features.FuelImport.Commands
                     TriggerSource = "FuelImport",
                     TriggeredBy = request.UserId ?? "System",
                     Data = eventData,
+                    Link = importLink.Link,
+                    LinkLabel = importLink.Label,
                     DisableFallbackAllUsers = true, // Only send to the uploader, not all users
                     Recipients = !string.IsNullOrEmpty(request.UserId)
                         ? new List<NotificationRecipientDto>

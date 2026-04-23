@@ -51,7 +51,7 @@ public class CreateTemplateActionCommandHandler : IRequestHandler<CreateTemplate
             }
 
             // Validate action type
-            var validTypes = new[] { "General", "DeviceChange", "CameraInstall" };
+            var validTypes = new[] { "General", "DeviceChange", "CameraInstall", "SensorReplacement", "SensorCalibration" };
             if (!validTypes.Contains(dto.ActionType, StringComparer.OrdinalIgnoreCase))
             {
                 return FMSResponse<IssueTemplateActionDTO>.Failed($"Invalid ActionType '{dto.ActionType}'. Valid values: {string.Join(", ", validTypes)}");
@@ -178,7 +178,7 @@ public class UpdateTemplateActionCommandHandler : IRequestHandler<UpdateTemplate
             }
 
             // Validate action type
-            var validTypes = new[] { "General", "DeviceChange", "CameraInstall" };
+            var validTypes = new[] { "General", "DeviceChange", "CameraInstall", "SensorReplacement", "SensorCalibration" };
             if (!validTypes.Contains(dto.ActionType, StringComparer.OrdinalIgnoreCase))
             {
                 return FMSResponse<IssueTemplateActionDTO>.Failed($"Invalid ActionType '{dto.ActionType}'. Valid values: {string.Join(", ", validTypes)}");

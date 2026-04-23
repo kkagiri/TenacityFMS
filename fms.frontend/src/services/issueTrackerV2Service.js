@@ -349,10 +349,62 @@ class IssueTrackerV2Service {
   }
 
   // ============================================
+  // Workflow API
+  // ============================================
+
+  /**
+   * Get the staged workflow for a template (admin)
+   * @param {number} templateId - Issue template ID
+   * @returns {Promise} Workflow DTO
+   */
+  async getWorkflow(templateId) {
+    try {
+      const response = await axiosInstance.get(`${this.templatesURL}/${templateId}/workflow`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching workflow for template ${templateId}:`, error);
+      throw this.handleError(error, 'Failed to fetch workflow');
+    }
+  }
+
+  /**
+   * Save the staged workflow for a template (admin)
+   * @param {number} templateId - Issue template ID
+   * @param {Object} workflowData - Workflow payload
+   * @returns {Promise} Saved workflow DTO
+   */
+  async saveWorkflow(templateId, workflowData, options = {}) {
+    try {
+      const response = await axiosInstance.put(`${this.templatesURL}/${templateId}/workflow`, workflowData);
+      if (!options.silent) this.showNotification('Workflow saved successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error saving workflow for template ${templateId}:`, error);
+      throw this.handleError(error, 'Failed to save workflow');
+    }
+  }
+
+  /**
+   * Get the staged workflow for technician completion
+   * @param {number} templateId - Issue template ID
+   * @returns {Promise} Workflow DTO with active stages/actions only
+   */
+  async getWorkflowForCompletion(templateId) {
+    try {
+      const response = await axiosInstance.get(`${this.templatesURL}/${templateId}/workflow/for-completion`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching completion workflow for template ${templateId}:`, error);
+      throw this.handleError(error, 'Failed to fetch completion workflow');
+    }
+  }
+
+  // ============================================
   // Template Actions API
   // ============================================
 
   /**
+   * @deprecated Use getWorkflow(templateId) for admin workflow configuration.
    * Get all template actions for a template (admin)
    * @param {number} templateId - Issue template ID
    * @returns {Promise} List of template actions
@@ -368,6 +420,7 @@ class IssueTrackerV2Service {
   }
 
   /**
+    * @deprecated Use getWorkflowForCompletion(templateId) for technician completion.
    * Get active template actions for completion popup
    * @param {number} templateId - Issue template ID
    * @returns {Promise} List of active template actions
@@ -404,10 +457,10 @@ class IssueTrackerV2Service {
    * @param {Object} actionData - Template action data
    * @returns {Promise} Created template action
    */
-  async createTemplateAction(templateId, actionData) {
+  async createTemplateAction(templateId, actionData, options = {}) {
     try {
       const response = await axiosInstance.post(`${this.templatesURL}/${templateId}/actions`, actionData);
-      this.showNotification('Template action created successfully', 'success');
+      if (!options.silent) this.showNotification('Template action created successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error creating template action:', error);
@@ -422,10 +475,10 @@ class IssueTrackerV2Service {
    * @param {Object} actionData - Updated action data
    * @returns {Promise} Updated template action
    */
-  async updateTemplateAction(templateId, actionId, actionData) {
+  async updateTemplateAction(templateId, actionId, actionData, options = {}) {
     try {
       const response = await axiosInstance.put(`${this.templatesURL}/${templateId}/actions/${actionId}`, actionData);
-      this.showNotification('Template action updated successfully', 'success');
+      if (!options.silent) this.showNotification('Template action updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error(`Error updating template action ${actionId}:`, error);
@@ -439,10 +492,10 @@ class IssueTrackerV2Service {
    * @param {number} actionId - Template action ID
    * @returns {Promise} Deletion result
    */
-  async deleteTemplateAction(templateId, actionId) {
+  async deleteTemplateAction(templateId, actionId, options = {}) {
     try {
       const response = await axiosInstance.delete(`${this.templatesURL}/${templateId}/actions/${actionId}`);
-      this.showNotification('Template action deleted successfully', 'success');
+      if (!options.silent) this.showNotification('Template action deleted successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error(`Error deleting template action ${actionId}:`, error);
@@ -474,7 +527,7 @@ class IssueTrackerV2Service {
   /**
    * Complete an issue with structured actions
    * @param {number} issueId - Issue ID
-   * @param {Object} completionData - { actions: [...], notes? }
+    * @param {Object} completionData - { actions: [...] }
    * @returns {Promise} Completion result
    */
   async completeWithActions(issueId, completionData) {

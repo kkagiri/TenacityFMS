@@ -1,7 +1,9 @@
 using System;
 
-namespace FMS.Application.Features.Notification.DTOs {
-    public class NotificationDto {
+namespace FMS.Application.Features.Notification.DTOs
+{
+    public class NotificationDto
+    {
         public int Id { get; set; }
         public string NotificationId { get; set; } = null!;
         public string Type { get; set; } = null!;
@@ -10,6 +12,8 @@ namespace FMS.Application.Features.Notification.DTOs {
         public string Priority { get; set; } = null!;
         public string Title { get; set; } = null!;
         public string Message { get; set; } = null!;
+        public string? Link { get; set; }
+        public string? LinkLabel { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? SentAt { get; set; }
         public string Status { get; set; } = null!;

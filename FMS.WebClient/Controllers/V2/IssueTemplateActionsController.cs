@@ -31,6 +31,7 @@ namespace FMS.WebClient.Controllers.V2
     [ApiController]
     [Route("api/v1/issuetracker/templates/{templateId}/actions")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Obsolete("Use IssueTemplateWorkflowsController workflow endpoints for admin and technician workflow surfaces. This controller is kept for compatibility.")]
     public class IssueTemplateActionsController : ControllerBase
     {
         private readonly IMediator _mediator;

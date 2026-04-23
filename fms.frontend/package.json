@@ -11,6 +11,7 @@
         "@testing-library/jest-dom": "^6.4.2",
         "@testing-library/react": "^14.2.1",
         "@testing-library/user-event": "^14.5.2",
+        "@xyflow/react": "^12.10.2",
         "axios": "^1.6.8",
         "craco": "^0.0.3",
         "date-fns": "^3.6.0",

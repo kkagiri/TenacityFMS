@@ -385,6 +385,11 @@ namespace FMS.Application.Features.EventEngine.Engine
                 Data = BuildNotificationData(fmsEvent, expression, templateVars)
             };
 
+            // Attach a deep link so the user can navigate directly to the tank / events context.
+            var eventLink = NotificationLinkBuilder.ForTankStockEvent(fmsEvent.SiteId, fmsEvent.TankId, fmsEvent.EventType);
+            request.Link = eventLink.Link;
+            request.LinkLabel = eventLink.Label;
+
             var result = await _notificationService.CreateNotificationAsync(request, ct);
 
             if (result.IsSuccess)

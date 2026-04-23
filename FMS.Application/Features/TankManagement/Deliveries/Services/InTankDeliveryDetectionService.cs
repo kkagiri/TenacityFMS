@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Application.Common.Constants;
 using FMS.Application.Common;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Features.EventEngine.Engine;
@@ -329,7 +330,7 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                     timestamp,
                     Math.Abs(absoluteVolume), // Delivery is positive volume change
                     VolumeChangeReasonEnum.InTankDelivery,
-                    "PTS_AUTO_DETECTION",
+                    SystemConstants.Defaults.SystemRecordedBy,
                     delivery.DeliveryId,
                     "InTankDelivery",
                     ActionType.Create,

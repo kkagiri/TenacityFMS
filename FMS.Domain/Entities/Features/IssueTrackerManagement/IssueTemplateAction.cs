@@ -47,17 +47,35 @@ public class IssueTemplateAction
     /// <summary>
     /// If true, old/new device IMEI + type + phone number fields are shown
     /// </summary>
+    [Obsolete("Use ActionType-driven workflow rendering instead.")]
     public bool RequiresDeviceDetails { get; set; }
 
     /// <summary>
     /// If true, a vehicle picker is shown for "device removed from" vehicle
     /// </summary>
+    [Obsolete("Use ActionType-driven workflow rendering instead.")]
     public bool RequiresSourceVehicle { get; set; }
 
     /// <summary>
     /// If true, camera IMEI, SIM, and position fields are shown
     /// </summary>
+    [Obsolete("Use ActionType-driven workflow rendering instead.")]
     public bool RequiresCameraDetails { get; set; }
+
+    /// <summary>
+    /// Optional workflow stage for the future staged workflow model.
+    /// </summary>
+    public int? StageId { get; set; }
+
+    /// <summary>
+    /// Canvas X position for workflow editing surfaces.
+    /// </summary>
+    public double? PositionX { get; set; }
+
+    /// <summary>
+    /// Canvas Y position for workflow editing surfaces.
+    /// </summary>
+    public double? PositionY { get; set; }
 
     /// <summary>
     /// Display ordering within the template's action list
@@ -75,6 +93,8 @@ public class IssueTemplateAction
 
     // Navigation properties
     public virtual Issuetemplate IssueTemplate { get; set; } = null!;
+
+    public virtual IssueTemplateWorkflowStage? Stage { get; set; }
 
     public virtual ICollection<IssueCompletionRecord> CompletionRecords { get; set; } = new List<IssueCompletionRecord>();
 }

@@ -20,6 +20,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
+using FMS.Application.Configuration;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Domain.Entities;
@@ -500,7 +501,7 @@ namespace FMS.BackgroundServices.TankStock
         private async Task<bool> IsEnabledAsync(GpsdataContext context)
         {
             var config = await context.SystemConfigurations
-                .Where(c => c.ConfigurationKey == "AutoClosingStock_Enabled")
+                .Where(c => c.ConfigurationKey == SystemConfiguration.DB_CONFIG_AUTO_CLOSING_STOCK_ENABLED_KEY)
                 .Select(c => c.ConfigurationValue)
                 .FirstOrDefaultAsync();
 

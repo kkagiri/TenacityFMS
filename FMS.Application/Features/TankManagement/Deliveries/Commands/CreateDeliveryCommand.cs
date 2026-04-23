@@ -9,6 +9,7 @@ using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.FMS.Delivery.cs;
 using FMS.Application.Features.TankManagement.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
 using FMS.Domain.Entities;
@@ -33,8 +34,9 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly IEventExpressionEngine _eventEngine;
         private readonly ClosingStockDiscrepancyRefreshService _closingDiscrepancyRefreshService;
+        private readonly ISystemConfigurationService _systemConfigurationService;
 
-        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine, ClosingStockDiscrepancyRefreshService closingDiscrepancyRefreshService)
+        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine, ClosingStockDiscrepancyRefreshService closingDiscrepancyRefreshService, ISystemConfigurationService systemConfigurationService)
         {
             _context = context;
             _logger = logger;
@@ -44,6 +46,7 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
             _futureRecordsService = futureRecordsService;
             _eventEngine = eventEngine;
             _closingDiscrepancyRefreshService = closingDiscrepancyRefreshService;
+            _systemConfigurationService = systemConfigurationService;
         }
 
         public async Task<FMSResponseMessage> Handle(CreateDeliveryCommand request, CancellationToken cancellationToken)
@@ -152,6 +155,17 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
 
                 await _context.SaveChangesAsync(cancellationToken);
 
+                var matchedAutoDetectedDelivery = await TryMatchExistingAutoDetectedDeliveryAsync(
+                    delivery,
+                    request.DeliveryDTO.ManualDeliveryAmount,
+                    deliveryDate,
+                    cancellationToken);
+
+                if (matchedAutoDetectedDelivery != null)
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
                 // Update TankStock entry with delivery information (single-row-per-day architecture)
                 var tankStock = await _context.Tankstocks
                     .Where(x => x.TankId == request.DeliveryDTO.TankId &&
@@ -240,7 +254,7 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
 
                         // Volume
                         ManualDeliveryAmount = request.DeliveryDTO.ManualDeliveryAmount,
-                        SensorDeliveryAmount = request.DeliveryDTO.SensorDeliveryAmount,
+                        SensorDeliveryAmount = delivery.SensorDeliveryAmount ?? request.DeliveryDTO.SensorDeliveryAmount,
                         StockBeforeDelivery = request.DeliveryDTO.StockBeforeDelivery,
                         StockAfterDelivery = request.DeliveryDTO.StockAfterDelivery,
                         TankCapacity = tank.TankVolume,
@@ -282,13 +296,97 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                         cancellationToken);
                 }
 
-                return new FMSResponseMessage(true, "Delivery created successfully");
+                var successMessage = matchedAutoDetectedDelivery != null
+                    ? $"Delivery created successfully and matched to sensor-detected delivery #{matchedAutoDetectedDelivery.DeliveryId}."
+                    : "Delivery created successfully";
+
+                return new FMSResponseMessage(true, successMessage);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating delivery");
                 return new FMSResponseMessage(false, "An error occurred while creating the delivery");
             }
+        }
+
+        private async Task<Intankdelivery?> TryMatchExistingAutoDetectedDeliveryAsync(
+            Delivery delivery,
+            decimal manualDeliveryAmount,
+            DateTime deliveryDate,
+            CancellationToken cancellationToken)
+        {
+            var autoMatchEnabled = await _systemConfigurationService.GetItdAutoMatchManualDeliveryAsync(cancellationToken);
+            if (!autoMatchEnabled)
+            {
+                return null;
+            }
+
+            var tolerance = await _systemConfigurationService.GetItdMatchVolumeToleranceAsync(cancellationToken);
+            var timeWindowHours = await _systemConfigurationService.GetItdMatchTimeWindowHoursAsync(cancellationToken);
+
+            var windowStart = deliveryDate.AddHours(-timeWindowHours);
+            var windowEnd = deliveryDate.AddHours(timeWindowHours);
+
+            var candidates = await _context.Intankdeliveries
+                .Where(itd => itd.TankId == delivery.TankId
+                    && itd.MatchedDeliveryId == null
+                    && (itd.Status == null || itd.Status == "Detected" || itd.Status == "Unmatched")
+                    && ((itd.EndDateTime ?? itd.DetectedAt ?? itd.StartDateTime) >= windowStart)
+                    && ((itd.EndDateTime ?? itd.DetectedAt ?? itd.StartDateTime) <= windowEnd))
+                .ToListAsync(cancellationToken);
+
+            if (!candidates.Any() || manualDeliveryAmount <= 0)
+            {
+                return null;
+            }
+
+            var bestCandidate = candidates
+                .Select(itd =>
+                {
+                    var itdTimestamp = itd.EndDateTime ?? itd.DetectedAt ?? itd.StartDateTime ?? deliveryDate;
+                    var itdVolume = itd.AbsoluteProductVolume.HasValue
+                        ? (decimal)Math.Abs(itd.AbsoluteProductVolume.Value)
+                        : 0m;
+
+                    var relativeDiff = itdVolume <= 0
+                        ? decimal.MaxValue
+                        : Math.Abs(itdVolume - manualDeliveryAmount) / manualDeliveryAmount;
+
+                    return new
+                    {
+                        Delivery = itd,
+                        SensorVolume = itdVolume,
+                        RelativeDiff = relativeDiff,
+                        TimeDeltaMinutes = Math.Abs((itdTimestamp - deliveryDate).TotalMinutes)
+                    };
+                })
+                .Where(candidate => candidate.SensorVolume > 0 && candidate.RelativeDiff <= tolerance)
+                .OrderBy(candidate => candidate.RelativeDiff)
+                .ThenBy(candidate => candidate.TimeDeltaMinutes)
+                .FirstOrDefault();
+
+            if (bestCandidate == null)
+            {
+                return null;
+            }
+
+            bestCandidate.Delivery.MatchedDeliveryId = delivery.Id;
+            bestCandidate.Delivery.Status = "Matched";
+
+            if (!delivery.SensorDeliveryAmount.HasValue || delivery.SensorDeliveryAmount.Value <= 0)
+            {
+                delivery.SensorDeliveryAmount = bestCandidate.SensorVolume;
+            }
+
+            _logger.LogInformation(
+                "Matched manual Delivery {DeliveryId} to auto-detected ITD {ItdId} for Tank {TankId}. Manual={ManualAmount:F2}L Sensor={SensorAmount:F2}L",
+                delivery.Id,
+                bestCandidate.Delivery.DeliveryId,
+                delivery.TankId,
+                manualDeliveryAmount,
+                bestCandidate.SensorVolume);
+
+            return bestCandidate.Delivery;
         }
     }
 }

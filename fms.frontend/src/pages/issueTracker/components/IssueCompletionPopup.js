@@ -1,26 +1,17 @@
 /**
  * File: IssueCompletionPopup.js
- * Purpose: Wizard-based issue completion side panel with 3 steps:
- *          Step 1 — Select actions performed
- *          Step 2 — Fill details per action
- *          Step 3 — Review summary and submit
+ * Purpose: Workflow-driven issue completion side panel with staged action selection,
+ *          inline detail capture, and review summary.
  * Dependencies: React, LoadIndicator, SlidePanel, issueTrackerV2Service
- * Last Modified: 2026-03-06
- *
- * Key Components:
- * - IssueCompletionPopup: 3-step wizard side panel for structured issue completion
+ * Last Modified: 2026-04-23
  */
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import SlidePanel from '../../../components/ui/SlidePanel';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import IssueCompletionHelpPanel from './IssueCompletionHelpPanel';
+import ActionAttachmentsDropzone from './ActionAttachmentsDropzone';
 import './IssueCompletionPopup.scss';
-
-const STEPS = [
-    { key: 'select', label: 'Select Actions' },
-    { key: 'details', label: 'Action Details' },
-    { key: 'review', label: 'Review & Submit' }
-];
 
 const CAMERA_POSITIONS = [
     { value: 'Front', text: 'Front' },
@@ -31,14 +22,89 @@ const CAMERA_POSITIONS = [
     { value: 'Dashboard', text: 'Dashboard' }
 ];
 
-const TYPE_STYLES = {
-    General: { bg: 'tw-bg-gray-100', text: 'tw-text-gray-700', icon: 'fa-light fa-wrench' },
-    DeviceChange: { bg: 'tw-bg-blue-100', text: 'tw-text-blue-700', icon: 'fa-light fa-microchip' },
-    CameraInstall: { bg: 'tw-bg-purple-100', text: 'tw-text-purple-700', icon: 'fa-light fa-camera' }
+const TYPE_META = {
+    General: { tint: '#deecf9', color: '#0078d4', icon: 'fa-light fa-wrench', label: 'General' },
+    DeviceChange: { tint: '#fff4ce', color: '#ca5010', icon: 'fa-light fa-microchip', label: 'Device Change' },
+    CameraInstall: { tint: '#dff6dd', color: '#107c10', icon: 'fa-light fa-camera', label: 'Camera Install' },
+    SensorReplacement: { tint: '#f3e8ff', color: '#8764b8', icon: 'fa-light fa-plug-circle-bolt', label: 'Sensor Replacement' },
+    SensorCalibration: { tint: '#fff4ce', color: '#986f0b', icon: 'fa-light fa-ruler-combined', label: 'Sensor Calibration' }
 };
 
-const TYPE_LABELS = { General: 'General', DeviceChange: 'Device Change', CameraInstall: 'Camera Install' };
+const SENSOR_TYPES = [
+    { value: 'Ligo', text: 'Ligo' },
+    { value: 'ES2', text: 'ES2' },
+    { value: 'Analog', text: 'Analog' },
+    { value: 'Capacitive', text: 'Capacitive' },
+    { value: 'DUT-E', text: 'DUT-E' },
+    { value: 'Omnicomm', text: 'Omnicomm' },
+    { value: 'Other', text: 'Other' }
+];
+
+const SENSOR_REASONS = [
+    { value: 'Faulty', text: 'Faulty' },
+    { value: 'Upgrade', text: 'Upgrade' },
+    { value: 'Missing', text: 'Missing' },
+    { value: 'Other', text: 'Other' }
+];
+
+const CALIBRATION_RESULTS = [
+    { value: 'Pass', text: 'Pass' },
+    { value: 'Fail', text: 'Fail' },
+    { value: 'Partial', text: 'Partial' }
+];
+
 const PANEL_TITLE = 'Mark issue as complete';
+
+function normalizeText(value) {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function validateSelectedAction(action, details) {
+    const errors = {};
+    const actionType = action.actionType || 'General';
+
+    if (!normalizeText(details.rootCause)) {
+        errors.rootCause = 'Root cause is required.';
+    }
+
+    if (actionType === 'DeviceChange') {
+        if (!normalizeText(details.newDeviceType)) {
+            errors.newDeviceType = 'New device type is required.';
+        }
+
+        if (!normalizeText(details.newDeviceImei)) {
+            errors.newDeviceImei = 'New IMEI is required.';
+        }
+    }
+
+    if (actionType === 'CameraInstall') {
+        if (!normalizeText(details.cameraImei)) {
+            errors.cameraImei = 'Camera IMEI is required.';
+        }
+
+        if (!normalizeText(details.cameraPosition)) {
+            errors.cameraPosition = 'Camera position is required.';
+        }
+    }
+
+    if (actionType === 'SensorReplacement') {
+        if (!normalizeText(details.newSensorType)) {
+            errors.newSensorType = 'New sensor type is required.';
+        }
+
+        if (!normalizeText(details.sensorReason)) {
+            errors.sensorReason = 'Reason is required.';
+        }
+    }
+
+    if (actionType === 'SensorCalibration') {
+        if (!normalizeText(details.calibrationResult)) {
+            errors.calibrationResult = 'Calibration result is required.';
+        }
+    }
+
+    return errors;
+}
 
 function createEmptyDetails() {
     return {
@@ -52,7 +118,11 @@ function createEmptyDetails() {
         sourceVehicleId: null,
         cameraImei: '',
         cameraPosition: '',
-        cameraSimNumber: ''
+        cameraSimNumber: '',
+        oldSensorType: '',
+        newSensorType: '',
+        sensorReason: '',
+        calibrationResult: ''
     };
 }
 
@@ -65,44 +135,38 @@ const IssueCompletionPopup = ({
     isProcessing: externalProcessing = false,
     vehicles = []
 }) => {
-    const [step, setStep] = useState(0);
-    const [templateActions, setTemplateActions] = useState([]);
-    const [loadingActions, setLoadingActions] = useState(false);
+    const [workflow, setWorkflow] = useState(null);
+    const [loadingWorkflow, setLoadingWorkflow] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedIds, setSelectedIds] = useState(new Set());
     const [showCustom, setShowCustom] = useState(false);
     const [customActionName, setCustomActionName] = useState('');
     const [detailsMap, setDetailsMap] = useState({});
-    const [currentDetailIdx, setCurrentDetailIdx] = useState(0);
-    const [generalNotes, setGeneralNotes] = useState('');
 
     const isProcessing = externalProcessing || isSubmitting;
 
     const resetForm = useCallback(() => {
-        setStep(0);
         setSelectedIds(new Set());
         setShowCustom(false);
         setCustomActionName('');
         setDetailsMap({});
-        setCurrentDetailIdx(0);
-        setGeneralNotes('');
     }, []);
 
-    const loadTemplateActions = useCallback(async () => {
+    const loadWorkflow = useCallback(async () => {
         if (!issueTemplateId) {
-            setTemplateActions([]);
+            setWorkflow(null);
             return;
         }
 
         try {
-            setLoadingActions(true);
-            const actions = await issueTrackerV2Service.getTemplateActionsForCompletion(issueTemplateId);
-            setTemplateActions(actions || []);
+            setLoadingWorkflow(true);
+            const nextWorkflow = await issueTrackerV2Service.getWorkflowForCompletion(issueTemplateId);
+            setWorkflow(nextWorkflow || null);
         } catch (error) {
-            console.error('Error loading template actions:', error);
-            setTemplateActions([]);
+            console.error('Error loading completion workflow:', error);
+            setWorkflow(null);
         } finally {
-            setLoadingActions(false);
+            setLoadingWorkflow(false);
         }
     }, [issueTemplateId]);
 
@@ -112,34 +176,113 @@ const IssueCompletionPopup = ({
         }
 
         resetForm();
-        loadTemplateActions();
-    }, [visible, resetForm, loadTemplateActions]);
+        loadWorkflow();
+    }, [visible, resetForm, loadWorkflow]);
+
+    const workflowStages = useMemo(() => (workflow?.stages || []).map((stage, stageIndex) => ({
+        key: stage.id ?? `stage-${stageIndex}`,
+        id: stage.id ?? null,
+        name: stage.name || `Stage ${stageIndex + 1}`,
+        color: stage.color || '#0078d4',
+        actions: (stage.actions || []).map((action, actionIndex) => ({
+            ...action,
+            key: action.id ?? `${stage.id ?? stageIndex}-${actionIndex}`,
+            stageId: stage.id ?? null,
+            stageName: stage.name || `Stage ${stageIndex + 1}`,
+            stageColor: stage.color || '#0078d4'
+        }))
+    })), [workflow]);
+
+    const templateActions = useMemo(() => workflowStages.flatMap((stage) => stage.actions), [workflowStages]);
+
+    const actionLookup = useMemo(() => new Map(templateActions.map((action) => [action.id, action])), [templateActions]);
 
     const selectedActions = useMemo(() => {
-        const list = templateActions.filter((action) => selectedIds.has(action.id));
+        const actions = Array.from(selectedIds)
+            .map((id) => actionLookup.get(id))
+            .filter(Boolean);
+
         if (showCustom && customActionName.trim()) {
-            list.push({
+            actions.push({
                 id: '__custom__',
+                key: '__custom__',
                 name: customActionName.trim(),
                 actionType: 'General',
+                stageName: 'Custom',
+                stageColor: '#605e5c',
                 requiresDeviceDetails: false,
                 requiresSourceVehicle: false,
                 requiresCameraDetails: false,
                 description: null
             });
         }
-        return list;
-    }, [templateActions, selectedIds, showCustom, customActionName]);
 
-    const vehicleDataSource = useMemo(() => (
-        vehicles.map((vehicle) => ({
-            id: vehicle.vehicleId ?? vehicle.id,
-            displayName: vehicle.hyoungNo || vehicle.numberPlate || `Vehicle #${vehicle.vehicleId ?? vehicle.id}`
+        return actions;
+    }, [actionLookup, customActionName, selectedIds, showCustom]);
+
+    const getDetails = useCallback((actionId) => detailsMap[actionId] || createEmptyDetails(), [detailsMap]);
+
+    const validationByAction = useMemo(() => Object.fromEntries(
+        selectedActions.map((action) => [action.id, validateSelectedAction(action, getDetails(action.id))])
+    ), [getDetails, selectedActions]);
+
+    const invalidSelections = useMemo(() => selectedActions
+        .map((action) => ({
+            action,
+            errors: validationByAction[action.id] || {}
         }))
-    ), [vehicles]);
+        .filter(({ errors }) => Object.keys(errors).length > 0), [selectedActions, validationByAction]);
 
-    const currentAction = selectedActions[currentDetailIdx] || null;
-    const canProceedFromSelect = selectedActions.length > 0;
+    const canSubmit = selectedActions.length > 0 && invalidSelections.length === 0;
+
+    const vehicleDataSource = useMemo(() => vehicles.map((vehicle) => ({
+        id: vehicle.vehicleId ?? vehicle.id,
+        displayName: vehicle.hyoungNo || vehicle.numberPlate || `Vehicle #${vehicle.vehicleId ?? vehicle.id}`
+    })), [vehicles]);
+
+    const showWidePanel = useMemo(() => selectedActions.some((action) => (
+        action.actionType === 'DeviceChange'
+        || action.actionType === 'CameraInstall'
+        || action.actionType === 'SensorReplacement'
+        || action.actionType === 'SensorCalibration'
+    )), [selectedActions]);
+
+    const updateDetail = useCallback((actionId, field, value) => {
+        setDetailsMap((prev) => ({
+            ...prev,
+            [actionId]: {
+                ...(prev[actionId] || createEmptyDetails()),
+                [field]: value
+            }
+        }));
+    }, []);
+
+    const handleTextInput = useCallback((actionId, field) => (event) => {
+        updateDetail(actionId, field, event.target.value);
+    }, [updateDetail]);
+
+    const copyFromPrevious = useCallback((actionId, previousActionId) => {
+        setDetailsMap((prev) => {
+            const source = prev[previousActionId];
+            if (!source) return prev;
+            return {
+                ...prev,
+                [actionId]: {
+                    ...(prev[actionId] || createEmptyDetails()),
+                    rootCause: source.rootCause || '',
+                    notes: source.notes || ''
+                }
+            };
+        });
+    }, []);
+
+    const resolveAttachmentCategory = useCallback((actionType) => {
+        if (actionType === 'SensorCalibration') return 'Calibration';
+        if (actionType === 'DeviceChange' || actionType === 'CameraInstall' || actionType === 'SensorReplacement') {
+            return 'Installation';
+        }
+        return 'General';
+    }, []);
 
     const toggleAction = useCallback((actionId) => {
         setSelectedIds((prev) => {
@@ -153,49 +296,6 @@ const IssueCompletionPopup = ({
         });
     }, []);
 
-    const getDetails = useCallback((actionId) => detailsMap[actionId] || createEmptyDetails(), [detailsMap]);
-
-    const updateDetail = useCallback((actionId, field, value) => {
-        setDetailsMap((prev) => ({
-            ...prev,
-            [actionId]: {
-                ...(prev[actionId] || createEmptyDetails()),
-                [field]: value
-            }
-        }));
-    }, []);
-
-    const handleNativeInputChange = useCallback((actionId, field) => (event) => {
-        updateDetail(actionId, field, event.target.value);
-    }, [updateDetail]);
-
-    const goNext = useCallback(() => {
-        if (step === 0) {
-            setCurrentDetailIdx(0);
-            setDetailsMap((prev) => {
-                const next = { ...prev };
-                selectedActions.forEach((action) => {
-                    if (!next[action.id]) {
-                        next[action.id] = createEmptyDetails();
-                    }
-                });
-                return next;
-            });
-            setStep(1);
-            return;
-        }
-
-        if (step === 1) {
-            setStep(2);
-        }
-    }, [selectedActions, step]);
-
-    const goBack = useCallback(() => {
-        if (step > 0) {
-            setStep((prev) => prev - 1);
-        }
-    }, [step]);
-
     const handleCancel = useCallback(() => {
         if (!isProcessing && onHide) {
             onHide();
@@ -203,7 +303,7 @@ const IssueCompletionPopup = ({
     }, [isProcessing, onHide]);
 
     const handleSubmit = useCallback(async () => {
-        if (isProcessing) {
+        if (isProcessing || !canSubmit) {
             return;
         }
 
@@ -226,117 +326,141 @@ const IssueCompletionPopup = ({
                         cameraImei: details.cameraImei || null,
                         cameraPosition: details.cameraPosition || null,
                         cameraSimNumber: details.cameraSimNumber || null,
+                        oldSensorType: details.oldSensorType || null,
+                        newSensorType: details.newSensorType || null,
+                        sensorReason: details.sensorReason || null,
+                        calibrationResult: details.calibrationResult || null,
                         additionalNotes: null
                     };
-                }),
-                notes: generalNotes.trim() || null
+                })
             };
 
             await issueTrackerV2Service.completeWithActions(issueId, completionData);
-
-            if (onComplete) {
-                onComplete();
-            }
+            onComplete?.();
         } catch (error) {
             console.error('Error completing issue:', error);
         } finally {
             setIsSubmitting(false);
         }
-    }, [generalNotes, getDetails, isProcessing, issueId, onComplete, selectedActions]);
+    }, [canSubmit, getDetails, isProcessing, issueId, onComplete, selectedActions]);
+
+    const getFieldError = useCallback((actionId, field) => validationByAction[actionId]?.[field] || null, [validationByAction]);
+
+    const getFieldId = useCallback((actionId, field) => `issue-completion-${actionId}-${field}`, []);
+
+    const getInputClassName = useCallback((baseClassName, actionId, field) => {
+        const error = getFieldError(actionId, field);
+        return error ? `${baseClassName} is-invalid` : baseClassName;
+    }, [getFieldError]);
+
+    const renderFieldError = useCallback((actionId, field) => {
+        const error = getFieldError(actionId, field);
+        return error ? <p className="issue-completion-flow__field-error">{error}</p> : null;
+    }, [getFieldError]);
+
+    const [helpOpen, setHelpOpen] = useState(false);
 
     const headerActions = (
-        <div className="icp__header-mark" aria-hidden="true">
-            <i className="fa-light fa-circle-check"></i>
+        <div className="issue-completion-flow__header-tools">
+            <button
+                type="button"
+                className="issue-completion-flow__header-help"
+                onClick={() => setHelpOpen(true)}
+                aria-label="How to use this panel"
+                title="How to use this panel"
+            >
+                <i className="fa-light fa-circle-question"></i>
+                <span>Help</span>
+            </button>
+            <div className="issue-completion-flow__header-mark" aria-hidden="true">
+                <i className="fa-light fa-circle-check"></i>
+            </div>
         </div>
     );
 
-    const renderStepIndicator = () => (
-        <div className="icp__steps" aria-label="Completion steps">
-            {STEPS.map((stepItem, index) => {
-                const isActive = index === step;
-                const isComplete = index < step;
+    const renderActionCard = (action) => {
+        const isSelected = selectedIds.has(action.id);
+        const meta = TYPE_META[action.actionType] || TYPE_META.General;
 
-                return (
-                    <React.Fragment key={stepItem.key}>
-                        {index > 0 && <div className={`icp__step-line ${isComplete ? 'is-complete' : ''}`} />}
-                        <div className={`icp__step ${isActive ? 'is-active' : ''} ${isComplete ? 'is-complete' : ''}`}>
-                            <div className="icp__step-badge">
-                                {isComplete ? <i className="fa-light fa-check"></i> : index + 1}
-                            </div>
-                            <span className="icp__step-label">{stepItem.label}</span>
-                        </div>
-                    </React.Fragment>
-                );
-            })}
-        </div>
-    );
+        return (
+            <label
+                key={action.key}
+                className={`issue-completion-flow__action-card${isSelected ? ' is-selected' : ''}${isProcessing ? ' is-disabled' : ''}`}
+            >
+                <input
+                    type="checkbox"
+                    className="issue-completion-flow__action-checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleAction(action.id)}
+                    disabled={isProcessing}
+                    aria-label={action.name}
+                />
+                <div className="issue-completion-flow__action-icon" style={{ backgroundColor: meta.tint, color: meta.color }}>
+                    <i className={meta.icon}></i>
+                </div>
+                <div className="issue-completion-flow__action-copy">
+                    <span className="issue-completion-flow__action-name">{action.name}</span>
+                    {action.description && <p className="issue-completion-flow__action-description">{action.description}</p>}
+                </div>
+                <span className="issue-completion-flow__action-type" style={{ backgroundColor: meta.tint, color: meta.color }}>
+                    {meta.label}
+                </span>
+            </label>
+        );
+    };
 
-    const renderSelectStep = () => {
-        if (templateActions.length === 0 && !loadingActions) {
+    const renderSelectionSection = () => {
+        if (!workflowStages.length && !loadingWorkflow) {
             return (
-                <div className="icp__empty-state">
+                <div className="issue-completion-flow__empty-state">
                     <i className="fa-light fa-clipboard-list"></i>
-                    <p className="icp__empty-title">No template actions configured.</p>
-                    <p className="icp__empty-text">You can still add a custom action below and complete the issue.</p>
+                    <p className="issue-completion-flow__empty-title">No workflow actions configured.</p>
+                    <p className="issue-completion-flow__empty-text">You can still add a custom action below and complete the issue.</p>
                 </div>
             );
         }
 
         return (
-            <div className="icp__section">
-                <div className="icp__section-header">
+            <div className="issue-completion-flow__section">
+                <div className="issue-completion-flow__section-header">
                     <div>
-                        <h4 className="icp__section-title">Select actions performed</h4>
-                        <p className="icp__section-text">Choose each action completed for this issue. Multiple actions can be recorded.</p>
+                        <h4 className="issue-completion-flow__section-title">Select actions performed</h4>
+                        <p className="issue-completion-flow__section-text">Choose the actions completed for this issue. The workflow is grouped by stage for faster scanning.</p>
                     </div>
-                    <div className="icp__metric-pill">
-                        <span className="icp__metric-value">{selectedActions.length}</span>
-                        <span className="icp__metric-label">selected</span>
+                    <div className="issue-completion-flow__metric-pill">
+                        <span className="issue-completion-flow__metric-value">{selectedActions.length}</span>
+                        <span className="issue-completion-flow__metric-label">selected</span>
                     </div>
                 </div>
 
-                <div className="icp__action-list">
-                    {templateActions.map((action) => {
-                        const isSelected = selectedIds.has(action.id);
-                        const style = TYPE_STYLES[action.actionType] || TYPE_STYLES.General;
-
-                        return (
-                            <button
-                                key={action.id}
-                                type="button"
-                                className={`icp__action-card ${isSelected ? 'is-selected' : ''}`}
-                                onClick={() => toggleAction(action.id)}
-                                disabled={isProcessing}
-                            >
-                                <div className={`icp__action-check ${isSelected ? 'is-selected' : ''}`}>
-                                    {isSelected && <i className="fa-light fa-check"></i>}
+                <div className="issue-completion-flow__stage-list">
+                    {workflowStages.map((stage) => (
+                        <section key={stage.key} className="issue-completion-flow__stage-group">
+                            <div className="issue-completion-flow__stage-header">
+                                <span className="issue-completion-flow__stage-dot" style={{ backgroundColor: stage.color }}></span>
+                                <div>
+                                    <h5 className="issue-completion-flow__stage-title">{stage.name}</h5>
+                                    <p className="issue-completion-flow__stage-meta">{stage.actions.length} configured action{stage.actions.length === 1 ? '' : 's'}</p>
                                 </div>
-                                <div className={`icp__action-icon ${style.bg} ${style.text}`}>
-                                    <i className={style.icon}></i>
-                                </div>
-                                <div className="icp__action-copy">
-                                    <span className="icp__action-name">{action.name}</span>
-                                    {action.description && <p className="icp__action-description">{action.description}</p>}
-                                </div>
-                                <span className={`icp__action-type ${style.bg} ${style.text}`}>
-                                    {TYPE_LABELS[action.actionType] || 'General'}
-                                </span>
-                            </button>
-                        );
-                    })}
+                            </div>
+                            <div className="issue-completion-flow__action-list">
+                                {stage.actions.map(renderActionCard)}
+                            </div>
+                        </section>
+                    ))}
                 </div>
 
-                <div className="icp__custom-card">
+                <div className="issue-completion-flow__custom-card">
                     {!showCustom ? (
-                        <button type="button" className="icp__inline-link" onClick={() => setShowCustom(true)}>
+                        <button type="button" className="issue-completion-flow__inline-link" onClick={() => setShowCustom(true)}>
                             <i className="fa-light fa-plus"></i>
                             <span>Add a custom action</span>
                         </button>
                     ) : (
-                        <div className="icp__custom-row">
+                        <div className="issue-completion-flow__custom-row">
                             <input
                                 type="text"
-                                className="icp__input"
+                                className="issue-completion-flow__input"
                                 value={customActionName}
                                 onChange={(event) => setCustomActionName(event.target.value)}
                                 placeholder="Custom action name..."
@@ -344,7 +468,7 @@ const IssueCompletionPopup = ({
                             />
                             <button
                                 type="button"
-                                className="icp__icon-button"
+                                className="issue-completion-flow__icon-button"
                                 onClick={() => {
                                     setShowCustom(false);
                                     setCustomActionName('');
@@ -361,411 +485,385 @@ const IssueCompletionPopup = ({
         );
     };
 
-    const renderDetailsStep = () => {
-        if (!currentAction) {
+    const renderDetailsSection = () => {
+        if (selectedActions.length === 0) {
             return null;
         }
 
-        const details = getDetails(currentAction.id);
-        const style = TYPE_STYLES[currentAction.actionType] || TYPE_STYLES.General;
-        const total = selectedActions.length;
-        const showDevice = currentAction.requiresDeviceDetails || currentAction.actionType === 'DeviceChange';
-        const showCamera = currentAction.requiresCameraDetails || currentAction.actionType === 'CameraInstall';
-        const showSourceVehicle = currentAction.requiresSourceVehicle;
-
         return (
-            <div className="icp__section">
-                <div className="icp__section-header">
+            <div className="issue-completion-flow__section">
+                <div className="issue-completion-flow__section-header">
                     <div>
-                        <h4 className="icp__section-title">Capture action details</h4>
-                        <p className="icp__section-text">Record the root cause, notes, and equipment details for each selected action.</p>
+                        <h4 className="issue-completion-flow__section-title">Capture action details</h4>
+                        <p className="issue-completion-flow__section-text">Record the root cause, notes, and device or camera details for each selected action.</p>
                     </div>
-                    <div className="icp__metric-pill">
-                        <span className="icp__metric-value">{currentDetailIdx + 1}</span>
-                        <span className="icp__metric-label">of {total}</span>
+                    <div className="issue-completion-flow__metric-pill">
+                        <span className="issue-completion-flow__metric-value">{selectedActions.length}</span>
+                        <span className="issue-completion-flow__metric-label">selected</span>
                     </div>
                 </div>
 
-                {total > 1 && (
-                    <div className="icp__action-nav-shell">
-                        <button
-                            type="button"
-                            disabled={currentDetailIdx === 0}
-                            className="icp__nav-button"
-                            onClick={() => setCurrentDetailIdx((prev) => prev - 1)}
-                        >
-                            <i className="fa-light fa-chevron-left"></i>
-                            <span>Previous</span>
-                        </button>
+                <div className="issue-completion-flow__detail-list">
+                    {selectedActions.map((action, index) => {
+                        const details = getDetails(action.id);
+                        const meta = TYPE_META[action.actionType] || TYPE_META.General;
+                        const showDevice = action.requiresDeviceDetails || action.actionType === 'DeviceChange';
+                        const showCamera = action.requiresCameraDetails || action.actionType === 'CameraInstall';
+                        const showSourceVehicle = action.requiresSourceVehicle || action.actionType === 'DeviceChange';
+                        const showSensor = action.requiresSensorDetails || action.actionType === 'SensorReplacement';
+                        const showCalibration = action.requiresCalibrationResult || action.actionType === 'SensorCalibration';
+                        const validationErrors = validationByAction[action.id] || {};
+                        const hasErrors = Object.keys(validationErrors).length > 0;
 
-                        <div className="icp__action-nav-list" role="tablist" aria-label="Selected actions">
-                            {selectedActions.map((action, index) => (
-                                <button
-                                    key={action.id}
-                                    type="button"
-                                    className={`icp__action-nav-item ${index === currentDetailIdx ? 'is-active' : ''}`}
-                                    onClick={() => setCurrentDetailIdx(index)}
-                                >
-                                    <span className="icp__action-nav-index">{index + 1}</span>
-                                    <span className="icp__action-nav-name">{action.name}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        <button
-                            type="button"
-                            disabled={currentDetailIdx === total - 1}
-                            className="icp__nav-button"
-                            onClick={() => setCurrentDetailIdx((prev) => prev + 1)}
-                        >
-                            <span>Next</span>
-                            <i className="fa-light fa-chevron-right"></i>
-                        </button>
-                    </div>
-                )}
-
-                <div className="icp__detail-card">
-                    <div className={`icp__detail-hero ${style.bg}`}>
-                        <div className={`icp__detail-icon ${style.text}`}>
-                            <i className={style.icon}></i>
-                        </div>
-                        <div className="icp__detail-heading">
-                            <span className="icp__detail-title">{currentAction.name}</span>
-                            <div className="icp__detail-meta-row">
-                                <span className={`icp__detail-badge ${style.bg} ${style.text}`}>{TYPE_LABELS[currentAction.actionType]}</span>
-                                {total > 1 && <span className="icp__detail-progress">Action {currentDetailIdx + 1} of {total}</span>}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="icp__form-grid">
-                        <div className="icp__field icp__field--full">
-                            <label className="icp__label">Root cause</label>
-                            <textarea
-                                className="icp__textarea"
-                                value={details.rootCause}
-                                onChange={handleNativeInputChange(currentAction.id, 'rootCause')}
-                                placeholder="What caused this issue?"
-                                disabled={isProcessing}
-                                rows={3}
-                                maxLength={1000}
-                            />
-                        </div>
-
-                        {showDevice && (
-                            <div className="icp__group icp__group--device icp__field--full">
-                                <div className="icp__group-title">
-                                    <i className="fa-light fa-microchip"></i>
-                                    <span>Device details</span>
+                        return (
+                            <div key={action.key || action.id} className="issue-completion-flow__detail-card">
+                                <div className="issue-completion-flow__detail-hero">
+                                    <div className="issue-completion-flow__detail-icon" style={{ backgroundColor: meta.tint, color: meta.color }}>
+                                        <i className={meta.icon}></i>
+                                    </div>
+                                    <div className="issue-completion-flow__detail-heading">
+                                        <span className="issue-completion-flow__detail-title">{action.name}</span>
+                                        <div className="issue-completion-flow__detail-meta-row">
+                                            <span className="issue-completion-flow__detail-badge" style={{ backgroundColor: meta.tint, color: meta.color }}>{meta.label}</span>
+                                            <span className="issue-completion-flow__detail-badge issue-completion-flow__detail-badge--stage">{action.stageName}</span>
+                                            {selectedActions.length > 1 && <span className="issue-completion-flow__detail-progress">Action {index + 1} of {selectedActions.length}</span>}
+                                            {hasErrors && <span className="issue-completion-flow__detail-badge issue-completion-flow__detail-badge--warning">Needs attention</span>}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="icp__form-grid">
-                                    <div className="icp__field">
-                                        <label className="icp__label">Old device type</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.oldDeviceType}
-                                            onChange={handleNativeInputChange(currentAction.id, 'oldDeviceType')}
-                                            placeholder="Old device type"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    <div className="icp__field">
-                                        <label className="icp__label">Old IMEI</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.oldDeviceImei}
-                                            onChange={handleNativeInputChange(currentAction.id, 'oldDeviceImei')}
-                                            placeholder="Old IMEI"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    <div className="icp__field">
-                                        <label className="icp__label">New device type</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.newDeviceType}
-                                            onChange={handleNativeInputChange(currentAction.id, 'newDeviceType')}
-                                            placeholder="New device type"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    <div className="icp__field">
-                                        <label className="icp__label">New IMEI</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.newDeviceImei}
-                                            onChange={handleNativeInputChange(currentAction.id, 'newDeviceImei')}
-                                            placeholder="New IMEI"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    <div className="icp__field">
-                                        <label className="icp__label">Device phone number</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.devicePhoneNumber}
-                                            onChange={handleNativeInputChange(currentAction.id, 'devicePhoneNumber')}
-                                            placeholder="Device phone number"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    {showSourceVehicle && vehicleDataSource.length > 0 && (
-                                        <div className="icp__field">
-                                            <label className="icp__label">Source vehicle</label>
-                                            <select
-                                                className="icp__select"
-                                                value={details.sourceVehicleId ?? ''}
-                                                onChange={(event) => updateDetail(
-                                                    currentAction.id,
-                                                    'sourceVehicleId',
-                                                    event.target.value ? Number(event.target.value) : null
-                                                )}
+
+                                <div className="issue-completion-flow__form-grid">
+                                    {index > 0 && (
+                                        <div className="issue-completion-flow__field issue-completion-flow__field--full issue-completion-flow__copy-row">
+                                            <button
+                                                type="button"
+                                                className="m365-btn m365-btn--text issue-completion-flow__copy-btn"
+                                                onClick={() => copyFromPrevious(action.id, selectedActions[index - 1].id)}
                                                 disabled={isProcessing}
                                             >
-                                                <option value="">Select source vehicle</option>
-                                                {vehicleDataSource.map((vehicle) => (
-                                                    <option key={vehicle.id} value={vehicle.id}>{vehicle.displayName}</option>
-                                                ))}
-                                            </select>
+                                                <i className="fa-light fa-clone"></i>
+                                                <span>Copy root cause &amp; notes from previous action</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                    <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                        <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'rootCause')}>Root cause <span className="issue-completion-flow__required-mark">*</span></label>
+                                        <textarea
+                                            id={getFieldId(action.id, 'rootCause')}
+                                            className={getInputClassName('issue-completion-flow__textarea', action.id, 'rootCause')}
+                                            value={details.rootCause}
+                                            onChange={handleTextInput(action.id, 'rootCause')}
+                                            placeholder="What caused this issue?"
+                                            disabled={isProcessing}
+                                            rows={3}
+                                            maxLength={1000}
+                                        />
+                                        {renderFieldError(action.id, 'rootCause')}
+                                    </div>
+
+                                    {showDevice && (
+                                        <div className="issue-completion-flow__group issue-completion-flow__field--full">
+                                            <div className="issue-completion-flow__group-title">
+                                                <i className="fa-light fa-microchip"></i>
+                                                <span>Device details</span>
+                                            </div>
+                                            <div className="issue-completion-flow__form-grid">
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'oldDeviceType')}>Old device type</label>
+                                                    <input id={getFieldId(action.id, 'oldDeviceType')} type="text" className="issue-completion-flow__input" value={details.oldDeviceType} onChange={handleTextInput(action.id, 'oldDeviceType')} disabled={isProcessing} />
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'oldDeviceImei')}>Old IMEI</label>
+                                                    <input id={getFieldId(action.id, 'oldDeviceImei')} type="text" className="issue-completion-flow__input" value={details.oldDeviceImei} onChange={handleTextInput(action.id, 'oldDeviceImei')} disabled={isProcessing} />
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'newDeviceType')}>New device type <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <input id={getFieldId(action.id, 'newDeviceType')} type="text" className={getInputClassName('issue-completion-flow__input', action.id, 'newDeviceType')} value={details.newDeviceType} onChange={handleTextInput(action.id, 'newDeviceType')} disabled={isProcessing} />
+                                                    {renderFieldError(action.id, 'newDeviceType')}
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'newDeviceImei')}>New IMEI <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <input id={getFieldId(action.id, 'newDeviceImei')} type="text" className={getInputClassName('issue-completion-flow__input', action.id, 'newDeviceImei')} value={details.newDeviceImei} onChange={handleTextInput(action.id, 'newDeviceImei')} disabled={isProcessing} />
+                                                    {renderFieldError(action.id, 'newDeviceImei')}
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'devicePhoneNumber')}>Device phone number</label>
+                                                    <input id={getFieldId(action.id, 'devicePhoneNumber')} type="text" className="issue-completion-flow__input" value={details.devicePhoneNumber} onChange={handleTextInput(action.id, 'devicePhoneNumber')} disabled={isProcessing} />
+                                                </div>
+                                                {showSourceVehicle && vehicleDataSource.length > 0 && (
+                                                    <div className="issue-completion-flow__field">
+                                                        <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'sourceVehicleId')}>Source vehicle</label>
+                                                        <select
+                                                            id={getFieldId(action.id, 'sourceVehicleId')}
+                                                            className="issue-completion-flow__select"
+                                                            value={details.sourceVehicleId ?? ''}
+                                                            onChange={(event) => updateDetail(action.id, 'sourceVehicleId', event.target.value ? Number(event.target.value) : null)}
+                                                            disabled={isProcessing}
+                                                        >
+                                                            <option value="">Select source vehicle</option>
+                                                            {vehicleDataSource.map((vehicle) => (
+                                                                <option key={vehicle.id} value={vehicle.id}>{vehicle.displayName}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showCamera && (
+                                        <div className="issue-completion-flow__group issue-completion-flow__field--full">
+                                            <div className="issue-completion-flow__group-title">
+                                                <i className="fa-light fa-camera"></i>
+                                                <span>Camera details</span>
+                                            </div>
+                                            <div className="issue-completion-flow__form-grid">
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'cameraImei')}>Camera IMEI <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <input id={getFieldId(action.id, 'cameraImei')} type="text" className={getInputClassName('issue-completion-flow__input', action.id, 'cameraImei')} value={details.cameraImei} onChange={handleTextInput(action.id, 'cameraImei')} disabled={isProcessing} />
+                                                    {renderFieldError(action.id, 'cameraImei')}
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'cameraPosition')}>Camera position <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <select id={getFieldId(action.id, 'cameraPosition')} className={getInputClassName('issue-completion-flow__select', action.id, 'cameraPosition')} value={details.cameraPosition} onChange={handleTextInput(action.id, 'cameraPosition')} disabled={isProcessing}>
+                                                        <option value="">Select camera position</option>
+                                                        {CAMERA_POSITIONS.map((position) => (
+                                                            <option key={position.value} value={position.value}>{position.text}</option>
+                                                        ))}
+                                                    </select>
+                                                    {renderFieldError(action.id, 'cameraPosition')}
+                                                </div>
+                                                <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'cameraSimNumber')}>Camera SIM number</label>
+                                                    <input id={getFieldId(action.id, 'cameraSimNumber')} type="text" className="issue-completion-flow__input" value={details.cameraSimNumber} onChange={handleTextInput(action.id, 'cameraSimNumber')} disabled={isProcessing} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showSensor && (
+                                        <div className="issue-completion-flow__group issue-completion-flow__field--full">
+                                            <div className="issue-completion-flow__group-title">
+                                                <i className="fa-light fa-plug-circle-bolt"></i>
+                                                <span>Sensor replacement</span>
+                                            </div>
+                                            <div className="issue-completion-flow__form-grid">
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'oldSensorType')}>Old sensor type</label>
+                                                    <select id={getFieldId(action.id, 'oldSensorType')} className="issue-completion-flow__select" value={details.oldSensorType} onChange={handleTextInput(action.id, 'oldSensorType')} disabled={isProcessing}>
+                                                        <option value="">Select old sensor type</option>
+                                                        {SENSOR_TYPES.map((type) => (
+                                                            <option key={type.value} value={type.value}>{type.text}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="issue-completion-flow__field">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'newSensorType')}>New sensor type <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <select id={getFieldId(action.id, 'newSensorType')} className={getInputClassName('issue-completion-flow__select', action.id, 'newSensorType')} value={details.newSensorType} onChange={handleTextInput(action.id, 'newSensorType')} disabled={isProcessing}>
+                                                        <option value="">Select new sensor type</option>
+                                                        {SENSOR_TYPES.map((type) => (
+                                                            <option key={type.value} value={type.value}>{type.text}</option>
+                                                        ))}
+                                                    </select>
+                                                    {renderFieldError(action.id, 'newSensorType')}
+                                                </div>
+                                                <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'sensorReason')}>Reason <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <select id={getFieldId(action.id, 'sensorReason')} className={getInputClassName('issue-completion-flow__select', action.id, 'sensorReason')} value={details.sensorReason} onChange={handleTextInput(action.id, 'sensorReason')} disabled={isProcessing}>
+                                                        <option value="">Select reason</option>
+                                                        {SENSOR_REASONS.map((reason) => (
+                                                            <option key={reason.value} value={reason.value}>{reason.text}</option>
+                                                        ))}
+                                                    </select>
+                                                    {renderFieldError(action.id, 'sensorReason')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showCalibration && (
+                                        <div className="issue-completion-flow__group issue-completion-flow__field--full">
+                                            <div className="issue-completion-flow__group-title">
+                                                <i className="fa-light fa-ruler-combined"></i>
+                                                <span>Calibration result</span>
+                                            </div>
+                                            <div className="issue-completion-flow__form-grid">
+                                                <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                                    <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'calibrationResult')}>Result <span className="issue-completion-flow__required-mark">*</span></label>
+                                                    <select id={getFieldId(action.id, 'calibrationResult')} className={getInputClassName('issue-completion-flow__select', action.id, 'calibrationResult')} value={details.calibrationResult} onChange={handleTextInput(action.id, 'calibrationResult')} disabled={isProcessing}>
+                                                        <option value="">Select calibration result</option>
+                                                        {CALIBRATION_RESULTS.map((result) => (
+                                                            <option key={result.value} value={result.value}>{result.text}</option>
+                                                        ))}
+                                                    </select>
+                                                    {renderFieldError(action.id, 'calibrationResult')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                        <label className="issue-completion-flow__label" htmlFor={getFieldId(action.id, 'notes')}>Action notes</label>
+                                        <textarea
+                                            id={getFieldId(action.id, 'notes')}
+                                            className="issue-completion-flow__textarea"
+                                            value={details.notes}
+                                            onChange={handleTextInput(action.id, 'notes')}
+                                            placeholder="Additional notes for this action..."
+                                            disabled={isProcessing}
+                                            rows={4}
+                                            maxLength={2000}
+                                        />
+                                    </div>
+
+                                    {issueId && action.id !== '__custom__' && (
+                                        <div className="issue-completion-flow__field issue-completion-flow__field--full">
+                                            <ActionAttachmentsDropzone
+                                                issueId={issueId}
+                                                category={resolveAttachmentCategory(action.actionType)}
+                                                disabled={isProcessing}
+                                            />
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        )}
-
-                        {showCamera && (
-                            <div className="icp__group icp__group--camera icp__field--full">
-                                <div className="icp__group-title">
-                                    <i className="fa-light fa-camera"></i>
-                                    <span>Camera details</span>
-                                </div>
-                                <div className="icp__form-grid">
-                                    <div className="icp__field">
-                                        <label className="icp__label">Camera IMEI</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.cameraImei}
-                                            onChange={handleNativeInputChange(currentAction.id, 'cameraImei')}
-                                            placeholder="Camera IMEI"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                    <div className="icp__field">
-                                        <label className="icp__label">Camera position</label>
-                                        <select
-                                            className="icp__select"
-                                            value={details.cameraPosition}
-                                            onChange={handleNativeInputChange(currentAction.id, 'cameraPosition')}
-                                            disabled={isProcessing}
-                                        >
-                                            <option value="">Select camera position</option>
-                                            {CAMERA_POSITIONS.map((position) => (
-                                                <option key={position.value} value={position.value}>{position.text}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="icp__field icp__field--full">
-                                        <label className="icp__label">Camera SIM number</label>
-                                        <input
-                                            type="text"
-                                            className="icp__input"
-                                            value={details.cameraSimNumber}
-                                            onChange={handleNativeInputChange(currentAction.id, 'cameraSimNumber')}
-                                            placeholder="Camera SIM number"
-                                            disabled={isProcessing}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="icp__field icp__field--full">
-                            <label className="icp__label">Action notes</label>
-                            <textarea
-                                className="icp__textarea"
-                                value={details.notes}
-                                onChange={handleNativeInputChange(currentAction.id, 'notes')}
-                                placeholder="Additional notes for this action..."
-                                disabled={isProcessing}
-                                rows={4}
-                                maxLength={2000}
-                            />
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
             </div>
         );
     };
 
-    const renderReviewStep = () => (
-        <div className="icp__section">
-            <div className="icp__section-header">
-                <div>
-                    <h4 className="icp__section-title">Review and submit</h4>
-                    <p className="icp__section-text">Validate the action summary and add any final completion notes before submission.</p>
-                </div>
-                <div className="icp__metric-pill">
-                    <span className="icp__metric-value">{selectedActions.length}</span>
-                    <span className="icp__metric-label">actions</span>
-                </div>
-            </div>
+    const renderReviewSection = () => {
+        if (selectedActions.length === 0) {
+            return null;
+        }
 
-            <div className="icp__review-list">
-                {selectedActions.map((action, index) => {
-                    const details = getDetails(action.id);
-                    const style = TYPE_STYLES[action.actionType] || TYPE_STYLES.General;
-                    const hasAnyDetail = details.rootCause || details.notes || details.oldDeviceImei || details.newDeviceImei || details.cameraImei;
+        return (
+            <div className="issue-completion-flow__section">
+                <div className="issue-completion-flow__section-header">
+                    <div>
+                        <h4 className="issue-completion-flow__section-title">Review and submit</h4>
+                        <p className="issue-completion-flow__section-text">Confirm the captured details before submitting the completion record.</p>
+                    </div>
+                    <div className="issue-completion-flow__metric-pill">
+                        <span className="issue-completion-flow__metric-value">{selectedActions.length}</span>
+                        <span className="issue-completion-flow__metric-label">actions</span>
+                    </div>
+                </div>
 
-                    return (
-                        <div key={action.id} className="icp__review-card">
-                            <div className={`icp__review-icon ${style.bg} ${style.text}`}>
-                                <i className={style.icon}></i>
-                            </div>
-                            <div className="icp__review-copy">
-                                <div className="icp__review-header-row">
-                                    <span className="icp__review-title">{action.name}</span>
-                                    <span className="icp__review-status">
-                                        <i className="fa-light fa-circle-check"></i>
-                                        <span>Ready</span>
-                                    </span>
+                <div className="issue-completion-flow__review-list">
+                    {selectedActions.map((action) => {
+                        const details = getDetails(action.id);
+                        const meta = TYPE_META[action.actionType] || TYPE_META.General;
+                        const hasAnyDetail = details.rootCause || details.notes || details.oldDeviceImei || details.newDeviceImei || details.cameraImei;
+                        const validationErrors = validationByAction[action.id] || {};
+                        const errorMessages = Object.values(validationErrors);
+                        const isReady = errorMessages.length === 0;
+
+                        return (
+                            <div key={action.key || action.id} className="issue-completion-flow__review-card">
+                                <div className="issue-completion-flow__review-icon" style={{ backgroundColor: meta.tint, color: meta.color }}>
+                                    <i className={meta.icon}></i>
                                 </div>
-                                {details.rootCause && <p className="icp__review-line"><strong>Root cause:</strong> {details.rootCause}</p>}
-                                {(details.oldDeviceImei || details.newDeviceImei) && (
-                                    <p className="icp__review-line">
-                                        <strong>Device:</strong>
-                                        {' '}
-                                        {details.oldDeviceImei && `Old ${details.oldDeviceImei}`}
-                                        {details.oldDeviceImei && details.newDeviceImei && ' → '}
-                                        {details.newDeviceImei && `New ${details.newDeviceImei}`}
-                                    </p>
-                                )}
-                                {details.cameraImei && (
-                                    <p className="icp__review-line"><strong>Camera:</strong> {details.cameraImei}{details.cameraPosition && ` (${details.cameraPosition})`}</p>
-                                )}
-                                {details.notes && <p className="icp__review-line"><strong>Notes:</strong> {details.notes}</p>}
-                                {!hasAnyDetail && <p className="icp__review-empty">No additional details were captured for this action.</p>}
+                                <div className="issue-completion-flow__review-copy">
+                                    <div className="issue-completion-flow__review-header-row">
+                                        <span className="issue-completion-flow__review-title">{action.name}</span>
+                                        <span className={`issue-completion-flow__review-status${isReady ? '' : ' issue-completion-flow__review-status--warning'}`}>
+                                            <i className={`fa-light ${isReady ? 'fa-circle-check' : 'fa-circle-exclamation'}`}></i>
+                                            <span>{isReady ? 'Ready' : 'Needs attention'}</span>
+                                        </span>
+                                    </div>
+                                    <p className="issue-completion-flow__review-line"><strong>Stage:</strong> {action.stageName}</p>
+                                    {details.rootCause && <p className="issue-completion-flow__review-line"><strong>Root cause:</strong> {details.rootCause}</p>}
+                                    {(details.oldDeviceImei || details.newDeviceImei) && (
+                                        <p className="issue-completion-flow__review-line"><strong>Device:</strong> {details.oldDeviceImei && `Old ${details.oldDeviceImei}`}{details.oldDeviceImei && details.newDeviceImei && ' → '}{details.newDeviceImei && `New ${details.newDeviceImei}`}</p>
+                                    )}
+                                    {details.cameraImei && <p className="issue-completion-flow__review-line"><strong>Camera:</strong> {details.cameraImei}{details.cameraPosition && ` (${details.cameraPosition})`}</p>}
+                                    {details.notes && <p className="issue-completion-flow__review-line"><strong>Notes:</strong> {details.notes}</p>}
+                                    {!isReady && (
+                                        <div className="issue-completion-flow__review-errors">
+                                            {errorMessages.map((message) => (
+                                                <p key={message} className="issue-completion-flow__review-error">{message}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {!hasAnyDetail && <p className="issue-completion-flow__review-empty">No additional details were captured for this action.</p>}
+                                </div>
                             </div>
-                            <button
-                                type="button"
-                                className="icp__inline-link icp__inline-link--compact"
-                                onClick={() => {
-                                    setCurrentDetailIdx(index);
-                                    setStep(1);
-                                }}
-                            >
-                                <i className="fa-light fa-pen"></i>
-                                <span>Edit</span>
-                            </button>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
-
-            <div className="icp__field icp__field--full">
-                <label className="icp__label">General completion notes</label>
-                <textarea
-                    className="icp__textarea"
-                    value={generalNotes}
-                    onChange={(event) => setGeneralNotes(event.target.value)}
-                    placeholder="Any additional completion notes..."
-                    disabled={isProcessing}
-                    rows={4}
-                />
-            </div>
-        </div>
-    );
+        );
+    };
 
     const renderFooter = () => (
-        <div className="icp__footer">
+        <div className="issue-completion-flow__footer">
             <div>
-                {step > 0 && (
-                    <button type="button" className="icp__button icp__button--ghost" onClick={goBack} disabled={isProcessing}>
-                        <i className="fa-light fa-arrow-left"></i>
-                        <span>Back</span>
-                    </button>
+                {invalidSelections.length > 0 && (
+                    <div className="issue-completion-flow__validation-banner">
+                        <i className="fa-light fa-circle-exclamation"></i>
+                        <span>Complete the required fields for {invalidSelections.length} action{invalidSelections.length === 1 ? '' : 's'} before submitting.</span>
+                    </div>
                 )}
             </div>
-            <div className="icp__footer-actions">
-                <button type="button" className="icp__button icp__button--ghost" onClick={handleCancel} disabled={isProcessing}>
+            <div className="issue-completion-flow__footer-actions">
+                <button type="button" className="issue-completion-flow__button issue-completion-flow__button--ghost" onClick={handleCancel} disabled={isProcessing}>
                     <i className="fa-light fa-xmark"></i>
                     <span>Cancel</span>
                 </button>
-
-                {step === 0 && (
-                    <button type="button" className="icp__button icp__button--primary" onClick={goNext} disabled={!canProceedFromSelect || isProcessing}>
-                        <span>Next</span>
-                        <i className="fa-light fa-arrow-right"></i>
-                    </button>
-                )}
-
-                {step === 1 && (
-                    <button type="button" className="icp__button icp__button--primary" onClick={goNext} disabled={isProcessing}>
-                        <span>Review</span>
-                        <i className="fa-light fa-eye"></i>
-                    </button>
-                )}
-
-                {step === 2 && (
-                    <button type="button" className="icp__button icp__button--success" onClick={handleSubmit} disabled={isProcessing}>
-                        {isProcessing ? (
-                            <>
-                                <LoadIndicator visible height={16} width={16} />
-                                <span>Completing...</span>
-                            </>
-                        ) : (
-                            <>
-                                <i className="fa-light fa-circle-check"></i>
-                                <span>Complete issue</span>
-                            </>
-                        )}
-                    </button>
-                )}
+                <button type="button" className="issue-completion-flow__button issue-completion-flow__button--success" onClick={handleSubmit} disabled={isProcessing || !canSubmit}>
+                    {isProcessing ? (
+                        <>
+                            <LoadIndicator visible height={16} width={16} />
+                            <span>Completing...</span>
+                        </>
+                    ) : (
+                        <>
+                            <i className="fa-light fa-circle-check"></i>
+                            <span>Complete issue</span>
+                        </>
+                    )}
+                </button>
             </div>
         </div>
     );
 
     const renderContent = () => {
-        if (loadingActions) {
+        if (loadingWorkflow) {
             return (
-                <div className="icp__loading-state">
+                <div className="issue-completion-flow__loading-state">
                     <LoadIndicator visible height={28} width={28} />
-                    <span>Loading completion actions...</span>
+                    <span>Loading completion workflow...</span>
                 </div>
             );
         }
 
         return (
-            <div className="icp">
-                <div className="icp__hero">
-                    <div className="icp__hero-copy">
-                        <span className="icp__eyebrow">Issue resolution workflow</span>
-                        <h3 className="icp__hero-title">Capture the work completed for issue #{issueId}</h3>
-                        <p className="icp__hero-text">Use the structured workflow below to document each action before completing the issue.</p>
+            <div className="issue-completion-flow">
+                <div className="issue-completion-flow__hero">
+                    <div className="issue-completion-flow__hero-copy">
+                        <span className="issue-completion-flow__eyebrow">Issue completion workflow</span>
+                        <h3 className="issue-completion-flow__hero-title">Capture the work completed for issue #{issueId}</h3>
+                        <p className="issue-completion-flow__hero-text">Select actions from the configured workflow, capture the relevant details inline, and submit from this side panel.</p>
                     </div>
-                    <div className="icp__hero-summary">
-                        <div className="icp__hero-stat">
-                            <span className="icp__hero-stat-value">{templateActions.length}</span>
-                            <span className="icp__hero-stat-label">template actions</span>
+                    <div className="issue-completion-flow__hero-summary">
+                        <div className="issue-completion-flow__hero-stat">
+                            <span className="issue-completion-flow__hero-stat-value">{templateActions.length}</span>
+                            <span className="issue-completion-flow__hero-stat-label">workflow actions</span>
                         </div>
-                        <div className="icp__hero-stat">
-                            <span className="icp__hero-stat-value">{selectedActions.length}</span>
-                            <span className="icp__hero-stat-label">selected</span>
+                        <div className="issue-completion-flow__hero-stat">
+                            <span className="issue-completion-flow__hero-stat-value">{selectedActions.length}</span>
+                            <span className="issue-completion-flow__hero-stat-label">selected</span>
                         </div>
                     </div>
                 </div>
 
-                {renderStepIndicator()}
-
-                <div className="icp__content">
-                    {step === 0 && renderSelectStep()}
-                    {step === 1 && renderDetailsStep()}
-                    {step === 2 && renderReviewStep()}
+                <div className="issue-completion-flow__content">
+                    {renderSelectionSection()}
+                    {renderDetailsSection()}
+                    {renderReviewSection()}
                 </div>
 
                 {renderFooter()}
@@ -778,11 +876,12 @@ const IssueCompletionPopup = ({
             open={visible}
             onClose={!isProcessing ? handleCancel : undefined}
             title={PANEL_TITLE}
-            width={1000}
+            width={showWidePanel ? 1500 : 720}
             headerActions={headerActions}
             panelClassName="issue-completion-panel"
         >
             {renderContent()}
+            <IssueCompletionHelpPanel open={helpOpen} onClose={() => setHelpOpen(false)} />
         </SlidePanel>
     );
 };

@@ -44,11 +44,11 @@ namespace FMS.Application.Features.PTS.Services
                 _logger.LogInformation(
                     "[TransactionContext] Stored - Device: {DeviceId}, Pump: {PumpId}, Transaction: {TransactionId}, " +
                     "VehicleId: {VehicleId}, TankId: {TankId}, UserId: {UserId}, Odometer: {Odometer}, " +
-                    "MobileLocation: ({MobileLat}, {MobileLng}), Accuracy: {Accuracy}m, IsCached: {IsCached}, ConnectionType: {ConnectionType}",
+                    "MobileLocation: ({MobileLat}, {MobileLng}), Accuracy: {Accuracy}m, IsCached: {IsCached}, Source: {Source}, ConnectionType: {ConnectionType}",
                     context.DeviceId, context.PumpId, context.TransactionId,
                     context.VehicleId, context.TankId, context.UserId, context.Odometer,
                     context.MobileLocationLatitude, context.MobileLocationLongitude,
-                    context.MobileLocationAccuracy, context.MobileLocationIsCached,
+                    context.MobileLocationAccuracy, context.MobileLocationIsCached, context.FuelingLocationSource,
                     context.ConnectionType);
 
                 return true;

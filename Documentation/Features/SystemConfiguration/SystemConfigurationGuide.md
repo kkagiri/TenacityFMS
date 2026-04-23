@@ -3,6 +3,37 @@
 ## Overview
 The System Configuration management provides a centralized way to store and manage application settings that can be modified at runtime without requiring application restarts or code changes.
 
+## Code-to-Database Audit Status
+
+On 2026-04-23, the code-backed SystemConfiguration keys were compared against the live `gpsdata.systemconfigurations` table using MySQL MCP.
+
+### Audit Result
+- 66 code-used SystemConfiguration keys were checked.
+- 52 keys already had matching database rows.
+- 14 keys were missing from the database and are now covered by the sync scripts in this folder.
+
+### Keys Missing During Audit
+- `AutoOpeningStock_Enabled`
+- `IssueTracker.AutoMonitoring.DailyRunTimeLocal`
+- `PTS.AutomatedFueling.CheckForDuplicateManualEntries`
+- `PTS.AutomatedFueling.DiscrepancyAction`
+- `PTS.AutomatedFueling.DuplicateVolumeTolerance`
+- `PTS.AutomatedFueling.EnableFuelCapacityValidation`
+- `PTS.AutomatedFueling.EnableFuelRulesCheck`
+- `PTS.AutomatedFueling.EnableGPSFuelLevelCheck`
+- `PTS.AutomatedFueling.ReconciliationFrequencyMinutes`
+- `PTS.AutomatedFueling.VolumeSourcePriority`
+- `PTS.OfflineReport.ThresholdSeconds`
+- `TankStock.FutureRecordsPolicy`
+- `TankStock.MaxHistoricalDays`
+- `TankStock.ShowDetailedWarnings`
+
+### Source of Truth
+- Central configuration keys and fallback defaults are defined in `FMS.Application/Configuration/SystemConfiguration.cs`.
+- Runtime lookup order remains: database row -> appsettings value -> hardcoded fallback default.
+- A small number of services still read database keys by direct string literal, but those keys must still exist in `systemconfigurations`.
+- The scripts in this folder are intended to keep the database aligned with the code-defined key set without overwriting existing live `ConfigurationValue` entries.
+
 ## Entity Structure
 
 ### SystemConfiguration Entity
@@ -85,6 +116,32 @@ Notification system settings:
 PTS device and probe integration settings:
 - `PTS.UploadStatus.PhysicalStockUpdateIntervalSeconds`: Minimum interval in seconds before applying averaged UploadStatus `ProductVolume` to `Tank.PhysicalStockValue` (default: 60)
 
+### PTS Automated Fueling
+Automated fueling validation and reconciliation settings:
+- `PTS.AutomatedFueling.CheckForDuplicateManualEntries`
+- `PTS.AutomatedFueling.DiscrepancyAction`
+- `PTS.AutomatedFueling.DuplicateVolumeTolerance`
+- `PTS.AutomatedFueling.EnableFuelCapacityValidation`
+- `PTS.AutomatedFueling.EnableFuelRulesCheck`
+- `PTS.AutomatedFueling.EnableGPSFuelLevelCheck`
+- `PTS.AutomatedFueling.ReconciliationFrequencyMinutes`
+- `PTS.AutomatedFueling.VolumeSourcePriority`
+
+### PTS Offline Report
+PTS reporting settings:
+- `PTS.OfflineReport.ThresholdSeconds`
+
+### TankStock
+Tank stock validation and future-record handling:
+- `TankStock.FutureRecordsPolicy`
+- `TankStock.MaxHistoricalDays`
+- `TankStock.ShowDetailedWarnings`
+- `AutoOpeningStock_Enabled`
+
+### IssueTracker
+Issue tracker auto-monitoring settings:
+- `IssueTracker.AutoMonitoring.DailyRunTimeLocal`
+
 ## Data Type Support
 
 The system supports the following data types:
@@ -158,6 +215,16 @@ This is implemented in:
 
 ### Database Script
 - `Documentation/SystemConfiguration/SystemConfiguration_UpdateScript.sql` - Database update script
+- `Documentation/Features/SystemConfiguration/system-configuration-setup.sql` - Baseline setup and seed script aligned with the audit
+- `Documentation/Features/SystemConfiguration/SystemConfiguration_UpdateScript.sql` - Idempotent sync script for missing code-backed keys identified during audit
+
+## Script Usage
+
+### Setup Script
+Use `system-configuration-setup.sql` when provisioning a new database or reseeding a development environment.
+
+### Update Script
+Use `SystemConfiguration_UpdateScript.sql` on an existing environment to add missing code-backed rows and refresh metadata without overwriting existing `ConfigurationValue` values.
 
 ## Best Practices
 

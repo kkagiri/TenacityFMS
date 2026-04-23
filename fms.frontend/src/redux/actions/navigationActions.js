@@ -13,6 +13,15 @@ export const ASSIGN_ROLES_TO_NAVIGATION_ITEM_FAILURE = 'ASSIGN_ROLES_TO_NAVIGATI
 export const FETCH_ALL_NAVIGATION_ITEMS_SUCCESS = 'FETCH_ALL_NAVIGATION_ITEMS_SUCCESS';
 export const FETCH_ALL_NAVIGATION_ITEMS_FAILURE = 'FETCH_ALL_NAVIGATION_ITEMS_FAILURE';
 
+export const fetchNavigationItems = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/navigation');
+        dispatch({ type: FETCH_NAVIGATION_ITEMS_SUCCESS, payload: response.data });
+    } catch (error) {
+        dispatch({ type: FETCH_NAVIGATION_ITEMS_FAILURE, payload: error.message });
+    }
+};
+
 export const fetchAllNavigationItems = () => async (dispatch) => {
     try {
         const response = await axiosInstance.get('/navigation/all');
@@ -25,16 +34,6 @@ export const fetchAllNavigationItems = () => async (dispatch) => {
 
 
 export const LOGOUT = 'LOGOUT';
-
-
-export const fetchNavigationItems = () => async (dispatch) => {
-    try {
-        const response = await axiosInstance.get('/navigation');
-        dispatch({ type: FETCH_NAVIGATION_ITEMS_SUCCESS, payload: response.data });
-    } catch (error) {
-        dispatch({ type: FETCH_NAVIGATION_ITEMS_FAILURE, payload: error.message });
-    }
-};
 
 export const createNavigationItem = (item) => async (dispatch) => {
     try {
@@ -68,7 +67,7 @@ export const updateNavigationItem = (id, item) => async (dispatch) => {
         console.log('Sending update payload:', payload);
         const response = await axiosInstance.put(`/navigation/${id}`, payload);
         console.log('Update response:', response);
-        dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item: {...item, id} } });
+        dispatch({ type: UPDATE_NAVIGATION_ITEM_SUCCESS, payload: { id, item: { ...item, id } } });
         return response;
     } catch (error) {
         console.error('Update error:', error);

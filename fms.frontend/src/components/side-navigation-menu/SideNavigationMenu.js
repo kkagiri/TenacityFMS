@@ -1,11 +1,40 @@
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import TreeView from 'devextreme-react/tree-view';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '../../contexts/navigation';
-import { useScreenSize } from '../../utils/media-query';
-import './SideNavigationMenu.scss';
-import { useSelector, useDispatch } from 'react-redux';
 import { fetchNavigationItems } from '../../redux/actions/navigationActions';
+import './SideNavigationMenu.scss';
 import * as events from 'devextreme/events';
+
+const normalizeNavigationTree = (navigationItems) => {
+  if (!Array.isArray(navigationItems) || navigationItems.length === 0) {
+    return [];
+  }
+
+  const mappedItems = navigationItems.map((item) => ({
+    id: item.id,
+    text: item.page || item.pageName || item.text || '',
+    path: item.link || item.path || '',
+    icon: item.icon || null,
+    parentId: item.parentId || null,
+    items: [],
+  }));
+
+  const itemsById = new Map(mappedItems.map((item) => [item.id, item]));
+  const roots = [];
+
+  mappedItems.forEach((item) => {
+    if (item.parentId && itemsById.has(item.parentId)) {
+      itemsById.get(item.parentId).items.push(item);
+      return;
+    }
+
+    roots.push(item);
+  });
+
+  return roots;
+};
 
 export default function SideNavigationMenu(props) {
   const {
@@ -18,12 +47,12 @@ export default function SideNavigationMenu(props) {
     menuStatus
   } = props;
 
-  const { isLarge } = useScreenSize();
+  const location = useLocation();
   const dispatch = useDispatch();
-  const { navigationItems, loading, error } = useSelector((state) => state.navigation);
+  const { navigationItems } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
+  const { navigationData: { currentPath } } = useNavigation();
   const [expandedItems, setExpandedItems] = useState(() => {
-    // Load expanded items from sessionStorage with layout-specific key
     try {
       const saved = sessionStorage.getItem(`nav-expanded-items-${layoutType}`);
       return saved ? JSON.parse(saved) : [];
@@ -32,124 +61,45 @@ export default function SideNavigationMenu(props) {
     }
   });
 
-  // Track if we've already fetched navigation items to prevent repeated calls
-  const hasFetchedRef = useRef(false);
-
-  // Force re-fetch navigation items when layout switches or component mounts
   useEffect(() => {
-    // Always try to fetch navigation items if user is logged in
-    if (user && !hasFetchedRef.current) {
-      // Check if navigationItems is empty or undefined
-      if (!navigationItems || navigationItems.length === 0) {
-        console.log(`[${layoutType}] No navigation items found, fetching...`);
-        dispatch(fetchNavigationItems());
-        hasFetchedRef.current = true;
-      }
+    if (user) {
+      dispatch(fetchNavigationItems());
     }
-  }, [user, dispatch, layoutType, navigationItems]);
-
-  // Retry fetching navigation items if initial load fails
-  useEffect(() => {
-    if (user && !loading && (!navigationItems || navigationItems.length === 0)) {
-      // Wait a bit and retry - user may have been authenticated but navigation not fetched
-      const retryTimer = setTimeout(() => {
-        console.log(`[${layoutType}] Retrying navigation fetch...`);
-        dispatch(fetchNavigationItems());
-      }, 2000);
-
-      return () => clearTimeout(retryTimer);
-    }
-  }, [user, loading, navigationItems, dispatch, layoutType]);
-
-  useEffect(() => {
-    if (loading) {
-      // Handle loading state if needed
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (error) {
-      console.error('Error fetching navigation items:', error);
-    }
-  }, [error]);
+  }, [dispatch, user]);
 
   useEffect(() => {
     try {
       sessionStorage.setItem(`nav-expanded-items-${layoutType}`, JSON.stringify(expandedItems));
-    } catch (error) {
-      console.warn('Could not save expanded items to sessionStorage:', error);
+    } catch {
+      // Ignore storage errors.
     }
   }, [expandedItems, layoutType]);
 
-  // Handle menu status changes - ensure navigation stays intact
-  useEffect(() => {
-    if (menuStatus && !loading && navigationItems && navigationItems.length === 0) {
-      // If menu is opening but no navigation items, refetch them
-      dispatch(fetchNavigationItems());
-    }
-  }, [menuStatus, loading, navigationItems, dispatch]);
-
-  const transformToNested = (items) => {
-    const itemMap = {};
-    const roots = [];
-
-    items.forEach(item => {
-      itemMap[item.id] = { ...item, items: [] };
-    });
-
-    items.forEach(item => {
-      if (item.parentId) {
-        if (itemMap[item.parentId]) {
-          itemMap[item.parentId].items.push(itemMap[item.id]);
-        } else {
-          console.warn(`Parent ID ${item.parentId} not found for item ID ${item.id}`);
-        }
-      } else {
-        roots.push(itemMap[item.id]);
-      }
-    });
-
-    return roots;
-  };
-
   const transformedNavigationItems = useMemo(() => {
-    if (!navigationItems || navigationItems.length === 0) return [];
-    const nestedItems = transformToNested(navigationItems);
-
-    const transformItems = (items) => {
-      return items.map(item => ({
-        text: item.page.charAt(0).toUpperCase() + item.page.slice(1),
-        path: item.link && item.link !== "''" ? item.link : '',
-        icon: item.icon || '',
-        items: item.items && item.items.length > 0 ? transformItems(item.items) : []
-      }));
-    };
-
-    return transformItems(nestedItems);
+    return normalizeNavigationTree(navigationItems);
   }, [navigationItems]);
 
-  // Debug logging for navigation issues
-  useEffect(() => {
-    console.log(`[${layoutType}] Navigation Debug:`, {
-      navigationItemsCount: navigationItems?.length || 0,
-      transformedItemsCount: transformedNavigationItems?.length || 0,
-      loading,
-      compactMode,
-      menuStatus,
-      userExists: !!user,
-      userRoles: user?.roles || 'No roles',
-      error: error || 'No error'
-    });
+  const selectedPath = useMemo(() => {
+    const activePath = currentPath || location.pathname;
+    const findMatch = (items) => {
+      for (const item of items) {
+        if (item.path && (activePath === item.path || activePath.startsWith(`${item.path}/`))) {
+          return item.path;
+        }
 
-    // Log warning if user is logged in but has no navigation items
-    if (user && !loading && (!navigationItems || navigationItems.length === 0)) {
-      console.warn(`[${layoutType}] WARNING: User is logged in but has no navigation items. ` +
-        `This may indicate the user's role(s) have no navigation items assigned. ` +
-        `User roles: ${JSON.stringify(user?.roles || [])}`);
-    }
-  }, [navigationItems, transformedNavigationItems, loading, compactMode, menuStatus, layoutType, user, error]);
+        if (item.items?.length) {
+          const nestedMatch = findMatch(item.items);
+          if (nestedMatch) {
+            return nestedMatch;
+          }
+        }
+      }
 
-  const { navigationData: { currentPath } } = useNavigation();
+      return null;
+    };
+
+    return findMatch(transformedNavigationItems) || activePath;
+  }, [currentPath, location.pathname, transformedNavigationItems]);
 
   const treeViewRef = useRef(null);
   const wrapperRef = useRef();
@@ -184,44 +134,42 @@ export default function SideNavigationMenu(props) {
       return;
     }
 
-    if (currentPath !== undefined) {
-      treeView.selectItem(currentPath);
-      treeView.expandItem(currentPath);
+    if (selectedPath !== undefined) {
+      treeView.selectItem(selectedPath);
     }
 
     if (compactMode) {
       treeView.collapseAll();
-    } else {
-      // When opening the menu, ensure expanded items stay expanded
-      expandedItems.forEach(path => {
-        if (path) {
-          treeView.expandItem(path);
-        }
-      });
+      return;
     }
 
-    // Cleanup function
-    return () => {
-      if (treeView) {
-        // Don't dispose, just cleanup selections to prevent issues
-        // treeView.dispose();
-      }
-    };
-  }, [currentPath, compactMode, expandedItems, transformedNavigationItems]);
+    expandedItems.forEach((itemPath) => {
+      treeView.expandItem(itemPath);
+    });
+  }, [compactMode, expandedItems, selectedPath, transformedNavigationItems]);
 
   const onItemExpanded = useCallback((e) => {
     const itemPath = e.itemData.path;
-    setExpandedItems(prev => {
-      if (!prev.includes(itemPath)) {
-        return [...prev, itemPath];
+    if (!itemPath) {
+      return;
+    }
+
+    setExpandedItems((previous) => {
+      if (previous.includes(itemPath)) {
+        return previous;
       }
-      return prev;
+
+      return [...previous, itemPath];
     });
   }, []);
 
   const onItemCollapsed = useCallback((e) => {
     const itemPath = e.itemData.path;
-    setExpandedItems(prev => prev.filter(path => path !== itemPath));
+    if (!itemPath) {
+      return;
+    }
+
+    setExpandedItems((previous) => previous.filter((path) => path !== itemPath));
   }, []);
 
   const onItemClick = useCallback((e) => {

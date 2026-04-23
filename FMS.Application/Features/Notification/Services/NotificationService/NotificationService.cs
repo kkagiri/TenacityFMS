@@ -87,6 +87,21 @@ namespace FMS.Application.Features.Notification.Services
             _scheduledReportDeliveryService = scheduledReportDeliveryService;
         }
 
+        /// <summary>
+        /// Normalizes the optional notification link: trims, rejects empty, and ensures it is a relative
+        /// in-app path (must start with "/"). External URLs are dropped defensively to avoid open-redirect
+        /// abuse on the frontend. Returns null for any invalid or missing value.
+        /// </summary>
+        private static string? NormalizeNotificationLink(string? link)
+        {
+            if (string.IsNullOrWhiteSpace(link)) return null;
+            var trimmed = link.Trim();
+            if (trimmed.Length > 500) trimmed = trimmed.Substring(0, 500);
+            // Only accept relative in-app paths. Reject absolute URLs, protocol-relative URLs and schemes.
+            if (!trimmed.StartsWith("/") || trimmed.StartsWith("//")) return null;
+            return trimmed;
+        }
+
         // Simple null implementation that doesn't require a logger
         private class NullPolicyRulesProcessor : IPolicyRulesProcessor
         {
@@ -194,6 +209,8 @@ namespace FMS.Application.Features.Notification.Services
                     Data = serializedDataToken == null || serializedDataToken.Type == JTokenType.Null
                         ? null
                         : serializedDataToken.ToString(Formatting.None),
+                    Link = NormalizeNotificationLink(request.Link),
+                    LinkLabel = string.IsNullOrWhiteSpace(request.LinkLabel) ? null : request.LinkLabel!.Trim(),
                     TriggerSource = request.TriggerSource,
                     TriggeredBy = request.TriggeredBy,
                     ScheduledAt = request.ScheduledAt,
@@ -449,6 +466,7 @@ namespace FMS.Application.Features.Notification.Services
                 }
 
                 // âœ… UPDATED: Remove hardcoded recipients - use policy-based resolution
+                var issueLink = NotificationLinkBuilder.ForIssue(issueTrackerId);
                 var notificationRequest = new CreateNotificationRequest
                 {
                     Type = Notification.Enums.NotificationType.Alert,
@@ -457,6 +475,8 @@ namespace FMS.Application.Features.Notification.Services
                     Title = $"New Issue: {issue.ProblemTitle}",
                     Message = $"A new issue has been created: {issue.ProblemDescription}",
                     Data = new { IssueId = issueTrackerId, Category = issue.IssueCategory?.Name },
+                    Link = issueLink.Link,
+                    LinkLabel = issueLink.Label,
                     TriggerSource = "IssueTracker",
                     TriggeredBy = triggeredBy,
                     SiteId = issue.SiteId,
@@ -612,6 +632,8 @@ namespace FMS.Application.Features.Notification.Services
                         Priority = n.Priority,
                         Title = n.Title,
                         Message = n.Message,
+                        Link = n.Link,
+                        LinkLabel = n.LinkLabel,
                         CreatedAt = n.CreatedAt,
                         SentAt = n.SentAt,
                         Status = n.Status,

@@ -40,6 +40,7 @@ import { confirm } from 'devextreme/ui/dialog';
 import { Workbook } from 'exceljs';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import { saveAs } from 'file-saver';
+import axiosInstance from '../../../../api/axiosInstance';
 import {
   fetchDeliveriesbyDateRange,
   fetchDeliveriesbyDateRangebySiteId,
@@ -81,6 +82,7 @@ const DeliveryManager = () => {
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [inTankDeliveries, setInTankDeliveries] = useState([]);
 
   // Load reference data on mount
   useEffect(() => {
@@ -116,10 +118,46 @@ const DeliveryManager = () => {
     }
   }, [dispatch, canReadDelivery, startDate, endDate, selectedSiteIds]);
 
+  const fetchInTankDeliveriesData = useCallback(async () => {
+    if (!canReadDelivery || !startDate || !endDate) {
+      setInTankDeliveries([]);
+      return;
+    }
+
+    const firstSelectedSite = Array.isArray(selectedSiteIds) && selectedSiteIds.length > 0
+      ? Number(selectedSiteIds[0])
+      : null;
+
+    if (!Number.isFinite(firstSelectedSite) || firstSelectedSite <= 0) {
+      setInTankDeliveries([]);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get('/tankstock/in-tank-deliveries', {
+        params: {
+          siteId: firstSelectedSite,
+          startDate,
+          endDate,
+        },
+      });
+
+      const payload = response?.data?.data || response?.data || [];
+      setInTankDeliveries(Array.isArray(payload) ? payload : []);
+    } catch (error) {
+      setInTankDeliveries([]);
+      notify('Failed to load system-detected deliveries', 'warning', 3000);
+    }
+  }, [canReadDelivery, endDate, startDate, selectedSiteIds]);
+
   // Fetch deliveries when filters change
   useEffect(() => {
     fetchDeliveriesData();
   }, [fetchDeliveriesData]);
+
+  useEffect(() => {
+    fetchInTankDeliveriesData();
+  }, [fetchInTankDeliveriesData]);
 
   // Show error notifications from Redux
   useEffect(() => {
@@ -252,11 +290,23 @@ const DeliveryManager = () => {
 
   // Enrich deliveries with tank and site information + apply filters
   const enrichedDeliveries = useMemo(() => {
-    let filtered = [...deliveries];
+    const normalizedDeliveries = Array.isArray(deliveries)
+      ? deliveries.filter((delivery) => delivery && typeof delivery === 'object')
+      : [];
+
+    const normalizedInTankDeliveries = Array.isArray(inTankDeliveries)
+      ? inTankDeliveries.filter((delivery) => delivery && typeof delivery === 'object')
+      : [];
+
+    let filtered = normalizedDeliveries;
+    let filteredSystemDeliveries = normalizedInTankDeliveries;
 
     // Filter by selected tanks if any
     if (selectedTankIds && selectedTankIds.length > 0) {
-      filtered = filtered.filter((d) => selectedTankIds.includes(d.tankId));
+      filtered = filtered.filter((delivery) => selectedTankIds.includes(delivery.tankId));
+      filteredSystemDeliveries = filteredSystemDeliveries.filter((delivery) =>
+        selectedTankIds.includes(delivery.tankId)
+      );
     }
 
     // Filter by selected sites if multiple (when not using single site API call)
@@ -265,17 +315,23 @@ const DeliveryManager = () => {
         .filter((t) => selectedSiteIds.includes(t.siteId))
         .map((t) => t.id ?? t.tankId)
         .filter((tankId) => tankId != null);
-      filtered = filtered.filter((d) => tankIdsForSites.includes(d.tankId));
+      filtered = filtered.filter((delivery) => tankIdsForSites.includes(delivery.tankId));
+      filteredSystemDeliveries = filteredSystemDeliveries.filter((delivery) =>
+        tankIdsForSites.includes(delivery.tankId)
+      );
     }
 
     // Enrich with lookup data
-    return filtered.map((delivery) => {
+    const manualRows = filtered.map((delivery) => {
       const tank = tanks.find((t) => (t.id ?? t.tankId) === delivery.tankId);
       const site = tank ? sites.find((s) => s.id === tank.siteId) : null;
       const supplier = suppliers.find((s) => s.id === delivery.supplierId);
 
       return {
         ...delivery,
+        rowKey: `manual-${delivery.id}`,
+        sourceType: 'Manual',
+        matchStatus: delivery.sensorDeliveryAmount ? 'Matched/Backfilled' : 'Manual',
         tankName: tank?.name || tank?.tankNumber || `Tank ${delivery.tankId}`,
         siteName: site?.name || site?.siteName || 'Unknown',
         siteId: tank?.siteId,
@@ -283,10 +339,55 @@ const DeliveryManager = () => {
         product: tank?.fuelGradeName || tank?.product || delivery.product,
       };
     });
-  }, [deliveries, tanks, sites, suppliers, selectedTankIds, selectedSiteIds]);
+
+    const systemRows = filteredSystemDeliveries.map((delivery) => {
+      const tank = tanks.find((t) => (t.id ?? t.tankId) === delivery.tankId);
+      const site = tank ? sites.find((s) => s.id === tank.siteId) : null;
+
+      return {
+        id: delivery.deliveryId,
+        rowKey: `system-${delivery.deliveryId}`,
+        deliveryDate: delivery.endDateTime || delivery.detectedAt || delivery.startDateTime,
+        tankId: delivery.tankId,
+        tankName: delivery.tankName || tank?.name || tank?.tankNumber || `Tank ${delivery.tankId}`,
+        siteName: site?.name || site?.siteName || 'Unknown',
+        siteId: delivery.siteId || tank?.siteId,
+        product: delivery.fuelGradeName || tank?.fuelGradeName || tank?.product || 'Unknown',
+        manualDeliveryAmount: null,
+        sensorDeliveryAmount: delivery.absoluteProductVolume,
+        stockBeforeDelivery: delivery.startProductVolume,
+        stockAfterDelivery: delivery.endProductVolume,
+        supplierName: 'System Detected',
+        lponumber: null,
+        pricePerLiter: null,
+        deliveryTemperature: delivery.endTemperature,
+        deliveryDensity: null,
+        createdOn: delivery.detectedAt || delivery.endDateTime || delivery.startDateTime,
+        isCorrection: false,
+        sourceType: 'System',
+        matchStatus: delivery.status || 'Detected',
+        matchedDeliveryId: delivery.matchedDeliveryId,
+        isSystemDetected: true,
+      };
+    });
+
+    return [...manualRows, ...systemRows].sort((left, right) => {
+      const leftTime = left?.deliveryDate ? new Date(left.deliveryDate).getTime() : 0;
+      const rightTime = right?.deliveryDate ? new Date(right.deliveryDate).getTime() : 0;
+      return rightTime - leftTime;
+    });
+  }, [deliveries, inTankDeliveries, tanks, sites, suppliers, selectedTankIds, selectedSiteIds]);
 
   // Render action buttons for each row
   const renderActionButtons = (data) => {
+    if (data?.data?.isSystemDetected) {
+      return (
+        <span className="tw-text-xs tw-text-amber-700 tw-font-medium">
+          System row
+        </span>
+      );
+    }
+
     return (
       <div className="tw-flex tw-gap-2">
         {canUpdateDelivery && (
@@ -330,7 +431,7 @@ const DeliveryManager = () => {
             Delivery Management
           </h3>
           <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-            Manage fuel deliveries with automatic tank volume history integration
+            Manage manual deliveries and review system-detected in-tank deliveries in one place
           </p>
         </div>
         <div className="tw-flex tw-gap-2">
@@ -355,7 +456,7 @@ const DeliveryManager = () => {
       <DataGrid
         ref={dataGridRef}
         dataSource={enrichedDeliveries}
-        keyExpr="id"
+        keyExpr="rowKey"
         showBorders={true}
         columnAutoWidth={true}
         wordWrapEnabled={false}
@@ -384,7 +485,7 @@ const DeliveryManager = () => {
         <Toolbar>
           <TBItem location="before">
             <div className="tw-font-semibold tw-text-gray-700">
-              {enrichedDeliveries.length} Deliveries
+              {enrichedDeliveries.length} Delivery Records
             </div>
           </TBItem>
           <TBItem name="groupPanel" />
@@ -403,6 +504,20 @@ const DeliveryManager = () => {
           dataField="id"
           caption="ID"
           width={80}
+          allowFiltering={true}
+          allowSorting={true}
+        />
+        <Column
+          dataField="sourceType"
+          caption="Source"
+          width={110}
+          allowFiltering={true}
+          allowSorting={true}
+        />
+        <Column
+          dataField="matchStatus"
+          caption="Status"
+          width={130}
           allowFiltering={true}
           allowSorting={true}
         />
@@ -472,6 +587,13 @@ const DeliveryManager = () => {
           dataField="supplierName"
           caption="Supplier"
           width={150}
+          allowFiltering={true}
+          allowSorting={true}
+        />
+        <Column
+          dataField="matchedDeliveryId"
+          caption="Matched Delivery"
+          width={130}
           allowFiltering={true}
           allowSorting={true}
         />

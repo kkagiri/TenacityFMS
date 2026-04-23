@@ -92,7 +92,7 @@ const LoginForm = () => {
 
       // ✅ Consistent FMSResponse handling
       if (result.success && result.data) {
-        const { user, token, navigationItems } = result.data;
+        const { user, token } = result.data;
 
         // Update Redux state (temporary - will be replaced with service-based state management)
         dispatch({
@@ -107,12 +107,6 @@ const LoginForm = () => {
 
         // Fetch user permissions from backend (not from JWT)
         dispatch(fetchMyPermissions());
-
-        // Store navigation items if available
-        if (navigationItems && navigationItems.length > 0) {
-          // You can dispatch navigation action or store in local state
-          console.log('📋 Navigation items loaded:', navigationItems.length);
-        }
 
         // Show success notification
         notify(`Welcome back, ${user.userName || user.username}!`, 'success', 2000);

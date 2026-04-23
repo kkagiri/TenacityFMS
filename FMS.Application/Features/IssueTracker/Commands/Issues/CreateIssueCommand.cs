@@ -308,6 +308,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
 
         var notificationPriority = await ResolveNotificationPriorityAsync(issueDto.Priority, cancellationToken);
 
+        var issueLink = NotificationLinkBuilder.ForIssue(issueEntity.Id);
         var notificationRequest = new CreateNotificationRequest
         {
           Type = NotificationType.Alert,
@@ -315,6 +316,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
           Priority = notificationPriority,
           Title = $"Issue Assigned: {vehicleLabel}{issueEntity.ProblemTitle}",
           Message = systemMessage,
+          Link = issueLink.Link,
+          LinkLabel = issueLink.Label,
           Data = new
           {
             IssueId = issueEntity.Id,

@@ -172,6 +172,7 @@ public class Program
         }
 
         app.UseFmsPipeline();
+    await EnsureIssueTrackerWorkflowBackfillAsync(app.Services);
         await SeedWidgetTemplatesAsync(app.Services);
 
         try
@@ -397,6 +398,22 @@ public class Program
         {
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "Error seeding widget templates during startup");
+        }
+    }
+
+    private static async Task EnsureIssueTrackerWorkflowBackfillAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var workflowBackfillService = scope.ServiceProvider.GetRequiredService<FMS.Application.Features.IssueTracker.Services.IWorkflowBackfillService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            await workflowBackfillService.ExecuteAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error backfilling issue tracker workflows during startup");
         }
     }
 

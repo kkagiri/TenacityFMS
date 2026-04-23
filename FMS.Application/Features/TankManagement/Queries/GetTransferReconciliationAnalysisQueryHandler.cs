@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Configuration;
 using FMS.Application.Features.TankManagement.DTOs;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -388,18 +389,18 @@ public class GetTransferReconciliationAnalysisQueryHandler
         {
             var configs = await _context.SystemConfigurations
                 .Where(sc => sc.IsActive
-                    && (sc.ConfigurationKey == "Stock.VarianceThreshold.Percentage"
-                        || sc.ConfigurationKey == "Stock.VarianceThreshold.AbsoluteLiters"))
+                    && (sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
+                        || sc.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY))
                 .ToListAsync(cancellationToken);
 
             foreach (var config in configs)
             {
-                if (config.ConfigurationKey == "Stock.VarianceThreshold.Percentage"
+                if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY
                     && decimal.TryParse(config.ConfigurationValue, out var percentage))
                 {
                     thresholds.PercentageThreshold = percentage;
                 }
-                else if (config.ConfigurationKey == "Stock.VarianceThreshold.AbsoluteLiters"
+                else if (config.ConfigurationKey == SystemConfiguration.DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY
                     && decimal.TryParse(config.ConfigurationValue, out var liters))
                 {
                     thresholds.AbsoluteLitersThreshold = liters;

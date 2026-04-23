@@ -168,6 +168,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<IssueFollower> IssueFollowers { get; set; }
 
     // Issue Tracker Template Actions and Completion Records
+    public virtual DbSet<IssueTemplateWorkflow> IssueTemplateWorkflows { get; set; }
+    public virtual DbSet<IssueTemplateWorkflowStage> IssueTemplateWorkflowStages { get; set; }
     public virtual DbSet<IssueTemplateAction> IssueTemplateActions { get; set; }
     public virtual DbSet<IssueCompletionRecord> IssueCompletionRecords { get; set; }
 
@@ -410,6 +412,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new DeviceTypeConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring DeviceTypeConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new IssueTemplateConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueTemplateConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new IssueAutoCloseConfigConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueAutoCloseConfigConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new IssueTemplateWorkflowConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueTemplateWorkflowConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new IssueTemplateWorkflowStageConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueTemplateWorkflowStageConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new IssueTemplateActionConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueTemplateActionConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new IssueCompletionRecordConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IssueCompletionRecordConfiguration: {ex.Message}"); }
 

@@ -2,7 +2,7 @@
  * File: CompleteIssueWithActionsCommandHandler.cs
  * Purpose: Handles structured issue completion — creates completion records, marks issue complete, notifies opener
  * Dependencies: MediatR, GpsdataContext, INotificationService, IIssueActivityService, IConfiguration
- * Last Modified: 2026-02-21
+ * Last Modified: 2026-04-23
  *
  * Key Functions:
  * - Handle: Validates issue, creates completion records, updates status, sends notification
@@ -64,12 +64,11 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
             {
                 var request = command.Request;
 
-                // Validate: must have at least one action or simple notes
-                if ((request.Actions == null || request.Actions.Count == 0)
-                    && string.IsNullOrWhiteSpace(request.SimpleNotes))
+                // Validate: completion now requires at least one structured action.
+                if (request.Actions == null || request.Actions.Count == 0)
                 {
                     return FMSResponse<bool>.Failed(
-                        "At least one completion action or simple notes are required.");
+                        "At least one completion action is required.");
                 }
 
                 // Ensure notes columns exist
@@ -120,25 +119,44 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                 // === Create completion records ===
                 var completionRecords = new List<IssueCompletionRecord>();
                 var now = DateTime.UtcNow;
+                var requestedTemplateActionIds = request.Actions
+                    .Where(action => action.TemplateActionId.HasValue)
+                    .Select(action => action.TemplateActionId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var templateActionsById = requestedTemplateActionIds.Count == 0
+                    ? new Dictionary<int, IssueTemplateAction>()
+                    : await _context.IssueTemplateActions
+                        .Include(action => action.Stage)
+                            .ThenInclude(stage => stage!.Workflow)
+                        .Where(action => requestedTemplateActionIds.Contains(action.Id))
+                        .ToDictionaryAsync(action => action.Id, cancellationToken);
 
                 if (request.Actions != null && request.Actions.Count > 0)
                 {
                     foreach (var action in request.Actions)
                     {
+                        IssueTemplateAction? templateAction = null;
+
                         // Resolve action name
                         string actionName;
                         if (action.TemplateActionId.HasValue)
                         {
-                            var templateAction = await _context.IssueTemplateActions
-                                .FirstOrDefaultAsync(
-                                    ta => ta.Id == action.TemplateActionId.Value,
-                                    cancellationToken);
+                            templateActionsById.TryGetValue(action.TemplateActionId.Value, out templateAction);
 
                             if (templateAction == null)
                             {
                                 return FMSResponse<bool>.Failed(
                                     $"Template action with ID {action.TemplateActionId.Value} not found.");
                             }
+
+                            var actionOwnershipError = ValidateTemplateActionSelection(templateAction, issue.IssueTemplateId);
+                            if (!string.IsNullOrWhiteSpace(actionOwnershipError))
+                            {
+                                return FMSResponse<bool>.Failed(actionOwnershipError);
+                            }
+
                             actionName = templateAction.Name;
                         }
                         else
@@ -150,6 +168,12 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                                     "ActionName is required when no TemplateActionId is provided (Other action).");
                             }
                             actionName = action.ActionName.Trim();
+                        }
+
+                        var validationMessage = ValidateCompletionAction(action, actionName, templateAction?.ActionType);
+                        if (!string.IsNullOrWhiteSpace(validationMessage))
+                        {
+                            return FMSResponse<bool>.Failed(validationMessage);
                         }
 
                         // Assign ID using max+1 pattern
@@ -173,6 +197,10 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                             CameraImei = action.CameraImei?.Trim(),
                             CameraPosition = action.CameraPosition?.Trim(),
                             CameraSimNumber = action.CameraSimNumber?.Trim(),
+                            OldSensorType = action.OldSensorType?.Trim(),
+                            NewSensorType = action.NewSensorType?.Trim(),
+                            SensorReason = action.SensorReason?.Trim(),
+                            CalibrationResult = action.CalibrationResult?.Trim(),
                             AdditionalNotes = action.AdditionalNotes?.Trim(),
                             CompletedByUserId = performedByUserId,
                             CompletedByUserName = performedByUserName,
@@ -218,7 +246,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                 issue.LastModfield = now;
 
                 // Build auto-summary for backward compatibility
-                issue.CompletionNotes = BuildAutoSummary(request, completionRecords, performedByUserName);
+                issue.CompletionNotes = BuildAutoSummary(completionRecords, performedByUserName);
 
                 await _context.SaveChangesAsync(cancellationToken);
 
@@ -241,6 +269,10 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                         desc += $" | Root Cause: {record.RootCause}";
                     if (!string.IsNullOrWhiteSpace(record.NewDeviceImei))
                         desc += $" | New Device: {record.NewDeviceImei}";
+                    if (!string.IsNullOrWhiteSpace(record.NewSensorType))
+                        desc += $" | New Sensor: {record.NewSensorType}";
+                    if (!string.IsNullOrWhiteSpace(record.CalibrationResult))
+                        desc += $" | Calibration: {record.CalibrationResult}";
 
                     await _activityService.LogActivityAsync(
                         issue.Id,
@@ -293,7 +325,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                         issue, openbyUser, performedByUser,
                         vehicleName, siteName,
                         completionRecords,
-                        request.SimpleNotes,
                         cancellationToken);
                 }
 
@@ -318,7 +349,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
         /// Builds a human-readable summary from structured records for backward compatibility
         /// </summary>
         private static string BuildAutoSummary(
-            CompleteIssueWithActionsRequestDTO request,
             List<IssueCompletionRecord> records,
             string completedBy)
         {
@@ -351,19 +381,121 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                         sb.AppendLine($"Camera: {r.CameraImei} (Position: {r.CameraPosition}, SIM: {r.CameraSimNumber})");
                     }
 
+                    if (!string.IsNullOrWhiteSpace(r.NewSensorType) || !string.IsNullOrWhiteSpace(r.OldSensorType))
+                    {
+                        sb.AppendLine($"Sensor Replacement: {r.OldSensorType} -> {r.NewSensorType}" +
+                            (!string.IsNullOrWhiteSpace(r.SensorReason) ? $" (Reason: {r.SensorReason})" : string.Empty));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(r.CalibrationResult))
+                    {
+                        sb.AppendLine($"Calibration Result: {r.CalibrationResult}");
+                    }
+
                     if (!string.IsNullOrWhiteSpace(r.AdditionalNotes))
                         sb.AppendLine($"Additional: {r.AdditionalNotes}");
 
                     sb.AppendLine();
                 }
             }
+            return sb.ToString().Trim();
+        }
 
-            if (!string.IsNullOrWhiteSpace(request.SimpleNotes))
+        private static string? ValidateCompletionAction(
+            CreateIssueCompletionRecordDTO action,
+            string actionName,
+            string? actionType)
+        {
+            if (string.IsNullOrWhiteSpace(action.RootCause))
             {
-                sb.AppendLine($"Notes: {request.SimpleNotes}");
+                return $"Root cause is required for action '{actionName}'.";
             }
 
-            return sb.ToString().Trim();
+            if (string.Equals(actionType, "DeviceChange", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(action.NewDeviceType))
+                {
+                    return $"New device type is required for action '{actionName}'.";
+                }
+
+                if (string.IsNullOrWhiteSpace(action.NewDeviceImei))
+                {
+                    return $"New IMEI is required for action '{actionName}'.";
+                }
+            }
+
+            if (string.Equals(actionType, "CameraInstall", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(action.CameraImei))
+                {
+                    return $"Camera IMEI is required for action '{actionName}'.";
+                }
+
+                if (string.IsNullOrWhiteSpace(action.CameraPosition))
+                {
+                    return $"Camera position is required for action '{actionName}'.";
+                }
+            }
+
+            if (string.Equals(actionType, "SensorReplacement", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(action.NewSensorType))
+                {
+                    return $"New sensor type is required for action '{actionName}'.";
+                }
+
+                if (string.IsNullOrWhiteSpace(action.SensorReason))
+                {
+                    return $"Sensor replacement reason is required for action '{actionName}'.";
+                }
+            }
+
+            if (string.Equals(actionType, "SensorCalibration", StringComparison.OrdinalIgnoreCase))
+            {
+                if (string.IsNullOrWhiteSpace(action.CalibrationResult))
+                {
+                    return $"Calibration result is required for action '{actionName}'.";
+                }
+            }
+
+            return null;
+        }
+
+        private static string? ValidateTemplateActionSelection(IssueTemplateAction templateAction, int? issueTemplateId)
+        {
+            if (!issueTemplateId.HasValue)
+            {
+                return $"Action '{templateAction.Name}' cannot be used because the issue has no assigned template.";
+            }
+
+            if (templateAction.IssueTemplateId != issueTemplateId.Value)
+            {
+                return $"Action '{templateAction.Name}' does not belong to the issue template.";
+            }
+
+            if (!templateAction.IsActive)
+            {
+                return $"Action '{templateAction.Name}' is inactive and cannot be used for completion.";
+            }
+
+            if (!templateAction.StageId.HasValue || templateAction.Stage == null)
+            {
+                return $"Action '{templateAction.Name}' is not assigned to an active workflow stage.";
+            }
+
+            if (!templateAction.Stage.IsActive)
+            {
+                return $"Action '{templateAction.Name}' belongs to an inactive workflow stage.";
+            }
+
+            if (templateAction.Stage.Workflow == null
+                || templateAction.Stage.Workflow.IssueTemplateId != issueTemplateId.Value
+                || !templateAction.Stage.Workflow.IsActive)
+            {
+                return $"Action '{templateAction.Name}' does not belong to an active workflow for the issue template.";
+            }
+
+            return null;
         }
 
         private async Task SendCompletionNotificationAsync(
@@ -373,7 +505,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
             string? vehicleName,
             string? siteName,
             List<IssueCompletionRecord> records,
-            string? simpleNotes,
             CancellationToken cancellationToken)
         {
             try
@@ -393,9 +524,9 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                     siteName ?? "Not specified",
                     completedAtLocal,
                     records,
-                    simpleNotes,
                     issueUrl);
 
+                var issueLink = NotificationLinkBuilder.ForIssue(issue.Id);
                 var notificationRequest = new CreateNotificationRequest
                 {
                     Type = NotificationType.Alert,
@@ -403,6 +534,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                     Priority = NotificationPriority.Medium,
                     Title = $"Issue Completed: {issue.ProblemTitle}",
                     Message = $"Your issue #{issue.Id} has been marked as complete by {completedByName}.",
+                    Link = issueLink.Link,
+                    LinkLabel = issueLink.Label,
                     Data = new
                     {
                         IssueId = issue.Id,
@@ -460,7 +593,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
             string siteName,
             string completedAt,
             List<IssueCompletionRecord> records,
-            string? simpleNotes,
             string issueUrl)
         {
             var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
@@ -485,6 +617,13 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                 if (!string.IsNullOrWhiteSpace(r.CameraImei))
                     details.Add($"Camera: {WebUtility.HtmlEncode(r.CameraImei)} [{WebUtility.HtmlEncode(r.CameraPosition)}]");
 
+                if (!string.IsNullOrWhiteSpace(r.NewSensorType) || !string.IsNullOrWhiteSpace(r.OldSensorType))
+                    details.Add($"Sensor: {WebUtility.HtmlEncode(r.OldSensorType ?? "—")} → {WebUtility.HtmlEncode(r.NewSensorType ?? "—")}" +
+                        (!string.IsNullOrWhiteSpace(r.SensorReason) ? $" ({WebUtility.HtmlEncode(r.SensorReason)})" : string.Empty));
+
+                if (!string.IsNullOrWhiteSpace(r.CalibrationResult))
+                    details.Add($"Calibration: {WebUtility.HtmlEncode(r.CalibrationResult)}");
+
                 var detailText = details.Count > 0
                     ? string.Join("<br/>", details)
                     : "—";
@@ -495,16 +634,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                           <td style=""padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151;"">{safeRootCause}</td>
                           <td style=""padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151;"">{detailText}</td>
                         </tr>");
-            }
-
-            var notesSection = "";
-            if (!string.IsNullOrWhiteSpace(simpleNotes))
-            {
-                notesSection = $@"
-                      <div style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;"">
-                        <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">Notes</div>
-                        <div style=""font-size:14px;color:#111827;"">{WebUtility.HtmlEncode(simpleNotes)}</div>
-                      </div>";
             }
 
             return $@"
@@ -559,7 +688,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                           {actionRows}
                         </table>
                       </div>" : "")}
-                      {notesSection}
                       <div style=""padding:24px;text-align:center;"">
                         <a href=""{safeIssueUrl}"" style=""display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#059669 0%,#10b981 100%);color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;box-shadow:0 4px 6px rgba(5,150,105,0.25);"">
                           View Issue Details

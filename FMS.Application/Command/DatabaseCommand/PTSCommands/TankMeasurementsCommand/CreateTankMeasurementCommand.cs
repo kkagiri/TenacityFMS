@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
+using FMS.Application.Configuration;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
@@ -118,7 +119,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                     }
 
                     //Cursor: Check system configuration for sensor-based physical stock updates
-                    var enableSensorPhysicalStock = await GetConfigurationValueAsync("Tank.EnableSensorPhysicalStockUpdate", false, cancellationToken);
+                    var enableSensorPhysicalStock = await GetConfigurationValueAsync(SystemConfiguration.DB_CONFIG_TANK_ENABLE_SENSOR_PHYSICAL_STOCK_UPDATE_KEY, false, cancellationToken);
                     var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(tank.ProbePhysicalStockUpdateSource);
                     var shouldUpdatePhysicalStockFromTankMeasurement =
                         string.Equals(normalizedPhysicalStockUpdateSource, TankProbeConfigurationOptions.TankMeasurement, StringComparison.Ordinal)

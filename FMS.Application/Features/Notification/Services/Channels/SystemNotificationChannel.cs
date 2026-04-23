@@ -38,6 +38,8 @@ namespace FMS.Application.Features.Notification.Services.Channels
                         message = plainMessage,
                         type = notification.Type.ToLower(),
                         priority = notification.Priority,
+                        link = notification.Link,
+                        linkLabel = notification.LinkLabel,
                         // Ensure timestamp is in ISO 8601 UTC format with 'Z' suffix
                         timestamp = notification.CreatedAt.ToString("o"),
                         data = notification.Data != null ? JsonConvert.DeserializeObject(notification.Data) : null

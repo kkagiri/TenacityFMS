@@ -9,6 +9,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import {
@@ -18,6 +19,7 @@ import {
     acknowledgeNotification,
 } from '../../redux/actions/notificationActions';
 import SlidePanel from '../../components/ui/SlidePanel';
+import { resolveSafeNotificationLink } from '../../components/notifications/notificationLinkUtils';
 import './NotificationCenterPage.scss';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -178,6 +180,7 @@ const NotificationCard = ({ notification, onPress, onMarkRead, onAcknowledge }) 
 // ─── Detail Side Panel ───────────────────────────────────────────────────────
 
 const NotificationDetailPanel = ({ notification, open, onClose, onMarkRead, onAcknowledge }) => {
+    const navigate = useNavigate();
     if (!notification) return null;
 
     const title = resolveField(notification, 'title', 'Title', 'subject', 'Subject') || 'Notification';
@@ -193,6 +196,22 @@ const NotificationDetailPanel = ({ notification, open, onClose, onMarkRead, onAc
     const pConf = getPriorityConfig(priority);
     const tConf = getTypeConfig(type);
     const nId = notification.id || notification.Id;
+
+    // Resolve the backend-provided deep link (with legacy fallbacks), then validate against whitelist.
+    const rawLink = resolveField(notification, 'link', 'Link');
+    const rawData = notification.data || notification.Data;
+    const parsedData = typeof rawData === 'string'
+        ? (() => { try { return JSON.parse(rawData); } catch { return null; } })()
+        : rawData;
+    const resolvedLink = resolveSafeNotificationLink(
+        rawLink ||
+        parsedData?.Link ||
+        parsedData?.link ||
+        parsedData?.ActionUrl ||
+        parsedData?.actionUrl ||
+        parsedData?.ImportManagementLink
+    );
+    const linkLabel = resolveField(notification, 'linkLabel', 'LinkLabel') || 'Open';
 
     return (
         <SlidePanel
@@ -241,6 +260,18 @@ const NotificationDetailPanel = ({ notification, open, onClose, onMarkRead, onAc
                 </div>
 
                 <div className="nc-detail__footer">
+                    {resolvedLink && (
+                        <button
+                            className="nc-detail__btn"
+                            onClick={() => {
+                                if (!isRead) onMarkRead(nId);
+                                onClose();
+                                navigate(resolvedLink);
+                            }}
+                        >
+                            <i className="fa-light fa-arrow-up-right-from-square tw-mr-2" />{linkLabel}
+                        </button>
+                    )}
                     {!isRead && (
                         <button className="nc-detail__btn" onClick={() => { onMarkRead(nId); onClose(); }}>
                             <i className="fa-light fa-envelope-open tw-mr-2" />Mark as Read

@@ -71,12 +71,40 @@ INSERT INTO `SystemConfigurations` (
 -- Connection Threshold Configuration
 ('System.WebSocketStartupStaleThreshold', '10', 'Threshold in minutes for considering a WebSocket connection stale during startup cleanup', 'Int', 'ConnectionThresholds', 1, 1, '^[1-9][0-9]*$', 5, 60, '10', 'SYSTEM'),
 ('System.HttpStartupStaleThreshold', '20', 'Threshold in minutes for considering an HTTP connection stale during startup cleanup', 'Int', 'ConnectionThresholds', 1, 1, '^[1-9][0-9]*$', 10, 120, '20', 'SYSTEM'),
-('System.CleanupTimeoutMultiplier', '2', 'Multiplier for cleanup timeout (connection_timeout * this_multiplier)', 'Int', 'ConnectionThresholds', 1, 1, '^[1-9]$', 1, 5, '2', 'SYSTEM')
+('System.CleanupTimeoutMultiplier', '2', 'Multiplier for cleanup timeout (connection_timeout * this_multiplier)', 'Int', 'ConnectionThresholds', 1, 1, '^[1-9]$', 1, 5, '2', 'SYSTEM'),
+
+-- Tank Stock Configuration
+('TankStock.FutureRecordsPolicy', 'WARN_RECONCILE', 'Policy for handling historical tank stock entries when future records exist: BLOCK, WARN_RECONCILE, WARN_RECALCULATE, ALLOW_RECALCULATE', 'String', 'TankStock', 1, 1, '^(BLOCK|WARN_RECONCILE|WARN_RECALCULATE|ALLOW_RECALCULATE)$', NULL, NULL, 'WARN_RECONCILE', 'SYSTEM'),
+('TankStock.ShowDetailedWarnings', 'true', 'Show detailed warnings when future tank stock records already exist', 'Boolean', 'TankStock', 1, 1, '^(true|false)$', NULL, NULL, 'true', 'SYSTEM'),
+('TankStock.MaxHistoricalDays', '400', 'Maximum historical tank stock backdating window in days', 'Int32', 'TankStock', 1, 1, '^[0-9]+$', 0, 3650, '400', 'SYSTEM'),
+
+-- PTS Automated Fueling Configuration
+('PTS.AutomatedFueling.CheckForDuplicateManualEntries', 'true', 'Check for duplicate manual entries before creating automated fueling records', 'Boolean', 'PTS.AutomatedFueling', 1, 1, '^(true|false)$', NULL, NULL, 'true', 'SYSTEM'),
+('PTS.AutomatedFueling.DiscrepancyAction', '1', 'Action when tank discrepancy exceeds threshold: 1=Alert, 2=Block, 3=AutoAdjust', 'Int32', 'PTS.AutomatedFueling', 1, 1, '^[1-3]$', 1, 3, '1', 'SYSTEM'),
+('PTS.AutomatedFueling.DuplicateVolumeTolerance', '0.01', 'Volume tolerance ratio for duplicate manual entry detection', 'Decimal', 'PTS.AutomatedFueling', 1, 1, '^(0(\\.[0-9]+)?|1(\\.0+)?)$', 0, 1, '0.01', 'SYSTEM'),
+('PTS.AutomatedFueling.EnableFuelCapacityValidation', 'true', 'Validate requested fuel volume against vehicle tank capacity during automated fueling', 'Boolean', 'PTS.AutomatedFueling', 1, 1, '^(true|false)$', NULL, NULL, 'true', 'SYSTEM'),
+('PTS.AutomatedFueling.EnableFuelRulesCheck', 'true', 'Require fuel rules validation before automated fueling is allowed', 'Boolean', 'PTS.AutomatedFueling', 1, 1, '^(true|false)$', NULL, NULL, 'true', 'SYSTEM'),
+('PTS.AutomatedFueling.EnableGPSFuelLevelCheck', 'true', 'Use GPS fuel level sensor data when validating automated fueling capacity', 'Boolean', 'PTS.AutomatedFueling', 1, 1, '^(true|false)$', NULL, NULL, 'true', 'SYSTEM'),
+('PTS.AutomatedFueling.ReconciliationFrequencyMinutes', '60', 'Frequency in minutes for automated tank reconciliation checks', 'Int32', 'PTS.AutomatedFueling', 1, 1, '^[1-9][0-9]*$', 1, 1440, '60', 'SYSTEM'),
+('PTS.AutomatedFueling.VolumeSourcePriority', '1', 'Primary tank volume source priority: 1=BookKeeping, 2=PTS Probe', 'Int32', 'PTS.AutomatedFueling', 1, 1, '^[1-2]$', 1, 2, '1', 'SYSTEM'),
+
+-- PTS Offline Report Configuration
+('PTS.OfflineReport.ThresholdSeconds', '60', 'Minimum PTS offline duration in seconds before the period is included in reports', 'Int32', 'PTS.OfflineReport', 1, 1, '^[1-9][0-9]*$', 1, 86400, '60', 'SYSTEM'),
+
+-- Issue Tracker Auto Monitoring Configuration
+('IssueTracker.AutoMonitoring.DailyRunTimeLocal', '00:00', 'Daily local run time for issue auto-monitoring in HH:mm format', 'TimeSpan', 'IssueTracker.AutoMonitoring', 1, 1, '^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$', NULL, NULL, '00:00', 'SYSTEM'),
+
+-- Tank Stock Background Services
+('AutoOpeningStock_Enabled', 'false', 'Enable the automated opening stock background service', 'Boolean', 'TankStock', 1, 1, '^(true|false)$', NULL, NULL, 'false', 'SYSTEM')
 
 ON DUPLICATE KEY UPDATE
-    `ConfigurationValue` = VALUES(`ConfigurationValue`),
+    `ConfigurationValue` = IF(`ConfigurationValue` IS NULL OR `ConfigurationValue` = '', VALUES(`ConfigurationValue`), `ConfigurationValue`),
     `Description` = VALUES(`Description`),
     `DataType` = VALUES(`DataType`),
     `Category` = VALUES(`Category`),
+    `ValidationPattern` = VALUES(`ValidationPattern`),
+    `MinValue` = VALUES(`MinValue`),
+    `MaxValue` = VALUES(`MaxValue`),
+    `DefaultValue` = VALUES(`DefaultValue`),
     `UpdatedAt` = CURRENT_TIMESTAMP,
     `UpdatedBy` = 'SYSTEM';

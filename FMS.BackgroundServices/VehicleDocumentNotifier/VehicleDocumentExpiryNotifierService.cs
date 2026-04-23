@@ -209,6 +209,7 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
             ? $"Your {document.ComplianceCategory} document for {vehicleLabel} expires today."
             : $"Your {document.ComplianceCategory} document for {vehicleLabel} expires in {daysUntilExpiry} day(s).";
 
+        var documentLink = NotificationLinkBuilder.ForVehicleDocument(document.VehicleId);
         var request = new CreateNotificationRequest
         {
             Type = NotificationType.Alert,
@@ -216,6 +217,8 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
             Priority = daysUntilExpiry == 0 ? NotificationPriority.High : NotificationPriority.Medium,
             Title = title,
             Message = message,
+            Link = documentLink.Link,
+            LinkLabel = documentLink.Label,
             Data = new
             {
                 DocumentId = document.Id,

@@ -187,6 +187,11 @@ namespace FMS.Application.Configuration
         public const string DB_CONFIG_TANK_STOCK_MAX_HISTORICAL_DAYS_KEY = "TankStock.MaxHistoricalDays";
 
         /// <summary>
+        /// Configuration key for whether future-record warnings can be overridden.
+        /// </summary>
+        public const string DB_CONFIG_TANK_STOCK_FUTURE_RECORDS_ALLOW_OVERRIDE_KEY = "TankStock.FutureRecords.AllowOverride";
+
+        /// <summary>
         /// Configuration key to enable/disable IssueMonitoringService auto-checkups.
         /// </summary>
         public const string DB_CONFIG_ISSUE_MONITORING_ENABLED_KEY = "IssueTracker.AutoMonitoring.Enabled";
@@ -218,6 +223,46 @@ namespace FMS.Application.Configuration
         /// Example: "00:00" for midnight.
         /// </summary>
         public const string DB_CONFIG_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL_KEY = "IssueTracker.AutoMonitoring.DailyRunTimeLocal";
+
+        /// <summary>
+        /// Configuration key for whether tank sensor measurements can update physical stock.
+        /// </summary>
+        public const string DB_CONFIG_TANK_ENABLE_SENSOR_PHYSICAL_STOCK_UPDATE_KEY = "Tank.EnableSensorPhysicalStockUpdate";
+
+        /// <summary>
+        /// Configuration key storing the reason for a temporary fueling-rules bypass.
+        /// </summary>
+        public const string DB_CONFIG_FUELING_RULES_TEMPORARY_BYPASS_REASON_KEY = "FuelingRules.TemporaryBypass.Reason";
+
+        /// <summary>
+        /// Configuration key for stock variance percentage threshold.
+        /// </summary>
+        public const string DB_CONFIG_STOCK_VARIANCE_THRESHOLD_PERCENTAGE_KEY = "Stock.VarianceThreshold.Percentage";
+
+        /// <summary>
+        /// Configuration key for stock variance absolute liters threshold.
+        /// </summary>
+        public const string DB_CONFIG_STOCK_VARIANCE_THRESHOLD_ABSOLUTE_LITERS_KEY = "Stock.VarianceThreshold.AbsoluteLiters";
+
+        /// <summary>
+        /// Configuration key for whether automated opening stock is enabled.
+        /// </summary>
+        public const string DB_CONFIG_AUTO_OPENING_STOCK_ENABLED_KEY = "AutoOpeningStock_Enabled";
+
+        /// <summary>
+        /// Configuration key for whether automated closing stock is enabled.
+        /// </summary>
+        public const string DB_CONFIG_AUTO_CLOSING_STOCK_ENABLED_KEY = "AutoClosingStock_Enabled";
+
+        /// <summary>
+        /// Configuration key for whether the tank volume entry check service is enabled.
+        /// </summary>
+        public const string DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_ENABLED_KEY = "TankVolumeEntryCheck_Enabled";
+
+        /// <summary>
+        /// Configuration key for the daily schedule of the tank volume entry check service.
+        /// </summary>
+        public const string DB_CONFIG_TANK_VOLUME_ENTRY_CHECK_SCHEDULE_TIME_KEY = "TankVolumeEntryCheck_ScheduleTime";
         #endregion
 
         #region PTS Automated Fueling Configuration Keys

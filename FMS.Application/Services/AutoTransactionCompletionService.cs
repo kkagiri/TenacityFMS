@@ -513,12 +513,14 @@ namespace FMS.Application.Services
                         deviceId, transaction);
                 }
 
+                var transactionKey = $"device:{deviceId}:transaction:{transaction}";
+                var shouldSendManualClose = await ShouldSendManualCloseAsync(deviceId, transaction, transactionKey);
+
                 // Step 3b: Always clean up the Redis transaction context key so the device no longer
                 // appears in GetActiveTransactionsAsync scans (prevents MISSING EOT spam).
                 // This is safe here because the transaction was already persisted to DB in Step 2.
                 try
                 {
-                    var transactionKey = $"device:{deviceId}:transaction:{transaction}";
                     var monitoringKey = $"monitoring:{deviceId}:transaction:{transaction}";
                     await _redisDb.KeyDeleteAsync(transactionKey);
                     await _redisDb.KeyDeleteAsync(monitoringKey);
@@ -530,24 +532,27 @@ namespace FMS.Application.Services
                         deviceId, transaction);
                 }
 
-                // Step 4: Send close command to device (best effort - don't fail if this fails)
-                try
+                // Step 4: Send close command to device only when the controller was not already configured to auto-close.
+                if (shouldSendManualClose)
                 {
-                    await SendCloseCommandToDevice(deviceId, pump, transaction);
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    _logger.LogWarning("[AutoComplete] Service disposed during close command for {DeviceId}:{Transaction} - transaction was saved successfully. Error: {Error}",
-                        deviceId, transaction, ex.Message);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[AutoComplete] Error sending close command for {DeviceId}:{Transaction} - transaction was saved successfully",
-                        deviceId, transaction);
+                    try
+                    {
+                        await SendCloseCommandToDevice(deviceId, pump, transaction);
+                    }
+                    catch (ObjectDisposedException ex)
+                    {
+                        _logger.LogWarning("[AutoComplete] Service disposed during close command for {DeviceId}:{Transaction} - transaction was saved successfully. Error: {Error}",
+                            deviceId, transaction, ex.Message);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[AutoComplete] Error sending close command for {DeviceId}:{Transaction} - transaction was saved successfully",
+                            deviceId, transaction);
+                    }
                 }
 
-                _logger.LogInformation("[AutoComplete] **COMPLETE SUCCESS** - Transaction {Transaction} saved, monitoring cleaned up, and close command sent for device {DeviceId}",
-                    transaction, deviceId);
+                _logger.LogInformation("[AutoComplete] **COMPLETE SUCCESS** - Transaction {Transaction} saved, monitoring cleaned up, and manual close {CloseAction} for device {DeviceId}",
+                    transaction, deviceId, shouldSendManualClose ? "sent" : "skipped");
 
                 return true;
 
@@ -686,6 +691,7 @@ namespace FMS.Application.Services
                 EnrichPropertyIfMissing(data, context, "PumpId"); // Pump ID from authorization
                 EnrichPropertyIfMissing(data, context, "SiteId"); // Site ID for configuration lookup
                 EnrichPropertyIfMissing(data, context, "FuelLevelBefore"); // Fuel level before fueling from authorization
+                EnrichPropertyIfMissing(data, context, "FuelingLocationSource");
                 // Mobile location from authorization for fueling location tracking
                 EnrichPropertyIfMissingDouble(data, context, "MobileLocationLatitude", "MobileLatitude");
                 EnrichPropertyIfMissingDouble(data, context, "MobileLocationLongitude", "MobileLongitude");
@@ -943,6 +949,55 @@ namespace FMS.Application.Services
             {
                 _logger.LogWarning(ex,
                     "[AutoComplete] Failed to capture fuel level after fueling from GPS during auto completion");
+            }
+        }
+
+        private async Task<bool> ShouldSendManualCloseAsync(string deviceId, int transaction, string? transactionKey = null)
+        {
+            try
+            {
+                var resolvedTransactionKey = transactionKey ?? $"device:{deviceId}:transaction:{transaction}";
+                var transactionContextJson = await _redisDb.StringGetAsync(resolvedTransactionKey);
+                if (transactionContextJson.IsNullOrEmpty)
+                {
+                    return true;
+                }
+
+                var transactionContext = JsonSerializer.Deserialize<JsonElement>(transactionContextJson!);
+                var isTransferMode = transactionContext.TryGetProperty("IsTransferMode", out var isTransferModeElement) &&
+                    isTransferModeElement.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+                    isTransferModeElement.GetBoolean();
+
+                var autoCloseTransaction = transactionContext.TryGetProperty("AutoCloseTransaction", out var autoCloseElement) &&
+                    autoCloseElement.ValueKind is JsonValueKind.True or JsonValueKind.False &&
+                    autoCloseElement.GetBoolean();
+
+                if (autoCloseTransaction && !isTransferMode)
+                {
+                    _logger.LogInformation(
+                        "[AutoComplete] Skipping manual close for {DeviceId}:{Transaction} because controller-side AutoCloseTransaction is enabled",
+                        deviceId,
+                        transaction);
+                    return false;
+                }
+
+                if (autoCloseTransaction && isTransferMode)
+                {
+                    _logger.LogDebug(
+                        "[AutoComplete] Keeping manual close enabled for transfer {DeviceId}:{Transaction} even though server auto-completion is active",
+                        deviceId,
+                        transaction);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[AutoComplete] Could not read transaction context for {DeviceId}:{Transaction} before close decision. Falling back to manual close.",
+                    deviceId,
+                    transaction);
+                return true;
             }
         }
 

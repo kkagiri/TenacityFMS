@@ -1,26 +1,50 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { List } from 'devextreme-react/list';
 import { TextBox } from 'devextreme-react/text-box';
-import { useSelector, useDispatch } from 'react-redux';
-import { fetchNavigationItems } from '../../redux/actions/navigationActions';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '../../contexts/navigation';
+import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import './MobileNavigationMenu.scss';
 
+const normalizeNavigationTree = (navigationItems) => {
+    if (!Array.isArray(navigationItems) || navigationItems.length === 0) {
+        return [];
+    }
+
+    const mappedItems = navigationItems.map((item) => ({
+        id: item.id,
+        text: item.page || item.pageName || item.text || '',
+        path: item.link || item.path || '',
+        icon: item.icon || null,
+        parentId: item.parentId || null,
+        children: [],
+    }));
+
+    const itemsById = new Map(mappedItems.map((item) => [item.id, item]));
+    const roots = [];
+
+    mappedItems.forEach((item) => {
+        if (item.parentId && itemsById.has(item.parentId)) {
+            itemsById.get(item.parentId).children.push(item);
+            return;
+        }
+
+        roots.push(item);
+    });
+
+    return roots;
+};
+
 const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
+    const location = useLocation();
     const dispatch = useDispatch();
-    const { navigationItems, loading } = useSelector((state) => state.navigation);
+    const { navigationItems: rawNavigationItems, loading } = useSelector((state) => state.navigation);
     const { user } = useSelector((state) => state.auth);
     const { navigationData: { currentPath } } = useNavigation();
 
     const [searchText, setSearchText] = useState('');
     const [expandedSections, setExpandedSections] = useState(new Set());
-    const [breadcrumb, setBreadcrumb] = useState([]);
-
-    useEffect(() => {
-        if (user) {
-            dispatch(fetchNavigationItems());
-        }
-    }, [user, dispatch]);
 
     useEffect(() => {
         if (onMenuReady) {
@@ -28,37 +52,18 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
         }
     }, [onMenuReady]);
 
-    const transformNavigationItems = useMemo(() => {
-        if (!navigationItems || navigationItems.length === 0) return [];
+    useEffect(() => {
+        if (user) {
+            dispatch(fetchNavigationItems());
+        }
+    }, [dispatch, user]);
 
-        const itemMap = {};
-        const roots = [];
-
-        // Create item map
-        navigationItems.forEach(item => {
-            itemMap[item.id] = {
-                ...item,
-                text: item.page.charAt(0).toUpperCase() + item.page.slice(1),
-                path: item.link && item.link !== "''" ? item.link : '',
-                icon: item.icon || 'fa-circle-o',
-                children: []
-            };
-        });
-
-        // Build hierarchy
-        navigationItems.forEach(item => {
-            if (item.parentId && itemMap[item.parentId]) {
-                itemMap[item.parentId].children.push(itemMap[item.id]);
-            } else if (!item.parentId) {
-                roots.push(itemMap[item.id]);
-            }
-        });
-
-        return roots;
-    }, [navigationItems]);
+    const navigationItems = useMemo(() => {
+        return normalizeNavigationTree(rawNavigationItems);
+    }, [rawNavigationItems]);
 
     const filteredItems = useMemo(() => {
-        if (!searchText) return transformNavigationItems;
+        if (!searchText) return navigationItems;
 
         const filterItems = (items) => {
             return items.reduce((acc, item) => {
@@ -75,8 +80,30 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
             }, []);
         };
 
-        return filterItems(transformNavigationItems);
-    }, [transformNavigationItems, searchText]);
+        return filterItems(navigationItems);
+    }, [navigationItems, searchText]);
+
+    const activeRootPath = useMemo(() => {
+        const activePath = currentPath || location.pathname;
+        const findMatch = (items) => {
+            for (const item of items) {
+                if (item.path && (activePath === item.path || activePath.startsWith(`${item.path}/`))) {
+                    return item.path;
+                }
+
+                if (item.children?.length) {
+                    const nestedMatch = findMatch(item.children);
+                    if (nestedMatch) {
+                        return nestedMatch;
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        return findMatch(navigationItems) || activePath;
+    }, [currentPath, location.pathname, navigationItems]);
 
     const toggleSection = useCallback((itemId) => {
         setExpandedSections(prev => {
@@ -101,7 +128,7 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
     const renderNavigationItem = useCallback((item, level = 0) => {
         const hasChildren = item.children && item.children.length > 0;
         const isExpanded = expandedSections.has(item.id);
-        const isActive = currentPath === item.path;
+        const isActive = activeRootPath === item.path;
         const paddingLeft = level * 20 + 16;
 
         return (
@@ -128,7 +155,7 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
                 )}
             </div>
         );
-    }, [expandedSections, currentPath, handleItemClick]);
+    }, [activeRootPath, expandedSections, handleItemClick]);
 
     const flattenItems = (items, level = 0) => {
         return items.reduce((acc, item) => {
@@ -182,7 +209,7 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
                         showSelectionControls={false}
                         itemRender={(item) => (
                             <div
-                                className={`mobile-nav-item-content ${currentPath === item.path ? 'active' : ''} ${item.children && item.children.length > 0 ? 'has-children' : ''}`}
+                                className={`mobile-nav-item-content ${activeRootPath === item.path ? 'active' : ''} ${item.children && item.children.length > 0 ? 'has-children' : ''}`}
                                 style={{ paddingLeft: `${item.level * 20 + 16}px` }}
                                 onClick={() => handleItemClick(item)}
                             >

@@ -8,15 +8,13 @@
  * - Content(): Root route configuration and layout composition
  */
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import React, { useEffect, useMemo } from "react";
+import React from "react";
 import appInfo from "./app-info";
 import { AppDrawerLayout } from "./layouts";
 import { Footer } from "./components";
 
-import { useDispatch, useSelector } from "react-redux";
-import { fetchNavigationItems } from "./redux/actions/navigationActions";
+import { useSelector } from "react-redux";
 import resolvedComponents from "./app-routes";
-import withRoleProtection from "./utils/withRoleProtection";
 import withPermissionProtection from "./utils/withPermissionProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
@@ -27,8 +25,6 @@ import useDocumentTitle from "./hooks/useDocumentTitle";
 import { getSafeInternalRedirect } from "./utils/authRedirect";
 
 export default function Content() {
-  const dispatch = useDispatch();
-  const { navigationItems } = useSelector((state) => state.navigation);
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
 
@@ -40,28 +36,6 @@ export default function Content() {
 
   // Update browser tab title based on current route
   useDocumentTitle();
-
-  useEffect(() => {
-    if (user) {
-      dispatch(fetchNavigationItems());
-    }
-  }, [user, dispatch]);
-
-  const dynamicRoutes = useMemo(() => {
-    return navigationItems
-      .filter((item) => !item.link?.startsWith("/admin"))
-      .map((item) => {
-        const Component = resolvedComponents(item.page);
-        const ProtectedComponent = withRoleProtection(Component, item.roles);
-        return (
-          <Route
-            key={item.link}
-            path={item.link}
-            element={<ProtectedComponent />}
-          />
-        );
-      });
-  }, [navigationItems]);
 
   const requiresPasswordChange = Boolean(
     user?.requirePasswordChangeOnFirstLogin ?? user?.RequirePasswordChangeOnFirstLogin
@@ -94,7 +68,6 @@ export default function Content() {
     <AppDrawerLayout title={appInfo.title}>
       <Routes>
         <Route path="/change-password-required" element={<ForcePasswordChangePage />} />
-        {dynamicRoutes}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Fueling routes with proper error handling */}

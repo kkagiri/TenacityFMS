@@ -153,6 +153,12 @@ namespace FMS.Application.Features.PTS.Services
         public bool? MobileLocationIsCached { get; set; }
 
         /// <summary>
+        /// Source of the fueling location persisted for this transaction.
+        /// Values include MobileApp, Static, and LinkedVehicle.
+        /// </summary>
+        public string? FuelingLocationSource { get; set; }
+
+        /// <summary>
         /// When the transaction was authorized.
         /// </summary>
         public DateTime AuthorizedAt { get; set; }

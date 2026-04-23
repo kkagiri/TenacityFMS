@@ -32,7 +32,6 @@ const useAuthProvider = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
-  const [navigationItems, setNavigationItems] = useState([]);
   const [error, setError] = useState(null);
 
   const authService = serviceFactory.getAuthenticationService();
@@ -54,24 +53,16 @@ const useAuthProvider = () => {
         console.log('Setting user from validation:', validation.data.user); // Debug log
         setUser(validation.data.user);
         setIsAuthenticated(true);
-
-        // Fetch navigation items for authenticated user
-        const navResponse = await authService.fetchNavigationItems();
-        if (navResponse.success) {
-          setNavigationItems(navResponse.data);
-        }
       } else {
         console.log('Validation failed or no user, clearing auth state'); // Debug log
         setUser(null);
         setIsAuthenticated(false);
-        setNavigationItems([]);
       }
 
     } catch (error) {
       console.error('Auth initialization failed:', error);
       setUser(null);
       setIsAuthenticated(false);
-      setNavigationItems([]);
       setError(error.message || 'Authentication initialization failed');
     } finally {
       setLoading(false);
@@ -93,11 +84,10 @@ const useAuthProvider = () => {
       const result = await authService.signIn(username, password);
 
       if (result.success && result.data) {
-        const { user, navigationItems: navItems } = result.data;
+        const { user } = result.data;
 
         setUser(user);
         setIsAuthenticated(true);
-        setNavigationItems(navItems || []);
 
         return {
           success: true,
@@ -140,7 +130,6 @@ const useAuthProvider = () => {
       // Clear all auth state
       setUser(null);
       setIsAuthenticated(false);
-      setNavigationItems([]);
       setError(null);
 
       return { success: true };
@@ -151,7 +140,6 @@ const useAuthProvider = () => {
       // Still clear local state even if API call fails
       setUser(null);
       setIsAuthenticated(false);
-      setNavigationItems([]);
       setError(null);
 
       return { success: true }; // Local cleanup succeeded
@@ -253,7 +241,6 @@ const useAuthProvider = () => {
     isAuthenticated,
     loading,
     initialized,
-    navigationItems,
     error,
 
     // Actions

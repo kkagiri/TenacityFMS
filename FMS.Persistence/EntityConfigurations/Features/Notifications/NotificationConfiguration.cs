@@ -55,6 +55,14 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.Title).HasMaxLength(255).IsRequired();
                 builder.Property(e => e.Message).HasColumnType("text").IsRequired();
                 builder.Property(e => e.Data).HasColumnType("text"); // Changed from json to text to match DB
+                builder.Property(e => e.Link)
+                    .HasMaxLength(500)
+                    .HasColumnName("Link")
+                    .IsRequired(false);
+                builder.Property(e => e.LinkLabel)
+                    .HasMaxLength(100)
+                    .HasColumnName("LinkLabel")
+                    .IsRequired(false);
                 builder.Property(e => e.TriggerSource).HasMaxLength(50).IsRequired();
                 builder.Property(e => e.TriggeredBy).HasMaxLength(100);
                 builder.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");

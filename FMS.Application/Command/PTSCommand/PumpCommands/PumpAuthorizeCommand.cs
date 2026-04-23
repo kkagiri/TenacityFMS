@@ -859,6 +859,29 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             // This value is stored in transaction context and persisted when transaction completes.
             var fuelLevelBefore = await TryGetFuelLevelBeforeFuelingAsync(request, cancellationToken);
 
+            var fuelingLocation = request.MobileLocation;
+            string? fuelingLocationSource = request.MobileLocation != null ? "MobileApp" : null;
+
+            if (fuelingLocation == null && request.TankId.HasValue)
+            {
+                var (tankLocation, tankLocationSource) = await _locationValidationService.GetTankLocationAsync(
+                    request.TankId.Value,
+                    cancellationToken);
+
+                if (tankLocation != null)
+                {
+                    fuelingLocation = tankLocation;
+                    fuelingLocationSource = tankLocationSource;
+
+                    _logger.LogInformation(
+                        "[PumpAuth] Using tanker location as persisted fueling location - TankId: {TankId}, Source: {Source}, Location: ({Latitude}, {Longitude})",
+                        request.TankId.Value,
+                        tankLocationSource ?? "N/A",
+                        tankLocation.Latitude,
+                        tankLocation.Longitude);
+                }
+            }
+
             // Store transaction context
             var transactionContext = new TransactionContext
             {
@@ -874,9 +897,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 SiteId = siteId,
                 Odometer = request.Odometer,
                 FuelLevelBefore = fuelLevelBefore,
-                MobileLocationLatitude = (double?)request.MobileLocation?.Latitude,
-                MobileLocationLongitude = (double?)request.MobileLocation?.Longitude,
-                MobileLocationAccuracy = (double?)request.MobileLocation?.Accuracy,
+                MobileLocationLatitude = (double?)fuelingLocation?.Latitude,
+                MobileLocationLongitude = (double?)fuelingLocation?.Longitude,
+                MobileLocationAccuracy = request.MobileLocation != null ? (double?)request.MobileLocation.Accuracy : null,
                 MobileLocationIsCached = request.MobileLocation?.IsCached,
                 AuthorizedAt = DateTime.UtcNow,
                 ConnectionType = connectionType,
@@ -895,7 +918,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 ConfigurationId = null,
                 // Employee/Driver who is performing the fueling
                 EmployeeId = request.EmployeeId,
-                IsTransferMode = false
+                IsTransferMode = false,
+                FuelingLocationSource = fuelingLocationSource
             };
 
             await _transactionContextService.StoreTransactionContextAsync(transactionContext);

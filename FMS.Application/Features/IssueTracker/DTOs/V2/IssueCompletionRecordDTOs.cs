@@ -2,7 +2,7 @@
  * File: IssueCompletionRecordDTOs.cs
  * Purpose: DTOs for structured issue completion data
  * Dependencies: None
- * Last Modified: 2026-02-21
+ * Last Modified: 2026-04-23
  *
  * Key DTOs:
  * - IssueCompletionRecordDTO: Full response DTO with denormalized names
@@ -41,6 +41,14 @@ namespace FMS.Application.Features.IssueTracker.DTOs.V2
         public string? CameraPosition { get; set; }
         public string? CameraSimNumber { get; set; }
 
+        // Sensor replacement
+        public string? OldSensorType { get; set; }
+        public string? NewSensorType { get; set; }
+        public string? SensorReason { get; set; }
+
+        // Sensor calibration
+        public string? CalibrationResult { get; set; }
+
         public string? AdditionalNotes { get; set; }
         public string CompletedByUserId { get; set; } = null!;
         public string? CompletedByUserName { get; set; }
@@ -70,13 +78,20 @@ namespace FMS.Application.Features.IssueTracker.DTOs.V2
         public string? CameraPosition { get; set; }
         public string? CameraSimNumber { get; set; }
 
+        // Sensor replacement
+        public string? OldSensorType { get; set; }
+        public string? NewSensorType { get; set; }
+        public string? SensorReason { get; set; }
+
+        // Sensor calibration
+        public string? CalibrationResult { get; set; }
+
         public string? AdditionalNotes { get; set; }
     }
 
     /// <summary>
     /// Top-level request for completing an issue with structured actions.
     /// Wraps one or more completion records (e.g., "replaced device" + "installed camera").
-    /// Falls back to simple notes if no template actions exist.
     /// </summary>
     public class CompleteIssueWithActionsRequestDTO
     {
@@ -84,11 +99,6 @@ namespace FMS.Application.Features.IssueTracker.DTOs.V2
         /// Structured completion records — one per action taken
         /// </summary>
         public List<CreateIssueCompletionRecordDTO> Actions { get; set; } = new();
-
-        /// <summary>
-        /// Simple text notes (used when issue has no template or for backward compatibility)
-        /// </summary>
-        public string? SimpleNotes { get; set; }
     }
 
     /// <summary>

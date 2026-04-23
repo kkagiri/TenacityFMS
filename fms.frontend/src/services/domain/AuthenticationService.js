@@ -4,7 +4,6 @@
  * Handles all authentication-related operations with standardized enterprise patterns:
  * - User sign in/sign out
  * - JWT token management
- * - Navigation items fetching
  * - User profile management
  * - Session management
  *
@@ -29,7 +28,7 @@ export class AuthenticationService extends BaseService {
    * Sign in user with credentials
    * @param {string} username - User's username
    * @param {string} password - User's password
-   * @returns {Promise<FMSResponse<{user: object, token: string, navigationItems: array}>>}
+    * @returns {Promise<FMSResponse<{user: object, token: string, configurations: object}>>}
    */
   async signIn(username, password) {
     try {
@@ -109,12 +108,6 @@ export class AuthenticationService extends BaseService {
             };
         }
 
-        // Fetch navigation items immediately after successful login
-        const navigationResponse = await this.fetchNavigationItems();
-        const navigationItems = navigationResponse.success
-          ? navigationResponse.data
-          : [];
-
         // Fetch user configurations if needed
         let configurations = {};
         try {
@@ -135,7 +128,6 @@ export class AuthenticationService extends BaseService {
           data: {
             user,
             token,
-            navigationItems,
             configurations,
           },
           message: "Successfully signed in",
@@ -342,41 +334,6 @@ export class AuthenticationService extends BaseService {
         message: "Signed out (local cleanup completed)",
         errors: [],
       };
-    }
-  }
-
-  /**
-   * Fetch navigation items for current user
-   * @returns {Promise<FMSResponse<Array>>}
-   */
-  async fetchNavigationItems() {
-    try {
-      this.logger.debug("Fetching navigation items");
-
-      // Navigation items are handled by a separate controller, so we need to call it directly
-      // Since it's not under the /User endpoint, we'll use axiosInstance from our imports
-      const axiosInstance = (await import("../../api/axiosInstance.js"))
-        .default;
-
-      const response = await axiosInstance.get("/v1/Navigation", {
-        headers: {
-          "API-Version": this.options.apiVersion,
-        },
-      });
-
-      // Handle the response through our standard format
-      const result = this._handleFMSResponse(response);
-
-      if (result.success) {
-        this.logger.debug("Navigation items fetched successfully", {
-          count: result.data?.length || 0,
-        });
-      }
-
-      return result;
-    } catch (error) {
-      this.logger.error("Failed to fetch navigation items", error);
-      return this.errorHandler.handle(error);
     }
   }
 

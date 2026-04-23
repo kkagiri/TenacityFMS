@@ -1,0 +1,530 @@
+/**
+ * File: IssueTemplateWorkflowPanel.scss
+ * Purpose: M365 Fluent styling for the issue template workflow canvas editor
+ * Dependencies: IssueTemplateWorkflowPanel.js, SlidePanel, @xyflow/react
+ * Last Modified: 2026-04-23
+ */
+
+.issue-template-workflow-panel {
+  --workflow-primary: #0078d4;
+  --workflow-primary-hover: #106ebe;
+  --workflow-text: #201f1e;
+  --workflow-text-secondary: #605e5c;
+  --workflow-border: #c8c6c4;
+  --workflow-border-light: #edebe9;
+  --workflow-bg: #faf9f8;
+  --workflow-card: #ffffff;
+  --workflow-hover: #f3f2f1;
+  --workflow-danger: #d13438;
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+  padding: 20px;
+  background: var(--workflow-bg);
+  color: var(--workflow-text);
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+}
+
+.issue-template-workflow-panel__loading,
+.issue-template-workflow-panel__empty-inspector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 320px;
+  color: var(--workflow-text-secondary);
+  text-align: center;
+}
+
+.issue-template-workflow-panel__empty-inspector i {
+  font-size: 24px;
+  color: var(--workflow-primary);
+}
+
+.issue-template-workflow-panel__banner,
+.issue-template-workflow-panel__sidebar,
+.issue-template-workflow-panel__canvas-shell,
+.issue-template-workflow-panel__inspector {
+  border: 1px solid var(--workflow-border-light);
+  border-radius: 12px;
+  background: var(--workflow-card);
+}
+
+.issue-template-workflow-panel__banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+}
+
+.issue-template-workflow-panel__eyebrow,
+.issue-template-workflow-panel__section-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--workflow-primary);
+}
+
+.issue-template-workflow-panel__banner h3,
+.issue-template-workflow-panel__canvas-toolbar h4,
+.issue-template-workflow-panel__sidebar-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--workflow-text);
+}
+
+.issue-template-workflow-panel__banner p,
+.issue-template-workflow-panel__helper-text,
+.issue-template-workflow-panel__info-card p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--workflow-text-secondary);
+}
+
+.issue-template-workflow-panel__banner-actions,
+.issue-template-workflow-panel__sidebar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.issue-template-workflow-panel__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: 1px solid var(--workflow-border);
+  background: #fff;
+  color: #323130;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.issue-template-workflow-panel__button:hover {
+  background: var(--workflow-hover);
+}
+
+.issue-template-workflow-panel__button--primary {
+  border-color: var(--workflow-primary);
+  background: var(--workflow-primary);
+  color: #fff;
+}
+
+.issue-template-workflow-panel__button--primary:hover {
+  background: var(--workflow-primary-hover);
+}
+
+.issue-template-workflow-panel__button--danger {
+  border-color: var(--workflow-danger);
+  background: var(--workflow-danger);
+  color: #fff;
+}
+
+.issue-template-workflow-panel__button--danger:hover {
+  background: #b61b1f;
+}
+
+.issue-template-workflow-panel__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.issue-template-workflow-panel__layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 320px;
+  gap: 16px;
+  min-height: 720px;
+}
+
+.issue-template-workflow-panel__sidebar,
+.issue-template-workflow-panel__inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.issue-template-workflow-panel__canvas-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.issue-template-workflow-panel__sidebar-header,
+.issue-template-workflow-panel__canvas-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.issue-template-workflow-panel__stage-list,
+.issue-template-workflow-panel__inspector-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.issue-template-workflow-panel__stage-card {
+  border: 1px solid var(--workflow-border-light);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.issue-template-workflow-panel__stage-card.is-active {
+  border-color: #9fd3ff;
+  box-shadow: 0 0 0 1px #9fd3ff;
+}
+
+.issue-template-workflow-panel__stage-card.is-readonly {
+  cursor: default;
+}
+
+.issue-template-workflow-panel__stage-top,
+.issue-template-workflow-panel__lane-label,
+.issue-template-workflow-panel__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issue-template-workflow-panel__stage-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+
+.issue-template-workflow-panel__stage-input,
+.issue-template-workflow-panel__input,
+.issue-template-workflow-panel__select,
+.issue-template-workflow-panel__textarea {
+  width: 100%;
+  border: 1px solid var(--workflow-border);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--workflow-text);
+  font-size: 13px;
+  outline: none;
+}
+
+.issue-template-workflow-panel__stage-input,
+.issue-template-workflow-panel__input,
+.issue-template-workflow-panel__select {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.issue-template-workflow-panel__textarea {
+  padding: 10px;
+  resize: vertical;
+}
+
+.issue-template-workflow-panel__stage-input:focus,
+.issue-template-workflow-panel__input:focus,
+.issue-template-workflow-panel__select:focus,
+.issue-template-workflow-panel__textarea:focus {
+  border-color: var(--workflow-primary);
+  box-shadow: 0 0 0 1px var(--workflow-primary);
+}
+
+.issue-template-workflow-panel__stage-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--workflow-text-secondary);
+}
+
+.issue-template-workflow-panel__inline-button {
+  border: none;
+  background: transparent;
+  color: var(--workflow-danger);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.issue-template-workflow-panel__stage-actions,
+.issue-template-workflow-panel__panel-actions,
+.issue-template-workflow-panel__stack {
+  display: flex;
+  gap: 8px;
+}
+
+.issue-template-workflow-panel__stage-actions,
+.issue-template-workflow-panel__panel-actions {
+  align-items: center;
+}
+
+.issue-template-workflow-panel__stack {
+  flex-direction: column;
+}
+
+.issue-template-workflow-panel__panel-copy {
+  font-size: 13px;
+  color: var(--workflow-text-secondary);
+  line-height: 1.6;
+}
+
+.issue-template-workflow-panel__panel-actions {
+  margin-top: 16px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.issue-template-workflow-panel__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--workflow-border);
+  border-radius: 4px;
+  background: #fff;
+  color: #323130;
+  cursor: pointer;
+}
+
+.issue-template-workflow-panel__icon-button:hover:not(:disabled) {
+  background: var(--workflow-hover);
+}
+
+.issue-template-workflow-panel__icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.issue-template-workflow-panel__canvas {
+  position: relative;
+  border: 1px solid var(--workflow-border-light);
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #ffffff 0%, #faf9f8 100%);
+}
+
+.issue-template-workflow-panel__lanes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.issue-template-workflow-panel__lane {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 220px;
+  border: 1px dashed;
+  border-radius: 12px;
+}
+
+.issue-template-workflow-panel__lane-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.issue-template-workflow-panel__reactflow {
+  position: relative;
+  z-index: 1;
+  background: transparent;
+}
+
+.issue-template-workflow-panel__node {
+  min-width: 240px;
+  max-width: 240px;
+  padding: 12px;
+  border: 1px solid var(--node-accent);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
+}
+
+.issue-template-workflow-panel__node.is-selected {
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.18), 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+.issue-template-workflow-panel__node.is-inactive {
+  opacity: 0.65;
+}
+
+.issue-template-workflow-panel__node-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.issue-template-workflow-panel__node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--node-tint);
+  color: var(--node-accent);
+}
+
+.issue-template-workflow-panel__node-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.issue-template-workflow-panel__node-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--workflow-text);
+}
+
+.issue-template-workflow-panel__node-copy span,
+.issue-template-workflow-panel__node-description {
+  font-size: 12px;
+  color: var(--workflow-text-secondary);
+}
+
+.issue-template-workflow-panel__node-description {
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
+.issue-template-workflow-panel__handle {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #fff;
+  background: var(--workflow-primary);
+}
+
+.issue-template-workflow-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issue-template-workflow-panel__field span,
+.issue-template-workflow-panel__checkbox span,
+.issue-template-workflow-panel__info-card strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #323130;
+}
+
+.issue-template-workflow-panel__checkbox {
+  font-size: 13px;
+  color: var(--workflow-text);
+}
+
+.issue-template-workflow-panel__checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--workflow-primary);
+}
+
+.issue-template-workflow-panel__info-card {
+  padding: 12px;
+  border: 1px solid #c7e0f4;
+  border-radius: 10px;
+  background: #f3f9fd;
+}
+
+.issue-template-workflow-panel__mobile-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #c7e0f4;
+  border-radius: 10px;
+  background: #f3f9fd;
+  color: #004578;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.issue-template-workflow-panel__canvas-shell--readonly {
+  min-height: auto;
+}
+
+.issue-template-workflow-panel__read-only-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.issue-template-workflow-panel__summary-card {
+  border: 1px solid var(--workflow-border-light);
+  border-radius: 10px;
+  background: #fff;
+  padding: 14px;
+}
+
+.issue-template-workflow-panel__summary-card p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--workflow-text-secondary);
+}
+
+.issue-template-workflow-panel__lane-label--static {
+  position: static;
+  display: inline-flex;
+}
+
+@media (max-width: 1440px) {
+  .issue-template-workflow-panel__layout {
+    grid-template-columns: 240px minmax(0, 1fr) 300px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .issue-template-workflow-panel__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .issue-template-workflow-panel__banner {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 767px) {
+  .issue-template-workflow-panel {
+    padding: 12px;
+  }
+
+  .issue-template-workflow-panel__banner-actions,
+  .issue-template-workflow-panel__sidebar-actions,
+  .issue-template-workflow-panel__panel-actions {
+    width: 100%;
+  }
+
+  .issue-template-workflow-panel__button {
+    width: 100%;
+  }
+
+  .issue-template-workflow-panel__layout.is-mobile {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+}

@@ -108,7 +108,7 @@ public static class FmsLoggingConfiguration
 
         // ─── ISSUES: Issue tracker, OnlineChecker, auto-created issues ───
         AddCategoryLogger(lc, "issues", "issues-.log",
-            sourceContextContains: new[] { "Issue", "IssueTracker", "GPSGate" },
+            sourceContextContains: new[] { "Issue", "IssueTracker", "IssueTemplateWorkflow", "GPSGate" },
             messageContains: new[] { "issue", "Issue", "OnlineChecker", "checker", "Fuel+Offline Monitor", "Auto-created issue" });
 
         // ─── EF CORE: Database SQL commands ───

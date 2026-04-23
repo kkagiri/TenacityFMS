@@ -21,6 +21,18 @@ namespace FMS.Application.Features.Notification.DTOs
         public string Title { get; set; } = null!;
         public string Message { get; set; } = null!;
         public object? Data { get; set; }
+
+        /// <summary>
+        /// Optional in-app deep link the frontend should navigate to when the user clicks this notification.
+        /// Must start with "/" (e.g. "/reports/import-management", "/warning-letters/42").
+        /// </summary>
+        public string? Link { get; set; }
+
+        /// <summary>
+        /// Optional label for the link/action button (e.g. "Open report", "Review &amp; sign").
+        /// </summary>
+        public string? LinkLabel { get; set; }
+
         public string TriggerSource { get; set; } = null!;
         public string? TriggeredBy { get; set; }
         public DateTime? ScheduledAt { get; set; }

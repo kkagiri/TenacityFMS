@@ -21,6 +21,7 @@ import { cancelJob, downloadJobResult } from "../../api/reportJobApi";
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
 import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
+import { resolveSafeNotificationLink } from "./notificationLinkUtils";
 
 // Maximum notifications to show initially
 const MAX_VISIBLE_NOTIFICATIONS = 3;
@@ -803,31 +804,47 @@ const NotificationCenter = () => {
   // Handle notification click - navigate to action URL if available
   const handleNotificationClick = useCallback((item) => {
     if (!item) return;
-    const actionUrl = item.data?.ActionUrl || item.data?.actionUrl || item.data?.IssueUrl || item.data?.issueUrl;
-    if (actionUrl) {
+    // Prefer the new top-level link contract; fall back to legacy Data.Link shapes for back-compat.
+    const rawLink =
+      item.link ||
+      item.Link ||
+      item.data?.Link ||
+      item.data?.link ||
+      item.data?.ActionUrl ||
+      item.data?.actionUrl ||
+      item.data?.IssueUrl ||
+      item.data?.issueUrl ||
+      item.data?.ImportManagementLink;
+    const safeLink = resolveSafeNotificationLink(rawLink);
+    if (safeLink) {
       // Mark as read if backend notification
       markBackendNotificationAsRead(item);
-      // Navigate using relative path from the action URL
-      try {
-        const url = new URL(actionUrl);
-        window.location.href = url.pathname;
-      } catch {
-        // If not a full URL, treat as relative path
-        window.location.href = actionUrl;
-      }
+      navigate(safeLink);
       setIsOpen(false);
     }
-  }, [markBackendNotificationAsRead]);
+  }, [markBackendNotificationAsRead, navigate]);
 
   // Render notification item – M365 style
   const renderNotificationItem = (item) => {
     if (!item || !item.id) return null;
 
-    const { id, title, message, type, timestamp, data, isBackendNotification, isRead } = item;
+    const { id, title, message, type, timestamp, data, link, linkLabel, isBackendNotification, isRead } = item;
     const idString = String(id);
     const alarmType = item.alarmType || data?.alarmType || '';
     const typeConf = getNotifTypeConfig(type, idString, alarmType);
-    const hasActionUrl = !!(data?.ActionUrl || data?.actionUrl || data?.IssueUrl || data?.issueUrl);
+    const resolvedLink = resolveSafeNotificationLink(
+      link ||
+      item.Link ||
+      data?.Link ||
+      data?.link ||
+      data?.ActionUrl ||
+      data?.actionUrl ||
+      data?.IssueUrl ||
+      data?.issueUrl ||
+      data?.ImportManagementLink
+    );
+    const hasActionUrl = !!resolvedLink;
+    const resolvedLinkLabel = linkLabel || item.LinkLabel || 'View';
     const reportLink = resolveReportViewLink(data);
     const reportActionText = resolveReportActionText(data);
     const markReadId = resolveBackendNotificationDbId(item);
@@ -853,7 +870,7 @@ const NotificationCenter = () => {
           </div>
           <div className="m365-notif-message">
             {message || 'Notification'}
-            {hasActionUrl && <span style={{ color: '#0078d4', fontWeight: 500, marginLeft: 4 }}>View {'\u2192'}</span>}
+            {hasActionUrl && <span style={{ color: '#0078d4', fontWeight: 500, marginLeft: 4 }}>{resolvedLinkLabel} {'\u2192'}</span>}
           </div>
           {/* Report download link */}
           {reportLink && (
