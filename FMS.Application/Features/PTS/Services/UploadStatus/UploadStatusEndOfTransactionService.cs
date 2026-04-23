@@ -12,6 +12,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using FMS.Application.Common;
 using FMS.Application.Communication.Connection;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
@@ -396,7 +397,7 @@ namespace FMS.Application.Features.PTS.Services
                     ["DataSource"] = "DeviceQuery"
                 };
             }
-            catch (PTSDeviceException ex) when (ex.ErrorType == FMS.Application.Common.ErrorType.SystemError
+            catch (PTSDeviceException ex) when (ex.ErrorType == ErrorType.SystemError
                 || ex.Message.Contains("stale", StringComparison.OrdinalIgnoreCase)
                 || ex.Message.Contains("inactive", StringComparison.OrdinalIgnoreCase))
             {
