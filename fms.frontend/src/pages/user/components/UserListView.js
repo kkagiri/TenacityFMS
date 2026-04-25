@@ -90,6 +90,30 @@ const UserListView = ({
     <UserStatusBadge isDeleted={data.data.isDeleted} />
   ), []);
 
+  const renderSitesCell = useCallback((data) => {
+    const rawSites = data?.data?.assignedSites || data?.data?.AssignedSites || [];
+    const siteNames = Array.isArray(rawSites)
+      ? rawSites.filter((siteName) => typeof siteName === 'string' && siteName.trim().length > 0)
+      : [];
+
+    if (siteNames.length === 0) {
+      return <span style={{ fontSize: 12, color: '#a19f9d' }}>—</span>;
+    }
+
+    const visibleSites = siteNames.slice(0, 3);
+    const remainingCount = siteNames.length - visibleSites.length;
+
+    return (
+      <span
+        style={{ fontSize: 12, color: '#323130' }}
+        title={siteNames.join(', ')}
+      >
+        {visibleSites.join(', ')}
+        {remainingCount > 0 ? ` +${remainingCount} more` : ''}
+      </span>
+    );
+  }, []);
+
   const renderLastSignedInCell = useCallback((data) => {
     const lastSignedIn = getLastSignedInDate(data.data);
     if (!lastSignedIn) {
@@ -154,6 +178,13 @@ const UserListView = ({
           width={160}
           dataField="departmentDisplay"
           allowSorting={true}
+        />
+        <Column
+          caption="Sites"
+          cellRender={renderSitesCell}
+          minWidth={220}
+          allowSorting={false}
+          allowFiltering={false}
         />
         <Column
           caption="Status"

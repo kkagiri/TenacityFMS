@@ -99,24 +99,55 @@ export const getFrequency = (row = {}) => {
     return '\u2014';
 };
 
-export const getRecipientEmails = (schedule = {}) => {
-    if (Array.isArray(schedule.recipients)) {
-        return schedule.recipients
-            .map((recipient) => recipient?.recipientAddress || recipient?.email || recipient)
-            .filter(Boolean);
-    }
-
+const parseRecipientsArray = (schedule = {}) => {
+    if (Array.isArray(schedule.recipients)) return schedule.recipients;
     if (typeof schedule.recipients === 'string') {
         try {
-            return JSON.parse(schedule.recipients)
-                .map((recipient) => recipient?.recipientAddress || recipient?.email || recipient)
-                .filter(Boolean);
+            const parsed = JSON.parse(schedule.recipients);
+            return Array.isArray(parsed) ? parsed : [];
         } catch {
             return [];
         }
     }
-
     return [];
+};
+
+export const getRecipientEmails = (schedule = {}) =>
+    parseRecipientsArray(schedule)
+        .map((recipient) => recipient?.recipientAddress || recipient?.email || recipient)
+        .filter(Boolean);
+
+export const getRecipients = (schedule = {}) =>
+    parseRecipientsArray(schedule).map((recipient) => {
+        if (typeof recipient === 'string') {
+            return {
+                email: recipient,
+                deliveryMethod: '',
+                deliveryStatus: 'Pending',
+                sentAt: null,
+                deliveredAt: null,
+                deliveryError: null,
+                userName: '',
+            };
+        }
+
+        return {
+            email: recipient?.recipientAddress || recipient?.email || '',
+            deliveryMethod: recipient?.deliveryMethod || '',
+            deliveryStatus: recipient?.deliveryStatus || 'Pending',
+            sentAt: recipient?.sentAt || null,
+            deliveredAt: recipient?.deliveredAt || null,
+            deliveryError: recipient?.deliveryError || null,
+            userName: recipient?.userName || '',
+        };
+    });
+
+export const getRecipientStatusBadgeClass = (status) => {
+    const value = String(status || 'pending').toLowerCase();
+    if (value === 'sent' || value === 'delivered') return 'm365-badge m365-badge--success';
+    if (value === 'failed') return 'm365-badge m365-badge--error';
+    if (value === 'pending' || value === 'queued') return 'm365-badge m365-badge--warning';
+    return 'm365-badge m365-badge--neutral';
 };
 
 export const getDeliveryStats = (schedule = {}) => {

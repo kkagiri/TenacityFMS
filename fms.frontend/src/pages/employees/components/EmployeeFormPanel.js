@@ -2,7 +2,7 @@
  * File: EmployeeFormPanel.js
  * Purpose: Side-panel form used for creating and editing employee records.
  * Dependencies: react, devextreme-react/tag-box, vehicle search API
- * Last Modified: 2026-04-18
+ * Last Modified: 2026-04-25
  *
  * Props:
  * - mode: "create" | "edit"
@@ -175,20 +175,16 @@ const EmployeeFormPanel = ({
     }
     : undefined;
 
-  const availablePositionOptions = useMemo(() => {
-    const currentPosition = (form.position || "").trim();
-    const options = Array.isArray(positionOptions) ? [...positionOptions] : [];
+  const activePositionOptions = useMemo(
+    () => (Array.isArray(positionOptions) ? positionOptions : [])
+      .filter((option) => option?.name && option.isActive !== false),
+    [positionOptions]
+  );
 
-    if (currentPosition && !options.some((option) => option?.name === currentPosition)) {
-      options.push({
-        id: `current-${currentPosition}`,
-        name: currentPosition,
-        isActive: false,
-      });
-    }
-
-    return options;
-  }, [form.position, positionOptions]);
+  const activePositionNames = useMemo(
+    () => new Set(activePositionOptions.map((option) => option.name)),
+    [activePositionOptions]
+  );
 
   const vehicleValues = useMemo(
     () => normalizeVehicleIds(form.vehicles),
@@ -264,6 +260,7 @@ const EmployeeFormPanel = ({
   const handleSubmit = async () => {
     const nextErrors = {};
     const fullName = (form.fullName || "").trim();
+    const position = (form.position || "").trim();
     const siteId = normalizeSiteId(form.siteId);
 
     if (!fullName) {
@@ -272,6 +269,12 @@ const EmployeeFormPanel = ({
 
     if (!siteId) {
       nextErrors.siteId = "Site selection is required";
+    }
+
+    if (!position) {
+      nextErrors.position = "Position selection is required";
+    } else if (!activePositionNames.has(position)) {
+      nextErrors.position = "Select a valid active position from the list";
     }
 
     if (duplicateState.hasWorkNumberConflict) {
@@ -287,7 +290,7 @@ const EmployeeFormPanel = ({
       fullName: fullName.toUpperCase(),
       employeephoneNumber: (form.employeephoneNumber || "").trim(),
       employeeWorkNo: (form.employeeWorkNo || "").trim(),
-      position: (form.position || "").trim(),
+      position,
       employeestatus: form.employeestatus || "Active",
       siteId,
       vehicles: normalizeVehicleIds(form.vehicles),
@@ -351,9 +354,9 @@ const EmployeeFormPanel = ({
             </div>
 
             <div className="m365-field">
-              <label className="m365-field__label">Position</label>
+              <label className="m365-field__label m365-field__label--required">Position</label>
               <SelectBox
-                dataSource={availablePositionOptions}
+                dataSource={activePositionOptions}
                 value={form.position}
                 valueExpr="name"
                 displayExpr="name"
@@ -362,17 +365,14 @@ const EmployeeFormPanel = ({
                 searchEnabled
                 searchExpr="name"
                 showClearButton
-                acceptCustomValue
-                onCustomItemCreating={(event) => {
-                  event.customItem = {
-                    id: `custom-${event.text}`,
-                    name: event.text,
-                    isActive: false,
-                  };
-                }}
+                acceptCustomValue={false}
+                noDataText="Position not found"
                 height={34}
                 stylingMode="outlined"
+                inputAttr={errors.position ? { "aria-invalid": true } : undefined}
+                elementAttr={errors.position ? { class: "m365-input--error" } : undefined}
               />
+              {errors.position && <span className="m365-field__error">{errors.position}</span>}
               <span className="m365-field__hint">Positions are loaded from employee position master data.</span>
             </div>
 

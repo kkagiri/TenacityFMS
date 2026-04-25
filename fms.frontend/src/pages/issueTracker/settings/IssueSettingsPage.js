@@ -12,7 +12,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { DataGrid, Column, Editing, RequiredRule } from 'devextreme-react/data-grid';
 import Tabs from 'devextreme-react/tabs';
-import { Button } from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
@@ -53,7 +52,7 @@ const IssueSettingsPage = () => {
     loading: { ...issueTrackerState.loading }
   }), [issueTrackerState]);
 
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [loadedTabs, setLoadedTabs] = useState({});
 
   // Tab data with counts
   const tabData = useMemo(() => TAB_CONFIG.map((tab) => {
@@ -113,17 +112,28 @@ const IssueSettingsPage = () => {
     }
   };
 
-  const loadData = useCallback(async () => {
+  const loadTabData = useCallback(async (tabKey) => {
+    if (!tabKey) {
+      return;
+    }
+
     try {
-      // Load data sequentially to avoid Redux state mutation conflicts
-      // Add small delays between dispatches to ensure state updates complete
-      await dispatch(fetchIssueCategories());
-      await new Promise(resolve => setTimeout(resolve, 50));
+      if (tabKey === 'categories') {
+        await dispatch(fetchIssueCategories());
+      }
 
-      await dispatch(fetchIssuePriorities());
-      await new Promise(resolve => setTimeout(resolve, 50));
+      if (tabKey === 'priorities') {
+        await dispatch(fetchIssuePriorities());
+      }
 
-      await dispatch(fetchIssueStatuses());
+      if (tabKey === 'statuses') {
+        await dispatch(fetchIssueStatuses());
+      }
+
+      setLoadedTabs((current) => ({
+        ...current,
+        [tabKey]: true
+      }));
     } catch (error) {
       console.error('Error loading data:', error);
       notify({
@@ -134,15 +144,25 @@ const IssueSettingsPage = () => {
     }
   }, [dispatch]);
 
-  // Load data on component mount and when refresh is triggered
+  // Load only the active tab's data on first access or after a local refresh.
   useEffect(() => {
-    // Add a small delay to ensure component is fully mounted
+    if (!activeTab?.key) {
+      return undefined;
+    }
+
+    const shouldLoadTab = ['categories', 'priorities', 'statuses'].includes(activeTab.key)
+      && !loadedTabs[activeTab.key];
+
+    if (!shouldLoadTab) {
+      return undefined;
+    }
+
     const timeoutId = setTimeout(() => {
-      loadData();
+      loadTabData(activeTab.key);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [loadData, refreshTrigger]);
+  }, [activeTab?.key, loadTabData, loadedTabs]);
 
   // Categories DataGrid handlers - Fixed to prevent state mutation
   const handleCategoryRowInserting = async (e) => {
@@ -159,7 +179,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, categories: false }));
     } catch (error) {
       console.error('Error creating category:', error);
       notify({
@@ -183,7 +203,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, categories: false }));
     } catch (error) {
       console.error('Error updating category:', error);
       notify({
@@ -206,7 +226,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, categories: false }));
     } catch (error) {
       console.error('Error deleting category:', error);
       notify({
@@ -233,7 +253,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, priorities: false }));
     } catch (error) {
       console.error('Error creating priority:', error);
       notify({
@@ -257,7 +277,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, priorities: false }));
     } catch (error) {
       console.error('Error updating priority:', error);
       notify({
@@ -280,7 +300,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, priorities: false }));
     } catch (error) {
       console.error('Error deleting priority:', error);
       notify({
@@ -307,7 +327,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, statuses: false }));
     } catch (error) {
       console.error('Error creating status:', error);
       notify({
@@ -331,7 +351,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, statuses: false }));
     } catch (error) {
       console.error('Error updating status:', error);
       notify({
@@ -354,7 +374,7 @@ const IssueSettingsPage = () => {
 
       // Cancel DataGrid's internal state update and refresh from Redux instead
       e.cancel = true;
-      setRefreshTrigger(prev => prev + 1);
+      setLoadedTabs((current) => ({ ...current, statuses: false }));
     } catch (error) {
       console.error('Error deleting status:', error);
       notify({
@@ -538,22 +558,12 @@ const IssueSettingsPage = () => {
         <div className="tw-p-6">
           <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
             {/* Header */}
-            <div className="tw-bg-gradient-to-r tw-from-blue-600 tw-to-blue-700 tw-text-white tw-p-6">
-              <div className="tw-flex tw-justify-between tw-items-center">
-                <div>
-                  <h2 className="tw-text-2xl tw-font-semibold">Issue Tracker Configuration</h2>
-                  <p className="tw-text-blue-100 tw-mt-1">
-                    Manage categories, priorities, statuses, device types, templates, alert rules, and issue monitoring system settings
-                  </p>
-                </div>
-                <Button
-                  text="Refresh Data"
-                  type="normal"
-                  stylingMode="outlined"
-                  icon="fa fa-refresh"
-                  onClick={() => setRefreshTrigger(prev => prev + 1)}
-                  className="tw-border-white tw-text-white hover:tw-bg-white hover:tw-text-blue-600"
-                />
+            <div className="tw-bg-[#0078D4] tw-text-white tw-p-6">
+              <div>
+                <h2 className="tw-text-2xl tw-font-semibold">Issue Tracker Configuration</h2>
+                <p className="tw-mt-1 tw-text-blue-100">
+                  Manage categories, priorities, statuses, device types, templates, alert rules, and issue monitoring system settings
+                </p>
               </div>
             </div>
 

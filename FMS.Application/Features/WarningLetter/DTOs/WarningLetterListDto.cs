@@ -23,6 +23,7 @@ public class WarningLetterListDto
     public string SiteName { get; set; } = string.Empty;
     public DateTime LetterDate { get; set; }
     public DateTime PeriodStart { get; set; }
+    public DateTime PeriodEnd { get; set; }
     public WarningLetterStatus Status { get; set; }
     public WarningLetterWorkflowStage WorkflowStage { get; set; }
     public DateTime? EmailSentAt { get; set; }

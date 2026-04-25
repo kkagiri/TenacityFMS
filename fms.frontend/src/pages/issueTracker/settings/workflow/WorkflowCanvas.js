@@ -2,16 +2,15 @@
  * File: WorkflowCanvas.js
  * Purpose: Render the staged React Flow canvas for the workflow editor.
  * Dependencies: React, @xyflow/react, workflow editor constants
- * Last Modified: 2026-04-23
+ * Last Modified: 2026-04-24
  */
 import React from 'react';
 import {
-    Background,
     Controls,
     Handle,
-    MiniMap,
     Position,
-    ReactFlow
+    ReactFlow,
+    ViewportPortal
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { ACTION_TYPE_META, ACTION_TYPE_OPTIONS, getStageTop } from './useWorkflowEditor';
@@ -42,7 +41,7 @@ const ActionNode = ({ data, selected }) => {
 
 const nodeTypes = { actionNode: ActionNode };
 
-const WorkflowCanvas = ({ nodes, edges, stages, laneHeight, readOnly, onNodesChange, onNodeClick }) => (
+const WorkflowCanvas = ({ nodes, edges, stages, laneHeight, readOnly, onNodesChange, onNodeClick, onNodeDragStop }) => (
     <section className="issue-template-workflow-panel__canvas-shell">
         <div className="issue-template-workflow-panel__canvas-toolbar">
             <div>
@@ -55,26 +54,12 @@ const WorkflowCanvas = ({ nodes, edges, stages, laneHeight, readOnly, onNodesCha
         </div>
 
         <div className="issue-template-workflow-panel__canvas" style={{ height: `${laneHeight}px` }}>
-            <div className="issue-template-workflow-panel__lanes" aria-hidden="true">
-                {stages.map((stage) => (
-                    <div
-                        key={stage.id}
-                        className="issue-template-workflow-panel__lane"
-                        style={{ top: `${getStageTop(stage.sortOrder)}px`, borderColor: `${stage.color}33`, backgroundColor: `${stage.color}0f` }}
-                    >
-                        <div className="issue-template-workflow-panel__lane-label">
-                            <span className="issue-template-workflow-panel__stage-dot" style={{ backgroundColor: stage.color }}></span>
-                            <span>{stage.name}</span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 onNodesChange={readOnly ? undefined : onNodesChange}
                 onNodeClick={readOnly ? undefined : onNodeClick}
+                onNodeDragStop={readOnly ? undefined : onNodeDragStop}
                 nodeTypes={nodeTypes}
                 fitView
                 minZoom={0.45}
@@ -82,10 +67,30 @@ const WorkflowCanvas = ({ nodes, edges, stages, laneHeight, readOnly, onNodesCha
                 nodesDraggable={!readOnly}
                 nodesConnectable={false}
                 elementsSelectable={!readOnly}
+                panOnDrag={false}
+                panOnScroll={false}
+                zoomOnDoubleClick={false}
+                multiSelectionKeyCode={null}
+                selectionKeyCode={null}
+                selectionOnDrag={false}
                 className="issue-template-workflow-panel__reactflow"
             >
-                <Background gap={24} size={1} color="#d2d0ce" />
-                <MiniMap pannable zoomable />
+                <ViewportPortal>
+                    <div className="issue-template-workflow-panel__lanes issue-template-workflow-panel__lanes--viewport" style={{ height: `${laneHeight}px` }} aria-hidden="true">
+                        {stages.map((stage) => (
+                            <div
+                                key={stage.id}
+                                className="issue-template-workflow-panel__lane"
+                                style={{ top: `${getStageTop(stage.sortOrder)}px`, borderColor: `${stage.color}33`, backgroundColor: `${stage.color}0f` }}
+                            >
+                                <div className="issue-template-workflow-panel__lane-label">
+                                    <span className="issue-template-workflow-panel__stage-dot" style={{ backgroundColor: stage.color }}></span>
+                                    <span>{stage.name}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </ViewportPortal>
                 <Controls showInteractive={false} />
             </ReactFlow>
         </div>

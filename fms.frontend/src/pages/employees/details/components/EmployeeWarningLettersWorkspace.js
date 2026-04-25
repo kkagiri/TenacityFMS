@@ -53,7 +53,7 @@ const formatDate = (value) =>
         })
         : "-";
 
-const EmployeeWarningLettersWorkspace = ({ employeeId, employee }) => {
+const EmployeeWarningLettersWorkspace = ({ employeeId, employee, onCountChange }) => {
     const navigate = useNavigate();
     const { hasPermission } = usePermissions();
     const currentUser = useSelector((state) => state.auth?.user || {});
@@ -76,14 +76,17 @@ const EmployeeWarningLettersWorkspace = ({ employeeId, employee }) => {
         setLoading(true);
         try {
             const data = await getWarningLetters({ employeeId: String(employeeId) });
-            setLetters(Array.isArray(data) ? data : []);
+            const nextLetters = Array.isArray(data) ? data : [];
+            setLetters(nextLetters);
+            onCountChange?.(nextLetters.length);
         } catch (error) {
             setLetters([]);
+            onCountChange?.(0);
             notify(error.message || "Failed to load employee warning letters.", "error", 3000);
         } finally {
             setLoading(false);
         }
-    }, [employeeId]);
+    }, [employeeId, onCountChange]);
 
     useEffect(() => {
         loadLetters();
@@ -216,8 +219,9 @@ const EmployeeWarningLettersWorkspace = ({ employeeId, employee }) => {
             </div>
 
             <DataGrid
-                className="edp-grid"
+                className="employee-details-module__grid employee-warning-letters__grid"
                 dataSource={Array.isArray(letters) ? letters : []}
+                height={700}
                 keyExpr="id"
                 showBorders={false}
                 showColumnLines={false}

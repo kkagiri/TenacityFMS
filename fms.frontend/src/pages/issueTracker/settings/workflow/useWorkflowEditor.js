@@ -2,7 +2,7 @@
  * File: useWorkflowEditor.js
  * Purpose: Manage local workflow editor state, dirty tracking, and workflow persistence.
  * Dependencies: React, @xyflow/react, issueTrackerV2Service, devextreme notify
- * Last Modified: 2026-04-23
+ * Last Modified: 2026-04-24
  *
  * Key Functions:
  * - useWorkflowEditor(): loads, edits, validates, and saves staged workflow data.
@@ -51,6 +51,7 @@ const STAGE_HEIGHT = 220;
 const STAGE_GAP = 28;
 const NODE_X_START = 48;
 const NODE_X_GAP = 300;
+const NODE_COLUMN_COUNT = 3;
 const NODE_Y_OFFSET = 52;
 const NODE_ROW_GAP = 118;
 
@@ -107,8 +108,8 @@ const buildNode = (action, stage, indexWithinStage) => ({
     id: getNodeId(action.id, `temp-${stage.id}-${indexWithinStage + 1}`),
     type: 'actionNode',
     position: {
-        x: action.positionX ?? (NODE_X_START + ((indexWithinStage % 3) * NODE_X_GAP)),
-        y: action.positionY ?? (getStageTop(stage.sortOrder) + NODE_Y_OFFSET + (Math.floor(indexWithinStage / 3) * NODE_ROW_GAP))
+        x: action.positionX ?? (NODE_X_START + ((indexWithinStage % NODE_COLUMN_COUNT) * NODE_X_GAP)),
+        y: action.positionY ?? (getStageTop(stage.sortOrder) + NODE_Y_OFFSET + (Math.floor(indexWithinStage / NODE_COLUMN_COUNT) * NODE_ROW_GAP))
     },
     data: {
         persistedId: getPersistedId(action.id),
@@ -133,6 +134,63 @@ const determineStageIdForPosition = (positionY, stages) => {
     }, stages[0]);
 
     return nearestStage.id;
+};
+
+const clampToRange = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const getSlotForPosition = (position, stage) => ({
+    column: clampToRange(Math.round((position.x - NODE_X_START) / NODE_X_GAP), 0, NODE_COLUMN_COUNT - 1),
+    row: clampToRange(Math.round((position.y - (getStageTop(stage.sortOrder) + NODE_Y_OFFSET)) / NODE_ROW_GAP), 0, Number.MAX_SAFE_INTEGER)
+});
+
+const getSlotKey = (slot) => `${slot.column}:${slot.row}`;
+
+const getPositionForSlot = (slot, stage) => ({
+    x: NODE_X_START + (slot.column * NODE_X_GAP),
+    y: getStageTop(stage.sortOrder) + NODE_Y_OFFSET + (slot.row * NODE_ROW_GAP)
+});
+
+const findNearestAvailableSlot = (requestedSlot, occupiedSlotKeys) => {
+    if (!occupiedSlotKeys.has(getSlotKey(requestedSlot))) {
+        return requestedSlot;
+    }
+
+    const maxSearchRow = Math.max(requestedSlot.row + occupiedSlotKeys.size + 2, 4);
+    let bestSlot = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let row = 0; row <= maxSearchRow; row += 1) {
+        for (let column = 0; column < NODE_COLUMN_COUNT; column += 1) {
+            const candidateSlot = { column, row };
+
+            if (occupiedSlotKeys.has(getSlotKey(candidateSlot))) {
+                continue;
+            }
+
+            const distance = Math.abs(candidateSlot.column - requestedSlot.column) + Math.abs(candidateSlot.row - requestedSlot.row);
+            const upwardPenalty = candidateSlot.row < requestedSlot.row ? 0.25 : 0;
+            const score = distance + upwardPenalty;
+
+            if (score < bestScore) {
+                bestSlot = candidateSlot;
+                bestScore = score;
+            }
+        }
+    }
+
+    return bestSlot || { column: requestedSlot.column, row: maxSearchRow + 1 };
+};
+
+const getSnappedNodePosition = (position, stage, nodes, draggedNodeId) => {
+    const requestedSlot = getSlotForPosition(position, stage);
+    const occupiedSlotKeys = new Set(
+        nodes
+            .filter((node) => node.id !== draggedNodeId && node.data.stageId === stage.id)
+            .map((node) => getSlotKey(getSlotForPosition(node.position, stage)))
+    );
+    const resolvedSlot = findNearestAvailableSlot(requestedSlot, occupiedSlotKeys);
+
+    return getPositionForSlot(resolvedSlot, stage);
 };
 
 const buildEdges = (nodes, stages) => {
@@ -182,8 +240,8 @@ const reflowNodesForStages = (nodes, stages) => {
         return stageNodes.map((node, index) => ({
             ...node,
             position: {
-                x: typeof node.position.x === 'number' ? node.position.x : NODE_X_START + ((index % 3) * NODE_X_GAP),
-                y: getStageTop(stage.sortOrder) + NODE_Y_OFFSET + (Math.floor(index / 3) * NODE_ROW_GAP)
+                x: typeof node.position.x === 'number' ? node.position.x : NODE_X_START + ((index % NODE_COLUMN_COUNT) * NODE_X_GAP),
+                y: getStageTop(stage.sortOrder) + NODE_Y_OFFSET + (Math.floor(index / NODE_COLUMN_COUNT) * NODE_ROW_GAP)
             },
             data: {
                 ...node.data,
@@ -322,7 +380,7 @@ export const useWorkflowEditor = ({ templateId, templateName }) => {
         setWorkflowMeta(nextWorkflowMeta);
         setStages(nextStages);
         setNodes(nextNodes);
-        setSelectedNodeId(nextNodes[0]?.id || null);
+        setSelectedNodeId(null);
         setSelectedStageId(nextNodes[0]?.data.stageId || nextStages[0]?.id || null);
         setDeleteStageTarget(null);
         setDiscardOpen(false);
@@ -356,6 +414,41 @@ export const useWorkflowEditor = ({ templateId, templateName }) => {
                 ? { ...node, data: { ...node.data, stageId: nextStageId } }
                 : node;
         }));
+    }, [stages]);
+
+    const handleNodeDragStop = useCallback((_, draggedNode) => {
+        if (!draggedNode) {
+            return;
+        }
+
+        const nextStageId = determineStageIdForPosition(draggedNode.position.y, stages);
+        const nextStage = stages.find((stage) => stage.id === nextStageId) || null;
+
+        if (!nextStage) {
+            return;
+        }
+
+        setNodes((currentNodes) => {
+            const snappedPosition = getSnappedNodePosition(draggedNode.position, nextStage, currentNodes, draggedNode.id);
+
+            return currentNodes.map((node) => {
+            if (node.id !== draggedNode.id) {
+                return node;
+            }
+
+            return {
+                ...node,
+                dragging: false,
+                position: snappedPosition,
+                data: {
+                    ...node.data,
+                    stageId: nextStage.id
+                }
+            };
+            });
+        });
+
+        setSelectedStageId((currentStageId) => (currentStageId === draggedNode.data.stageId ? nextStage.id : currentStageId));
     }, [stages]);
 
     const selectNode = useCallback((nodeId) => {
@@ -484,8 +577,8 @@ export const useWorkflowEditor = ({ templateId, templateName }) => {
             id: null,
             ...EMPTY_ACTION,
             sortOrder: stageNodes.length,
-            positionX: NODE_X_START + ((stageNodes.length % 3) * NODE_X_GAP),
-            positionY: getStageTop(activeStage.sortOrder) + NODE_Y_OFFSET + (Math.floor(stageNodes.length / 3) * NODE_ROW_GAP)
+            positionX: NODE_X_START + ((stageNodes.length % NODE_COLUMN_COUNT) * NODE_X_GAP),
+            positionY: getStageTop(activeStage.sortOrder) + NODE_Y_OFFSET + (Math.floor(stageNodes.length / NODE_COLUMN_COUNT) * NODE_ROW_GAP)
         }, activeStage, stageNodes.length);
 
         nextNode.id = tempId;
@@ -601,6 +694,7 @@ export const useWorkflowEditor = ({ templateId, templateName }) => {
         selectStage,
         closeInspector,
         handleNodesChange,
+        handleNodeDragStop,
         requestClose,
         cancelDiscardClose,
         confirmDiscardClose

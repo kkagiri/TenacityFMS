@@ -13,7 +13,8 @@ import {
     formatScheduleDateTime,
     getDeliveryStats,
     getFrequency,
-    getRecipientEmails,
+    getRecipients,
+    getRecipientStatusBadgeClass,
     getReportLabel,
     getScheduleDetail,
     getStatusBadgeClass,
@@ -26,7 +27,7 @@ const ReportScheduleDetailPanel = ({ schedule }) => {
     if (!schedule) return null;
 
     const description = schedule.reportDescription || schedule.description || '';
-    const recipientEmails = getRecipientEmails(schedule);
+    const recipients = getRecipients(schedule);
     const deliveryStats = getDeliveryStats(schedule);
     const reportLabel = getReportLabel(schedule);
     const frequency = getFrequency(schedule);
@@ -141,15 +142,56 @@ const ReportScheduleDetailPanel = ({ schedule }) => {
 
                 <div className="sched-mgr__detail-recipient-list">
                     <span className="sched-mgr__detail-label">Recipients</span>
-                    {recipientEmails.length > 0 ? (
-                        <div className="sched-mgr__detail-recipient-chips">
-                            {recipientEmails.map((email) => (
-                                <span key={email} className="sched-mgr__detail-recipient-chip" title={email}>
-                                    <i className="fa-light fa-envelope" />
-                                    <span>{email}</span>
-                                </span>
-                            ))}
-                        </div>
+                    {recipients.length > 0 ? (
+                        <ul className="sched-mgr__detail-recipient-items">
+                            {recipients.map((recipient, index) => {
+                                const statusLabel = getStatusLabel(recipient.deliveryStatus);
+                                const deliveredAt = recipient.deliveredAt || recipient.sentAt;
+                                const deliveredLabel = deliveredAt
+                                    ? formatScheduleDateTime(deliveredAt)
+                                    : '';
+                                const key = `${recipient.email || 'recipient'}-${index}`;
+
+                                return (
+                                    <li key={key} className="sched-mgr__detail-recipient-item">
+                                        <div className="sched-mgr__detail-recipient-main">
+                                            <i className="fa-light fa-envelope" />
+                                            <span
+                                                className="sched-mgr__detail-recipient-email"
+                                                title={recipient.email}
+                                            >
+                                                {recipient.email || '—'}
+                                            </span>
+                                            <span className={getRecipientStatusBadgeClass(recipient.deliveryStatus)}>
+                                                {statusLabel}
+                                            </span>
+                                        </div>
+                                        <div className="sched-mgr__detail-recipient-meta">
+                                            {deliveredLabel ? (
+                                                <span className="sched-mgr__detail-recipient-meta-item">
+                                                    <i className="fa-light fa-paper-plane" />
+                                                    <span>Delivered {deliveredLabel}</span>
+                                                </span>
+                                            ) : (
+                                                <span className="sched-mgr__detail-recipient-meta-item sched-mgr__detail-recipient-meta-item--muted">
+                                                    <i className="fa-light fa-clock" />
+                                                    <span>Not delivered yet</span>
+                                                </span>
+                                            )}
+                                            {recipient.deliveryError ? (
+                                                <span
+                                                    className="sched-mgr__detail-recipient-meta-item sched-mgr__detail-recipient-meta-item--error"
+                                                    title={recipient.deliveryError}
+                                                >
+                                                    <i className="fa-light fa-triangle-exclamation" />
+                                                    <span>{recipient.deliveryError}</span>
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     ) : (
                         <span className="sched-mgr__detail-empty">No recipients configured.</span>
                     )}

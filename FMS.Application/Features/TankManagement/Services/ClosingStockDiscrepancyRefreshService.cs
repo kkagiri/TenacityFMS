@@ -283,6 +283,7 @@ namespace FMS.Application.Features.TankManagement.Services
             var varianceType = variance > 0 ? "GAIN" : variance < 0 ? "LOSS" : "BALANCED";
             var isSignificant = Math.Abs(variance) >= SignificantVarianceThresholdLiters ||
                 Math.Abs(variancePercentage) >= SignificantVarianceThresholdPercentage;
+            var violatesTransactionRule = transactionCount <= 0;
             var severity = DetermineSeverity(variance, variancePercentage);
             var priority = severity switch
             {
@@ -350,7 +351,8 @@ namespace FMS.Application.Features.TankManagement.Services
                 Event = stockEvent,
                 BusinessDateDisplay = businessDateDisplay,
                 ClosingCreatedOnUtc = businessDay.ClosingStock.CreatedOn,
-                IsSignificantVariance = isSignificant
+                IsSignificantVariance = isSignificant,
+                ViolatesTransactionRule = violatesTransactionRule
             };
         }
 
@@ -397,17 +399,19 @@ namespace FMS.Application.Features.TankManagement.Services
             DateTime updatedAt)
         {
             activeEvent.Message = snapshot.Event.Message;
-            activeEvent.EventData = System.Text.Json.JsonSerializer.Serialize(snapshot.Event.GetTemplateVariables());
+            activeEvent.EventData = snapshot.Event.SerializeEventData();
             activeEvent.Severity = ToSeverityInt(snapshot.Event.Severity);
             activeEvent.Priority = expression?.Priority ?? activeEvent.Priority;
             activeEvent.UpdatedAt = updatedAt;
 
-            if (!snapshot.IsSignificantVariance)
+            if (!snapshot.IsSignificantVariance || snapshot.ViolatesTransactionRule)
             {
                 activeEvent.State = "Resolved";
                 activeEvent.ResolvedAt ??= updatedAt;
                 activeEvent.ResolvedBy ??= refreshedBy;
-                activeEvent.ResolutionNotes = $"Auto-resolved after historical transaction refresh for {snapshot.BusinessDateDisplay}.";
+                activeEvent.ResolutionNotes = snapshot.ViolatesTransactionRule
+                    ? $"Auto-resolved after historical transaction refresh for {snapshot.BusinessDateDisplay}: TransactionCount must be > 0 for active discrepancy alerts."
+                    : $"Auto-resolved after historical transaction refresh for {snapshot.BusinessDateDisplay}.";
             }
         }
 
@@ -478,6 +482,11 @@ namespace FMS.Application.Features.TankManagement.Services
         {
             var payload = ParseJsonObject(eventData);
             var payloadBusinessDate = payload.Value<string>("BusinessDate");
+            if (string.IsNullOrWhiteSpace(payloadBusinessDate))
+            {
+                payloadBusinessDate = payload["templateVariables"]?.Value<string>("BusinessDate")
+                    ?? payload["snapshot"]?.Value<string>("BusinessDate");
+            }
             if (string.Equals(payloadBusinessDate, businessDate, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
@@ -667,6 +676,7 @@ namespace FMS.Application.Features.TankManagement.Services
             public string BusinessDateDisplay { get; set; } = string.Empty;
             public DateTime ClosingCreatedOnUtc { get; set; }
             public bool IsSignificantVariance { get; set; }
+            public bool ViolatesTransactionRule { get; set; }
         }
     }
 }

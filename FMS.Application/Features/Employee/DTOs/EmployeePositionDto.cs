@@ -4,6 +4,8 @@
  * Dependencies: System.Text.Json.Serialization
  * Last Modified: 2026-04-07
  */
+using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace FMS.Application.Features.Employee.DTOs;
@@ -42,4 +44,7 @@ public class EmployeePositionDto
 
     [JsonPropertyName("assignedEmployeeCount")]
     public int AssignedEmployeeCount { get; set; }
+
+    [JsonPropertyName("assignedEmployees")]
+    public IReadOnlyList<AssignedEmployeePositionDto> AssignedEmployees { get; set; } = Array.Empty<AssignedEmployeePositionDto>();
 }

@@ -5,6 +5,7 @@
  * Last Modified: 2026-04-08
  */
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Employee.DTOs;
@@ -46,11 +47,27 @@ public class UpdateEmployeePositionCommandHandler(GpsdataContext context) : IReq
             return new UpdateEmployeePositionResponse(false, $"Position '{name}' already exists.", null);
         }
 
+        var originalName = entity.Name;
+
         entity.Name = name;
         entity.Description = string.IsNullOrWhiteSpace(request.Position.Description) ? null : request.Position.Description.Trim();
         entity.SortOrder = request.Position.SortOrder;
         entity.IsActive = request.Position.IsActive;
         entity.DateModified = DateTime.UtcNow;
+
+        if (!string.Equals(originalName, name, StringComparison.Ordinal))
+        {
+            var assignedEmployees = await context.Employees
+                .Where(employee => employee.Position == originalName)
+                .ToListAsync(cancellationToken);
+
+            foreach (var employee in assignedEmployees)
+            {
+                employee.Position = name;
+                employee.DateModified = DateTime.UtcNow;
+                employee.IsModified = 1;
+            }
+        }
 
         await context.SaveChangesAsync(cancellationToken);
 

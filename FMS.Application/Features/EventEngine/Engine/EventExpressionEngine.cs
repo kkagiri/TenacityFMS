@@ -310,7 +310,7 @@ namespace FMS.Application.Features.EventEngine.Engine
             // Serialize event data snapshot
             try
             {
-                execution.EventData = JsonSerializer.Serialize(fmsEvent.GetTemplateVariables());
+                execution.EventData = fmsEvent.SerializeEventData();
             }
             catch
             {

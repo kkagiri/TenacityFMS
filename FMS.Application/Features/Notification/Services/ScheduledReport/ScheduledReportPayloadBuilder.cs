@@ -221,6 +221,12 @@ namespace FMS.Application.Features.Notification.Services
             var sortBy = GetStringParam(metadata, "sortBy");
             var sortDirection = GetStringParam(metadata, "sortDirection");
             var siteIds = ParseIntList(metadata["siteIds"]);
+            var vehicleTypeIds = ParseIntList(metadata["vehicleTypeIds"]);
+            var singleVehicleTypeId = GetIntParam(metadata, "vehicleTypeId");
+            if (singleVehicleTypeId.HasValue && !vehicleTypeIds.Contains(singleVehicleTypeId.Value))
+            {
+                vehicleTypeIds.Add(singleVehicleTypeId.Value);
+            }
             var singleSiteId = GetIntParam(metadata, "siteId");
             if (singleSiteId.HasValue && !siteIds.Contains(singleSiteId.Value))
             {
@@ -234,7 +240,8 @@ namespace FMS.Application.Features.Notification.Services
                 EndDate: endLocal,
                 SiteId: singleSiteId,
                 SiteIds: siteIds.Count > 0 ? siteIds : null,
-                VehicleTypeId: GetIntParam(metadata, "vehicleTypeId"),
+                VehicleTypeId: singleVehicleTypeId,
+                VehicleTypeIds: vehicleTypeIds.Count > 0 ? vehicleTypeIds : null,
                 VehicleId: GetIntParam(metadata, "vehicleId"),
                 AverageKmL: averageKmL);
 

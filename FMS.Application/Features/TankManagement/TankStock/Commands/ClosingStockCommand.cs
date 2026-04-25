@@ -875,6 +875,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
+                if (reconciliation.TransactionCount <= 0)
+                {
+                    _logger.LogInformation(
+                        "Skipping TankStockDiscrepancy event for Tank {TankId} on {BusinessDate} because TransactionCount is {TransactionCount} (rule requires > 0)",
+                        tank.Id,
+                        businessDate,
+                        reconciliation.TransactionCount);
+                    return;
+                }
+
                 // Build report deep-link URL for TankVolumeHistory
                 var reportUrl = BuildTankVolumeHistoryUrl(
                     tank.Id,

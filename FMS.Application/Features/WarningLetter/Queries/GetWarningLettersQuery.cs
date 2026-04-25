@@ -113,6 +113,7 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
                 SiteName = w.Site.Name,
                 LetterDate = w.LetterDate,
                 PeriodStart = w.PeriodStart,
+                PeriodEnd = w.PeriodEnd,
                 Status = w.Status,
                 WorkflowStage = w.EmployeeAcknowledgedAt != null || w.Status == WarningLetterStatus.Acknowledged
                     ? WarningLetterWorkflowStage.Acknowledged

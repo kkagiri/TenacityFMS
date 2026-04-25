@@ -2,10 +2,13 @@
  * File: IssueTemplateWorkflowPanel.scss
  * Purpose: M365 Fluent styling for the issue template workflow canvas editor
  * Dependencies: IssueTemplateWorkflowPanel.js, SlidePanel, @xyflow/react
- * Last Modified: 2026-04-23
+ * Last Modified: 2026-04-24
  */
 
-.issue-template-workflow-panel {
+:root,
+.issue-template-workflow-panel,
+.slide-panel,
+.slide-panel__content {
   --workflow-primary: #0078d4;
   --workflow-primary-hover: #106ebe;
   --workflow-text: #201f1e;
@@ -16,7 +19,9 @@
   --workflow-card: #ffffff;
   --workflow-hover: #f3f2f1;
   --workflow-danger: #d13438;
+}
 
+.issue-template-workflow-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -97,6 +102,24 @@
   flex-wrap: wrap;
 }
 
+.issue-template-workflow-panel__sidebar-actions {
+  flex-wrap: nowrap;
+}
+
+.issue-template-workflow-panel__sidebar-actions .issue-template-workflow-panel__button {
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.issue-template-workflow-panel__sidebar-actions .issue-template-workflow-panel__button span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .issue-template-workflow-panel__button {
   display: inline-flex;
   align-items: center;
@@ -144,9 +167,9 @@
 
 .issue-template-workflow-panel__layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) 320px;
+  grid-template-columns: 240px minmax(0, 1fr) 300px;
   gap: 16px;
-  min-height: 720px;
+  min-height: 780px;
 }
 
 .issue-template-workflow-panel__sidebar,
@@ -168,9 +191,32 @@
 .issue-template-workflow-panel__sidebar-header,
 .issue-template-workflow-panel__canvas-toolbar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+}
+
+.issue-template-workflow-panel__sidebar-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--workflow-border-light);
+}
+
+.issue-template-workflow-panel__sidebar-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.issue-template-workflow-panel__sidebar-header h4 {
+  white-space: nowrap;
+}
+
+.issue-template-workflow-panel__sidebar-header .issue-template-workflow-panel__button {
+  width: 100%;
+  justify-content: center;
 }
 
 .issue-template-workflow-panel__stage-list,
@@ -183,9 +229,12 @@
 .issue-template-workflow-panel__stage-card {
   border: 1px solid var(--workflow-border-light);
   border-radius: 10px;
-  padding: 12px;
+  padding: 10px 12px 12px;
   background: #fff;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .issue-template-workflow-panel__stage-card.is-active {
@@ -249,18 +298,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 8px;
+  gap: 10px;
+  flex-wrap: nowrap;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--workflow-border-light);
   font-size: 12px;
   color: var(--workflow-text-secondary);
 }
 
+.issue-template-workflow-panel__stage-meta > span:first-child {
+  font-weight: 600;
+  color: var(--workflow-text);
+  white-space: nowrap;
+}
+
 .issue-template-workflow-panel__inline-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 4px;
   border: none;
   background: transparent;
   color: var(--workflow-danger);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .issue-template-workflow-panel__stage-actions,
@@ -275,33 +341,56 @@
   align-items: center;
 }
 
+.issue-template-workflow-panel__stage-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.issue-template-workflow-panel__stage-actions .issue-template-workflow-panel__inline-button {
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--workflow-border-light);
+  border-radius: 0;
+}
+
 .issue-template-workflow-panel__stack {
   flex-direction: column;
 }
 
 .issue-template-workflow-panel__panel-copy {
+  padding: 20px 24px 0;
   font-size: 13px;
   color: var(--workflow-text-secondary);
   line-height: 1.6;
 }
 
 .issue-template-workflow-panel__panel-actions {
+  padding: 0 24px 24px;
   margin-top: 16px;
   justify-content: flex-end;
   flex-wrap: wrap;
+  white-space: nowrap;
+}
+
+.issue-template-workflow-panel__confirm-panel .fms-slide-panel__body {
+  display: flex;
+  flex-direction: column;
 }
 
 .issue-template-workflow-panel__icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--workflow-border);
   border-radius: 4px;
   background: #fff;
   color: #323130;
   cursor: pointer;
+  font-size: 12px;
 }
 
 .issue-template-workflow-panel__icon-button:hover:not(:disabled) {
@@ -318,7 +407,12 @@
   border: 1px solid var(--workflow-border-light);
   border-radius: 12px;
   overflow: hidden;
-  background: linear-gradient(180deg, #ffffff 0%, #faf9f8 100%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 249, 248, 0.98) 100%),
+    linear-gradient(to right, rgba(210, 208, 206, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(210, 208, 206, 0.45) 1px, transparent 1px);
+  background-size: auto, 24px 24px, 24px 24px;
+  background-position: 0 0, 0 0, 0 0;
 }
 
 .issue-template-workflow-panel__lanes {
@@ -326,6 +420,10 @@
   inset: 0;
   pointer-events: none;
   z-index: 0;
+}
+
+.issue-template-workflow-panel__lanes--viewport {
+  width: 100%;
 }
 
 .issue-template-workflow-panel__lane {
@@ -494,7 +592,7 @@
 
 @media (max-width: 1440px) {
   .issue-template-workflow-panel__layout {
-    grid-template-columns: 240px minmax(0, 1fr) 300px;
+    grid-template-columns: 220px minmax(0, 1fr) 280px;
   }
 }
 
@@ -511,6 +609,20 @@
 @media (max-width: 767px) {
   .issue-template-workflow-panel {
     padding: 12px;
+  }
+
+  .issue-template-workflow-panel__sidebar-header,
+  .issue-template-workflow-panel__stage-meta {
+    align-items: stretch;
+  }
+
+  .issue-template-workflow-panel__stage-meta {
+    flex-direction: column;
+  }
+
+  .issue-template-workflow-panel__stage-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .issue-template-workflow-panel__banner-actions,

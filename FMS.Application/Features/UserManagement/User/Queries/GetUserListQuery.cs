@@ -62,6 +62,29 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                 var lastLoginByUserId = lastLoginRows
                     .ToDictionary(x => x.UserId, x => (DateTime?)x.LastLogin, StringComparer.OrdinalIgnoreCase);
 
+                var assignedSitesLookup = await _context.UserSites
+                    .AsNoTracking()
+                    .Where(x => !string.IsNullOrEmpty(x.UserId))
+                    .Select(x => new
+                    {
+                        x.UserId,
+                        SiteName = x.Site != null ? x.Site.Name : null
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var assignedSitesByUserId = assignedSitesLookup
+                    .GroupBy(x => x.UserId, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group
+                            .Select(x => x.SiteName)
+                            .Where(name => !string.IsNullOrWhiteSpace(name))
+                            .Select(name => name!.Trim())
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(name => name)
+                            .ToList(),
+                        StringComparer.OrdinalIgnoreCase);
+
                 var userDtos = new List<UserDto>(users.Count);
 
                 foreach (var user in users)
@@ -85,7 +108,10 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                         DepartmentName = user.Department?.Name ?? string.Empty,
                         IsDeleted = user.IsDeleted,
                         LastLogin = lastLoginByUserId.TryGetValue(user.Id, out var lastLogin) ? lastLogin : null,
-                        Roles = roleNames
+                        Roles = roleNames,
+                        AssignedSites = assignedSitesByUserId.TryGetValue(user.Id, out var assignedSites)
+                            ? assignedSites
+                            : new List<string>()
                     });
                 }
 

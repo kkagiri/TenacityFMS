@@ -2,7 +2,7 @@
  * File: IssueTemplateWorkflowPanel.js
  * Purpose: Staged workflow canvas editor for issue template completion configuration.
  * Dependencies: React, ReactFlowProvider, workflow editor subcomponents
- * Last Modified: 2026-04-23
+ * Last Modified: 2026-04-24
  */
 import React, { useEffect, useState } from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
@@ -117,6 +117,7 @@ const IssueTemplateWorkflowPanel = ({ templateId, templateName, closeSignal = 0,
                             laneHeight={editor.laneHeight}
                             readOnly={false}
                             onNodesChange={editor.handleNodesChange}
+                            onNodeDragStop={editor.handleNodeDragStop}
                             onNodeClick={(_, node) => editor.selectNode(node.id)}
                         />
                     )}

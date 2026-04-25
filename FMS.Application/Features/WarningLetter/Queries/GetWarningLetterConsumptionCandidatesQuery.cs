@@ -138,9 +138,22 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
                     w.PeriodStart <= maxCandidateDate)
                 .ToListAsync(cancellationToken);
 
-            response = response
-                .Where(candidate => !existingLetters.Any(existingLetter => IsDuplicateCandidate(existingLetter, candidate)))
-                .ToList();
+            foreach (var candidate in response)
+            {
+                var existingLetter = existingLetters
+                    .Where(letter => IsDuplicateCandidate(letter, candidate))
+                    .OrderByDescending(letter => letter.LetterDate)
+                    .ThenByDescending(letter => letter.Id)
+                    .FirstOrDefault();
+
+                if (existingLetter == null)
+                {
+                    continue;
+                }
+
+                candidate.HasExistingLetter = true;
+                candidate.ExistingLetterDate = existingLetter.LetterDate;
+            }
         }
 
         return FMSResponse<List<WarningLetterConsumptionCandidateDto>>.Success(response);

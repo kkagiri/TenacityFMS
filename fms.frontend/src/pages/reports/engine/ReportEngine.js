@@ -550,7 +550,7 @@ const ReportEngine = () => {
             if (!templateName) return;
 
             // Sources that have no direct data endpoint must go through the background job path
-            const backendOnlySources = ['tank-volume-history', 'transaction-history-summary', 'monthly-fleet-report', 'weekly-fleet-report'];
+            const backendOnlySources = ['tank-volume-history', 'transaction-history-summary', 'consumption-by-refills', 'monthly-fleet-report', 'weekly-fleet-report'];
             if (backendOnlySources.includes(activeSource.id)) {
                 const queryParams = buildQueryParams();
                 const paramMap = {};

@@ -67,6 +67,7 @@ const normalizeWarningLetterListItem = (item = {}) => ({
     siteName: item?.siteName ?? item?.SiteName ?? "",
     letterDate: item?.letterDate ?? item?.LetterDate ?? null,
     periodStart: item?.periodStart ?? item?.PeriodStart ?? null,
+    periodEnd: item?.periodEnd ?? item?.PeriodEnd ?? null,
     status: item?.status ?? item?.Status ?? null,
     workflowStage: item?.workflowStage ?? item?.WorkflowStage ?? null,
     emailSentAt: item?.emailSentAt ?? item?.EmailSentAt ?? null,

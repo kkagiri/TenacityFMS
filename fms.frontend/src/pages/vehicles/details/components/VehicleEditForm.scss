@@ -6,19 +6,32 @@
       .dx-numberbox,
       .dx-selectbox {
         &.dx-editor-outlined {
-          border-color: #fb923c !important;
+          background-color: #ffffff !important;
+          border: 1px solid #c8c6c4 !important;
+          border-radius: 4px !important;
         }
 
-        .dx-texteditor-input {
-          background-color: #fff7ed !important;
-          color: #111827 !important;
+        .dx-texteditor-input,
+        .dx-texteditor-input-container {
+          background-color: #ffffff !important;
+          color: #201f1e !important;
+        }
+
+        .dx-texteditor-buttons-container {
+          background-color: #ffffff !important;
+        }
+      }
+
+      .dx-state-hover {
+        &.dx-editor-outlined {
+          border-color: #605e5c !important;
         }
       }
 
       .dx-state-focused {
         &.dx-editor-outlined {
-          border-color: #f97316 !important;
-          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+          border-color: #0078d4 !important;
+          box-shadow: 0 0 0 1px #0078d4 !important;
         }
       }
     }

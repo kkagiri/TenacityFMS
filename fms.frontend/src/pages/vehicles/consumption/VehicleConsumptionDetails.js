@@ -5,11 +5,12 @@
  * Last Modified: 2026-04-21
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import DataGrid, { Column, Paging, Scrolling } from "devextreme-react/data-grid";
+import DataGrid, { Column, Paging, Scrolling, Selection, ColumnChooser, StateStoring, Toolbar, Item } from "devextreme-react/data-grid";
 import LoadIndicator from "devextreme-react/load-indicator";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePermissions } from "../../../hooks/usePermissions";
 import VehicleConsumptionEmptyState from "./components/VehicleConsumptionEmptyState";
+import VehicleConsumptionWarningLettersWorkspace from "./components/VehicleConsumptionWarningLettersWorkspace";
 import {
   formatDisplayDate,
   getGoogleMapsApiKey,
@@ -25,6 +26,7 @@ const TAB_ITEMS = [
   { id: "history", label: "History", icon: "fa-light fa-timeline" },
   { id: "gps", label: "GPS Details", icon: "fa-light fa-satellite-dish" },
   { id: "map", label: "Map", icon: "fa-light fa-route" },
+  { id: "warning-letters", label: "Warning Letters", icon: "fa-light fa-file-signature" },
 ];
 
 const formatDateTime = (value) => {
@@ -310,15 +312,31 @@ const VehicleConsumptionDetails = () => {
   const [detail, setDetail] = useState(null);
   const [activeTab, setActiveTab] = useState("history");
   const [historyRecords, setHistoryRecords] = useState([]);
+  const [historyStart, setHistoryStart] = useState("");
+  const [historyEnd, setHistoryEnd] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [trackPoints, setTrackPoints] = useState([]);
   const [mapApiKey, setMapApiKey] = useState("");
   const [supportingLoading, setSupportingLoading] = useState(false);
   const [supportingError, setSupportingError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingLoadId, setPendingLoadId] = useState(null);
   const [error, setError] = useState("");
+  const historyGridRef = useRef(null);
 
   const gpsSummary = useMemo(() => buildGpsSummary(trackPoints), [trackPoints]);
   const signalQuality = useMemo(() => getSignalQuality(Math.round(gpsSummary.averageSatellites)), [gpsSummary.averageSatellites]);
+
+  const handleLoadConsumption = useCallback((nextConsumptionId) => {
+    const vehicleId = detail?.vehicleId;
+
+    if (!vehicleId || !nextConsumptionId || nextConsumptionId === consumptionId) {
+      return;
+    }
+
+    setPendingLoadId(nextConsumptionId);
+    navigate(`/vehicles/${vehicleId}/consumption/${nextConsumptionId}/details`);
+  }, [consumptionId, detail?.vehicleId, navigate]);
 
   const loadDetail = useCallback(async () => {
     if (!consumptionId || !canReadConsumption) {
@@ -335,21 +353,18 @@ const VehicleConsumptionDetails = () => {
 
       if (result?.vehicleId && result?.date) {
         setSupportingLoading(true);
-        const [historyResult, trackPointResult, mapApiKeyResult] = await Promise.allSettled([
-          getVehicleConsumptionHistory(result.vehicleId, result.date, 5),
+        const [trackPointResult, mapApiKeyResult] = await Promise.allSettled([
           getVehicleConsumptionTrackPoints(result.vehicleId, result.date, 5000),
           getGoogleMapsApiKey(),
         ]);
 
-        setHistoryRecords(historyResult.status === "fulfilled" ? historyResult.value : []);
         setTrackPoints(trackPointResult.status === "fulfilled" ? trackPointResult.value : []);
         setMapApiKey(mapApiKeyResult.status === "fulfilled" ? mapApiKeyResult.value : "");
 
-        if (historyResult.status === "rejected" || trackPointResult.status === "rejected") {
-          setSupportingError("Some supporting history or GPS details could not be loaded for this record.");
+        if (trackPointResult.status === "rejected") {
+          setSupportingError("Some supporting GPS details could not be loaded for this record.");
         }
       } else {
-        setHistoryRecords([]);
         setTrackPoints([]);
       }
     } catch (requestError) {
@@ -365,6 +380,80 @@ const VehicleConsumptionDetails = () => {
     loadDetail();
   }, [loadDetail]);
 
+  useEffect(() => {
+    if (!loading) {
+      setPendingLoadId(null);
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (!detail?.date) {
+      return;
+    }
+    const parsed = new Date(detail.date);
+    if (Number.isNaN(parsed.getTime())) {
+      return;
+    }
+    const toIso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const startCandidate = new Date(parsed);
+    startCandidate.setDate(startCandidate.getDate() - 30);
+    setHistoryEnd(toIso(parsed));
+    setHistoryStart(toIso(startCandidate));
+  }, [detail?.date]);
+
+  const loadHistory = useCallback(async (vehicleId, startDate, endDate) => {
+    if (!vehicleId || !startDate || !endDate) {
+      setHistoryRecords([]);
+      return;
+    }
+    if (startDate > endDate) {
+      setHistoryRecords([]);
+      setSupportingError("Start date must be on or before end date.");
+      return;
+    }
+    try {
+      setHistoryLoading(true);
+      const records = await getVehicleConsumptionHistory(vehicleId, endDate, 30, startDate);
+      setHistoryRecords(records || []);
+    } catch (historyError) {
+      setHistoryRecords([]);
+      setSupportingError(historyError?.response?.data?.message || historyError.message || "Failed to load history records.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (detail?.vehicleId && historyStart && historyEnd) {
+      loadHistory(detail.vehicleId, historyStart, historyEnd);
+    }
+  }, [detail?.vehicleId, historyStart, historyEnd, loadHistory]);
+
+  const handleExportHistoryCsv = useCallback(() => {
+    const instance = historyGridRef.current?.instance;
+    if (!instance) {
+      return;
+    }
+    const columns = instance.getVisibleColumns().filter((col) => col.dataField);
+    const rows = instance.getVisibleRows().filter((row) => row.rowType === "data").map((row) => row.data);
+    const escape = (value) => {
+      if (value == null) return "";
+      return `"${String(value).replace(/"/g, '""')}"`;
+    };
+    const headerLine = columns.map((col) => escape(col.caption || col.dataField)).join(",");
+    const bodyLines = rows.map((row) => columns.map((col) => escape(row[col.dataField])).join(","));
+    const csv = [headerLine, ...bodyLines].join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `consumption-history-${historyStart || "start"}_to_${historyEnd || "end"}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [historyStart, historyEnd]);
+
   if (!canReadConsumption) {
     return (
       <div className="vehicle-consumption-module">
@@ -378,30 +467,37 @@ const VehicleConsumptionDetails = () => {
 
   return (
     <div className="vehicle-consumption-module">
-      <section className="vehicle-consumption-module__panel">
-        <div className="m365-page-header">
-          <div className="m365-page-header__left vehicle-consumption-module__header-copy">
-            <div className="vehicle-consumption-module__eyebrow">Record detail</div>
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <i className="fa-light fa-file-magnifying-glass m365-page-header__icon" />
-              <h2 className="m365-page-header__title">Consumption Record Detail</h2>
-            </div>
-            <p className="vehicle-consumption-module__subtitle">
-              Raw row values from the vehicle consumption source, preserved without reinterpreting calendar dates or units.
-            </p>
-          </div>
-          <div className="vehicle-consumption-module__header-actions">
-            <button type="button" className="m365-btn m365-btn--ghost" onClick={() => navigate("/vehicles/consumption")}>
-              <i className="fa-light fa-arrow-left" />
-              Back to module
-            </button>
-            <button type="button" className="m365-btn m365-btn--ghost" onClick={loadDetail} disabled={loading}>
-              <i className={`fa-light fa-arrows-rotate${loading ? " tw-animate-spin" : ""}`} />
-              Refresh
-            </button>
-          </div>
+      <div className="vehicle-consumption-module__command-bar" role="toolbar" aria-label="Record actions">
+        <div className="vehicle-consumption-module__command-group">
+          <button
+            type="button"
+            className="vehicle-consumption-module__command"
+            onClick={() => navigate("/vehicles/consumption")}
+          >
+            <i className="fa-light fa-arrow-left" />
+            <span>Back to list</span>
+          </button>
         </div>
-      </section>
+        <div className="vehicle-consumption-module__command-group vehicle-consumption-module__command-group--end">
+          <button
+            type="button"
+            className="vehicle-consumption-module__command"
+            onClick={loadDetail}
+            disabled={loading}
+          >
+            <i className={`fa-light fa-arrows-rotate${loading ? " fa-spin" : ""}`} />
+            <span>Refresh</span>
+          </button>
+          <button
+            type="button"
+            className="vehicle-consumption-module__command"
+            onClick={() => window.print()}
+          >
+            <i className="fa-light fa-print" />
+            <span>Print</span>
+          </button>
+        </div>
+      </div>
 
       {error ? (
         <div className="m365-info-banner m365-info-banner--error">
@@ -432,12 +528,6 @@ const VehicleConsumptionDetails = () => {
                 </p>
               </div>
             </div>
-            <div className="vehicle-consumption-module__hero-tags">
-              <span className="vehicle-consumption-module__chip"><i className="fa-light fa-calendar-day" />{formatDisplayDate(detail.date)}</span>
-              <span className="vehicle-consumption-module__chip"><i className="fa-light fa-warehouse" />{detail.siteName || "Unknown site"}</span>
-              <span className="vehicle-consumption-module__chip"><i className="fa-light fa-sliders" />{getModeLabel(detail.isKmPerLiter)}</span>
-              <span className="vehicle-consumption-module__chip"><i className="fa-light fa-user" />{detail.assignedEmployeeName || detail.sourceDriverName || "No driver"}</span>
-            </div>
           </section>
 
           <section className="vehicle-consumption-module__summary-grid">
@@ -459,7 +549,28 @@ const VehicleConsumptionDetails = () => {
                 <span className="vehicle-consumption-module__summary-icon"><i className="fa-light fa-gas-pump" /></span>
               </div>
               <div className="vehicle-consumption-module__summary-value">{formatNumber(detail.totalFuel)}<span className="vehicle-consumption-module__summary-unit">L</span></div>
-              <div className="vehicle-consumption-module__summary-meta">Fuel lost {formatNumber(detail.fuelLost)} L</div>
+              <div className="vehicle-consumption-module__summary-meta">Expected {formatNumber(detail.expectedAverage)} {getModeLabel(detail.isKmPerLiter)}</div>
+            </article>
+
+            <article className="vehicle-consumption-module__summary-card">
+              <div className="vehicle-consumption-module__summary-top">
+                <span className="vehicle-consumption-module__summary-label">Fuel Lost (L)</span>
+                <span
+                  className={`vehicle-consumption-module__summary-icon${Number(detail.fuelLost) >= 4 ? " vehicle-consumption-module__summary-icon--danger" : ""
+                    }`}
+                >
+                  <i className="fa-light fa-droplet-slash" />
+                </span>
+              </div>
+              <div
+                className={`vehicle-consumption-module__summary-value${Number(detail.fuelLost) >= 4 ? " vehicle-consumption-module__accent-danger" : ""
+                  }`}
+              >
+                {formatNumber(detail.fuelLost)}<span className="vehicle-consumption-module__summary-unit">L</span>
+              </div>
+              <div className="vehicle-consumption-module__summary-meta">
+                {Number(detail.fuelLost) >= 4 ? "At or above 4 L threshold" : "Within threshold"}
+              </div>
             </article>
 
             <article className="vehicle-consumption-module__summary-card">
@@ -511,15 +622,13 @@ const VehicleConsumptionDetails = () => {
             </div>
           </section>
 
-          <section className="vehicle-consumption-module__panel">
-            <div className="vehicle-consumption-module__tab-header">
-              <div>
-                <div className="vehicle-consumption-module__eyebrow">Analysis</div>
-                <h3 className="vehicle-consumption-module__tab-title">History, GPS details, and selected-day map</h3>
-              </div>
+          <section className="m365-section-group vehicle-consumption-module__panel">
+            <div className="m365-section-group__header">
+              <i className="fa-light fa-chart-mixed m365-section-group__icon" />
+              <h3 className="m365-section-group__title">Analysis</h3>
               {supportingLoading ? (
                 <div className="vehicle-consumption-module__tab-loading">
-                  <LoadIndicator width="24px" height="24px" visible={true} />
+                  <LoadIndicator width="18px" height="18px" visible={true} />
                   <span>Loading support data...</span>
                 </div>
               ) : null}
@@ -544,18 +653,29 @@ const VehicleConsumptionDetails = () => {
                 <div className="vehicle-consumption-module__tab-content">
                   <div className="vehicle-consumption-module__grid-title">
                     <div>
-                      <h3>Last 5 records on file</h3>
-                      <p>Shows recent `vehicleconsumption` rows for this vehicle ending on the selected record date.</p>
+                      <h3>Consumption history</h3>
+                      <p>Pick a date range to load `vehicleconsumption` rows between those dates.</p>
                     </div>
+                    {pendingLoadId && loading ? (
+                      <div className="vehicle-consumption-module__tab-loading" aria-live="polite">
+                        <LoadIndicator width="16px" height="16px" visible={true} />
+                        <span>Loading selected consumption details...</span>
+                      </div>
+                    ) : null}
                   </div>
 
                   <DataGrid
+                    ref={historyGridRef}
                     dataSource={historyRecords}
                     keyExpr="id"
                     showBorders={true}
                     hoverStateEnabled={true}
                     columnAutoWidth={true}
-                    noDataText={supportingLoading ? "Loading history..." : "No history records found for this vehicle."}
+                    allowColumnResizing={true}
+                    columnResizingMode="widget"
+                    allowColumnReordering={true}
+                    selectedRowKeys={detail?.id ? [detail.id] : []}
+                    noDataText={historyLoading ? "Loading history..." : "No history records found for the selected date."}
                     rowAlternationEnabled={false}
                     onRowPrepared={(event) => {
                       if (event.rowType === "data" && event.data?.id === detail.id) {
@@ -563,8 +683,86 @@ const VehicleConsumptionDetails = () => {
                       }
                     }}
                   >
+                    <Toolbar>
+                      <Item location="before" locateInMenu="never" render={() => (
+                        <div className="vehicle-consumption-module__grid-toolbar-field">
+                          <label className="vehicle-consumption-module__grid-toolbar-label" htmlFor="historyStartInput">From</label>
+                          <input
+                            id="historyStartInput"
+                            type="date"
+                            className="m365-input m365-date"
+                            value={historyStart}
+                            max={historyEnd || undefined}
+                            onChange={(event) => setHistoryStart(event.target.value)}
+                          />
+                        </div>
+                      )} />
+                      <Item location="before" locateInMenu="never" render={() => (
+                        <div className="vehicle-consumption-module__grid-toolbar-field">
+                          <label className="vehicle-consumption-module__grid-toolbar-label" htmlFor="historyEndInput">To</label>
+                          <input
+                            id="historyEndInput"
+                            type="date"
+                            className="m365-input m365-date"
+                            value={historyEnd}
+                            min={historyStart || undefined}
+                            onChange={(event) => setHistoryEnd(event.target.value)}
+                          />
+                        </div>
+                      )} />
+                      <Item location="after" locateInMenu="never" render={() => (
+                        historyLoading ? (
+                          <div className="vehicle-consumption-module__tab-loading" aria-live="polite">
+                            <LoadIndicator width="16px" height="16px" visible={true} />
+                            <span>Loading...</span>
+                          </div>
+                        ) : null
+                      )} />
+                      <Item name="columnChooserButton" location="after" locateInMenu="auto" />
+                      <Item
+                        location="after"
+                        locateInMenu="auto"
+                        widget="dxButton"
+                        options={{
+                          icon: "exportxlsx",
+                          text: "Export CSV",
+                          hint: "Export the current rows to CSV",
+                          onClick: handleExportHistoryCsv,
+                          disabled: !historyRecords.length,
+                        }}
+                      />
+                    </Toolbar>
+                    <Selection mode="single" />
+                    <StateStoring enabled={true} type="localStorage" storageKey="vehicleConsumption.history.grid" />
+                    <ColumnChooser enabled={true} mode="select" />
                     <Paging enabled={false} />
                     <Scrolling mode="standard" showScrollbar="always" />
+                    <Column
+                      caption="Actions"
+                      width={70}
+                      allowResizing={false}
+                      showInColumnChooser={false}
+                      cellRender={({ data }) => {
+                        const isRowLoading = loading && pendingLoadId === data?.id;
+
+                        return (
+                          <button
+                            type="button"
+                            className="vehicle-consumption-module__grid-action-button"
+                            title={data?.id === detail?.id ? "Already loaded" : "Load details"}
+                            aria-label={data?.id === detail?.id ? "Already loaded" : "Load details"}
+                            onClick={() => handleLoadConsumption(data?.id)}
+                            disabled={!data?.id || data?.id === detail?.id || loading}
+                          >
+                            {isRowLoading ? (
+                              <LoadIndicator width="14px" height="14px" visible={true} />
+                            ) : (
+                              <i className="fa-light fa-arrow-up-right-from-square" />
+                            )}
+                          </button>
+                        );
+                      }}
+                    />
                     <Column dataField="date" caption="Date" customizeText={({ value }) => formatDisplayDate(value)} minWidth={120} />
                     <Column dataField="employeeName" caption="Driver" minWidth={160} />
                     <Column dataField="siteName" caption="Site" minWidth={120} />
@@ -621,6 +819,12 @@ const VehicleConsumptionDetails = () => {
               {activeTab === "map" ? (
                 <div className="vehicle-consumption-module__tab-content">
                   <VehicleTrackMap mapApiKey={mapApiKey} points={trackPoints} />
+                </div>
+              ) : null}
+
+              {activeTab === "warning-letters" ? (
+                <div className="vehicle-consumption-module__tab-content">
+                  <VehicleConsumptionWarningLettersWorkspace detail={detail} />
                 </div>
               ) : null}
             </div>

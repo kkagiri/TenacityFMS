@@ -1,0 +1,320 @@
+/**
+ * File:          EmployeeOverviewWorkspace.scss
+ * Purpose:       M365-style two-column overview cards for the employee details page.
+ * Last Modified: 2026-04-25
+ */
+
+.employee-overview {
+  &__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  @media (max-width: 1024px) {
+    &__grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}
+
+.employee-overview-card {
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 8px;
+  padding: 18px 20px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+
+    h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #201f1e;
+      letter-spacing: 0.01em;
+    }
+
+    &--with-action {
+      justify-content: space-between;
+    }
+  }
+
+  &__link {
+    background: transparent;
+    border: none;
+    color: #0078d4;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+    row-gap: 14px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    &-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #605e5c;
+    }
+
+    &-value {
+      font-size: 13px;
+      color: #201f1e;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0;
+    color: #605e5c;
+    font-size: 12px;
+
+    i {
+      color: #a19f9d;
+    }
+  }
+}
+
+// Side-column employment card uses single-column rows with right-aligned values
+.employee-overview__col--side .employee-overview-card__list .employee-overview-card__row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+
+  .employee-overview-card__row-label {
+    text-transform: none;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: #605e5c;
+  }
+
+  .employee-overview-card__row-value {
+    text-align: right;
+    font-weight: 600;
+  }
+}
+
+.employee-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  &__tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 14px 16px;
+    min-width: 0;
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+  }
+
+  &__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+
+    &--blue {
+      background: #deecf9;
+      color: #0078d4;
+    }
+
+    &--green {
+      background: #dff6dd;
+      color: #107c10;
+    }
+
+    &--orange {
+      background: #fed9cc;
+      color: #ca5010;
+    }
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #605e5c;
+  }
+
+  &__value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #201f1e;
+
+    small {
+      font-size: 12px;
+      font-weight: 500;
+      color: #605e5c;
+      margin-left: 2px;
+    }
+  }
+}
+
+.employee-overview-activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f3f2f1;
+    font-size: 13px;
+    color: #201f1e;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #deecf9;
+    color: #0078d4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    strong {
+      font-weight: 600;
+    }
+  }
+
+  &__time {
+    font-size: 12px;
+    color: #605e5c;
+    flex-shrink: 0;
+  }
+}
+
+.employee-overview-vehicles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: #faf9f8;
+    border: 1px solid #edebe9;
+    border-radius: 6px;
+  }
+
+  &__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    color: #605e5c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #201f1e;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__role {
+    font-size: 11px;
+    font-weight: 500;
+    background: #deecf9;
+    color: #0078d4;
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+}

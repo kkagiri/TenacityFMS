@@ -21,6 +21,7 @@ import notify from "devextreme/ui/notify";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import SlidePanel from "../../../components/ui/SlidePanel";
+import VehicleSearchableSelector from "../../../components/selectors/VehicleSearchableSelector";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { quickSearchEmployees, searchEmployees } from "../../../redux/actions/employeeActions";
 import { getUserId } from "../transfers/vehicleTransferFormUtils";
@@ -103,6 +104,7 @@ const WarningLetterListPage = () => {
     const [filters, setFilters] = useState({
         siteId: "",
         employeeId: searchParams.get("employeeId") || "",
+        vehicleId: "",
         workflowStage: "",
         letterType: "",
         startDate: "",
@@ -542,6 +544,17 @@ const WarningLetterListPage = () => {
                                     )}
                                 </div>
                             )}
+                        </div>
+                    </label>
+                    <label className="warning-letter-page__field">
+                        <span>Vehicle</span>
+                        <div className="warning-letter-list__vehicle-search">
+                            <VehicleSearchableSelector
+                                value={filters.vehicleId ? Number(filters.vehicleId) : null}
+                                onValueChanged={({ value }) => setFilterValue("vehicleId", value ? String(value) : "")}
+                                placeholder="Search vehicle by Hyoung No, plate, or name"
+                                width="100%"
+                            />
                         </div>
                     </label>
                     <label className="warning-letter-page__field">

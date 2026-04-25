@@ -45,14 +45,49 @@ import { usePermissions } from "../../../hooks/usePermissions";
 
 import "./VehicleDetails.scss";
 
+// Tab slug mapping — keeps URL in sync with active tab.
+// Order must match the tabItems array below.
+const TAB_SLUGS = [
+  "vehicle-information",
+  "gps-information",
+  "consumption-history",
+  "maintenance-history",
+  "fueling-history",
+  "documents",
+  "fueling-rules",
+  "transfers",
+  "trip-history",
+];
+
+// Legacy (pre-hyphen) slugs — map to the new hyphenated slugs so old deep links still work.
+const LEGACY_TAB_SLUGS = {
+  vehicleinformation: "vehicle-information",
+  gpsinformation: "gps-information",
+  consumptionhistory: "consumption-history",
+  maintenancehistory: "maintenance-history",
+  fuelinghistory: "fueling-history",
+  fuelingrules: "fueling-rules",
+  triphistory: "trip-history",
+};
+
+const getTabIndexFromSlug = (slug) => {
+  if (!slug) return -1;
+  const normalized = String(slug).toLowerCase();
+  const resolved = LEGACY_TAB_SLUGS[normalized] || normalized;
+  return TAB_SLUGS.indexOf(resolved);
+};
+
 const VehicleDetails = () => {
-  const { id } = useParams();
+  const { id, tab: tabParam } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const requestedInitialTab = Number.isInteger(location.state?.initialTab)
-    ? location.state.initialTab
-    : 0;
+  const slugIndex = getTabIndexFromSlug(tabParam);
+  const requestedInitialTab = slugIndex >= 0
+    ? slugIndex
+    : (Number.isInteger(location.state?.initialTab)
+      ? location.state.initialTab
+      : 0);
 
   // Permissions (editing gated by permission)
   const { hasPermission } = usePermissions();
@@ -264,8 +299,7 @@ const VehicleDetails = () => {
 
   // Helper function to navigate to fueling history tab
   const handleViewFuelHistory = () => {
-    // Navigate to the fuel history tab
-    setActiveTab(4); // Fueling History tab (index changed after removing Schedules and reordering)
+    navigate(`/vehicles/${id}/details/fueling-history`);
   };
 
   const handleGenerateReport = () => {
@@ -318,6 +352,12 @@ const VehicleDetails = () => {
       const newTabIndex = e.itemIndex;
       setActiveTab(newTabIndex);
 
+      // Keep URL in sync with the active tab
+      const slug = TAB_SLUGS[newTabIndex];
+      if (slug && slug !== tabParam) {
+        navigate(`/vehicles/${id}/details/${slug}`, { replace: true });
+      }
+
       // Only set loading state if we haven't loaded this tab's data before
       if (!tabDataLoaded[newTabIndex]) {
         setTabLoadingStates((prev) => ({
@@ -340,8 +380,23 @@ const VehicleDetails = () => {
         }, 500);
       }
     },
-    [tabDataLoaded]
+    [tabDataLoaded, tabParam, id, navigate]
   );
+
+  // URL is the source of truth. Normalize legacy slugs, then sync activeTab from the URL.
+  useEffect(() => {
+    if (!id || !tabParam) return;
+    const normalized = String(tabParam).toLowerCase();
+    // Legacy slug (no hyphens): redirect to canonical hyphenated slug.
+    if (LEGACY_TAB_SLUGS[normalized]) {
+      navigate(`/vehicles/${id}/details/${LEGACY_TAB_SLUGS[normalized]}`, { replace: true });
+      return;
+    }
+    const idx = TAB_SLUGS.indexOf(normalized);
+    if (idx >= 0 && idx !== activeTab) {
+      setActiveTab(idx);
+    }
+  }, [tabParam, id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Vehicle save handler - Stable reference
   const handleVehicleSave = useCallback(
@@ -567,9 +622,7 @@ const VehicleDetails = () => {
 
   const renderContent = () => {
     const activeComponent = tabItems[activeTab]?.component;
-    return activeComponent ? (
-      <div className="tw-p-4 md:tw-p-6">{activeComponent}</div>
-    ) : null;
+    return activeComponent ? <>{activeComponent}</> : null;
   };
 
   if (isLoading) {
@@ -603,188 +656,130 @@ const VehicleDetails = () => {
     );
   }
 
-  return (
-    <div className="vehicle-details tw-p-2 md:tw-p-6">
-      {/* Header Section */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-4 md:tw-p-6 tw-mb-6">
-        {/* Back Button - Above Vehicle Name */}
-        <div className="tw-mb-4">
-          <Button
-            icon="fa-light fa-arrow-left"
-            onClick={handleBackToList}
-            stylingMode="text"
-            className="vehicle-details__back-button"
-            hint="Back to Vehicle List"
-          />
-        </div>
+  const ignitionStatus =
+    gpsData?.sensorHealth?.ignitionStatus !== null &&
+      gpsData?.sensorHealth?.ignitionStatus !== undefined
+      ? gpsData.sensorHealth.ignitionStatus
+        ? "ON"
+        : "OFF"
+      : "N/A";
 
-        <div className="vehicle-details__header-content tw-relative tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-start lg:tw-justify-between tw-gap-4 tw-mb-4">
-          {/* Vehicle Info Section */}
-          <div className="tw-flex-1">
-            <div>
-              <h1 className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">
-                {vehicle.hyoungNo} - {vehicle.numberPlate}
-              </h1>
-              <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
-                {[vehicleManufacturerDisplay, vehicleModelDisplay].filter(Boolean).join(" ")}
-              </p>
-              {/* Display current location address if available - clickable to go to GPS tab */}
+  const fuelLevelDisplay =
+    gpsData?.sensorHealth?.fuelLevel !== null &&
+      gpsData?.sensorHealth?.fuelLevel !== undefined
+      ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${gpsData.sensorHealth.fuelLevelUnit || "L"}`
+      : "N/A";
+
+  const metrics = [
+    {
+      key: "driver", icon: "fa-light fa-user", label: "Default Driver",
+      value: vehicle.defaultDriver?.name || vehicle.defaultDriver?.fullName || "Not Assigned"
+    },
+    { key: "ignition", icon: "fa-light fa-key", label: "Ignition", value: ignitionStatus },
+    { key: "site", icon: "fa-light fa-building", label: "Working Site", value: workingSiteDisplay },
+    {
+      key: "gps", icon: "fa-light fa-satellite", label: "GPS Signal",
+      value: gpsData?.sensorHealth?.gpsSignalStrength || "N/A"
+    },
+    { key: "fuel", icon: "fa-light fa-gas-pump", label: "Fuel Level", value: fuelLevelDisplay },
+    {
+      key: "capacity", icon: "fa-light fa-gauge-high", label: "Capacity",
+      value: vehicle.capacity || "Not Specified"
+    },
+  ];
+
+  return (
+    <div className="vehicle-details">
+      {/* M365 Page Header */}
+      <div className="vehicle-details__page-header">
+        <div className="vehicle-details__page-header-left">
+          <button
+            type="button"
+            className="m365-icon-btn vehicle-details__back-btn"
+            onClick={handleBackToList}
+            title="Back to Vehicle List"
+            aria-label="Back to Vehicle List"
+          >
+            <i className="fa-light fa-arrow-left"></i>
+          </button>
+          <div className="vehicle-details__title-block">
+            <h2 className="vehicle-details__title">
+              <i className="fa-light fa-truck vehicle-details__title-icon"></i>
+              {vehicle.hyoungNo} &middot; {vehicle.numberPlate}
+            </h2>
+            <div className="vehicle-details__subtitle">
+              {[vehicleManufacturerDisplay, vehicleModelDisplay].filter(Boolean).join(" ") || "—"}
               {gpsData?.address && (
-                <p
-                  className="tw-text-sm tw-text-blue-600 tw-mt-1 tw-flex tw-items-center tw-gap-2 tw-cursor-pointer hover:tw-text-blue-800 hover:tw-underline"
-                  onClick={() => setActiveTab(1)}
-                  title="Click to view on map"
+                <button
+                  type="button"
+                  className="vehicle-details__address-link"
+                  onClick={() => navigate(`/vehicles/${id}/details/gps-information`)}
+                  title="View on map"
                 >
-                  <i className="fa-light fa-map-marker-alt"></i>
+                  <i className="fa-light fa-location-dot"></i>
                   <span>{gpsData.address}</span>
-                </p>
+                </button>
               )}
             </div>
           </div>
-
-          {/* Quick Action Icon Buttons - Right side on wide screen, below title on small */}
-          <div className="vehicle-details__action-buttons">
-            <Button
-              text="Assign Tag"
-              icon="fa-light fa-tag"
-              onClick={handleAssignTag}
-              type="default"
-              stylingMode="outlined"
-              className="vehicle-details__action-btn vehicle-details__action-btn--first"
-              disabled={!isAdmin}
-              hint={!isAdmin ? "Admin only" : "Assign RFID tag"}
-            />
-            <Button
-              text="Expected Average"
-              icon="fa-light fa-chart-line"
-              onClick={handleAssignExpectedAverage}
-              type="default"
-              stylingMode="outlined"
-              className="vehicle-details__action-btn vehicle-details__action-btn--middle"
-              disabled={!isAdmin}
-              hint={!isAdmin ? "Admin only" : "Set expected average"}
-            />
-            <Button
-              text="Generate Report"
-              icon="fa-light fa-file-chart-column"
-              onClick={handleGenerateReport}
-              type="default"
-              stylingMode="outlined"
-              className="vehicle-details__action-btn vehicle-details__action-btn--last"
-            />
-          </div>
         </div>
-
-        {/* Vehicle Metrics Dashboard - Modern Card Design */}
-        <div className="vehicle-details__metrics">
-          <div className="vehicle-details__metrics-grid tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
-            {/* Default Driver Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--status">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-user"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">
-                  Default Driver
-                </div>
-                <div className="vehicle-details__metric-value">
-                  {vehicle.defaultDriver?.name ||
-                    vehicle.defaultDriver?.fullName ||
-                    "Not Assigned"}
-                </div>
-              </div>
-            </div>
-
-            {/* Ignition Status Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--gps">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-key"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Ignition</div>
-                <div className="vehicle-details__metric-value">
-                  {gpsData?.sensorHealth?.ignitionStatus !== null &&
-                    gpsData?.sensorHealth?.ignitionStatus !== undefined
-                    ? gpsData.sensorHealth.ignitionStatus
-                      ? "ON"
-                      : "OFF"
-                    : "N/A"}
-                </div>
-              </div>
-            </div>
-
-            {/* Working Site Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--site">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-building"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">
-                  Working Site
-                </div>
-                <div className="vehicle-details__metric-value">
-                  {workingSiteDisplay}
-                </div>
-              </div>
-            </div>
-
-            {/* GPS Signal Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--gps-signal">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-satellite"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">GPS Signal</div>
-                <div className="vehicle-details__metric-value">
-                  {gpsData?.sensorHealth?.gpsSignalStrength || "N/A"}
-                </div>
-              </div>
-            </div>
-
-            {/* Fuel Level Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--fuel">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-gas-pump"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Fuel Level</div>
-                <div className="vehicle-details__metric-value">
-                  {gpsData?.sensorHealth?.fuelLevel !== null &&
-                    gpsData?.sensorHealth?.fuelLevel !== undefined
-                    ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${gpsData.sensorHealth.fuelLevelUnit || "L"
-                    }`
-                    : "N/A"}
-                </div>
-              </div>
-            </div>
-
-            {/* Capacity Card */}
-            <div className="vehicle-details__metric-card vehicle-details__metric-card--capacity">
-              <div className="vehicle-details__metric-icon">
-                <i className="fa-light fa-gauge-high"></i>
-              </div>
-              <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Capacity</div>
-                <div className="vehicle-details__metric-value">
-                  {vehicle.capacity || "Not Specified"}
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="vehicle-details__page-header-actions">
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={handleAssignTag}
+            disabled={!isAdmin}
+            title={!isAdmin ? "Admin only" : "Assign RFID tag"}
+          >
+            <i className="fa-light fa-tag"></i>
+            <span>Assign Tag</span>
+          </button>
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={handleAssignExpectedAverage}
+            disabled={!isAdmin}
+            title={!isAdmin ? "Admin only" : "Set expected average"}
+          >
+            <i className="fa-light fa-chart-line"></i>
+            <span>Expected Average</span>
+          </button>
+          <button
+            type="button"
+            className="m365-btn m365-btn--primary"
+            onClick={handleGenerateReport}
+          >
+            <i className="fa-light fa-file-chart-column"></i>
+            <span>Generate Report</span>
+          </button>
         </div>
       </div>
 
+      {/* Metrics Strip */}
+      <div className="vehicle-details__metrics">
+        {metrics.map((m) => (
+          <div key={m.key} className="vehicle-details__metric">
+            <div className="vehicle-details__metric-icon">
+              <i className={m.icon}></i>
+            </div>
+            <div className="vehicle-details__metric-content">
+              <div className="vehicle-details__metric-label">{m.label}</div>
+              <div className="vehicle-details__metric-value">{m.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Tabs Section */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200">
+      <div className="vehicle-details__tabs-card">
         <Tabs
           dataSource={tabItems}
           selectedIndex={activeTab}
           onItemClick={handleTabSelectionChange}
           width="100%"
-          className="tw-mb-4"
           itemRender={renderTabItem}
         />
-        <div className="tw-p-4">{renderContent()}</div>
+        <div className="vehicle-details__tabs-content">{renderContent()}</div>
       </div>
 
       {/* Popup Forms */}

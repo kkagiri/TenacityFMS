@@ -77,4 +77,5 @@ public class UserDto
     public string? DepartmentName { get; set; }
     public bool? IsDeleted { get; set; }
     public DateTime? LastLogin { get; set; }
+    public List<string> AssignedSites { get; set; } = new();
 }

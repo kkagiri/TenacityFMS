@@ -398,6 +398,49 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
         [effectiveParameters, onFilterChange]
     );
 
+    const resolveDependencyValue = useCallback((dependencyKey) => {
+        if (!dependencyKey) {
+            return undefined;
+        }
+
+        if (filters[dependencyKey] !== undefined && filters[dependencyKey] !== null) {
+            return filters[dependencyKey];
+        }
+
+        if (dependencyKey.endsWith('Id')) {
+            const pluralKey = `${dependencyKey}s`;
+            if (filters[pluralKey] !== undefined && filters[pluralKey] !== null) {
+                return filters[pluralKey];
+            }
+        }
+
+        if (dependencyKey.endsWith('Ids')) {
+            const singularKey = dependencyKey.slice(0, -1);
+            if (filters[singularKey] !== undefined && filters[singularKey] !== null) {
+                return filters[singularKey];
+            }
+        }
+
+        return undefined;
+    }, [filters]);
+
+    const getDependencyCandidateValues = useCallback((item, dependencyKey) => {
+        const keys = [dependencyKey];
+        if (dependencyKey.endsWith('Id')) {
+            keys.push(`${dependencyKey}s`);
+        }
+        if (dependencyKey.endsWith('Ids')) {
+            keys.push(dependencyKey.slice(0, -1));
+        }
+
+        return keys
+            .flatMap((key) => {
+                const raw = item?.[key];
+                return Array.isArray(raw) ? raw : [raw];
+            })
+            .filter((candidate) => candidate !== null && candidate !== undefined && candidate !== '');
+    }, []);
+
     /**
      * Get filtered lookup data when a parameter depends on another parameter
      */
@@ -405,19 +448,30 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
         (param) => {
             let data = asyncLookupData[param.lookupSource] || lookupData[param.lookupSource] || [];
 
-            if (param.dependsOn && filters[param.dependsOn]) {
-                const depValue = filters[param.dependsOn];
+            if (param.dependsOn) {
+                const depValue = resolveDependencyValue(param.dependsOn);
+                const hasDependencyValue = Array.isArray(depValue)
+                    ? depValue.length > 0
+                    : depValue !== null && depValue !== undefined && depValue !== '';
+
+                if (!hasDependencyValue) {
+                    return data;
+                }
+
                 // Support multi-select dependency (array) or single value
                 if (Array.isArray(depValue) && depValue.length > 0) {
-                    data = data.filter((item) => depValue.includes(item[param.dependsOn]));
+                    const dependencySet = new Set(depValue.map((item) => String(item)));
+                    data = data.filter((item) => getDependencyCandidateValues(item, param.dependsOn)
+                        .some((candidate) => dependencySet.has(String(candidate))));
                 } else if (!Array.isArray(depValue)) {
-                    data = data.filter((item) => item[param.dependsOn] === depValue);
+                    data = data.filter((item) => getDependencyCandidateValues(item, param.dependsOn)
+                        .some((candidate) => String(candidate) === String(depValue)));
                 }
             }
 
             return data;
         },
-        [asyncLookupData, lookupData, filters]
+        [asyncLookupData, lookupData, getDependencyCandidateValues, resolveDependencyValue]
     );
 
     const renderControl = useCallback(

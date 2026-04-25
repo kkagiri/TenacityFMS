@@ -1,269 +1,368 @@
 /**
- * File: EmployeeDetailsPage.scss
- * Purpose: M365 Admin Center styles for EmployeeDetailsPage.
- * Dependencies: m365-shared.scss
- * Last Modified: 2026-03-02
+ * File:          EmployeeDetailsPage.scss
+ * Purpose:       M365 Admin Center flat layout for the employee details page
+ *                — breadcrumb, flat profile header, underline tabs, and panel.
+ * Dependencies:  m365-shared.scss
+ * Last Modified: 2026-04-25
  */
 @import "../../../components/m365/m365-shared.scss";
 
-.employee-details-page {
+.employee-details-module {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-/* ── Header card ── */
-.edp-header-card {
-  background: #fff;
-  border: 1px solid var(--m365-border-light);
-  border-radius: var(--m365-radius-card);
   padding: 16px 20px;
+  background: #ffffff;
+  min-height: 100%;
 
-  &__top {
+  // ── Breadcrumb ─────────────────────────────────────────────
+  &__breadcrumb {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #605e5c;
+    margin-bottom: -4px;
   }
 
+  &__breadcrumb-link {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #0078d4;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  &__breadcrumb-sep {
+    color: #a19f9d;
+    font-size: 10px;
+  }
+
+  &__breadcrumb-current {
+    color: #605e5c;
+    font-weight: 500;
+  }
+
+  // ── Flat profile header ────────────────────────────────────
   &__profile {
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 8px 0 12px;
+    border-bottom: 1px solid #edebe9;
+  }
+
+  &__profile-main {
+    display: flex;
     align-items: flex-start;
-    gap: 14px;
+    min-width: 0;
+  }
+
+  &__profile-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__avatar {
+    width: 64px;
+    min-height: 64px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #deecf9;
+    color: #0078d4;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  &__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__name-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   &__name {
-    font-size: 18px;
+    margin: 0;
+    color: #201f1e;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--m365-text);
-    margin: 0 0 4px;
-    line-height: 1.3;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
   }
 
-  &__meta {
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+
+    &--success { background: #dff6dd; color: #107c10; }
+    &--warning { background: #fed9cc; color: #ca5010; }
+    &--error   { background: #fde7e9; color: #d13438; }
+    &--neutral { background: #f3f2f1; color: #605e5c; }
+  }
+
+  &__status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &__sub {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    color: #605e5c;
     font-size: 13px;
-    color: var(--m365-text-secondary);
+    line-height: 1.2;
   }
 
-  &__actions {
+  &__sub-dot {
+    color: #a19f9d;
+  }
+
+  &__profile-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    padding-top: 8px;
+    border-top: 1px solid #edebe9;
   }
 
-  &__filters {
+  &__profile-action--danger {
+    color: #d13438 !important;
+
+    i { color: #d13438 !important; }
+
+    &:hover:not(:disabled) {
+      background: #fde7e9 !important;
+      border-color: #d13438 !important;
+    }
+  }
+
+  // ── Underline tabs ────────────────────────────────────────
+  &__tabs {
     display: flex;
-    align-items: flex-end;
-    gap: 12px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--m365-border-light);
-  }
-}
-
-/* ── Detail header icon circle (reusable) ── */
-.m365-detail-header__icon-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-/* ── Stats row override ── */
-.edp-stats {
-  background: #fff;
-  border: 1px solid var(--m365-border-light);
-  border-radius: var(--m365-radius-card);
-  padding: 0;
-}
-
-/* ── Tabbed card ── */
-.edp-tabbed-card {
-  background: #fff;
-  border: 1px solid var(--m365-border-light);
-  border-radius: var(--m365-radius-card);
-  overflow: hidden;
-
-  .m365-tabs {
-    padding: 0 16px;
-    border-bottom: 1px solid var(--m365-border-light);
+    align-items: center;
+    gap: 24px;
+    border-bottom: 1px solid #edebe9;
+    margin-top: 4px;
+    overflow-x: auto;
   }
 
-  &__body {
-    padding: 16px;
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 10px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #605e5c;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.15s ease, border-color 0.15s ease;
+
+    &:hover:not(&--active) { color: #201f1e; }
+
+    &--active {
+      color: #0078d4;
+      border-bottom-color: #0078d4;
+      font-weight: 600;
+    }
   }
-}
 
-/* ── M365-styled DataGrid ── */
-.edp-grid {
-  font-family: var(--m365-font);
+  &__tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: #f3f2f1;
+    color: #605e5c;
+    font-size: 11px;
+    font-weight: 600;
 
-  .dx-datagrid-headers {
-    border-top: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--m365-border-light) !important;
-    background: #fff;
+    .employee-details-module__tab--active & {
+      background: #deecf9;
+      color: #0078d4;
+    }
   }
 
-  .dx-datagrid-headers .dx-header-row > td {
-    border: none !important;
-    color: var(--m365-text-secondary);
+  // ── Filter bar ────────────────────────────────────────────
+  &__filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  &__filter-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #605e5c;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
+
+    i { color: #0078d4; font-size: 13px; }
+  }
+
+  &__filter-input {
+    height: 32px !important;
+    min-width: 140px;
+  }
+
+  &__filter-sep {
+    color: #605e5c;
+    font-size: 12px;
+  }
+
+  // ── Panel body (tab content) ──────────────────────────────
+  &__panel-body {
+    margin-top: 4px;
+    min-height: 600px;
+  }
+
+  // ── DataGrid styling ──────────────────────────────────────
+  &__grid {
+    font-family: var(--m365-font);
+    min-height: 600px;
     background: #fff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 8px;
+
+    .dx-datagrid-headers {
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: 1px solid #edebe9 !important;
+      background: #fff;
+    }
+
+    .dx-datagrid-headers .dx-header-row > td {
+      border: none !important;
+      color: #605e5c;
+      font-size: 12px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .dx-datagrid-rowsview { border: none !important; }
+
+    .dx-datagrid-rowsview .dx-row > td {
+      border-left: none !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: 1px solid #f3f2f1 !important;
+      font-size: 13px;
+      color: #201f1e;
+      padding-top: 9px;
+      padding-bottom: 9px;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td { background: #f3f2f1 !important; }
+    .dx-datagrid-rowsview .dx-row:last-child > td { border-bottom: none !important; }
   }
 
-  .dx-datagrid-rowsview {
-    border: none !important;
-  }
-
-  .dx-datagrid-rowsview .dx-row > td {
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
-    border-bottom: 1px solid #f3f2f1 !important;
+  // ── Loading inside tab ────────────────────────────────────
+  &__tab-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 60px 16px;
+    color: #605e5c;
     font-size: 13px;
-    color: var(--m365-text);
-    padding-top: 10px;
-    padding-bottom: 10px;
-  }
-
-  .dx-datagrid-rowsview .dx-row:hover > td {
-    background: var(--m365-bg-hover) !important;
-  }
-
-  .dx-datagrid-rowsview .dx-row:last-child > td {
-    border-bottom: none !important;
   }
 }
 
-/* ── Section card ── */
-.edp-section-card {
-  background: #fff;
-  border: 1px solid var(--m365-border-light);
-  border-radius: var(--m365-radius-card);
-  padding: 16px 20px;
-}
-
-/* ── Vehicle tags (reuse from employeePage) ── */
-.employee-vehicle-tags {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.employee-vehicle-tag {
-  display: inline-flex;
-  align-items: center;
-  height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--m365-primary-tint);
-  color: var(--m365-primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* ── Form grid (reuse from employeePage) ── */
+/* ── Form grid reused by edit slide-panel ── */
 .employee-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.employee-warning-letters {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-
-  &__toolbar {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  &__title {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--m365-text);
-  }
-
-  &__subtitle {
-    margin: 4px 0 0;
-    font-size: 13px;
-    color: var(--m365-text-secondary);
-  }
-
-  &__toolbar-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  &__actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-}
-
-/* ── Responsive ── */
+/* ── Mobile responsive ── */
 @media (max-width: 768px) {
-  .edp-header-card {
-    &__top {
-      flex-direction: column;
-    }
-
-    &__actions {
-      width: 100%;
-    }
-
-    &__filters {
-      flex-direction: column;
-      align-items: stretch;
-    }
+  .employee-details-module {
+    padding: 12px;
   }
-
-  .edp-stats {
-    .m365-stat-item {
-      min-width: 0;
-      padding: 10px 12px;
-    }
+  .employee-details-module__profile {
+    gap: 12px;
   }
-
-  .edp-tabbed-card .m365-tabs {
-    overflow-x: auto;
+  .employee-details-module__profile-main {
+    width: 100%;
   }
-
+  .employee-details-module__profile-left {
+    align-items: flex-start;
+  }
+  .employee-details-module__profile-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .employee-details-module__avatar {
+    width: 54px;
+    min-height: 54px;
+    font-size: 18px;
+  }
+  .employee-details-module__name {
+    font-size: 14px;
+  }
+  .employee-details-module__sub,
+  .employee-details-module__contact {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  .employee-details-module__tabs {
+    gap: 18px;
+  }
   .employee-form-grid {
     grid-template-columns: 1fr;
   }
+}
 
-  .employee-warning-letters {
-    &__toolbar {
-      flex-direction: column;
-    }
-
-    &__toolbar-actions,
-    &__actions {
-      width: 100%;
-    }
+@media (max-width: 480px) {
+  .employee-details-module__profile-left {
+    align-items: flex-start;
+  }
+  .employee-details-module__profile-actions .m365-btn span {
+    display: none;
   }
 }

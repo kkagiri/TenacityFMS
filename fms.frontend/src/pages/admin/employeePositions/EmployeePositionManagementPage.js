@@ -5,7 +5,7 @@
  * Last Modified: 2026-04-15
  */
 import React, { useEffect, useMemo, useState } from "react";
-import DataGrid, { Column, FilterRow, Paging, Toolbar, Item } from "devextreme-react/data-grid";
+import DataGrid, { Column, FilterRow, Paging, Toolbar, Item, SearchPanel } from "devextreme-react/data-grid";
 import notify from "devextreme/ui/notify";
 import SlidePanel from "../../../components/ui/SlidePanel";
 import { usePermissions } from "../../../hooks/usePermissions";
@@ -67,6 +67,7 @@ const EmployeePositionManagementPage = () => {
     const [assignmentPanelOpen, setAssignmentPanelOpen] = useState(false);
     const [selectedAssignmentPosition, setSelectedAssignmentPosition] = useState(null);
     const [removingEmployeeId, setRemovingEmployeeId] = useState(null);
+    const [pendingRemovedEmployeeIds, setPendingRemovedEmployeeIds] = useState([]);
 
     const sortedPositions = useMemo(
         () => [...positions].sort((left, right) => (left.sortOrder - right.sortOrder) || left.name.localeCompare(right.name)),
@@ -98,6 +99,7 @@ const EmployeePositionManagementPage = () => {
 
     const openEditPanel = (position) => {
         setEditingPosition(position);
+        setPendingRemovedEmployeeIds([]);
         setForm({
             name: position?.name || "",
             description: position?.description || "",
@@ -111,7 +113,16 @@ const EmployeePositionManagementPage = () => {
         if (saving) return;
         setPanelOpen(false);
         setEditingPosition(null);
+        setPendingRemovedEmployeeIds([]);
         setForm(EMPTY_FORM);
+    };
+
+    const handleQueueAssignmentRemoval = (employeeId) => {
+        setPendingRemovedEmployeeIds((current) => current.includes(employeeId) ? current : [...current, employeeId]);
+    };
+
+    const handleUndoAssignmentRemoval = (employeeId) => {
+        setPendingRemovedEmployeeIds((current) => current.filter((id) => id !== employeeId));
     };
 
     const openAssignmentPanel = (position, assignedEmployees = null) => {
@@ -157,6 +168,13 @@ const EmployeePositionManagementPage = () => {
 
             if (!hasSucceeded(response)) {
                 throw new Error(resolveMessage(response, "Failed to save employee position."));
+            }
+
+            for (const employeeId of pendingRemovedEmployeeIds) {
+                const removeResponse = await employeePositionApi.removeEmployeePositionAssignment(employeeId);
+                if (!hasSucceeded(removeResponse)) {
+                    throw new Error(resolveMessage(removeResponse, "Failed to remove employee assignment."));
+                }
             }
 
             notify(resolveMessage(response, "Employee position saved."), "success", 2500);
@@ -244,6 +262,13 @@ const EmployeePositionManagementPage = () => {
     };
 
     const assignedEmployees = selectedAssignmentPosition?.assignedEmployees || [];
+    const editAssignedEmployees = editingPosition?.assignedEmployees || [];
+    const visibleEditAssignedEmployees = editAssignedEmployees.filter((employee) => !pendingRemovedEmployeeIds.includes(employee.id));
+    const editAssignedEmployeeRows = editAssignedEmployees.map((employee) => ({
+        ...employee,
+        assignmentState: pendingRemovedEmployeeIds.includes(employee.id) ? "Pending removal" : (employee.employeestatus || "Unknown"),
+        isPendingRemoval: pendingRemovedEmployeeIds.includes(employee.id),
+    }));
 
     if (!canRead) {
         return (
@@ -273,11 +298,7 @@ const EmployeePositionManagementPage = () => {
                             />
                             Show inactive
                         </label>
-                        {canCreate && (
-                            <button type="button" className="m365-btn m365-btn--primary" onClick={openCreatePanel}>
-                                <i className="fa-light fa-plus" /> Add Position
-                            </button>
-                        )}
+                        {canCreate && <button type="button" className="m365-btn m365-btn--primary" onClick={openCreatePanel}><i className="fa-light fa-plus" /> Add Position</button>}
                     </div>
                 </div>
             </div>
@@ -340,16 +361,8 @@ const EmployeePositionManagementPage = () => {
                         allowSorting={false}
                         cellRender={({ data }) => (
                             <div className="tw-flex tw-items-center tw-gap-3">
-                                {canEdit && (
-                                    <button type="button" className="employee-grid__action-link" onClick={() => openEditPanel(data)}>
-                                        Edit
-                                    </button>
-                                )}
-                                {canDelete && (
-                                    <button type="button" className="employee-grid__action-link" onClick={() => handleDelete(data)}>
-                                        Delete
-                                    </button>
-                                )}
+                                {canEdit && <button type="button" className="employee-grid__action-link" onClick={() => openEditPanel(data)}>Edit</button>}
+                                {canDelete && <button type="button" className="employee-grid__action-link" onClick={() => handleDelete(data)}>Delete</button>}
                             </div>
                         )}
                     />
@@ -400,23 +413,92 @@ const EmployeePositionManagementPage = () => {
 
                             <div className="m365-field">
                                 <label className="m365-field__label">Active</label>
-                                <label className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-slate-600 tw-h-[34px]">
-                                    <input
-                                        type="checkbox"
-                                        checked={form.isActive}
-                                        onChange={(event) => setForm((prev) => ({ ...prev, isActive: event.target.checked }))}
-                                    />
-                                    Enable this position
-                                </label>
+                                <label className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-slate-600 tw-h-[34px]"><input type="checkbox" checked={form.isActive} onChange={(event) => setForm((prev) => ({ ...prev, isActive: event.target.checked }))} />Enable this position</label>
                             </div>
                         </div>
                     </div>
 
+                    {editingPosition && (
+                        <div className="m365-flat-section">
+                            <div className="tw-flex tw-items-start tw-justify-between tw-gap-3 tw-flex-wrap">
+                                <div>
+                                    <h3 className="m365-flat-section__title">Assigned Employees</h3>
+                                    <p className="tw-text-sm tw-text-slate-500 tw-mt-1">Employees removed here are cleared from this position when you save changes.</p>
+                                </div>
+                                <span className="m365-badge m365-badge--info">
+                                    {visibleEditAssignedEmployees.length} assigned
+                                </span>
+                            </div>
+
+                            {pendingRemovedEmployeeIds.length > 0 && (
+                                <div className="m365-info-banner m365-info-banner--warning" style={{ marginTop: 12 }}>
+                                    <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+                                    <span className="m365-info-banner__text">
+                                        {pendingRemovedEmployeeIds.length} employee{pendingRemovedEmployeeIds.length === 1 ? "" : "s"} will be removed when you save changes.
+                                    </span>
+                                </div>
+                            )}
+
+                            {editAssignedEmployees.length === 0 ? (
+                                <div className="m365-info-banner" style={{ marginTop: 12 }}>
+                                    <i className="fa-light fa-circle-info m365-info-banner__icon" />
+                                    <span className="m365-info-banner__text">No employees are currently assigned to this position.</span>
+                                </div>
+                            ) : (
+                                <div className="tw-mt-4 tw-border tw-border-gray-200 tw-rounded-lg tw-overflow-hidden">
+                                    <DataGrid
+                                        dataSource={editAssignedEmployeeRows}
+                                        keyExpr="id"
+                                        height={320}
+                                        showBorders={false}
+                                        showColumnLines={false}
+                                        showRowLines={true}
+                                        rowAlternationEnabled={false}
+                                        hoverStateEnabled={true}
+                                        columnAutoWidth={true}
+                                        noDataText="No assigned employees found."
+                                    >
+                                        <SearchPanel visible={true} width={220} placeholder="Search employees..." />
+                                        <Paging defaultPageSize={7} />
+                                        <Column dataField="fullName" caption="Employee" minWidth={220} />
+                                        <Column
+                                            dataField="employeeWorkNo"
+                                            caption="Work No"
+                                            width={120}
+                                            customizeText={({ value }) => value || "-"}
+                                        />
+                                        <Column
+                                            dataField="assignmentState"
+                                            caption="Status"
+                                            width={150}
+                                            cellRender={({ data }) => (
+                                                <span className={`m365-badge ${data.isPendingRemoval ? "m365-badge--warning" : data.employeestatus === "Active" ? "m365-badge--success" : "m365-badge--neutral"}`}>
+                                                    {data.assignmentState}
+                                                </span>
+                                            )}
+                                        />
+                                        {canEdit && (
+                                            <Column
+                                                caption="Action"
+                                                width={120}
+                                                allowSorting={false}
+                                                allowFiltering={false}
+                                                cellRender={({ data }) => data.isPendingRemoval ? (
+                                                    <button type="button" className="m365-btn m365-btn--ghost" onClick={() => handleUndoAssignmentRemoval(data.id)} disabled={saving}>Undo</button>
+                                                ) : (
+                                                    <button type="button" className="m365-btn m365-btn--danger" onClick={() => handleQueueAssignmentRemoval(data.id)} disabled={saving}>Remove</button>
+                                                )}
+                                            />
+                                        )}
+                                    </DataGrid>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="m365-panel-footer">
                         <button className="m365-btn m365-btn--ghost" onClick={closePanel} disabled={saving}>Cancel</button>
-                        <button className="m365-btn m365-btn--primary" onClick={handleSave} disabled={saving}>
-                            {saving ? "Saving..." : editingPosition ? "Save Changes" : "Create Position"}
-                        </button>
+                        <button className="m365-btn m365-btn--primary" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : editingPosition ? "Save Changes" : "Create Position"}</button>
                     </div>
                 </div>
             </SlidePanel>
@@ -471,17 +553,7 @@ const EmployeePositionManagementPage = () => {
                                                 Work No: {employee.employeeWorkNo || "-"}
                                             </div>
                                         </div>
-                                        {canEdit && (
-                                            <button
-                                                type="button"
-                                                className="m365-btn m365-btn--danger"
-                                                onClick={() => handleRemoveAssignment(employee)}
-                                                disabled={removingEmployeeId === employee.id}
-                                            >
-                                                <i className="fa-light fa-user-minus" />
-                                                {removingEmployeeId === employee.id ? "Removing..." : "Remove Assignment"}
-                                            </button>
-                                        )}
+                                        {canEdit && <button type="button" className="m365-btn m365-btn--danger" onClick={() => handleRemoveAssignment(employee)} disabled={removingEmployeeId === employee.id}><i className="fa-light fa-user-minus" />{removingEmployeeId === employee.id ? "Removing..." : "Remove Assignment"}</button>}
                                     </div>
                                 ))}
                             </div>
@@ -489,9 +561,7 @@ const EmployeePositionManagementPage = () => {
                     </div>
 
                     <div className="m365-panel-footer">
-                        <button className="m365-btn m365-btn--ghost" onClick={closeAssignmentPanel} disabled={Boolean(removingEmployeeId)}>
-                            Close
-                        </button>
+                        <button className="m365-btn m365-btn--ghost" onClick={closeAssignmentPanel} disabled={Boolean(removingEmployeeId)}>Close</button>
                     </div>
                 </div>
             </SlidePanel>

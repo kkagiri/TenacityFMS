@@ -78,6 +78,7 @@ const VehicleMain = () => {
 
         {/* Vehicle Management Routes */}
         <Route path=":id/details" element={<VehicleDetails />} />
+        <Route path=":id/details/:tab" element={<VehicleDetails />} />
         <Route path=":id/edit" element={<VehicleDetails />} />
         <Route
           path=":id/consumption/:consumptionId/details"

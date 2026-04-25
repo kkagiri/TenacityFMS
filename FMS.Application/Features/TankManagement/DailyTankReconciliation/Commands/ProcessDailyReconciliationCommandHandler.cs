@@ -97,7 +97,7 @@ public class ProcessDailyReconciliationCommandHandler : IRequestHandler<ProcessD
         {
             // Get tank volume history aggregated by tank for the specific date
             var query = _context.TankVolumeHistories
-                .Where(tvh => tvh.Timestamp.Date == date.Date && tvh.TankId.HasValue);
+                .Where(tvh => tvh.Timestamp.Date == date.Date && tvh.TankId.HasValue && tvh.IsDeleted != true);
 
             // Apply filters if specified
             if (request.TankId.HasValue)
@@ -115,13 +115,15 @@ public class ProcessDailyReconciliationCommandHandler : IRequestHandler<ProcessD
                     TransactionDate = date,
                     FirstTimestamp = g.Min(tvh => tvh.Timestamp),
                     LastTimestamp = g.Max(tvh => tvh.Timestamp),
-                    TotalDispense = g.Where(tvh => tvh.ChangeReason == VolumeChangeReasonEnum.Dispensing)
+                    TotalDispense = g.Where(tvh => tvh.ChangeReason == VolumeChangeReasonEnum.Dispensing ||
+                                                  tvh.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing)
                         .Sum(tvh => Math.Abs(tvh.VolumeChange ?? 0)),
-                    TotalDeliveries = g.Where(tvh => tvh.ReferenceType == "Delivery")
+                    TotalDeliveries = g.Where(tvh => tvh.ChangeReason == VolumeChangeReasonEnum.Delivery ||
+                                                     tvh.ChangeReason == VolumeChangeReasonEnum.InTankDelivery)
                         .Sum(tvh => Math.Abs(tvh.VolumeChange ?? 0)),
-                    TotalTransfersIn = g.Where(tvh => tvh.ReferenceType == "TransferIn")
+                    TotalTransfersIn = g.Where(tvh => tvh.ChangeReason == VolumeChangeReasonEnum.TransferIn)
                         .Sum(tvh => Math.Abs(tvh.VolumeChange ?? 0)),
-                    TotalTransfersOut = g.Where(tvh => tvh.ReferenceType == "TransferOut")
+                    TotalTransfersOut = g.Where(tvh => tvh.ChangeReason == VolumeChangeReasonEnum.TransferOut)
                         .Sum(tvh => Math.Abs(tvh.VolumeChange ?? 0))
                 })
                 .ToListAsync(cancellationToken);
@@ -186,15 +188,36 @@ public class ProcessDailyReconciliationCommandHandler : IRequestHandler<ProcessD
             .Include(t => t.Site)
             .FirstOrDefaultAsync(t => t.Id == record.TankId, cancellationToken);
 
-        // Get opening volume (first record of the day)
+        // Prefer explicit opening/closing stock rows when they exist for the day.
         var openingVolumeRecord = await _context.TankVolumeHistories
-            .Where(tvh => tvh.TankId == record.TankId && tvh.Timestamp == record.FirstTimestamp)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Where(tvh => tvh.TankId == record.TankId &&
+                          tvh.Timestamp.Date == record.TransactionDate.Date &&
+                          tvh.IsDeleted != true &&
+                          tvh.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+            .OrderBy(tvh => tvh.Timestamp)
+            .ThenBy(tvh => tvh.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await _context.TankVolumeHistories
+                .Where(tvh => tvh.TankId == record.TankId &&
+                              tvh.Timestamp == record.FirstTimestamp &&
+                              tvh.IsDeleted != true)
+                .OrderBy(tvh => tvh.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
-        // Get closing volume (last record of the day)
         var closingVolumeRecord = await _context.TankVolumeHistories
-            .Where(tvh => tvh.TankId == record.TankId && tvh.Timestamp == record.LastTimestamp)
-            .FirstOrDefaultAsync(cancellationToken);
+            .Where(tvh => tvh.TankId == record.TankId &&
+                          tvh.Timestamp.Date == record.TransactionDate.Date &&
+                          tvh.IsDeleted != true &&
+                          tvh.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+            .OrderByDescending(tvh => tvh.Timestamp)
+            .ThenByDescending(tvh => tvh.Id)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await _context.TankVolumeHistories
+                .Where(tvh => tvh.TankId == record.TankId &&
+                              tvh.Timestamp == record.LastTimestamp &&
+                              tvh.IsDeleted != true)
+                .OrderByDescending(tvh => tvh.Id)
+                .FirstOrDefaultAsync(cancellationToken);
 
         var openingLevel = openingVolumeRecord?.NewVolume ?? 0;
         var closingLevel = closingVolumeRecord?.NewVolume ?? 0;

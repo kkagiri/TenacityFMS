@@ -13,7 +13,7 @@
 import React, { useEffect, useState } from "react";
 import DateBox from "devextreme-react/date-box";
 import notify from "devextreme/ui/notify";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { usePermissions } from "../../../hooks/usePermissions";
 import { getUserDisplayName, getUserId } from "../transfers/vehicleTransferFormUtils";
@@ -280,8 +280,41 @@ const toPayload = (form) => {
     };
 };
 
+const applyCandidateToForm = ({ candidate, setSelectedCandidate, setVehicleDisplayName, setLetterType, setSelectedMonth, setForm, setStep }) => {
+    if (!candidate) {
+        return;
+    }
+
+    const resolvedLetterType = Number(candidate.letterType || candidate.LetterType || 1);
+    const metricDate = candidate.metricDate || candidate.MetricDate || candidate.periodStart || candidate.PeriodStart || null;
+
+    setSelectedCandidate(candidate);
+    setVehicleDisplayName(candidate.vehicleHyoungNo || candidate.VehicleHyoungNo || candidate.numberPlate || candidate.NumberPlate || "");
+    setLetterType(resolvedLetterType);
+
+    const resolvedMonth = dateToMonthString(metricDate);
+    if (resolvedMonth) {
+        setSelectedMonth(resolvedMonth);
+    }
+
+    setForm((prev) => ({
+        ...prev,
+        letterType: resolvedLetterType,
+        siteId: String(candidate.siteId || candidate.SiteId || ""),
+        vehicleId: String(candidate.vehicleId || candidate.VehicleId || ""),
+        employeeId: String(candidate.employeeId || candidate.EmployeeId || ""),
+        affectedDate: toInputDate(metricDate),
+        expectedValue: candidate.expectedValue ?? candidate.ExpectedValue ?? "",
+        actualValue: candidate.actualValue ?? candidate.ActualValue ?? "",
+        excessValue: candidate.excessValue ?? candidate.ExcessValue ?? "",
+        violationSummary: candidate.violationSummary || candidate.ViolationSummary || "",
+    }));
+    setStep(3);
+};
+
 const WarningLetterFormPage = () => {
     const dispatch = useDispatch();
+    const location = useLocation();
     const navigate = useNavigate();
     const { id } = useParams();
     const currentUser = useSelector((state) => state.auth?.user || {});
@@ -491,6 +524,27 @@ const WarningLetterFormPage = () => {
         });
     }, [employees, isEditMode, selectedCandidate]);
 
+    useEffect(() => {
+        if (isEditMode || selectedCandidate) {
+            return;
+        }
+
+        const initialCandidate = location.state?.initialCandidate;
+        if (!initialCandidate) {
+            return;
+        }
+
+        applyCandidateToForm({
+            candidate: initialCandidate,
+            setSelectedCandidate,
+            setVehicleDisplayName,
+            setLetterType,
+            setSelectedMonth,
+            setForm,
+            setStep,
+        });
+    }, [isEditMode, location.state, selectedCandidate]);
+
     const handleOpenCreateEmployee = () => {
         if (!canCreateEmployee) {
             notify("You do not have permission to add employees.", "warning", 2500);
@@ -598,22 +652,23 @@ const WarningLetterFormPage = () => {
 
     const handleSelectCandidate = (c) => {
         if (c.hasExistingLetter) return;
-        setSelectedCandidate(c);
-        setVehicleDisplayName(c.vehicleHyoungNo || c.numberPlate || "");
+        applyCandidateToForm({
+            candidate: c,
+            setSelectedCandidate,
+            setVehicleDisplayName,
+            setLetterType,
+            setSelectedMonth,
+            setForm,
+            setStep,
+        });
+
         const resolvedEmployeeId = resolveCandidateEmployeeSelection(c, employees);
-        setForm((prev) => ({
-            ...prev,
-            letterType,
-            siteId: String(c.siteId || ""),
-            vehicleId: String(c.vehicleId || ""),
-            employeeId: resolvedEmployeeId,
-            affectedDate: toInputDate(c.metricDate),
-            expectedValue: c.expectedValue ?? "",
-            actualValue: c.actualValue ?? "",
-            excessValue: c.excessValue ?? "",
-            violationSummary: c.violationSummary || "",
-        }));
-        setStep(3);
+        if (resolvedEmployeeId) {
+            setForm((prev) => ({
+                ...prev,
+                employeeId: resolvedEmployeeId,
+            }));
+        }
     };
 
     const handlePreview = async () => {

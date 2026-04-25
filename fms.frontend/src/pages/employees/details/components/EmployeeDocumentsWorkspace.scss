@@ -74,7 +74,7 @@
     padding: 14px 16px;
     border: 1px solid var(--m365-border-light);
     border-radius: 8px;
-    background: linear-gradient(180deg, #ffffff 0%, #faf9f8 100%);
+    background: #ffffff;
   }
 
   &__stat-value {
@@ -95,9 +95,12 @@
     border: 1px solid var(--m365-border-light);
     border-radius: 8px;
     overflow: hidden;
+    min-height: 700px;
   }
 
   &__grid {
+    min-height: 700px;
+
     .dx-datagrid-headers {
       border-top: none !important;
       border-left: none !important;

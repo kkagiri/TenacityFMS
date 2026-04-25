@@ -27,6 +27,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         DateTime EndDate,
         string? VehicleType = null,
         int? VehicleTypeId = null,
+        List<int>? VehicleTypeIds = null,
         string? HyoungNo = null,
         int? VehicleId = null,
         int? SiteId = null,
@@ -63,10 +64,20 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         .ThenInclude(employeeVehicle => employeeVehicle.Employee)
                     .AsQueryable();
 
-                // Apply vehicle type filter
-                if (request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0)
+                var vehicleTypeIds = (request.VehicleTypeIds ?? new List<int>())
+                    .Where(id => id > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0 && !vehicleTypeIds.Contains(request.VehicleTypeId.Value))
                 {
-                    vehiclesQuery = vehiclesQuery.Where(v => v.VehicleTypeId == request.VehicleTypeId.Value);
+                    vehicleTypeIds.Add(request.VehicleTypeId.Value);
+                }
+
+                // Apply vehicle type filter
+                if (vehicleTypeIds.Count > 0)
+                {
+                    vehiclesQuery = vehiclesQuery.Where(v => v.VehicleTypeId.HasValue && vehicleTypeIds.Contains(v.VehicleTypeId.Value));
                 }
                 else if (!string.IsNullOrEmpty(request.VehicleType))
                 {
@@ -132,7 +143,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 }
 
                 // If we have vehicle filters, we need to limit fuel refills to those vehicles
-                if ((request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0) ||
+                if (vehicleTypeIds.Count > 0 ||
                     !string.IsNullOrEmpty(request.VehicleType) ||
                     (request.VehicleId.HasValue && request.VehicleId.Value > 0) ||
                     !string.IsNullOrEmpty(request.HyoungNo) ||
@@ -190,9 +201,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                 _logger.LogInformation(
                     "Filtered consumption query completed. Date range: {StartDate} to {EndDate}, " +
-                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, SiteIds={SiteIds}, DriverId={DriverId}, AverageKmL={AverageKmL}. Results: {ResultCount}",
-                    request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId,
+                    request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, string.Join(",", vehicleTypeIds), request.HyoungNo, request.VehicleId,
                     request.SiteId, string.Join(",", siteIds), request.DriverId, request.AverageKmL, result.Count);
 
                 return result;
@@ -201,9 +212,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             {
                 _logger.LogError(ex,
                     "Error fetching filtered vehicle consumption data. " +
-                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, SiteIds={SiteIds}, DriverId={DriverId}, AverageKmL={AverageKmL}",
-                    request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId, request.SiteId,
+                    request.VehicleType, request.VehicleTypeId, string.Join(",", request.VehicleTypeIds ?? new List<int>()), request.HyoungNo, request.VehicleId, request.SiteId,
                     string.Join(",", request.SiteIds ?? new List<int>()), request.DriverId, request.AverageKmL);
                 throw;
             }

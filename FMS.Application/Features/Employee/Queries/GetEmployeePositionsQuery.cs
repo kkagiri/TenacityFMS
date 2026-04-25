@@ -30,7 +30,7 @@ public class GetEmployeePositionsQueryHandler(GpsdataContext context) : IRequest
             query = query.Where(position => position.IsActive);
         }
 
-        return await query
+        var positions = await query
             .OrderBy(position => position.SortOrder)
             .ThenBy(position => position.Name)
             .Select(position => new EmployeePositionDto
@@ -43,5 +43,38 @@ public class GetEmployeePositionsQueryHandler(GpsdataContext context) : IRequest
                 AssignedEmployeeCount = context.Employees.Count(employee => employee.Position == position.Name),
             })
             .ToListAsync(cancellationToken);
+
+        var positionNames = positions.Select(position => position.Name).ToList();
+        var assignedEmployees = await context.Employees
+            .AsNoTracking()
+            .Where(employee => employee.Position != null && positionNames.Contains(employee.Position))
+            .OrderBy(employee => employee.FullName)
+            .Select(employee => new
+            {
+                PositionName = employee.Position!,
+                Employee = new AssignedEmployeePositionDto
+                {
+                    Id = employee.Id,
+                    FullName = employee.FullName ?? string.Empty,
+                    EmployeeWorkNo = employee.EmployeeWorkNo ?? string.Empty,
+                    Employeestatus = employee.Employeestatus ?? string.Empty,
+                }
+            })
+            .ToListAsync(cancellationToken);
+
+        var assignedEmployeesByPosition = assignedEmployees
+            .GroupBy(item => item.PositionName)
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<AssignedEmployeePositionDto>)group.Select(item => item.Employee).ToList());
+
+        foreach (var position in positions)
+        {
+            if (assignedEmployeesByPosition.TryGetValue(position.Name, out var employees))
+            {
+                position.AssignedEmployees = employees;
+                position.AssignedEmployeeCount = employees.Count;
+            }
+        }
+
+        return positions;
     }
 }

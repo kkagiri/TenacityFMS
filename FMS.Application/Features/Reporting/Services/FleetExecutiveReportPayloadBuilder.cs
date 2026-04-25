@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities.enums;
@@ -118,6 +119,14 @@ namespace FMS.Application.Features.Reporting.Services
                     tank => ResolveSiteName(siteLookup, tank.SiteId),
                     cancellationToken);
 
+            var tankNameLookup = await _context.Tanks
+                .AsNoTracking()
+                .Select(tank => new { tank.Id, tank.Name })
+                .ToDictionaryAsync(
+                    tank => tank.Id,
+                    tank => NormalizeLabel(tank.Name),
+                    cancellationToken);
+
             var openingTankBoundaries = await LoadLatestTankRowsAtOrBeforeAsync(monthAnchor, cancellationToken);
             var closingTankBoundaries = await LoadLatestTankRowsAtOrBeforeAsync(monthEnd, cancellationToken);
 
@@ -133,7 +142,7 @@ namespace FMS.Application.Features.Reporting.Services
                     row.NewVolume ?? 0m))
                 .ToListAsync(cancellationToken);
 
-            return new ReportDataBundle(monthAnchor, monthEnd, siteLookup, vehicleLookup, consumptionRows, tankRows, tankSiteLookup, openingTankBoundaries, closingTankBoundaries);
+            return new ReportDataBundle(monthAnchor, monthEnd, siteLookup, vehicleLookup, consumptionRows, tankRows, tankSiteLookup, tankNameLookup, openingTankBoundaries, closingTankBoundaries);
         }
 
         private object BuildMonthlyPayload(JObject metadata, ReportDataBundle data, string reportTitle, ReportFilters filters)
@@ -150,7 +159,29 @@ namespace FMS.Application.Features.Reporting.Services
             var stockSitePairs = BuildStockSitePairs(stockControlRows);
             var stockControlSummary = BuildStockControlSummary(stockControlRows);
             var stockControlHighlights = BuildStockControlHighlights(stockControlRows);
+            var stockSiteInsights = BuildStockSiteInsights(siteNames, stockControlRows, currentMonthConsumption, currentMonthTankRows, data);
+            var stockSiteKpis = BuildStockSiteKpis(stockControlRows);
+            var stockSiteStackEntries = BuildStockSiteStackEntries(stockControlRows);
+            var fuelFlowSummary = BuildFuelFlowSummary(currentMonthTankRows);
+            var fuelFlowHierarchy = BuildFuelFlowHierarchy(siteNames, currentMonthTankRows, currentMonthConsumption, data);
+            var fuelFlowDiagramSvg = BuildFuelFlowDiagramSvg(siteNames, currentMonthTankRows, currentMonthConsumption, data);
+            var fuelFlowTopVehicleTypes = BuildFuelFlowTopVehicleTypes(currentMonthConsumption, data);
+            var fuelFlowTopVehicles = BuildFuelFlowTopVehicles(currentMonthConsumption, data);
             var currentMonthSummary = BuildMonthSummary(data.MonthAnchor, currentMonthConsumption, currentMonthTankRows, data.VehicleLookup);
+            var lvCurrentMonthRows = currentMonthConsumption.Where(row => row.IsKmL).ToList();
+            var lvDispensedTotal = lvCurrentMonthRows.Sum(row => row.TotalFuel);
+            var lvFuelLostTotal = lvCurrentMonthRows.Sum(row => row.FuelLost);
+            var lvFuelUsedGpsTotal = Math.Max(0m, lvDispensedTotal - lvFuelLostTotal);
+            var lvDistanceTotal = lvCurrentMonthRows.Sum(row => row.TotalDistance);
+            var lvFuelLostPct = SafePercent(lvFuelLostTotal, lvDispensedTotal);
+            var lvSectionKpis = new[]
+            {
+                Kpi(FormatNumber(lvDispensedTotal, "L"), "Total Fuel Dispensed", "km/L vehicles"),
+                Kpi(FormatNumber(lvFuelUsedGpsTotal, "L"), "Total Fuel Used GPS", "Dispensed minus loss"),
+                Kpi(FormatNumber(lvDistanceTotal, "km"), "Total Distance", "GPS distance"),
+                Kpi(FormatNumber(lvFuelLostTotal, "L"), "Total Fuel Lost", "Excess over GPS"),
+                Kpi(FormatPercent(lvFuelLostPct), "% Fuel Lost", "Loss / dispensed")
+            };
             var siteHighlights = BuildSiteHighlights(siteNames, currentMonthConsumption, currentMonthTankRows, data.SiteLookup, data.VehicleLookup, data.TankSiteLookup);
             var lvHighlights = BuildTypeHighlights(currentMonthConsumption.Where(row => row.IsKmL), data.VehicleLookup, MaxLvTypesPerMatrix, true);
             var heHighlights = BuildTypeHighlights(currentMonthConsumption.Where(row => !row.IsKmL), data.VehicleLookup, MaxHeTypesPerMatrix, false);
@@ -199,11 +230,32 @@ namespace FMS.Application.Features.Reporting.Services
                 executiveNarrative = BuildMonthlyNarrative(currentMonthSummary, siteHighlights, lvHighlights, heHighlights, data.MonthAnchor),
                 monthlyMatrix = monthlyTrend,
                 monthlyMatrixTotals = BuildMonthlyMatrixTotals(monthlySummaries),
-                chartDataJson = BuildChartDataJson(monthlySummaries, siteNames, currentMonthConsumption, currentMonthTankRows, data, lvTypeNames, heTypeNames),
+                chartDataJson = BuildChartDataJson(monthlySummaries, siteNames, currentMonthConsumption, currentMonthTankRows, data, lvTypeNames, heTypeNames, stockSiteStackEntries),
                 stockSitePairs,
+                stockSiteKpis,
+                stockSiteStacks = stockSiteStackEntries.Select(e =>
+                {
+                    var match = stockControlRows.FirstOrDefault(r => r.SiteName == e.SiteName);
+                    return (object)new
+                    {
+                        siteName = e.SiteName,
+                        chartId = e.ChartId,
+                        showKpis = match != null,
+                        delivered = match != null ? FormatWholeNumber(match.Delivered) : string.Empty,
+                        dispensed = match != null ? FormatWholeNumber(match.Issued) : string.Empty,
+                        transferOut = match != null ? FormatWholeNumber(match.TransfersOut) : string.Empty
+                    };
+                }).ToList(),
                 stockHighlights = siteHighlights,
                 stockControlSummary,
                 stockControlHighlights,
+                stockSiteInsights,
+                fuelFlowSummary,
+                fuelFlowHierarchy,
+                fuelFlowDiagramSvg,
+                fuelFlowTopVehicleTypes,
+                fuelFlowTopVehicles,
+                lvSectionKpis,
                 lvFuelMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvFuel),
                 lvEfficiencyMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvEfficiency),
                 lvDistanceMatrix = BuildVehicleTypeMatrix(siteNames, lvTypeNames, currentMonthConsumption.Where(row => row.IsKmL), data.SiteLookup, data.VehicleLookup, MatrixMode.LvDistance),
@@ -501,6 +553,74 @@ namespace FMS.Application.Features.Reporting.Services
                 .ToList();
         }
 
+        private List<object> BuildStockSiteInsights(
+            IEnumerable<string> siteNames,
+            IEnumerable<StockControlRow> stockRows,
+            IEnumerable<ConsumptionRow> currentMonthConsumption,
+            IEnumerable<TankMovementRow> currentMonthTankRows,
+            ReportDataBundle data)
+        {
+            var stockLookup = stockRows.ToDictionary(row => row.SiteName, row => row);
+            var consumptionRows = currentMonthConsumption.ToList();
+            var tankRows = currentMonthTankRows.ToList();
+
+            return siteNames
+                .Select(siteName =>
+                {
+                    stockLookup.TryGetValue(siteName, out var stockRow);
+
+                    var siteTankRows = tankRows
+                        .Where(row => ResolveTankSiteName(data.TankSiteLookup, row.TankId) == siteName)
+                        .ToList();
+
+                    var issuedTotal = siteTankRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange));
+                    var issuedDays = siteTankRows
+                        .Where(IsIssueReason)
+                        .Select(row => row.Timestamp.Date)
+                        .Distinct()
+                        .Count();
+                    if (issuedDays == 0)
+                    {
+                        issuedDays = 1;
+                    }
+
+                    var siteVehicleRows = consumptionRows
+                        .Where(row => ResolveConsumptionSiteName(data, row) == siteName)
+                        .ToList();
+
+                    var topVehicleTypes = siteVehicleRows
+                        .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                        .Select(group => new
+                        {
+                            TypeName = group.Key,
+                            FuelUsed = group.Sum(row => row.TotalFuel)
+                        })
+                        .Where(item => item.FuelUsed > 0)
+                        .OrderByDescending(item => item.FuelUsed)
+                        .Take(3)
+                        .ToList();
+
+                    var vehicleTypeMix = topVehicleTypes.Any()
+                        ? string.Join(" | ", topVehicleTypes.Select(item => $"{item.TypeName} {FormatNumber(item.FuelUsed, "L")}"))
+                        : "No vehicle consumption rows for this month";
+
+                    return new
+                    {
+                        siteName,
+                        openingStock = FormatNumber(stockRow?.OpeningStock ?? 0m, "L"),
+                        expectedClosing = FormatNumber(stockRow?.ExpectedClosing ?? 0m, "L"),
+                        actualClosing = FormatNumber(stockRow?.ActualClosing ?? 0m, "L"),
+                        variance = $"{FormatSigned(stockRow?.Variance ?? 0m)} L",
+                        variancePercent = FormatSignedPercent(stockRow?.VariancePercent ?? 0m),
+                        avgDailyConsumption = FormatNumber(SafeDivide(issuedTotal, issuedDays), "L/day"),
+                        fuelDispensed = FormatNumber(issuedTotal, "L"),
+                        vehicleTypeMix
+                    };
+                })
+                .Cast<object>()
+                .ToList();
+        }
+
         private static (string Label, string CssClass, string BarColor) ResolveStockStatus(StockControlRow row)
         {
             var absVariancePercent = Math.Abs(row.VariancePercent);
@@ -545,6 +665,463 @@ namespace FMS.Application.Features.Reporting.Services
                     };
                 }).ToList()
             }).Cast<object>().ToList();
+        }
+
+        private object BuildFuelFlowSummary(IEnumerable<TankMovementRow> currentMonthTankRows)
+        {
+            var tankRows = currentMonthTankRows.ToList();
+            var delivered = tankRows.Where(IsReceiptReason).Sum(row => PositiveValue(row.VolumeChange));
+            var transferIn = tankRows.Where(IsTransferInReason).Sum(row => PositiveValue(row.VolumeChange));
+            var adjustmentIn = tankRows.Where(row => IsAdjustmentReason(row) && row.VolumeChange > 0m).Sum(row => row.VolumeChange);
+            var dispensed = tankRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange));
+            var transferOut = tankRows.Where(IsTransferOutReason).Sum(row => Math.Abs(row.VolumeChange));
+            var adjustmentOut = tankRows.Where(row => IsAdjustmentReason(row) && row.VolumeChange < 0m).Sum(row => Math.Abs(row.VolumeChange));
+
+            return new
+            {
+                totalInput = FormatNumber(delivered + transferIn + adjustmentIn, "L"),
+                totalOutput = FormatNumber(dispensed + transferOut + adjustmentOut, "L"),
+                delivered = FormatNumber(delivered, "L"),
+                transferIn = FormatNumber(transferIn, "L"),
+                adjustmentIn = FormatNumber(adjustmentIn, "L"),
+                dispensed = FormatNumber(dispensed, "L"),
+                transferOut = FormatNumber(transferOut, "L"),
+                adjustmentOut = FormatNumber(adjustmentOut, "L")
+            };
+        }
+
+        private object BuildFuelFlowHierarchy(
+            IEnumerable<string> siteNames,
+            IEnumerable<TankMovementRow> currentMonthTankRows,
+            IEnumerable<ConsumptionRow> currentMonthConsumption,
+            ReportDataBundle data)
+        {
+            var tankRows = currentMonthTankRows.ToList();
+            var consumptionRows = currentMonthConsumption.ToList();
+
+            var siteAmounts = siteNames
+                .Select(siteName => new
+                {
+                    Name = siteName,
+                    Amount = tankRows
+                        .Where(row => ResolveTankSiteName(data.TankSiteLookup, row.TankId) == siteName)
+                        .Where(IsIssueReason)
+                        .Sum(row => Math.Abs(row.VolumeChange))
+                })
+                .Where(item => item.Amount > 0m)
+                .OrderByDescending(item => item.Amount)
+                .Take(3)
+                .ToList();
+
+            var tankAmounts = tankRows
+                .Where(IsIssueReason)
+                .GroupBy(row => row.TankId)
+                .Select(group => new
+                {
+                    Name = ResolveTankName(data.TankNameLookup, group.Key),
+                    Subtitle = ResolveTankSiteName(data.TankSiteLookup, group.Key),
+                    Amount = group.Sum(row => Math.Abs(row.VolumeChange))
+                })
+                .Where(item => item.Amount > 0m)
+                .OrderByDescending(item => item.Amount)
+                .Take(3)
+                .ToList();
+
+            var vehicleTypeAmounts = consumptionRows
+                .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                .Select(group => new
+                {
+                    Name = group.Key,
+                    Subtitle = $"{group.Select(row => ResolveConsumptionSiteName(data, row)).Distinct().Count()} sites",
+                    Amount = group.Sum(row => row.TotalFuel)
+                })
+                .Where(item => item.Amount > 0m)
+                .OrderByDescending(item => item.Amount)
+                .Take(3)
+                .ToList();
+
+            var vehicleAmounts = consumptionRows
+                .GroupBy(row => row.VehicleId)
+                .Select(group => new
+                {
+                    Name = ResolveVehicleName(data.VehicleLookup, group.Key),
+                    Subtitle = ResolveVehicleType(data.VehicleLookup, group.Key),
+                    Amount = group.Sum(row => row.TotalFuel)
+                })
+                .Where(item => item.Amount > 0m)
+                .OrderByDescending(item => item.Amount)
+                .Take(3)
+                .ToList();
+
+            return new
+            {
+                sites = BuildFuelFlowItems(siteAmounts.Select(item => (item.Name, item.Amount, string.Empty)).ToList()),
+                tanks = BuildFuelFlowItems(tankAmounts.Select(item => (item.Name, item.Amount, item.Subtitle)).ToList()),
+                vehicleTypes = BuildFuelFlowItems(vehicleTypeAmounts.Select(item => (item.Name, item.Amount, item.Subtitle)).ToList()),
+                vehicles = BuildFuelFlowItems(vehicleAmounts.Select(item => (item.Name, item.Amount, item.Subtitle)).ToList())
+            };
+        }
+
+        private string BuildFuelFlowDiagramSvg(
+            IEnumerable<string> siteNames,
+            IEnumerable<TankMovementRow> currentMonthTankRows,
+            IEnumerable<ConsumptionRow> currentMonthConsumption,
+            ReportDataBundle data)
+        {
+            var tankRows = currentMonthTankRows.ToList();
+            var consumptionRows = currentMonthConsumption.ToList();
+            var delivered = tankRows.Where(IsReceiptReason).Sum(row => PositiveValue(row.VolumeChange));
+            var transferIn = tankRows.Where(IsTransferInReason).Sum(row => PositiveValue(row.VolumeChange));
+            var adjustmentIn = tankRows.Where(row => IsAdjustmentReason(row) && row.VolumeChange > 0m).Sum(row => row.VolumeChange);
+            var totalDispensed = tankRows.Where(IsIssueReason).Sum(row => Math.Abs(row.VolumeChange));
+            if (totalDispensed <= 0m)
+            {
+                return "<svg viewBox=\"0 0 980 360\" class=\"fuel-flow-svg\" role=\"img\" aria-label=\"Fuel movement flow diagram\"><text x=\"490\" y=\"180\" text-anchor=\"middle\" font-size=\"18\" font-weight=\"700\" fill=\"#605e5c\">No dispensed fuel rows for the selected period</text></svg>";
+            }
+
+            var siteNodes = siteNames
+                .Select(siteName => new FuelFlowStageNode(
+                    $"site:{siteName}",
+                    siteName,
+                    string.Empty,
+                    tankRows.Where(row => ResolveTankSiteName(data.TankSiteLookup, row.TankId) == siteName && IsIssueReason(row)).Sum(row => Math.Abs(row.VolumeChange)),
+                    "#A3A3A3"))
+                .Where(node => node.Amount > 0m)
+                .OrderByDescending(node => node.Amount)
+                .Take(3)
+                .ToList();
+
+            var selectedSites = siteNodes.Select(node => node.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var tankNodes = tankRows
+                .Where(IsIssueReason)
+                .Where(row => selectedSites.Contains(ResolveTankSiteName(data.TankSiteLookup, row.TankId)))
+                .GroupBy(row => row.TankId)
+                .Select(group => new FuelFlowStageNode(
+                    $"tank:{group.Key}",
+                    ResolveTankName(data.TankNameLookup, group.Key),
+                    ResolveTankSiteName(data.TankSiteLookup, group.Key),
+                    group.Sum(row => Math.Abs(row.VolumeChange)),
+                    "#B8B8B8"))
+                .Where(node => node.Amount > 0m)
+                .OrderByDescending(node => node.Amount)
+                .Take(3)
+                .ToList();
+
+            var typePalette = new[] { "#0F62FE", "#D12771", "#FF832B" };
+            var typeNodes = consumptionRows
+                .Where(row => selectedSites.Contains(ResolveConsumptionSiteName(data, row)))
+                .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                .Select((group, index) => new FuelFlowStageNode(
+                    $"type:{group.Key}",
+                    group.Key,
+                    $"{group.Select(row => ResolveConsumptionSiteName(data, row)).Distinct().Count()} sites",
+                    group.Sum(row => row.TotalFuel),
+                    typePalette[index % typePalette.Length]))
+                .Where(node => node.Amount > 0m)
+                .OrderByDescending(node => node.Amount)
+                .Take(3)
+                .ToList();
+
+            var selectedTypes = typeNodes.Select(node => node.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var vehicleNodes = consumptionRows
+                .Where(row => selectedSites.Contains(ResolveConsumptionSiteName(data, row)))
+                .Where(row => selectedTypes.Contains(ResolveVehicleType(data.VehicleLookup, row.VehicleId)))
+                .GroupBy(row => row.VehicleId)
+                .Select(group => new FuelFlowStageNode(
+                    $"vehicle:{group.Key}",
+                    ResolveVehicleName(data.VehicleLookup, group.Key),
+                    $"{ResolveVehicleType(data.VehicleLookup, group.Key)} | {ResolveVehicleSiteName(data.VehicleLookup, group.Key)}",
+                    group.Sum(row => row.TotalFuel),
+                    typePalette[Math.Abs(ResolveVehicleType(data.VehicleLookup, group.Key).GetHashCode()) % typePalette.Length]))
+                .Where(node => node.Amount > 0m)
+                .OrderByDescending(node => node.Amount)
+                .Take(3)
+                .ToList();
+
+            var inputNodes = new List<FuelFlowStageNode>();
+            if (delivered > 0m)
+            {
+                inputNodes.Add(new FuelFlowStageNode("input:delivered", "DELIVERED", FormatNumber(delivered, "L"), delivered, "#0F62FE"));
+            }
+            if (transferIn > 0m)
+            {
+                inputNodes.Add(new FuelFlowStageNode("input:transferin", "TRANSFER IN", FormatNumber(transferIn, "L"), transferIn, "#107C10"));
+            }
+            if (adjustmentIn > 0m)
+            {
+                inputNodes.Add(new FuelFlowStageNode("input:adjustin", "ADJUST IN", FormatNumber(adjustmentIn, "L"), adjustmentIn, "#8764B8"));
+            }
+
+            var rootNode = new FuelFlowStageNode("root", "FUEL DISPENSED", FormatNumber(totalDispensed, "L"), totalDispensed, "#9E9E9E");
+            var inputBoxes = LayoutFuelFlowColumn(inputNodes, 18m, 82m, 20m, 210m, 16m, 28m);
+            var rootBox = new FuelFlowNodeBox(rootNode.Key, 165m, 92m, 16m, 176m, rootNode.Label, rootNode.Subtitle, rootNode.Color, rootNode.Amount);
+            var siteBoxes = LayoutFuelFlowColumn(siteNodes, 325m, 82m, 20m, 210m, 16m, 28m);
+            var tankBoxes = LayoutFuelFlowColumn(tankNodes, 520m, 82m, 20m, 210m, 16m, 28m);
+            var typeBoxes = LayoutFuelFlowColumn(typeNodes, 715m, 82m, 20m, 210m, 16m, 28m);
+            var vehicleBoxes = LayoutFuelFlowColumn(vehicleNodes, 900m, 82m, 20m, 210m, 16m, 28m);
+
+            var boxLookup = inputBoxes
+                .Concat(new[] { rootBox })
+                .Concat(siteBoxes)
+                .Concat(tankBoxes)
+                .Concat(typeBoxes)
+                .Concat(vehicleBoxes)
+                .ToDictionary(box => box.Key);
+
+            var flows = new List<FuelFlowLink>();
+            flows.AddRange(inputNodes.Select(node => new FuelFlowLink(node.Key, rootNode.Key, node.Amount, node.Color, 0.45m)));
+            flows.AddRange(siteNodes.Select(node => new FuelFlowLink(rootNode.Key, node.Key, node.Amount, "#8AB4F8", 0.55m)));
+
+            foreach (var tank in tankNodes)
+            {
+                flows.Add(new FuelFlowLink($"site:{tank.Subtitle}", tank.Key, tank.Amount, "#9CC2F7", 0.45m));
+            }
+
+            foreach (var tank in tankNodes)
+            {
+                var tankSite = tank.Subtitle;
+                var siteTypeRows = consumptionRows
+                    .Where(row => ResolveConsumptionSiteName(data, row) == tankSite)
+                    .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                    .Where(group => selectedTypes.Contains(group.Key))
+                    .Select(group => new { TypeName = group.Key, Amount = group.Sum(row => row.TotalFuel) })
+                    .Where(item => item.Amount > 0m)
+                    .ToList();
+
+                var siteTypeTotal = siteTypeRows.Sum(item => item.Amount);
+                if (siteTypeTotal <= 0m)
+                {
+                    continue;
+                }
+
+                foreach (var type in siteTypeRows)
+                {
+                    var allocated = tank.Amount * SafeDivide(type.Amount, siteTypeTotal);
+                    if (allocated <= 0m)
+                    {
+                        continue;
+                    }
+
+                    var typeNode = typeNodes.FirstOrDefault(node => node.Label == type.TypeName);
+                    if (typeNode != null)
+                    {
+                        flows.Add(new FuelFlowLink(tank.Key, typeNode.Key, allocated, typeNode.Color, 0.38m));
+                    }
+                }
+            }
+
+            foreach (var type in typeNodes)
+            {
+                var typeVehicleRows = consumptionRows
+                    .Where(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId) == type.Label)
+                    .GroupBy(row => row.VehicleId)
+                    .Select(group => new { VehicleId = group.Key, Amount = group.Sum(row => row.TotalFuel) })
+                    .Where(item => vehicleNodes.Any(node => node.Key == $"vehicle:{item.VehicleId}") && item.Amount > 0m)
+                    .ToList();
+
+                foreach (var vehicle in typeVehicleRows)
+                {
+                    var vehicleNode = vehicleNodes.FirstOrDefault(node => node.Key == $"vehicle:{vehicle.VehicleId}");
+                    if (vehicleNode != null)
+                    {
+                        flows.Add(new FuelFlowLink(type.Key, vehicleNode.Key, vehicle.Amount, type.Color, 0.45m));
+                    }
+                }
+            }
+
+            var maxFlow = flows.Select(flow => flow.Amount).DefaultIfEmpty(totalDispensed).Max();
+            var svg = new StringBuilder();
+            svg.Append("<svg viewBox=\"0 0 980 360\" class=\"fuel-flow-svg\" role=\"img\" aria-label=\"Fuel movement flow distribution diagram\">");
+            svg.Append("<text x=\"490\" y=\"24\" text-anchor=\"middle\" font-size=\"18\" font-weight=\"700\" fill=\"#201f1e\">Fuel Movement Flow Distribution</text>");
+
+            foreach (var flow in flows.Where(flow => boxLookup.ContainsKey(flow.SourceKey) && boxLookup.ContainsKey(flow.TargetKey)))
+            {
+                svg.Append(BuildFuelFlowPath(boxLookup[flow.SourceKey], boxLookup[flow.TargetKey], flow.Amount, maxFlow, flow.Color, flow.Opacity));
+                svg.Append(BuildFuelFlowAmountLabel(boxLookup[flow.SourceKey], boxLookup[flow.TargetKey], flow.Amount, flow.Color));
+            }
+
+            foreach (var box in inputBoxes) svg.Append(BuildFuelFlowNode(box, false));
+            svg.Append(BuildFuelFlowNode(rootBox, true));
+            foreach (var box in siteBoxes) svg.Append(BuildFuelFlowNode(box, false));
+            foreach (var box in tankBoxes) svg.Append(BuildFuelFlowNode(box, false));
+            foreach (var box in typeBoxes) svg.Append(BuildFuelFlowNode(box, false));
+            foreach (var box in vehicleBoxes) svg.Append(BuildFuelFlowNode(box, false));
+            svg.Append("</svg>");
+            return svg.ToString();
+        }
+
+        private List<object> BuildFuelFlowTopVehicleTypes(IEnumerable<ConsumptionRow> currentMonthConsumption, ReportDataBundle data)
+        {
+            var rows = currentMonthConsumption.ToList();
+            var totalFuel = rows.Sum(row => row.TotalFuel);
+            var maxFuel = rows
+                .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                .Select(group => group.Sum(row => row.TotalFuel))
+                .DefaultIfEmpty(0m)
+                .Max();
+
+            return rows
+                .GroupBy(row => ResolveVehicleType(data.VehicleLookup, row.VehicleId))
+                .Select(group => new
+                {
+                    typeName = group.Key,
+                    fuelUsed = FormatNumber(group.Sum(row => row.TotalFuel), "L"),
+                    sharePercent = FormatPercent(SafePercent(group.Sum(row => row.TotalFuel), totalFuel)),
+                    shareWidth = FormatPercent(SafePercent(group.Sum(row => row.TotalFuel), maxFuel)),
+                    note = $"{group.Select(row => ResolveConsumptionSiteName(data, row)).Distinct().Count()} sites"
+                })
+                .Where(item => ParseDecimal(item.fuelUsed.Replace(",", string.Empty).Replace(" L", string.Empty)) > 0m)
+                .OrderByDescending(item => ParseDecimal(item.fuelUsed.Replace(",", string.Empty).Replace(" L", string.Empty)))
+                .Take(5)
+                .Cast<object>()
+                .ToList();
+        }
+
+        private List<object> BuildFuelFlowTopVehicles(IEnumerable<ConsumptionRow> currentMonthConsumption, ReportDataBundle data)
+        {
+            var rows = currentMonthConsumption.ToList();
+            var totalFuel = rows.Sum(row => row.TotalFuel);
+            var vehicleGroups = rows
+                .GroupBy(row => row.VehicleId)
+                .Select(group => new
+                {
+                    vehicleId = group.Key,
+                    fuel = group.Sum(row => row.TotalFuel)
+                })
+                .Where(item => item.fuel > 0m)
+                .OrderByDescending(item => item.fuel)
+                .ToList();
+            var maxFuel = vehicleGroups.Select(item => item.fuel).DefaultIfEmpty(0m).Max();
+
+            return vehicleGroups
+                .Take(5)
+                .Select(item => (object)new
+                {
+                    vehicleName = ResolveVehicleName(data.VehicleLookup, item.vehicleId),
+                    fuelUsed = FormatNumber(item.fuel, "L"),
+                    sharePercent = FormatPercent(SafePercent(item.fuel, totalFuel)),
+                    shareWidth = FormatPercent(SafePercent(item.fuel, maxFuel)),
+                    note = $"{ResolveVehicleType(data.VehicleLookup, item.vehicleId)} | {ResolveVehicleSiteName(data.VehicleLookup, item.vehicleId)}"
+                })
+                .ToList();
+        }
+
+        private static List<object> BuildFuelFlowItems(List<(string Name, decimal Amount, string Subtitle)> items)
+        {
+            var maxAmount = items.Select(item => item.Amount).DefaultIfEmpty(0m).Max();
+            return items
+                .Select(item => (object)new
+                {
+                    name = item.Name,
+                    amount = FormatNumber(item.Amount, "L"),
+                    shareWidth = FormatPercent(SafePercent(item.Amount, maxAmount)),
+                    subtitle = item.Subtitle
+                })
+                .ToList();
+        }
+
+        private static List<FuelFlowNodeBox> LayoutFuelFlowColumn(List<FuelFlowStageNode> nodes, decimal x, decimal top, decimal gap, decimal maxHeight, decimal width = 24m, decimal minHeight = 34m)
+        {
+            var result = new List<FuelFlowNodeBox>();
+            if (!nodes.Any())
+            {
+                return result;
+            }
+
+            var total = nodes.Sum(node => node.Amount);
+            var usableHeight = maxHeight - gap * (nodes.Count - 1);
+            var currentY = top;
+            foreach (var node in nodes)
+            {
+                var proportionalHeight = total > 0m ? usableHeight * SafeDivide(node.Amount, total) : usableHeight / nodes.Count;
+                var height = Math.Max(minHeight, proportionalHeight);
+                result.Add(new FuelFlowNodeBox(node.Key, x, currentY, width, height, node.Label, node.Subtitle, node.Color, node.Amount));
+                currentY += height + gap;
+            }
+
+            return result;
+        }
+
+        private static string BuildFuelFlowPath(FuelFlowNodeBox source, FuelFlowNodeBox target, decimal amount, decimal maxFlow, string color, decimal opacity)
+        {
+            var startX = source.X + source.Width;
+            var startY = source.Y + source.Height / 2m;
+            var endX = target.X;
+            var endY = target.Y + target.Height / 2m;
+            var cx1 = startX + 72m;
+            var cx2 = endX - 72m;
+            var strokeWidth = Math.Max(6m, 26m * SafeDivide(amount, maxFlow));
+            return string.Concat(
+                "<path d='M ", Fmt(startX), " ", Fmt(startY),
+                " C ", Fmt(cx1), " ", Fmt(startY), ", ", Fmt(cx2), " ", Fmt(endY), ", ", Fmt(endX), " ", Fmt(endY),
+                "' fill='none' stroke='", color,
+                "' stroke-opacity='", Fmt(opacity),
+                "' stroke-width='", Fmt(strokeWidth),
+                "' stroke-linecap='round'/>"
+            );
+        }
+
+        private static string BuildFuelFlowNode(FuelFlowNodeBox box, bool isRoot)
+        {
+            var labelX = isRoot ? box.X + 8m : box.X + box.Width + 8m;
+            var titleY = box.Y + (isRoot ? box.Height / 2m - 5m : 11m);
+            var subtitleY = isRoot ? titleY + 15m : titleY + 13m;
+            var rect = string.Concat(
+                "<rect x='", Fmt(box.X),
+                "' y='", Fmt(box.Y),
+                "' width='", Fmt(box.Width),
+                "' height='", Fmt(box.Height),
+                "' rx='2' fill='", box.Color, "'/>"
+            );
+            var title = string.Concat(
+                "<text x='", Fmt(labelX),
+                "' y='", Fmt(titleY),
+                "' text-anchor='start' font-size='10' font-weight='700' fill='#201f1e'>",
+                EscapeSvg(box.Label),
+                "</text>"
+            );
+            var subtitleText = string.IsNullOrWhiteSpace(box.Subtitle)
+                ? string.Empty
+                : string.Concat(
+                    "<text x='", Fmt(labelX),
+                    "' y='", Fmt(subtitleY),
+                    "' text-anchor='start' font-size='9' font-weight='400' fill='#605e5c'>",
+                    EscapeSvg(box.Subtitle),
+                    "</text>");
+            return rect + title + subtitleText;
+        }
+
+        private static string BuildFuelFlowAmountLabel(FuelFlowNodeBox source, FuelFlowNodeBox target, decimal amount, string color)
+        {
+            var labelX = (source.X + source.Width + target.X) / 2m;
+            var labelY = (source.Y + source.Height / 2m + target.Y + target.Height / 2m) / 2m;
+            var text = EscapeSvg(FormatNumber(amount, "L"));
+            return string.Concat(
+                "<rect x='", Fmt(labelX - 20m),
+                "' y='", Fmt(labelY - 8m),
+                "' width='40' height='16' rx='8' fill='#ffffff' fill-opacity='0.92' stroke='", color, "' stroke-opacity='0.35'/>",
+                "<text x='", Fmt(labelX),
+                "' y='", Fmt(labelY + 3m),
+                "' text-anchor='middle' font-size='8' font-weight='700' fill='#201f1e'>",
+                text,
+                "</text>");
+        }
+
+        private static string Fmt(decimal value)
+        {
+            return value.ToString("0.##", CultureInfo.InvariantCulture);
+        }
+
+        private static string EscapeSvg(string value)
+        {
+            return value
+                .Replace("&", "&amp;", StringComparison.Ordinal)
+                .Replace("<", "&lt;", StringComparison.Ordinal)
+                .Replace(">", "&gt;", StringComparison.Ordinal)
+                .Replace("\"", "&quot;", StringComparison.Ordinal)
+                .Replace("'", "&apos;", StringComparison.Ordinal);
         }
 
         private List<object> BuildVehicleTypeMatrix(
@@ -1012,6 +1589,7 @@ namespace FMS.Application.Features.Reporting.Services
                 filteredConsumptionRows,
                 filteredTankRows,
                 data.TankSiteLookup,
+                data.TankNameLookup,
                 data.OpeningTankBoundaries,
                 data.ClosingTankBoundaries);
         }
@@ -1278,9 +1856,28 @@ namespace FMS.Application.Features.Reporting.Services
                 : "UNKNOWN";
         }
 
+        private static string ResolveVehicleName(IReadOnlyDictionary<int, VehicleSnapshot> vehicleLookup, int vehicleId)
+        {
+            return vehicleLookup.TryGetValue(vehicleId, out var vehicle) && !string.IsNullOrWhiteSpace(vehicle.HyoungNo)
+                ? vehicle.HyoungNo
+                : $"VEHICLE {vehicleId}";
+        }
+
+        private static string ResolveVehicleSiteName(IReadOnlyDictionary<int, VehicleSnapshot> vehicleLookup, int vehicleId)
+        {
+            return vehicleLookup.TryGetValue(vehicleId, out var vehicle) && !string.IsNullOrWhiteSpace(vehicle.SiteName)
+                ? vehicle.SiteName
+                : "UNASSIGNED";
+        }
+
         private static string ResolveTankSiteName(IReadOnlyDictionary<int, string> tankSiteLookup, int tankId)
         {
             return tankSiteLookup.TryGetValue(tankId, out var siteName) ? siteName : "UNASSIGNED";
+        }
+
+        private static string ResolveTankName(IReadOnlyDictionary<int, string> tankNameLookup, int tankId)
+        {
+            return tankNameLookup.TryGetValue(tankId, out var tankName) ? tankName : $"TANK {tankId}";
         }
 
         private static string ResolveConsumptionSiteName(ReportDataBundle data, ConsumptionRow row)
@@ -1380,7 +1977,8 @@ namespace FMS.Application.Features.Reporting.Services
             List<TankMovementRow> currentMonthTankRows,
             ReportDataBundle data,
             List<string> lvTypeNames,
-            List<string> heTypeNames)
+            List<string> heTypeNames,
+            List<StockSiteStackEntry> stockSiteStackEntries)
         {
             var monthLabels = monthlySummaries.Select(s => s.Month.ToString("MMM yy", CultureInfo.InvariantCulture)).ToList();
             var fuelUsedSeries = monthlySummaries.Select(s => Math.Round(s.TotalFuelUsed, 0)).ToList();
@@ -1407,6 +2005,9 @@ namespace FMS.Application.Features.Reporting.Services
             var siteHeFuel = new List<decimal>();
             var siteHeLost = new List<decimal>();
             var siteDistance = new List<decimal>();
+            var siteLvDistance = new List<decimal>();
+            var siteLvFuelLost = new List<decimal>();
+            var siteLvLostPct = new List<decimal>();
 
             foreach (var siteName in siteNames)
             {
@@ -1418,8 +2019,12 @@ namespace FMS.Application.Features.Reporting.Services
                 var lvRows = siteRows.Where(r => r.IsKmL).ToList();
                 var lvFuel = lvRows.Sum(r => r.TotalFuel);
                 var lvDist = lvRows.Sum(r => r.TotalDistance);
+                var lvLost = lvRows.Sum(r => r.FuelLost);
                 siteLvActual.Add(SafeDivide(lvDist, lvFuel));
                 siteLvExpected.Add(ComputeExpectedAverage(lvRows, data.VehicleLookup));
+                siteLvDistance.Add(Math.Round(lvDist, 0));
+                siteLvFuelLost.Add(Math.Round(lvLost, 0));
+                siteLvLostPct.Add(SafePercent(lvLost, lvFuel));
 
                 var heRows = siteRows.Where(r => !r.IsKmL).ToList();
                 var heFuel = heRows.Sum(r => r.TotalFuel);
@@ -1437,12 +2042,14 @@ namespace FMS.Application.Features.Reporting.Services
             var lvTypeFuel = new List<decimal>();
             var lvTypeActual = new List<decimal>();
             var lvTypeExpected = new List<decimal>();
+            var lvTypeDistance = new List<decimal>();
             foreach (var typeName in lvTypeNames)
             {
                 var rows = currentMonthConsumption.Where(r => r.IsKmL && ResolveVehicleType(data.VehicleLookup, r.VehicleId) == typeName).ToList();
                 lvTypeFuel.Add(Math.Round(rows.Sum(r => r.TotalFuel), 0));
                 lvTypeActual.Add(SafeDivide(rows.Sum(r => r.TotalDistance), rows.Sum(r => r.TotalFuel)));
                 lvTypeExpected.Add(ComputeExpectedAverage(rows, data.VehicleLookup));
+                lvTypeDistance.Add(Math.Round(rows.Sum(r => r.TotalDistance), 0));
             }
 
             var heTypeFuel = new List<decimal>();
@@ -1475,8 +2082,10 @@ namespace FMS.Application.Features.Reporting.Services
                 ["c_execFuel"] = BarLineChart(monthLabels, "Fuel Used GPS", fuelUsedSeries, "#0078D4", "Average", runningAvg, "#107C10"),
                 ["c_issDeliv"] = GroupedBarChart(monthLabels, "Delivered", fuelReceivedSeries, "#0078D4", "Fuel Dispensed", fuelIssuedSeries, "#D13438"),
                 ["c_stockTrend"] = GroupedBarChart(monthLabels, "Delivered", fuelReceivedSeries, "#0078D4", "Fuel Dispensed", fuelIssuedSeries, "#D13438"),
-                ["c_lvFuSite"] = GroupedBarChart(siteNames, "Fuel Used GPS", siteFuelUsed, "#0078D4", "Fuel Lost", siteFuelLost, "#D13438"),
-                ["c_lvFuPct"] = SimpleBarChart(siteNames, "% Lost", siteFuelUsed.Zip(siteFuelLost, (used, lost) => SafePercent(lost, used)).ToList(), "#D13438"),
+                ["c_lv3_distSite"] = SimpleBarChart(siteNames, "Distance (km)", siteLvDistance, "#0078D4"),
+                ["c_lv3_lostSite"] = BarLineChart(siteNames, "Fuel Lost (L)", siteLvFuelLost, "#D13438", "% Lost", siteLvLostPct, "#D97706"),
+                ["c_lv3_distMonth"] = BarLineChart(monthLabels, "Distance", distanceSeries, "#0078D4", "Average", ComputeRunningAverage(distanceSeries), "#107C10"),
+                ["c_lv3_distType"] = SimpleBarChart(lvTypeNames, "Distance (km)", lvTypeDistance, "#0078D4"),
                 ["c_lvEffLine"] = DualLineChart(monthLabels, "Actual km/L", kmPerLiterSeries, "#0078D4", "Expected km/L", expectedKmPerLiterSeries, "#107C10", true),
                 ["c_lvEffType"] = GroupedBarChart(lvTypeNames, "Actual", lvTypeActual, "#0078D4", "Expected", lvTypeExpected, "#C8C6C4"),
                 ["c_lvDistSite"] = SimpleBarChart(siteNames, "Distance", siteDistance, "#0078D4"),
@@ -1492,6 +2101,12 @@ namespace FMS.Application.Features.Reporting.Services
                 ["c_siteFuelTrend"] = BuildSiteMultiLineChart(monthlySummaries, siteNames, data, isDistance: false),
                 ["c_siteLostTrend"] = BuildSiteMultiLineChart(monthlySummaries, siteNames, data, isDistance: true)
             };
+
+            // Page 2 — Stock Analysis redesign
+            foreach (var entry in stockSiteStackEntries)
+            {
+                charts[entry.ChartId] = BuildSiteMovementStackChart(entry.SiteName, monthlySummaries, data);
+            }
 
             return JsonConvert.SerializeObject(charts, new JsonSerializerSettings
             {
@@ -1544,6 +2159,102 @@ namespace FMS.Application.Features.Reporting.Services
                 type = "line",
                 data = new { labels, datasets },
                 options = ChartOptions()
+            };
+        }
+
+        private static List<object> BuildStockSiteKpis(List<StockControlRow> stockControlRows)
+        {
+            return stockControlRows
+                .Take(8)
+                .Select(row => (object)new
+                {
+                    siteName = row.SiteName,
+                    delivered = FormatWholeNumber(row.Delivered),
+                    dispensed = FormatWholeNumber(row.Issued),
+                    transferOut = FormatWholeNumber(row.TransfersOut)
+                })
+                .ToList();
+        }
+
+        private static List<StockSiteStackEntry> BuildStockSiteStackEntries(List<StockControlRow> stockControlRows)
+        {
+            return stockControlRows
+                .Take(6)
+                .Select((row, index) => new StockSiteStackEntry(row.SiteName, $"c_siteStack_{index}"))
+                .ToList();
+        }
+
+        private object BuildSiteMovementStackChart(string siteName, List<MonthSummary> monthlySummaries, ReportDataBundle data)
+        {
+            var labels = monthlySummaries.Select(s => s.Month.ToString("MMM yy", CultureInfo.InvariantCulture)).ToList();
+
+            decimal[] SeriesFor(Func<TankMovementRow, bool> filter, bool usePositive = false)
+            {
+                return monthlySummaries.Select(s =>
+                {
+                    var rows = FilterMonth(data.TankRows, s.Month)
+                        .Where(r => ResolveTankSiteName(data.TankSiteLookup, r.TankId) == siteName)
+                        .Where(filter)
+                        .ToList();
+                    var sum = usePositive
+                        ? rows.Sum(r => PositiveValue(r.VolumeChange))
+                        : rows.Sum(r => Math.Abs(r.VolumeChange));
+                    return Math.Round(sum, 0);
+                }).ToArray();
+            }
+
+            var delivered = SeriesFor(IsReceiptReason, usePositive: true);
+            var dispensed = SeriesFor(IsIssueReason);
+            var transferIn = SeriesFor(IsTransferInReason, usePositive: true);
+            var transferOut = SeriesFor(IsTransferOutReason);
+            var adjustments = SeriesFor(IsAdjustmentReason);
+
+            var datasets = new object[]
+            {
+                new { label = "Delivered", data = delivered, backgroundColor = "#0078D4", stack = "mv", borderRadius = 2 },
+                new { label = "Dispensed", data = dispensed, backgroundColor = "#D13438", stack = "mv", borderRadius = 2 },
+                new { label = "Transfer In", data = transferIn, backgroundColor = "#107C10", stack = "mv", borderRadius = 2 },
+                new { label = "Transfer Out", data = transferOut, backgroundColor = "#D97706", stack = "mv", borderRadius = 2 },
+                new { label = "Adjustments", data = adjustments, backgroundColor = "#8764B8", stack = "mv", borderRadius = 2 }
+            };
+
+            return new
+            {
+                type = "bar",
+                data = new { labels, datasets },
+                options = StackedChartOptions()
+            };
+        }
+
+        private static object StackedChartOptions()
+        {
+            return new
+            {
+                responsive = true,
+                maintainAspectRatio = false,
+                plugins = new { legend = new { display = false } },
+                layout = new { padding = new { bottom = 4 } },
+                scales = new
+                {
+                    x = new { stacked = true, ticks = new { font = new { size = 8 }, padding = 2 }, grid = new { display = false } },
+                    y = new { stacked = true, beginAtZero = true, ticks = new { font = new { size = 8 }, padding = 2 }, grid = new { color = "rgba(0,0,0,0.04)" } }
+                }
+            };
+        }
+
+        private static object ChartOptionsWithLegend()
+        {
+            return new
+            {
+                responsive = true,
+                maintainAspectRatio = false,
+                plugins = new { legend = new { display = true, position = "top", labels = new { font = new { size = 9 }, boxWidth = 10, padding = 6 } } },
+                layout = new { padding = new { bottom = 4 } },
+                scales = new
+                {
+                    x = new { ticks = new { font = new { size = 9 }, padding = 2 }, grid = new { display = false } },
+                    y = new { beginAtZero = true, ticks = new { font = new { size = 9 }, padding = 2 }, grid = new { color = "rgba(0,0,0,0.04)" } }
+                }
             };
         }
 
@@ -1662,6 +2373,7 @@ namespace FMS.Application.Features.Reporting.Services
         private sealed record ConsumptionRow(int VehicleId, int SiteId, DateTime Date, decimal TotalFuel, decimal TotalDistance, decimal EngineHours, decimal FuelLost, bool IsKmL);
         private sealed record TankMovementRow(int Id, int TankId, DateTime Timestamp, VolumeChangeReasonEnum ChangeReason, decimal VolumeChange, decimal NewVolume);
         private sealed record StockControlRow(string SiteName, decimal OpeningStock, decimal Delivered, decimal Issued, decimal TransfersIn, decimal TransfersOut, decimal Adjustments, decimal ExpectedClosing, decimal ActualClosing, decimal Variance, decimal VariancePercent);
+        private sealed record StockSiteStackEntry(string SiteName, string ChartId);
         private sealed record ReportFilters(int? SiteId, string? SiteName, IReadOnlyCollection<int> LightVehicleTypeIds, string? LightVehicleTypeName, IReadOnlyCollection<int> HeavyEquipmentTypeIds, string? HeavyEquipmentTypeName);
         private sealed record ReportDataBundle(
             DateTime MonthAnchor,
@@ -1671,6 +2383,7 @@ namespace FMS.Application.Features.Reporting.Services
             List<ConsumptionRow> ConsumptionRows,
             List<TankMovementRow> TankRows,
             IReadOnlyDictionary<int, string> TankSiteLookup,
+            IReadOnlyDictionary<int, string> TankNameLookup,
             IReadOnlyDictionary<int, TankMovementRow> OpeningTankBoundaries,
             IReadOnlyDictionary<int, TankMovementRow> ClosingTankBoundaries);
         private sealed record MonthSummary(
@@ -1689,6 +2402,9 @@ namespace FMS.Application.Features.Reporting.Services
         private sealed record SubsetSummary(decimal ActualRate, decimal ExpectedRate);
         private sealed record WeekRange(int WeekNumber, string WeekLabel, DateTime StartDate, DateTime EndDate);
         private sealed record WeeklySummary(int WeekNumber, string WeekLabel, DateTime StartDate, DateTime EndDate, MonthSummary Summary);
+        private sealed record FuelFlowStageNode(string Key, string Label, string Subtitle, decimal Amount, string Color);
+        private sealed record FuelFlowNodeBox(string Key, decimal X, decimal Y, decimal Width, decimal Height, string Label, string Subtitle, string Color, decimal Amount);
+        private sealed record FuelFlowLink(string SourceKey, string TargetKey, decimal Amount, string Color, decimal Opacity);
 
         private enum MatrixMode
         {

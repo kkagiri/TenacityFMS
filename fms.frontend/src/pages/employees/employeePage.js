@@ -2,7 +2,7 @@
  * File: employeePage.js
  * Purpose: Employee list page with Microsoft-style grid and side-panel CRUD workflow.
  * Dependencies: redux employee/site/permission actions, DevExtreme DataGrid and toolbar components.
- * Last Modified: 2026-04-15
+ * Last Modified: 2026-04-25
  *
  * Key Components:
  * - EmployeePage(): Manages employee listing, side-panel add/edit/view, export, and refresh operations.
@@ -27,7 +27,6 @@ import DataGrid, {
   LoadPanel,
   Pager,
   Paging,
-  SearchPanel,
   Sorting,
   Toolbar,
 } from "devextreme-react/data-grid";
@@ -42,6 +41,10 @@ import { exportDataGrid as exportDataGridToExcel } from "devextreme/excel_export
 import SlidePanel from "../../components/ui/SlidePanel";
 import EmployeeDetailPanel from "./components/EmployeeDetailPanel";
 import EmployeeFormPanel from "./components/EmployeeFormPanel";
+import EmployeeGridActionMenu from "./components/EmployeeGridActionMenu";
+import EmployeeListSearchPanel from "./components/EmployeeListSearchPanel";
+import EmployeeNameCell from "./components/EmployeeNameCell";
+import EmployeeVehiclesCell from "./components/EmployeeVehiclesCell";
 import { usePermissions } from "../../hooks/usePermissions";
 import "./employeePage.scss";
 
@@ -58,6 +61,10 @@ const hasSucceeded = (response) =>
 const resolveMessage = (response, fallback) =>
   response?.message || response?.Message || fallback;
 
+const normalizeFilterText = (value) => String(value || "").trim();
+
+const toFilterKey = (value) => normalizeFilterText(value).toLowerCase();
+
 const EmployeePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -70,7 +77,11 @@ const EmployeePage = () => {
   const sites = useSelector((state) => state.site?.sites || []);
   const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
 
-  const [activeOnly, setActiveOnly] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [positionFilter, setPositionFilter] = useState("all");
+  const [siteFilter, setSiteFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
+  const [openActionMenu, setOpenActionMenu] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -78,12 +89,6 @@ const EmployeePage = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
-
-  const switchLabel = useMemo(
-    () => (activeOnly ? "Active employees only" : "All employees"),
-    [activeOnly]
-  );
-
   const canEdit = hasPermission("_Edit_Employee");
   const canDelete = hasPermission("_Delete_Employee");
   const canCreate = hasPermission("_Create_Employee");
@@ -98,13 +103,13 @@ const EmployeePage = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const requests = [dispatch(fetchEmployees(activeOnly)), dispatch(fetchSiteList())];
+      const requests = [dispatch(fetchEmployees(false)), dispatch(fetchSiteList())];
 
       await Promise.all(requests);
     } catch (error) {
       notify("Failed to refresh employee data.", "error", 3000);
     }
-  }, [activeOnly, dispatch]);
+  }, [dispatch]);
 
   useEffect(() => {
     fetchData();
@@ -132,6 +137,19 @@ const EmployeePage = () => {
     navigate(location.pathname, { replace: true });
   }, [canCreate, location.hash, location.pathname, navigate]);
 
+  useEffect(() => {
+    if (!openActionMenu) return undefined;
+
+    const closeMenu = (event) => {
+      if (!event.target.closest(".employee-grid__action-menu-wrap")) {
+        setOpenActionMenu(null);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenu);
+    return () => document.removeEventListener("mousedown", closeMenu);
+  }, [openActionMenu]);
+
   const refresh = useCallback(() => {
     fetchData();
     gridRef.current?.instance?.refresh();
@@ -139,6 +157,7 @@ const EmployeePage = () => {
 
   const handleOpenDetails = useCallback((employee) => {
     if (!employee) return;
+    setOpenActionMenu(null);
     setSelectedEmployee(employee);
     setFormOpen(false);
     setDetailOpen(true);
@@ -159,6 +178,7 @@ const EmployeePage = () => {
     (employee) => {
       const target = employee || selectedEmployee;
       if (!target) return;
+      setOpenActionMenu(null);
       setSelectedEmployee(target);
       setFormMode("edit");
       setDetailOpen(false);
@@ -218,7 +238,7 @@ const EmployeePage = () => {
 
   const syncSelectionAfterRefresh = useCallback(
     async (employeeId, closeDetailsWhenMissing = true) => {
-      const refreshResult = await dispatch(fetchEmployees(activeOnly));
+      const refreshResult = await dispatch(fetchEmployees(false));
       const refreshed = Array.isArray(refreshResult?.data) ? refreshResult.data : [];
       const matched = refreshed.find(
         (employee) => String(employee.id) === String(employeeId)
@@ -235,7 +255,7 @@ const EmployeePage = () => {
       }
       return null;
     },
-    [activeOnly, dispatch]
+    [dispatch]
   );
 
   const handleCreateEmployee = useCallback(
@@ -247,7 +267,7 @@ const EmployeePage = () => {
           throw new Error(resolveMessage(response, "Failed to create employee."));
         }
 
-        await dispatch(fetchEmployees(activeOnly));
+        await dispatch(fetchEmployees(false));
         setFormOpen(false);
         notify("Employee created successfully.", "success", 2500);
       } catch (error) {
@@ -256,7 +276,7 @@ const EmployeePage = () => {
         setSaving(false);
       }
     },
-    [activeOnly, dispatch]
+    [dispatch]
   );
 
   const handleUpdateEmployee = useCallback(
@@ -287,6 +307,7 @@ const EmployeePage = () => {
     async (employee) => {
       const target = employee || selectedEmployee;
       if (!target?.id) return;
+      setOpenActionMenu(null);
 
       const confirmed = window.confirm(
         `Delete employee "${target.fullName || target.id}"? This action cannot be undone.`
@@ -300,7 +321,7 @@ const EmployeePage = () => {
           throw new Error(resolveMessage(response, "Failed to delete employee."));
         }
 
-        await dispatch(fetchEmployees(activeOnly));
+        await dispatch(fetchEmployees(false));
         if (String(selectedEmployee?.id) === String(target.id)) {
           setSelectedEmployee(null);
           setDetailOpen(false);
@@ -313,19 +334,8 @@ const EmployeePage = () => {
         setDeleting(false);
       }
     },
-    [activeOnly, dispatch, selectedEmployee]
+    [dispatch, selectedEmployee]
   );
-
-
-  const renderVehiclesCell = useCallback(
-    (cell) => {
-      const text = cell.value || "";
-      if (!text) return <span className="employee-grid__muted">-</span>;
-      return <span title={text}>{text}</span>;
-    },
-    []
-  );
-
   const vehicleMap = useMemo(() => {
     const result = new Map();
     (vehicles || []).forEach((vehicle) => {
@@ -378,13 +388,58 @@ const EmployeePage = () => {
     [resolveVehicleLabel]
   );
 
-  const employeeStats = useMemo(() => {
+  const positionOptions = useMemo(() => {
     const list = Array.isArray(employees) ? employees : [];
-    const active = list.filter((e) => String(e.employeestatus || "").toLowerCase() === "active").length;
-    const inactive = list.filter((e) => String(e.employeestatus || "").toLowerCase() !== "active").length;
-    const unassigned = list.filter((e) => !e.siteId).length;
-    return { total: list.length, active, inactive, unassigned };
+    return Array.from(new Set(list.map((employee) => normalizeFilterText(employee.position)).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right));
   }, [employees]);
+
+  const statusOptions = useMemo(() => {
+    const list = Array.isArray(employees) ? employees : [];
+    return Array.from(new Set(list.map((employee) => normalizeFilterText(employee.employeestatus)).filter(Boolean)))
+      .sort((left, right) => left.localeCompare(right));
+  }, [employees]);
+
+  const filteredEmployees = useMemo(() => {
+    const list = Array.isArray(employees) ? employees : [];
+    const query = toFilterKey(searchText);
+
+    return list.filter((employee) => {
+      const siteName = employee.siteId ? siteMap.get(String(employee.siteId)) || "" : "Unassigned";
+      const matchesSearch = !query || [
+        employee.fullName,
+        employee.employeeWorkNo,
+        employee.employeephoneNumber,
+        employee.position,
+        employee.employeestatus,
+        siteName,
+      ].some((value) => toFilterKey(value).includes(query));
+
+      const matchesPosition = positionFilter === "all" || toFilterKey(employee.position) === positionFilter;
+      const employeeSiteKey = employee.siteId ? String(employee.siteId) : "unassigned";
+      const matchesSite = siteFilter === "all" || employeeSiteKey === siteFilter;
+      const matchesStatus = statusFilter === "all" || toFilterKey(employee.employeestatus) === statusFilter;
+
+      return matchesSearch && matchesPosition && matchesSite && matchesStatus;
+    });
+  }, [employees, positionFilter, searchText, siteFilter, siteMap, statusFilter]);
+
+  const handleToggleActionMenu = useCallback((employeeId, triggerRect) => {
+    setOpenActionMenu((current) => {
+      if (current?.employeeId === employeeId) return null;
+
+      const menuWidth = 150;
+      return {
+        employeeId,
+        position: triggerRect
+          ? {
+            top: Math.round(triggerRect.bottom + 4),
+            left: Math.max(8, Math.round(triggerRect.right - menuWidth)),
+          }
+          : null,
+      };
+    });
+  }, []);
 
   if (loading && !employees.length) {
     return (
@@ -396,73 +451,28 @@ const EmployeePage = () => {
 
   return (
     <div className="employee-page">
-      <div className="employee-page__header">
-        <div>
-          <h2 className="employee-page__title">Employees</h2>
-          <p className="employee-page__subtitle">
-            Manage employee records, assignments, and profile lifecycle.
-          </p>
-        </div>
-
-        <div className="employee-page__header-actions">
-          <button
-            type="button"
-            className="m365-btn m365-btn--ghost"
-            onClick={() => navigate("/reports/warning-letters")}
-          >
-            <i className="fa-light fa-triangle-exclamation"></i>
-            Open Warning Letters
-          </button>
-          <button
-            type="button"
-            className="m365-btn m365-btn--ghost"
-            onClick={() => navigate("/employees/consumption-history")}
-          >
-            <i className="fa-light fa-chart-column"></i>
-            Open Consumption History
-          </button>
-          {canCreate && (
-            <button type="button" className="m365-btn m365-btn--primary" onClick={handleOpenCreate}>
-              <i className="fa-light fa-user-plus"></i>
-              Add Employee
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Stat Tiles ── */}
-      <div className="emp-stat-grid">
-        <div className="emp-stat" style={{ animationDelay: '0.04s' }}>
-          <div className="emp-stat__bar" style={{ background: '#0078d4' }} />
-          <div className="emp-stat__label">Total Employees</div>
-          <div className="emp-stat__value" style={{ color: '#0078d4' }}>{employeeStats.total}</div>
-          <div className="emp-stat__ghost"><i className="fa-light fa-users" /></div>
-        </div>
-        <div className="emp-stat" style={{ animationDelay: '0.08s' }}>
-          <div className="emp-stat__bar" style={{ background: '#107c10' }} />
-          <div className="emp-stat__label">Active</div>
-          <div className="emp-stat__value" style={{ color: '#107c10' }}>{employeeStats.active}</div>
-          <div className="emp-stat__ghost"><i className="fa-light fa-user-check" /></div>
-        </div>
-        <div className="emp-stat" style={{ animationDelay: '0.12s' }}>
-          <div className="emp-stat__bar" style={{ background: '#ca5010' }} />
-          <div className="emp-stat__label">Inactive</div>
-          <div className="emp-stat__value" style={{ color: '#ca5010' }}>{employeeStats.inactive}</div>
-          <div className="emp-stat__ghost"><i className="fa-light fa-user-xmark" /></div>
-        </div>
-        <div className="emp-stat" style={{ animationDelay: '0.16s' }}>
-          <div className="emp-stat__bar" style={{ background: '#c8c6c4' }} />
-          <div className="emp-stat__label">No Site Assigned</div>
-          <div className="emp-stat__value" style={{ color: '#605e5c' }}>{employeeStats.unassigned}</div>
-          <div className="emp-stat__ghost"><i className="fa-light fa-building-circle-xmark" /></div>
-        </div>
-      </div>
+      <EmployeeListSearchPanel
+        searchText={searchText}
+        positionFilter={positionFilter}
+        siteFilter={siteFilter}
+        statusFilter={statusFilter}
+        positionOptions={positionOptions}
+        statusOptions={statusOptions}
+        sites={sites}
+        canCreate={canCreate}
+        onSearchTextChange={setSearchText}
+        onPositionFilterChange={setPositionFilter}
+        onSiteFilterChange={setSiteFilter}
+        onStatusFilterChange={setStatusFilter}
+        onCreateEmployee={handleOpenCreate}
+        toFilterKey={toFilterKey}
+      />
 
       <div className="employee-page__grid-shell">
         <DataGrid
           ref={gridRef}
           className="employee-grid employee-grid--simple"
-          dataSource={employees}
+          dataSource={filteredEmployees}
           keyExpr="id"
           showBorders={false}
           showColumnLines={false}
@@ -485,23 +495,11 @@ const EmployeePage = () => {
             showPageSizeSelector={true}
             allowedPageSizes={[10, 20, 50, 100]}
           />
-          <SearchPanel visible={true} width={260} placeholder="Search employees..." />
           <HeaderFilter visible={true} />
           <FilterRow visible={true} />
           <Sorting mode="multiple" />
 
           <Toolbar>
-            <TItems name="searchPanel" location="before" locateInMenu="auto" />
-
-            <TItems location="after" locateInMenu="auto">
-              <label
-                className={`m365-toggle ${activeOnly ? "m365-toggle--on" : ""}`}
-                onClick={() => setActiveOnly((prev) => !prev)}
-              >
-                <span className="m365-toggle__track" />
-                <span style={{ fontSize: 13, color: "var(--m365-text-secondary)" }}>{switchLabel}</span>
-              </label>
-            </TItems>
             <TItems name="exportButton" locateInMenu="auto" />
             <TItems location="after" locateInMenu="auto">
               <Button icon="refresh" text="Refresh" stylingMode="text" onClick={refresh} />
@@ -514,6 +512,7 @@ const EmployeePage = () => {
             minWidth={220}
             allowHiding={false}
             calculateCellValue={(row) => (row.fullName ? row.fullName.toUpperCase() : "")}
+            cellRender={(cell) => <EmployeeNameCell employee={cell.data} />}
           />
           <Column dataField="employeephoneNumber" caption="Phone No" minWidth={140} />
           <Column dataField="employeeWorkNo" caption="Work No" minWidth={120} />
@@ -524,7 +523,7 @@ const EmployeePage = () => {
             caption="Default Vehicles"
             minWidth={260}
             calculateCellValue={getVehicleDisplayText}
-            cellRender={renderVehiclesCell}
+            cellRender={(cell) => <EmployeeVehiclesCell text={cell.value || ""} />}
           />
           <Column
             dataField="siteId"
@@ -536,36 +535,24 @@ const EmployeePage = () => {
           />
           <Column
             caption="Actions"
-            width={160}
+            width={76}
             fixed={true}
             fixedPosition="right"
             allowSorting={false}
             allowFiltering={false}
             cellRender={(cell) => (
-              <div className="employee-grid__actions">
-                <button
-                  type="button"
-                  className="employee-grid__action-link"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleOpenDetails(cell.data);
-                  }}
-                >
-                  View
-                </button>
-                {canEdit && (
-                  <button
-                    type="button"
-                    className="employee-grid__action-link"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleOpenEdit(cell.data);
-                    }}
-                  >
-                    Edit
-                  </button>
-                )}
-              </div>
+              <EmployeeGridActionMenu
+                employee={cell.data}
+                isOpen={openActionMenu?.employeeId === cell.data?.id}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                deleting={deleting}
+                menuPosition={openActionMenu?.employeeId === cell.data?.id ? openActionMenu.position : null}
+                onToggle={handleToggleActionMenu}
+                onView={handleOpenDetails}
+                onEdit={handleOpenEdit}
+                onDelete={handleDeleteEmployee}
+              />
             )}
           />
         </DataGrid>
@@ -600,6 +587,7 @@ const EmployeePage = () => {
           employee={formMode === "edit" ? selectedEmployee : null}
           sites={sites}
           saving={saving}
+          hideSectionBorders={true}
           onSubmit={formMode === "create" ? handleCreateEmployee : handleUpdateEmployee}
           onClose={closeFormPanel}
         />

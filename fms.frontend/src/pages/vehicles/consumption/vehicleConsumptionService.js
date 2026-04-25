@@ -367,14 +367,23 @@ export const getVehicleConsumptionRecordDetail = async (consumptionId) => {
     return normalizeRecordDetail(response.data || {});
 };
 
-export const getVehicleConsumptionHistory = async (vehicleId, targetDate, entry = 5) => {
+export const getVehicleConsumptionHistory = async (vehicleId, targetDate, entry = 5, fromDate = null) => {
     const dateString = toLocalInputDateValue(targetDate);
+    const params = {
+        vehicleId: Number(vehicleId),
+        datestring: dateString,
+        entry,
+    };
+
+    if (fromDate) {
+        const fromString = toLocalInputDateValue(fromDate);
+        if (fromString) {
+            params.dateFromString = fromString;
+        }
+    }
+
     const response = await axiosInstance.get("/consumption/gethistoryconsumptionbyvehicle", {
-        params: {
-            vehicleId: Number(vehicleId),
-            datestring: dateString,
-            entry,
-        },
+        params,
     });
 
     return ensureArray(response.data).map(normalizeHistoryRecord);

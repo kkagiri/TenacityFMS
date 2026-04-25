@@ -205,8 +205,9 @@ const EmployeeDocumentsWorkspace = ({ employeeId, employee }) => {
 
       <div className="employee-documents-workspace__grid-shell">
         <DataGrid
-          className="employee-documents-workspace__grid"
+          className="employee-documents-workspace__grid employee-details-module__grid"
           dataSource={documents}
+          height={700}
           keyExpr="id"
           showBorders={false}
           showColumnLines={false}

@@ -13,6 +13,7 @@ const DiscardConfirmPanel = ({ open, onKeepEditing, onDiscard }) => (
         onClose={onKeepEditing}
         title="Discard unsaved workflow changes?"
         width={420}
+        panelClassName="issue-template-workflow-panel__confirm-panel"
     >
         <div className="issue-template-workflow-panel__panel-copy">
             <p>Your staged workflow changes have not been saved yet. Closing now will discard them.</p>

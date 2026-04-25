@@ -357,10 +357,13 @@
   }
 
   &__actions {
-    display: inline-flex;
+    display: flex;
     flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
+    width: 100%;
+    padding-right: 14px;
+    box-sizing: border-box;
     white-space: nowrap;
   }
 

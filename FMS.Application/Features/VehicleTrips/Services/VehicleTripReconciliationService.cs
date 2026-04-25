@@ -699,7 +699,30 @@ public class VehicleTripReconciliationService : IVehicleTripReconciliationServic
                 _context.VehicleTripGroups.RemoveRange(persistedGroups);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                // Rows were deleted by a concurrent process between when we loaded and when we deleted.
+                // For each conflicting entry, check whether the row still exists in the DB.
+                // If it's already gone, we achieved our goal — detach and continue.
+                // If it still exists, something unexpected happened — rethrow.
+                foreach (var entry in ex.Entries)
+                {
+                    var dbValues = await entry.GetDatabaseValuesAsync(cancellationToken);
+                    if (dbValues == null)
+                    {
+                        entry.State = EntityState.Detached;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             var groupsUpdated = 0;
             var tripsUpdated = 0;

@@ -14,6 +14,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace FMS.Application.Features.EventEngine.Events
 {
@@ -130,6 +131,20 @@ namespace FMS.Application.Features.EventEngine.Events
             }
 
             return vars;
+        }
+
+        /// <summary>
+        /// Build a JSON payload for persistence that keeps the runtime event snapshot
+        /// and preserves the template variables used by notification rendering.
+        /// </summary>
+        public virtual string SerializeEventData()
+        {
+            var snapshot = JsonSerializer.Deserialize<Dictionary<string, object?>>(
+                JsonSerializer.Serialize(this, GetType())) ?? new Dictionary<string, object?>();
+
+            snapshot["templateVariables"] = GetTemplateVariables();
+
+            return JsonSerializer.Serialize(snapshot);
         }
     }
 
