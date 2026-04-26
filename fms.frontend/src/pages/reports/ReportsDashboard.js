@@ -157,7 +157,7 @@ const ReportsDashboard = () => {
         <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Data Management</h3>
         <div className="activity-list">
           <div className="activity-item">
-            <div class="activity-icon-removed" style={{display: 'none'}}>
+            <div class="activity-icon-removed" style={{ display: 'none' }}>
               <i className="fa-light fa-upload tw-text-green-400"></i>
             </div>
           </div>

@@ -218,8 +218,8 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
             resolveLookupName(
                 vehicleManufacturers,
                 vehicle?.vehicleManufacturerId ??
-                    vehicle?.VehicleManufacturerId ??
-                    vehicle?.vehicleManufacturer?.id,
+                vehicle?.VehicleManufacturerId ??
+                vehicle?.vehicleManufacturer?.id,
                 ["name", "vehicleManufacturerName"]
             ) || emptyDisplay
         );
@@ -403,50 +403,50 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
             <div className="m365-flat-section m365-flat-section--first">
                 <h3 className="m365-flat-section__title">Basic Information</h3>
                 <div className="m365-info-grid">
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Tenacy No</span>
-                    <span className="m365-info-cell__value">
-                        {vehicle?.vehicleCode || "—"}
-                    </span>
-                </div>
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Number Plate</span>
-                    <span className="m365-info-cell__value">
-                        {vehicle?.numberPlate || "—"}
-                    </span>
-                    {isAdmin && (
-                        <button
-                            className="m365-info-cell__link"
-                            onClick={() => setEditMode(true)}
-                        >
-                            Manage vehicle
-                        </button>
-                    )}
-                </div>
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Type</span>
-                    <span className="m365-info-cell__value">
-                        {vehicleTypeDisplay}
-                    </span>
-                </div>
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Manufacturer</span>
-                    <span className="m365-info-cell__value">
-                        {vehicleManufacturerDisplay}
-                    </span>
-                </div>
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Model</span>
-                    <span className="m365-info-cell__value">
-                        {vehicleModelDisplay}
-                    </span>
-                </div>
-                <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Year</span>
-                    <span className="m365-info-cell__value">
-                        {vehicleYearDisplay}
-                    </span>
-                </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Tenacy No</span>
+                        <span className="m365-info-cell__value">
+                            {vehicle?.vehicleCode || "—"}
+                        </span>
+                    </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Number Plate</span>
+                        <span className="m365-info-cell__value">
+                            {vehicle?.numberPlate || "—"}
+                        </span>
+                        {isAdmin && (
+                            <button
+                                className="m365-info-cell__link"
+                                onClick={() => setEditMode(true)}
+                            >
+                                Manage vehicle
+                            </button>
+                        )}
+                    </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Type</span>
+                        <span className="m365-info-cell__value">
+                            {vehicleTypeDisplay}
+                        </span>
+                    </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Manufacturer</span>
+                        <span className="m365-info-cell__value">
+                            {vehicleManufacturerDisplay}
+                        </span>
+                    </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Model</span>
+                        <span className="m365-info-cell__value">
+                            {vehicleModelDisplay}
+                        </span>
+                    </div>
+                    <div className="m365-info-cell">
+                        <span className="m365-info-cell__label">Year</span>
+                        <span className="m365-info-cell__value">
+                            {vehicleYearDisplay}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -712,7 +712,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                             <span className="m365-info-cell__label">Ignition</span>
                             <span className="m365-info-cell__value">
                                 {gpsData?.sensorHealth?.ignitionStatus !== null &&
-                                gpsData?.sensorHealth?.ignitionStatus !== undefined ? (
+                                    gpsData?.sensorHealth?.ignitionStatus !== undefined ? (
                                     gpsData.sensorHealth.ignitionStatus ? (
                                         <span className="m365-badge m365-badge--success">
                                             ON
