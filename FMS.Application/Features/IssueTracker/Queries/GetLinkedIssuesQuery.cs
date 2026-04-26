@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetLinkedIssuesQuery.cs
  * Purpose: Query to get issues linked by the same template
  * Dependencies: MediatR, GpsdataContext
@@ -116,7 +116,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
                     DueDate = i.DueDate,
                     ClosingDate = i.ClosingDate,
                     VehicleId = i.VehicleId,
-                    VehicleHyoungNo = i.Vehicle != null ? i.Vehicle.HyoungNo : null,
+                    VehicleCode = i.Vehicle != null ? i.Vehicle.VehicleCode : null,
                     SiteId = i.SiteId,
                     SiteName = i.Site != null ? i.Site.Name : null,
                     AssignToUserName = i.AssignToNavigation != null ? i.AssignToNavigation.UserName : null,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: JsReportTemplateManager.cs
  * Purpose: Manages jsreport HTML template files — path resolution, read, write, delete, and seeding defaults.
  * Dependencies: JsReportHtmlTemplates, ILogger, System.IO
@@ -60,7 +60,7 @@ namespace FMS.WebClient.Services.Reporting
             // Priority 4: ProgramData (system-wide, usually writable)
             var programData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Hyoung", "FMS", "ReportTemplates");
+                "Tenacy", "FMS", "ReportTemplates");
             if (TryCreateDirectory(programData)) return programData;
 
             // Fallback: App_Data (may fail in IIS)
@@ -79,7 +79,7 @@ namespace FMS.WebClient.Services.Reporting
 
             var programData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Hyoung", "FMS", "reports", "branding");
+                "Tenacy", "FMS", "reports", "branding");
             if (TryCreateDirectoryStatic(programData))
                 return Path.Combine(programData, logoFileName);
 
@@ -188,7 +188,6 @@ namespace FMS.WebClient.Services.Reporting
                 ["tank-level-detail-report"] = JsReportHtmlTemplates.TankLevelDetail,
                 ["alarm-report"] = JsReportHtmlTemplates.AlarmReport,
                 ["storage-received-vs-dispensed-report"] = JsReportHtmlTemplates.StorageReceivedVsDispensed,
-                ["vehicle-document-compliance-report"] = JsReportHtmlTemplates.VehicleDocumentCompliance,
                 ["vehicle-trip-analysis-report"] = VehicleTripAnalysisHtmlTemplate.Get,
                 ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
                 ["monthly-fleet-report"] = () => MonthlyFleetReportHtmlTemplate.Get(logoBase64),

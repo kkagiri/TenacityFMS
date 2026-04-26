@@ -1,7 +1,7 @@
 {
-  "name": "hyoung-fms",
+  "name": "tenacy-fms",
   "version": "1.0.0",
-  "description": "FMS Development Scripts",
+  "description": "Tenacy FMS Development Scripts",
   "scripts": {
     "start:backend": "cd FMS.WebClient && dotnet run",
     "start:frontend": "cd fms.frontend && npm start",

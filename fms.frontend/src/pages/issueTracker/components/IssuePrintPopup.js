@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssuePrintPopup.js
  * Purpose: Print/Share slide panel for issue details with activity stream
  * Dependencies: React, SlidePanel, IssueActivityStream
@@ -255,10 +255,10 @@ const IssuePrintPopup = ({ visible, onHide, issue }) => {
                                     <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.templateName}</span>
                                 </div>
                             )}
-                            {issue.vehicleHyoungNumber && (
+                            {issue.vehicleCode && (
                                 <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-100 tw-min-h-[36px]">
                                     <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Vehicle</span>
-                                    <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.vehicleHyoungNumber}</span>
+                                    <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.vehicleCode}</span>
                                 </div>
                             )}
                         </div>

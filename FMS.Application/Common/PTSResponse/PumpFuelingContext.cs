@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using FMS.Application.Common.Constants;
 
 namespace FMS.Application.Common.PTSResponse
@@ -31,7 +31,7 @@ namespace FMS.Application.Common.PTSResponse
         public int? VehicleId { get; set; }
 
         /// <summary>
-        /// Vehicle plate number or Hyoung number for display
+        /// Vehicle plate number or Tenacy number for display
         /// </summary>
         public string? VehicleName { get; set; }
 

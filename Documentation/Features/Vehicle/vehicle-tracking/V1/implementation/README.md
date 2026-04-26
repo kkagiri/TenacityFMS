@@ -1,4 +1,4 @@
-# Vehicle Tracking — Full System Documentation
+﻿# Vehicle Tracking — Full System Documentation
 
 > **Version:** V1
 > **Module:** Vehicle Tracking
@@ -1127,7 +1127,7 @@ sequenceDiagram
     CMD->>ConfigSVC: GetByIdAsync(providerId)
     ConfigSVC-->>CMD: ProviderConfigurationDto
     CMD->>DB: SELECT vehicle WHERE VehicleId = ?
-    DB-->>CMD: Vehicle { HasGPSInstalled, HyoungNo }
+    DB-->>CMD: Vehicle { HasGPSInstalled, VehicleCode }
     alt GPS not installed
         CMD-->>API: FMSResponse.Failed("GPS not installed")
         API-->>UI: 400 Bad Request

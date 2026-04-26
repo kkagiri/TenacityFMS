@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SearchableSelectionModal.js
  * A reusable modal component for searching and selecting items (vehicles, users, etc.)
  *
@@ -19,13 +19,13 @@
  *   onSelectionChange={setSelectedVehicleIds}
  *   keyExtractor={(item) => item.vehicleId}
  *   renderItem={(item, isSelected) => ({
- *     title: item.hyoungNo,
+ *     title: item.vehicleCode,
  *     subtitle: item.numberPlate,
  *     icon: "car"
  *   })}
  *   normalizeResult={(item) => ({
  *     vehicleId: item.VehicleId || item.vehicleId,
- *     hyoungNo: item.HyoungNo || item.hyoungNo,
+ *     vehicleCode: item.VehicleCode || item.vehicleCode,
  *     numberPlate: item.NumberPlate || item.numberPlate
  *   })}
  * />

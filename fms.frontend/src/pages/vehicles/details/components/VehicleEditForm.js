@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleEditForm.js
  * Purpose: Display and (optionally) allow editing of a vehicle record within Vehicle Details.
  * Dependencies: DevExtreme Form, Redux actions for dropdown data.
@@ -66,7 +66,7 @@ const VehicleEditForm = ({
   useEffect(() => {
     if (vehicle && vehicle.vehicleId) {
       setFormData({
-        hyoungNo: vehicle.hyoungNo || "",
+        vehicleCode: vehicle.vehicleCode || "",
         numberPlate: vehicle.numberPlate || "",
         yom: vehicle.yom || "",
         vehicleTypeId: vehicle.vehicleTypeId ?? vehicle.VehicleTypeId ?? vehicle.vehicleType?.id ?? null,
@@ -281,7 +281,7 @@ const VehicleEditForm = ({
   const resetFormData = useCallback(() => {
     if (vehicle) {
       setFormData({
-        hyoungNo: vehicle.hyoungNo || "",
+        vehicleCode: vehicle.vehicleCode || "",
         numberPlate: vehicle.numberPlate || "",
         yom: vehicle.yom || "",
         vehicleTypeId: vehicle.vehicleTypeId ?? vehicle.VehicleTypeId ?? vehicle.vehicleType?.id ?? null,
@@ -409,20 +409,20 @@ const VehicleEditForm = ({
           {/* Basic Information Group */}
           <GroupItem caption="Basic Information" colCount={2}>
             <SimpleItem
-              dataField="hyoungNo"
-              caption="Hyoung No"
+              dataField="vehicleCode"
+              caption="Tenacy No"
               isRequired={true}
               editorOptions={{
                 placeholder: "Enter company registration number",
-                onValueChanged: (e) => handleFieldChange("hyoungNo", e.value),
+                onValueChanged: (e) => handleFieldChange("vehicleCode", e.value),
                 readOnly: isFormDisabled,
                 stylingMode: isFormDisabled ? "outlined" : "outlined",
               }}
             >
-              <RequiredRule message="Hyoung No is required" />
+              <RequiredRule message="Tenacy No is required" />
               <StringLengthRule
                 max={50}
-                message="Hyoung No cannot exceed 50 characters"
+                message="Tenacy No cannot exceed 50 characters"
               />
             </SimpleItem>
 

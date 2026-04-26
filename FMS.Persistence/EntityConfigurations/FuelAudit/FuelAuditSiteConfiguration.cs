@@ -16,24 +16,18 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
             builder.HasKey(s => s.Id);
 
             builder.Property(s => s.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd();
 
             builder.Property(s => s.AuditId)
-                .HasColumnName("audit_id")
                 .IsRequired();
 
             builder.Property(s => s.SiteId)
-                .HasColumnName("site_id")
                 .IsRequired();
 
             builder.Property(s => s.SiteOrder)
-                .HasColumnName("site_order")
                 .HasDefaultValue(0);
 
             builder.Property(s => s.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             // Indexes
@@ -49,3 +43,4 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
         }
     }
 }
+

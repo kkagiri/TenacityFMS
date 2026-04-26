@@ -28,18 +28,16 @@ namespace FMS.Persistence.EntityConfigurations
                 // Add composite index for performance optimization
                 builder.HasIndex(e => new { e.TankId, e.DeliveryDate }, "IX_Delivery_TankId_DeliveryDate");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.DeliveryDensity).HasPrecision(10);
                 builder.Property(e => e.DeliveryMass).HasPrecision(10);
                 builder.Property(e => e.DeliveryTemperature).HasPrecision(10);
                 builder.Property(e => e.ManualDeliveryAmount).HasPrecision(10);
                 builder.Property(e => e.RecordedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
                 builder.Property(e => e.SensorDeliveryAmount).HasPrecision(10);
-                builder.Property(e => e.SupplierId).HasColumnType("int(11)");
-                builder.Property(e => e.TankId).HasColumnType("int(11)");
+                builder.Property(e => e.SupplierId);
+                builder.Property(e => e.TankId);
 
                 // Additional delivery properties
                 builder.Property(e => e.StockBeforeDelivery)
@@ -56,7 +54,6 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.Property(e => e.Lponumber)
                     .HasMaxLength(100)
-                    .HasColumnName("lponumber")
                     .HasComment("LPO/Invoice number");
 
                 builder.Property(e => e.Product)
@@ -65,36 +62,30 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // CreatedOn and PricePerLiter properties
                 builder.Property(e => e.CreatedOn)
-                    .HasColumnType("datetime")
                     .IsRequired();
 
                 // Soft delete properties
                 builder.Property(e => e.IsDeleted)
-                    .HasColumnType("tinyint(1)")
-                    .HasColumnName("is_deleted")
                     .HasDefaultValue(false);
 
-                builder.Property(e => e.DeletedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("deleted_at");
+                builder.Property(e => e.DeletedAt);
 
                 builder.Property(e => e.DeletedBy)
-                    .HasMaxLength(450)
-                    .HasColumnName("deleted_by");
+                    .HasMaxLength(450);
 
                 // Correction tracking properties
                 // builder.Property (e => e.IsCorrection)
                 //     .HasColumnType ("tinyint(1)")
-                //     .HasColumnName ("is_correction")
+                //
                 //     .HasDefaultValue (false);
 
                 // builder.Property (e => e.CorrectsRecordId)
                 //     .HasColumnType ("int(11)")
-                //     .HasColumnName ("corrects_record_id");
+                //;
 
                 // builder.Property (e => e.CorrectionReason)
                 //     .HasMaxLength (200)
-                //     .HasColumnName ("correction_reason");
+                //;
 
                 // Global query filter to exclude soft deleted records
                 builder.HasQueryFilter(d => !d.IsDeleted);
@@ -136,3 +127,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

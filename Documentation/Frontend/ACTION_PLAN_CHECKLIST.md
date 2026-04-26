@@ -1,4 +1,4 @@
-# SignalR External Connection Fix - Action Plan Checklist
+﻿# SignalR External Connection Fix - Action Plan Checklist
 
 **Server**: 197.254.33.227 (Public IP)
 **Date**: ******\_\_\_******
@@ -29,7 +29,7 @@ Fix SignalR WebSocket connection failure from external networks by rebuilding fr
 - [ ] Logged in as **Administrator**
 - [ ] Backend service is **running** (port 7009)
 - [ ] IIS is **running** and site accessible locally
-- [ ] Have access to: `C:\dev\Hyoung.FMS\`
+- [ ] Have access to: `C:\dev\Tenacy.FMS\`
 - [ ] Node.js and npm installed (check: `npm --version`)
 - [ ] PowerShell open as Administrator
 
@@ -47,7 +47,7 @@ netstat -ano | findstr :7009
 ### Task 1.1: Run Diagnostic Script
 
 ```powershell
-cd C:\dev\Hyoung.FMS\Documentation\Frontend
+cd C:\dev\Tenacy.FMS\Documentation\Frontend
 .\SIGNALR_DIAGNOSTICS.ps1
 ```
 
@@ -61,7 +61,7 @@ cd C:\dev\Hyoung.FMS\Documentation\Frontend
 ### Task 1.2: Check Current Deployment
 
 ```powershell
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 ```
 
 **Current URL**: ****************\_****************
@@ -76,10 +76,10 @@ Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern 
 
 ### Task 2.1: Edit .env.production
 
-**File Location**: `C:\dev\Hyoung.FMS\fms.frontend\.env.production`
+**File Location**: `C:\dev\Tenacy.FMS\fms.frontend\.env.production`
 
 ```powershell
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 notepad .env.production
 ```
 
@@ -116,7 +116,7 @@ cat .env.production
 ### Task 3.1: Clean Previous Build
 
 ```powershell
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 Remove-Item -Recurse -Force build\
 ```
 
@@ -168,7 +168,7 @@ cat .env.production
 
 # Verify you're in correct directory
 pwd
-# Should be: C:\dev\Hyoung.FMS\fms.frontend
+# Should be: C:\dev\Tenacy.FMS\fms.frontend
 ```
 
 ---
@@ -179,8 +179,8 @@ pwd
 
 ```powershell
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-$backupPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_$timestamp"
-Copy-Item -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp" -Destination $backupPath -Recurse
+$backupPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_$timestamp"
+Copy-Item -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp" -Destination $backupPath -Recurse
 Write-Host "Backup created at: $backupPath"
 ```
 
@@ -205,7 +205,7 @@ Test-Path $backupPath
 ### Task 5.1: Copy Build Files
 
 ```powershell
-$deployPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp"
+$deployPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp"
 
 # Backup web.config (don't overwrite it)
 Copy-Item -Path "$deployPath\web.config" -Destination ".\web.config.backup" -ErrorAction SilentlyContinue
@@ -231,11 +231,11 @@ if (-not (Test-Path "$deployPath\web.config")) {
 
 ```powershell
 # Check files exist
-Test-Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html"
-Test-Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config"
+Test-Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html"
+Test-Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config"
 
 # Verify API URL in deployed file
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 ```
 
 **Deployed API URL**: ********************\_********************
@@ -251,7 +251,7 @@ Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern 
 ### Task 6.1: Edit web.config
 
 ```powershell
-notepad c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config
+notepad c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config
 ```
 
 ### Task 6.2: Add WebSocket Support
@@ -282,7 +282,7 @@ Find `<system.webServer>` section and ensure it has:
 
 ```powershell
 # Check for syntax errors
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config" -Pattern "webSocket"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config" -Pattern "webSocket"
 ```
 
 - [ ] Shows `<webSocket enabled="true" />`
@@ -401,7 +401,7 @@ Invoke-WebRequest -Uri "http://localhost/ptsHub/negotiate?negotiateVersion=1" -M
 
 ```powershell
 # Verify deployed API URL
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 
 # Check IIS logs for errors
 Get-Content "c:\inetpub\logs\LogFiles\W3SVC1\*.log" -Tail 20 | Select-String "ptsHub"
@@ -485,7 +485,7 @@ Then rebuild (go back to Phase 3).
 **Fix**:
 
 ```powershell
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 
 # Verify file exists
 Test-Path .env.production
@@ -535,14 +535,14 @@ If new deployment causes issues:
 
 ```powershell
 # Find latest backup
-Get-ChildItem "c:\inetpub\wwwroot\hyoungFMS\" | Where-Object {$_.Name -like "reactApp_backup_*"} | Sort-Object Name -Descending | Select-Object -First 1
+Get-ChildItem "c:\inetpub\wwwroot\tenacyFMS\" | Where-Object {$_.Name -like "reactApp_backup_*"} | Sort-Object Name -Descending | Select-Object -First 1
 
 # Set backup path
-$backupPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_YYYYMMDD_HHMMSS"
+$backupPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_YYYYMMDD_HHMMSS"
 
 # Restore
-Remove-Item "c:\inetpub\wwwroot\hyoungFMS\reactApp" -Recurse -Force
-Copy-Item $backupPath -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp" -Recurse
+Remove-Item "c:\inetpub\wwwroot\tenacyFMS\reactApp" -Recurse -Force
+Copy-Item $backupPath -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp" -Recurse
 
 # Restart IIS
 iisreset /noforce

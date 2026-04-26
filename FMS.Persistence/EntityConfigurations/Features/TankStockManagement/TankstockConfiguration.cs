@@ -25,13 +25,11 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.RecordedBy, "TankStock_User_idx");
                 builder.HasIndex(e => e.SiteId, "TankStock_site_idx");
 
-                builder.Property(e => e.EntryId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("EntryID");
+                builder.Property(e => e.EntryId);
 
                 builder.Property(e => e.Comment).HasMaxLength(2000);
                 builder.Property(e => e.Discrepancy).HasPrecision(10);
-                builder.Property(e => e.EntryType).HasColumnType("int(11)");
+                builder.Property(e => e.EntryType);
                 builder.Property(e => e.ExpectedClosingLevel).HasPrecision(10);
                 builder.Property(e => e.ManualAmount).HasPrecision(10, 2);
                 builder.Property(e => e.ManualCalculatedUsage).HasPrecision(10, 2);
@@ -46,17 +44,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired(false)
                     .HasComment("Physical meter reading at the time of closing stock");
                 builder.Property(e => e.RecordedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
                 builder.Property(e => e.SensorCalculatedUsage).HasPrecision(10, 2);
                 builder.Property(e => e.SensorClosingLevel).HasPrecision(10, 2);
                 builder.Property(e => e.SensorDiscrepancy).HasPrecision(10);
                 builder.Property(e => e.SensorOpeningLevel).HasPrecision(10, 2);
-                builder.Property(e => e.SiteId).HasColumnType("int(11)");
-                builder.Property(e => e.TankId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("TankID");
+                builder.Property(e => e.SiteId);
+                builder.Property(e => e.TankId);
 
                 // New fields for single-row-per-day architecture
                 builder.Property(e => e.DeliveryAmount)
@@ -64,7 +58,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired(false)
                     .HasComment("Total delivery amount for this tank on this day");
                 builder.Property(e => e.DeliveryId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false)
                     .HasComment("Reference to Delivery record if delivery occurred");
                 builder.Property(e => e.TransferInAmount)
@@ -76,7 +69,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired(false)
                     .HasComment("Total fuel transferred OUT of this tank to other tanks on this day");
                 builder.Property(e => e.TransferRecordId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false)
                     .HasComment("Reference to TankTransfer record if transfer occurred");
 
@@ -117,7 +109,6 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasQueryFilter(e => e.RecordedByNavigation.IsDeleted != true);
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");
@@ -127,3 +118,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

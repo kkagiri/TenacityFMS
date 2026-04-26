@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using HyoungFMS.Deployment.Interfaces;
+using TenacyFMS.Deployment.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace HyoungFMS.Deployment.Services
+namespace TenacyFMS.Deployment.Services
 {
     /// <summary>
     /// Implementation of the File Manager interface
@@ -35,7 +35,7 @@ namespace HyoungFMS.Deployment.Services
             string backupDir = _config["BackupSettings:BackupDirectory"];
             if (string.IsNullOrEmpty(backupDir))
             {
-                backupDir = Path.Combine(Path.GetTempPath(), "HyoungFMS_Backups");
+                backupDir = Path.Combine(Path.GetTempPath(), "TenacyFMS_Backups");
                 _logger.LogWarning(
                     $"Backup directory not configured, using temporary directory: {backupDir}"
                 );

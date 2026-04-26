@@ -1,4 +1,4 @@
-# Vehicle Dashboard System - Product Requirements Document
+﻿# Vehicle Dashboard System - Product Requirements Document
 
 ## Executive Summary
 The Vehicle Dashboard System provides a comprehensive fleet management interface that combines vehicle monitoring, consumption analysis, maintenance tracking, and real-time GPS data integration into a unified dashboard experience.
@@ -58,7 +58,7 @@ Create a modern, responsive vehicle management dashboard that provides fleet man
 
 #### 2.2.3 Vehicle Information Form
 Based on `Vehicle.cs` entity:
-- **Basic Information**: Hyoung No, Number Plate, YOM
+- **Basic Information**: Tenacy No, Number Plate, YOM
 - **Technical Details**: Vehicle Type, Model, Manufacturer
 - **Operational Data**: Working Site, Default Employee, Capacity
 - **GPS Configuration**: GPS Installation status, GPS Gate ID

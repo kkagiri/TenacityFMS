@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: EmployeeWarningLettersWorkspace.js
  * Purpose: Shows warning letters related to a single employee inside the employee details page.
  * Dependencies: React, DataGrid, react-router-dom, warningLetterService, usePermissions
@@ -248,7 +248,7 @@ const EmployeeWarningLettersWorkspace = ({ employeeId, employee, onCountChange }
                 <Column dataField="letterDate" caption="Letter Date" cellRender={({ value }) => formatDate(value)} width={120} />
                 <Column dataField="periodStart" caption="Violation Date" cellRender={({ value }) => formatDate(value)} width={120} />
                 <Column dataField="letterType" caption="Type" cellRender={renderLetterType} minWidth={140} />
-                <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
+                <Column dataField="vehicleCode" caption="Vehicle" minWidth={120} />
                 <Column dataField="siteName" caption="Site" minWidth={150} />
                 <Column dataField="workflowStage" caption="Stage" cellRender={renderStatus} width={150} />
                 <Column dataField="signatureRequestRecipient" caption="Site Representative" minWidth={180} />

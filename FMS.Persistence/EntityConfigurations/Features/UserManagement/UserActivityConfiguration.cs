@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 
@@ -20,17 +20,15 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
                 builder
-                    .ToTable("user_activity")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                    .ToTable("user_activity");
 
                 builder.HasIndex(e => e.UserId, "UserId");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Action).HasMaxLength(255);
                 builder.Property(e => e.ActionName).HasMaxLength(255);
                 builder.Property(e => e.Controller).HasMaxLength(255);
-                builder.Property(e => e.Parameters).HasColumnType("text");
+                builder.Property(e => e.Parameters);
                 builder.Property(e => e.UserId).HasMaxLength(100);
                 builder.Property(e => e.IpAddress).HasMaxLength(45);
 
@@ -42,7 +40,6 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasQueryFilter(e => e.User == null || e.User.IsDeleted != true);
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");
@@ -52,3 +49,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

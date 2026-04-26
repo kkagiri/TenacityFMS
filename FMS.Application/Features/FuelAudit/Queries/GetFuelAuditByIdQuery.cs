@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -150,7 +150,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         Id = vp.Id,
                         AuditId = vp.AuditId,
                         VehicleId = vp.VehicleId,
-                        VehicleName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
+                        VehicleName = vp.VehicleName ?? vp.Vehicle?.VehicleCode,
                         PlateNumber = vp.NumberPlate ?? vp.Vehicle?.NumberPlate,
                         VehicleType = vp.VehicleType,
                         TankCapacity = vp.TankCapacity ?? vp.Vehicle?.FuelTankCapacity,

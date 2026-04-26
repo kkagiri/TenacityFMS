@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Update;
 using FMS.Application.Features.FMS.Consumption;
 using FMS.Application.Features.Vehicle.DTOs;
@@ -50,7 +50,7 @@ namespace FMS.Application.MappingProfile
             CreateMap<Vehicleconsumption, VehicleConsumptionInfoDTO>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
                 .ForMember(dest => dest.TotalFuel, opt => opt.MapFrom(src => src.TotalFuel))
-                .ForMember(dest => dest.HyoungNo, opt => opt.MapFrom(src => src.Vehicle.HyoungNo))
+                .ForMember(dest => dest.VehicleCode, opt => opt.MapFrom(src => src.Vehicle.VehicleCode))
                 .ForMember(dest => dest.VehicleType, opt => opt.MapFrom(src => src.Vehicle.VehicleType.Abbvr))
                 .ForMember(dest => dest.VehicleManufacturer, opt => opt.MapFrom(src => src.Vehicle.VehicleManufacturer.Name))
                 .ForMember(dest => dest.VehicleModel, opt => opt.MapFrom(src => src.Vehicle.VehicleModel.Name))

@@ -16,46 +16,34 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.ProviderConfigId)
-                .HasColumnName("provider_config_id")
                 .IsRequired();
 
             builder.Property(e => e.ProviderName)
-                .HasColumnName("provider_name")
                 .HasMaxLength(100)
                 .IsRequired();
 
             builder.Property(e => e.Status)
-                .HasColumnName("status")
                 .HasMaxLength(50)
                 .IsRequired()
                 .HasDefaultValue("Unknown");
 
-            builder.Property(e => e.Message)
-                .HasColumnName("message")
-                .HasColumnType("text");
+            builder.Property(e => e.Message);
 
-            builder.Property(e => e.ResponseTimeMs)
-                .HasColumnName("response_time_ms");
+            builder.Property(e => e.ResponseTimeMs);
 
             builder.Property(e => e.SuccessRate)
-                .HasColumnName("success_rate")
                 .HasColumnType("decimal(5,2)");
 
             builder.Property(e => e.ErrorCount)
-                .HasColumnName("error_count")
                 .HasDefaultValue(0);
 
             // MySQL 5.5/5.6 compatibility: no JSON type
-            builder.Property(e => e.AdditionalMetrics)
-                .HasColumnName("additional_metrics")
-                .HasColumnType("longtext");
+            builder.Property(e => e.AdditionalMetrics);
 
-            builder.Property(e => e.CheckedAt)
-                .HasColumnName("checked_at"); // No DEFAULT CURRENT_TIMESTAMP
+            builder.Property(e => e.CheckedAt); // No DEFAULT CURRENT_TIMESTAMP
 
             // Relationships
             builder.HasOne(e => e.ProviderConfiguration)
@@ -81,3 +69,4 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
         }
     }
 }
+

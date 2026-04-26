@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: EmployeeDetailPanel.js
  * Purpose: Read-only employee detail content shown inside a SlidePanel.
  *          Follows M365 Detail Panel standard (SKILL.md §13).
@@ -43,17 +43,17 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
 
       const labelFromObject =
         typeof item === "object" && item !== null
-          ? item.hyoungNo || item.numberPlate || item.vehicleName || item.name
+          ? item.vehicleCode || item.numberPlate || item.vehicleName || item.name
           : null;
 
       const plate = typeof item === "object" && item !== null ? item.numberPlate : null;
-      const hyoung = typeof item === "object" && item !== null ? item.hyoungNo : null;
+      const code = typeof item === "object" && item !== null ? item.vehicleCode : null;
 
       return {
         id: vehicleId,
         label: labelFromObject || `Vehicle #${vehicleId}`,
         plate,
-        hyoung,
+        code,
       };
     });
   }, [employee?.vehicles]);
@@ -221,9 +221,9 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
                 </div>
                 <div className="emp-vehicle-card__info">
                   <span className="emp-vehicle-card__name">{vehicle.label}</span>
-                  {(vehicle.hyoung || vehicle.plate) && (
+                  {(vehicle.code || vehicle.plate) && (
                     <span className="emp-vehicle-card__sub">
-                      {[vehicle.hyoung, vehicle.plate].filter(Boolean).join(" · ")}
+                      {[vehicle.code, vehicle.plate].filter(Boolean).join(" · ")}
                     </span>
                   )}
                 </div>

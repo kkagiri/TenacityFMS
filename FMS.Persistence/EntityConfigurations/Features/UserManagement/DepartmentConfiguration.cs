@@ -30,35 +30,25 @@ public class DepartmentConfiguration : EntityTypeConfiguration<Department>
             builder.HasIndex(e => e.Name, "IX_Department_Name");
             builder.HasIndex(e => e.Code, "IX_Department_Code");
 
-            builder.Property(e => e.DepartmentId)
-                .HasColumnName("DepartmentId")
-                .HasColumnType("int(11)");
+            builder.Property(e => e.DepartmentId);
 
             builder.Property(e => e.Name)
                 .IsRequired()
-                .HasMaxLength(100)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(100);
 
             builder.Property(e => e.Code)
-                .HasMaxLength(20)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(20);
 
             builder.Property(e => e.Description)
-                .HasMaxLength(500)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(500);
 
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true);
 
             builder.Property(e => e.CreatedDate)
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.ModifiedDate)
-                .HasColumnType("datetime");
+            builder.Property(e => e.ModifiedDate);
 
             // Navigation - Users in this department
             builder.HasMany(d => d.Users)
@@ -74,3 +64,5 @@ public class DepartmentConfiguration : EntityTypeConfiguration<Department>
         }
     }
 }
+
+

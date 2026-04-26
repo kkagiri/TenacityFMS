@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterAnalyticsReportDataBuilder.cs
  * Purpose:       Builds normalized jsreport payloads for warning letter analytics reports.
  * Dependencies:  WarningLetterReportDataDto, WarningLetterType, JsonSerializer
@@ -100,7 +100,7 @@ internal static class WarningLetterAnalyticsReportDataBuilder
                     record.EmployeeId,
                     letterTypeName,
                     employeeName = string.IsNullOrWhiteSpace(record.EmployeeName) ? "-" : record.EmployeeName,
-                    vehicleHyoungNo = string.IsNullOrWhiteSpace(record.VehicleHyoungNo) ? "-" : record.VehicleHyoungNo,
+                    vehicleCode = string.IsNullOrWhiteSpace(record.VehicleCode) ? "-" : record.VehicleCode,
                     numberPlate = string.IsNullOrWhiteSpace(record.NumberPlate) ? "-" : record.NumberPlate,
                     vehicleTypeName = string.IsNullOrWhiteSpace(record.VehicleTypeName) ? "-" : record.VehicleTypeName,
                     siteName = string.IsNullOrWhiteSpace(record.SiteName) ? "-" : record.SiteName,
@@ -183,7 +183,7 @@ internal static class WarningLetterAnalyticsReportDataBuilder
                     item.warningCount,
                     item.totalExcessFuelLitres,
                     totalExcessFuelLitresFormatted = item.totalExcessFuelLitres.ToString("N2", CultureInfo.InvariantCulture),
-                    vehicleHyoungNo = item.latestRecord.vehicleHyoungNo,
+                    vehicleCode = item.latestRecord.vehicleCode,
                     warningType = item.latestRecord.letterTypeName,
                 })
                 .ToList();
@@ -195,13 +195,13 @@ internal static class WarningLetterAnalyticsReportDataBuilder
         {
             employeeName = "-",
             warningCount = 0,
-            vehicleHyoungNo = "-",
+            vehicleCode = "-",
         };
         var topFuelEmployee = fuelEmployeeRanking.FirstOrDefault() ?? new
         {
             employeeName = "-",
             warningCount = 0,
-            vehicleHyoungNo = "-",
+            vehicleCode = "-",
         };
 
         var analytics = new

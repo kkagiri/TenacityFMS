@@ -44,7 +44,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory {
                             .Include (fr => fr.Vehicle)
                             .FirstOrDefaultAsync (fr => fr.Id == history.ReferenceId, cancellationToken);
 
-                        dto.VehicleName = fuelRefill?.Vehicle?.HyoungNo ?? "N/A";
+                        dto.VehicleName = fuelRefill?.Vehicle?.VehicleCode ?? "N/A";
                     } else {
                         dto.VehicleName = "N/A";
                     }

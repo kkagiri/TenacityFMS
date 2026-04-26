@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionDetails.js
  * Purpose: Displays vehicle consumption detail with record context, five-record history, selected-day GPS insight, and track map.
  * Dependencies: React, DevExtreme DataGrid, react-router-dom, usePermissions, local consumption service
@@ -522,7 +522,7 @@ const VehicleConsumptionDetails = () => {
               </div>
               <div className="vehicle-consumption-module__hero-copy">
                 <div className="vehicle-consumption-module__eyebrow">Vehicle context</div>
-                <h3>{detail.hyoungNo || "Unknown vehicle"} {detail.numberPlate ? `· ${detail.numberPlate}` : ""}</h3>
+                <h3>{detail.vehicleCode || "Unknown vehicle"} {detail.numberPlate ? `· ${detail.numberPlate}` : ""}</h3>
                 <p>
                   {[detail.manufacturerName, detail.vehicleModelName, detail.vehicleTypeName].filter(Boolean).join(" · ") || "Vehicle metadata unavailable"}
                 </p>
@@ -599,7 +599,7 @@ const VehicleConsumptionDetails = () => {
             </div>
             <div className="m365-section-group__body vehicle-consumption-module__detail-stack">
               <div className="vehicle-consumption-module__detail-grid">
-                <div className="vehicle-consumption-module__info-cell"><span className="vehicle-consumption-module__info-label">Vehicle</span><span className="vehicle-consumption-module__info-value">{detail.hyoungNo || "-"}</span></div>
+                <div className="vehicle-consumption-module__info-cell"><span className="vehicle-consumption-module__info-label">Vehicle</span><span className="vehicle-consumption-module__info-value">{detail.vehicleCode || "-"}</span></div>
                 <div className="vehicle-consumption-module__info-cell"><span className="vehicle-consumption-module__info-label">Plate</span><span className="vehicle-consumption-module__info-value">{detail.numberPlate || "-"}</span></div>
                 <div className="vehicle-consumption-module__info-cell"><span className="vehicle-consumption-module__info-label">Source Driver</span><span className="vehicle-consumption-module__info-value">{detail.sourceDriverName || "-"}</span></div>
                 <div className="vehicle-consumption-module__info-cell"><span className="vehicle-consumption-module__info-label">Assigned Employee</span><span className="vehicle-consumption-module__info-value">{detail.assignedEmployeeName || "-"}</span></div>

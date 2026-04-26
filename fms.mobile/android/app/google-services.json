@@ -1,4 +1,4 @@
-{
+﻿{
   "project_info": {
     "project_number": "37325217408",
     "project_id": "fmsnotification-3f7d0",
@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:37325217408:android:e8ed712fd47c4c3ef49065",
         "android_client_info": {
-          "package_name": "com.Hyoung"
+          "package_name": "com.Tenacy"
         }
       },
       "oauth_client": [],

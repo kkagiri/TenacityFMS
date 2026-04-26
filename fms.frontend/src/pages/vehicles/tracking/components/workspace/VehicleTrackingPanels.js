@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTrackingPanels.js
  * Purpose: Renders the vehicle grid panel and map panel for the vehicle tracking workspace layout
  * Dependencies: React, DevExtreme DataGrid, vehicleTrackingHelpers
@@ -105,7 +105,7 @@ export const VehicleTrackingSidebarPanel = React.memo(({
               );
             }}
           />
-          <Column dataField="trackingCode" caption="Hyoung No" minWidth={110} allowFiltering={true} />
+          <Column dataField="trackingCode" caption="Tenacy No" minWidth={110} allowFiltering={true} />
           <Column
             dataField="lastSeenAt"
             caption="Last seen"

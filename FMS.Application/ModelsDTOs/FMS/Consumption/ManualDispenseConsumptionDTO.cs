@@ -24,7 +24,7 @@ namespace FMS.Application.Features.FMS.Consumption
     {
         public int Id { get; set; }
         public int VehicleId { get; set; }
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
         public string? VehicleType { get; set; }
         public int WorkingSiteId { get; set; }
         public string? WorkingSiteName { get; set; }

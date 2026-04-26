@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionGrid.js
  * Purpose: Displays the raw vehicle consumption records grid with search and drill-down navigation.
  * Dependencies: React, DevExtreme DataGrid, vehicleConsumptionService helpers
@@ -59,7 +59,7 @@ const VehicleConsumptionGrid = ({ records, loading, onRowClick }) => {
                     calculateDisplayValue={(row) => formatDisplayDate(row.date)}
                 />
                 <Column dataField="siteName" caption="Site" minWidth={130} />
-                <Column dataField="hyoungNo" caption="Vehicle" minWidth={110} />
+                <Column dataField="vehicleCode" caption="Vehicle" minWidth={110} />
                 <Column dataField="numberPlate" caption="Plate" minWidth={110} />
                 <Column dataField="vehicleTypeName" caption="Vehicle Type" minWidth={130} />
                 <Column dataField="employeeName" caption="Source Driver" minWidth={140} />

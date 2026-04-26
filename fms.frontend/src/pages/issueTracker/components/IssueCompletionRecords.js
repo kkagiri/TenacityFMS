@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueCompletionRecords.js
  * Purpose: Display structured completion records for an issue with collapsible action cards.
  *          Shows completion summary header, expand/collapse controls, and per-action detail panels
@@ -202,7 +202,7 @@ const IssueCompletionRecords = ({ issueId }) => {
                                                     {record.newDeviceType && <DetailRow label="New Type" value={record.newDeviceType} />}
                                                     {record.newDeviceImei && <DetailRow label="New IMEI" value={record.newDeviceImei} mono />}
                                                     {record.devicePhoneNumber && <DetailRow label="Phone" value={record.devicePhoneNumber} />}
-                                                    {record.sourceVehicleHyoungNo && <DetailRow label="Source Vehicle" value={record.sourceVehicleHyoungNo} />}
+                                                    {record.sourceVehicleCode && <DetailRow label="Source Vehicle" value={record.sourceVehicleCode} />}
                                                 </div>
                                             </div>
                                         )}

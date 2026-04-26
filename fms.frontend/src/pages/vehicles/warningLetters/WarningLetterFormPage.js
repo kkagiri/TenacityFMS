@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterFormPage.js
  * Purpose:       Multi-step wizard for creating/editing warning letters with candidate-based metric population.
  * Dependencies:  React, react-router-dom, react-redux, DevExtreme DateBox, warningLetterService
@@ -289,7 +289,7 @@ const applyCandidateToForm = ({ candidate, setSelectedCandidate, setVehicleDispl
     const metricDate = candidate.metricDate || candidate.MetricDate || candidate.periodStart || candidate.PeriodStart || null;
 
     setSelectedCandidate(candidate);
-    setVehicleDisplayName(candidate.vehicleHyoungNo || candidate.VehicleHyoungNo || candidate.numberPlate || candidate.NumberPlate || "");
+    setVehicleDisplayName(candidate.vehicleCode || candidate.VehicleCode || candidate.numberPlate || candidate.NumberPlate || "");
     setLetterType(resolvedLetterType);
 
     const resolvedMonth = dateToMonthString(metricDate);
@@ -470,7 +470,7 @@ const WarningLetterFormPage = () => {
                 if (cancelled) return;
                 setStatus(d.status ?? 0);
                 setLetterType(d.letterType);
-                setVehicleDisplayName(d.vehicleHyoungNo || d.numberPlate || d.vehicleName || "");
+                setVehicleDisplayName(d.vehicleCode || d.numberPlate || d.vehicleName || "");
                 setForm({
                     id: d.id, letterType: d.letterType,
                     employeeId: String(d.employeeId || ""), vehicleId: String(d.vehicleId || ""),

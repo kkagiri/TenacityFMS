@@ -1,4 +1,4 @@
-//Cursor - Created Vehicle Edit page with metrics, form, tags, and consumption history
+﻿//Cursor - Created Vehicle Edit page with metrics, form, tags, and consumption history
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 
@@ -167,7 +167,7 @@ const VehicleEdit = () => {
             />
             <div>
               <h1 className="tw-text-2xl tw-font-semibold tw-text-gray-800">
-                {vehicle.hyoungNo} - {vehicle.numberPlate}
+                {vehicle.vehicleCode} - {vehicle.numberPlate}
               </h1>
               <p className="tw-text-sm tw-text-gray-600">
                 {vehicle.vehicleType?.name} • {vehicle.vehicleManufacturer?.name} {vehicle.vehicleModel?.name}

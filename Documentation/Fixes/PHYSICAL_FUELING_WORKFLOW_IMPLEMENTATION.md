@@ -1,4 +1,4 @@
-# Physical Fueling Workflow Implementation - Complete
+﻿# Physical Fueling Workflow Implementation - Complete
 
 ## 🎯 Problem Statement
 
@@ -535,7 +535,7 @@ public class PumpNozzleStateDto
 ## 🚀 Deployment
 
 ### Backend Deployment
-1. Compile solution: `dotnet build Hyoung.Fms.sln`
+1. Compile solution: `dotnet build Tenacy.Fms.sln`
 2. Run tests: `dotnet test`
 3. Deploy to production server
 4. Verify Redis connection

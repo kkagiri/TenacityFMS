@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.Features.FuelRule;
@@ -155,7 +155,7 @@ namespace FMS.Domain.Entities.Features.FuelRuleSet
             {
                 AssignmentTargetType.Site => $"Site: {Site?.Name ?? SiteId?.ToString() ?? "Unknown"}",
                 AssignmentTargetType.VehicleType => $"Type: {VehicleType?.Name ?? VehicleTypeId?.ToString() ?? "Unknown"}",
-                AssignmentTargetType.Vehicle => $"Vehicle: {Vehicle?.HyoungNo ?? VehicleId?.ToString() ?? "Unknown"}",
+                AssignmentTargetType.Vehicle => $"Vehicle: {Vehicle?.VehicleCode ?? VehicleId?.ToString() ?? "Unknown"}",
                 AssignmentTargetType.Tag => $"Tag: {Tag?.Name ?? TagId?.ToString() ?? "Unknown"}",
                 _ => "Unknown"
             };

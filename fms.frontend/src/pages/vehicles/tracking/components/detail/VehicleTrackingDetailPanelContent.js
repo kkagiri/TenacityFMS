@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTrackingDetailPanelContent.js
  * Purpose: Shared vehicle tracking detail information panel for both floating popup and docked layouts.
  * Dependencies: React, Redux, React Router, DevExtreme, tracking helper utilities
@@ -196,7 +196,7 @@ const VehicleTrackingDetailPanelContent = ({
     const operationalStatus = useMemo(() => getVehicleOperationalStatus(vehicle || {}), [vehicle]);
     const dataStripItems = useMemo(() => buildDataStripItems(vehicle, gpsData), [gpsData, vehicle]);
 
-    const vehicleCode = getValue(getVehicleCode(vehicle), vehicle?.trackingCode, vehicle?.hyoungNo);
+    const vehicleCode = getValue(getVehicleCode(vehicle), vehicle?.trackingCode, vehicle?.vehicleCode);
     const vehiclePlate = getValue(vehicle?.plateNumber, vehicle?.plateNo, vehicle?.numberPlate);
     const vehicleMake = getValue(vehicle?.vehicleManufacturerName, vehicle?.manufacturerName, vehicle?.manufacturer?.name);
     const vehicleModel = getValue(vehicle?.vehicleModelName, vehicle?.modelName, vehicle?.model?.name);
@@ -239,7 +239,7 @@ const VehicleTrackingDetailPanelContent = ({
         const sh = gpsData?.sensorHealth || {};
 
         const profileFields = [
-            { label: 'Hyoung No', value: getValue(getVehicleCode(vehicle), vehicle?.trackingCode, vehicle?.hyoungNo), mono: true },
+            { label: 'Tenacy No', value: getValue(getVehicleCode(vehicle), vehicle?.trackingCode, vehicle?.vehicleCode), mono: true },
             { label: 'Number plate', value: vehiclePlate, mono: true },
             { label: 'Type', value: getValue(vehicle?.vehicleTypeName, vehicle?.vehicleType?.name) },
             { label: 'Manufacturer', value: vehicleMake },

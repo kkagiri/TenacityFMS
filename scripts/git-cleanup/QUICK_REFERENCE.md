@@ -1,4 +1,4 @@
-# Git History Cleanup - Quick Reference Card
+﻿# Git History Cleanup - Quick Reference Card
 
 **Print this and keep it handy during cleanup!**
 
@@ -25,8 +25,8 @@ Before starting cleanup:
 ```bash
 mkdir -p ~/git-cleanup-backups
 cd ~/git-cleanup-backups
-git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
-tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz Hyoung.FMS.git
+git clone --mirror https://github.com/your-org/Tenacy.FMS.git
+tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacy.FMS.git
 ```
 
 ### 2. Install BFG (one-time, 2 min)
@@ -42,7 +42,7 @@ java -jar bfg.jar --version  # Test
 ```bash
 mkdir -p ~/git-cleanup
 cd ~/git-cleanup
-git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
+git clone --mirror https://github.com/your-org/Tenacy.FMS.git
 ```
 
 ### 4. Run BFG (10 min)
@@ -50,16 +50,16 @@ git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
 cd ~/git-cleanup
 java -jar ~/tools/bfg.jar \
   --delete-files '{appsettings.json,appsettings.*.json,.env,setup-*.ps1,setup-*.bat}' \
-  Hyoung.FMS.git
+  Tenacy.FMS.git
 
 java -jar ~/tools/bfg.jar \
   --replace-text passwords-to-remove.txt \
-  Hyoung.FMS.git
+  Tenacy.FMS.git
 ```
 
 ### 5. Clean Refs (5 min)
 ```bash
-cd ~/git-cleanup/Hyoung.FMS.git
+cd ~/git-cleanup/Tenacy.FMS.git
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 ```
@@ -67,7 +67,7 @@ git gc --prune=now --aggressive
 ### 6. Verify (5 min)
 ```bash
 git log --all -S "Niwewenamimi1000"  # Should show nothing
-git log --all -S "Hyoung2030"        # Should show nothing
+git log --all -S "Tenacy2030"        # Should show nothing
 git log --all --full-history -- '**/setup-environment.ps1'  # Should show nothing
 ```
 
@@ -89,16 +89,16 @@ Send team re-sync instructions immediately!
 ### Quick Steps (15 min)
 ```bash
 # 1. Save work
-cd Hyoung.FMS
+cd Tenacy.FMS
 git stash save "Before cleanup"
 
 # 2. Delete local repo
 cd ..
-mv Hyoung.FMS Hyoung.FMS.OLD-$(date +%Y%m%d)
+mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
 
 # 3. Clone fresh
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
+cd Tenacy.FMS
 
 # 4. Restore config
 cp fms.frontend/.env.example fms.frontend/.env
@@ -130,7 +130,7 @@ dotnet run --project FMS.WebClient
 Create `passwords-to-remove.txt`:
 ```
 Niwewenamimi1000==>***REMOVED***
-Hyoung2030==>***REMOVED***
+Tenacy2030==>***REMOVED***
 Niwewe1000==>***REMOVED***
 hk%2bXL3thlikm31JLAon0FjBxyyOtnrUOMCHIP%2bFfrhEXQPffqSrPDVGperVhCXPA==>***REMOVED***
 ```
@@ -158,7 +158,7 @@ du -sh .git
 ```
 
 ### Check GitHub:
-1. Go to: https://github.com/Hyoung-EA/Hyoung.FMS
+1. Go to: https://github.com/your-org/Tenacy.FMS
 2. Search: `"Niwewenamimi1000"`
 3. Should show: **No results**
 
@@ -172,7 +172,7 @@ If something goes wrong:
 # Extract backup
 cd ~/git-cleanup-backups
 tar -xzf backup-YYYYMMDD-HHMMSS.tar.gz
-cd Hyoung.FMS.git
+cd Tenacy.FMS.git
 
 # Force push backup
 git push --force --all

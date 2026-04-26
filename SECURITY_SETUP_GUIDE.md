@@ -1,4 +1,4 @@
-# Security Setup Guide for Hyoung.FMS
+﻿# Security Setup Guide for Tenacy.FMS
 
 ## 🔐 Overview
 
@@ -25,8 +25,8 @@ This guide explains how to properly configure your local development environment
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
+cd Tenacy.FMS
 ```
 
 ### 2. Set Up Backend Configuration
@@ -147,7 +147,7 @@ Set machine-level environment variables on the production server:
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('JwtSettings__SecretKey', 'GENERATE_STRONG_32_CHAR_SECRET', 'Machine')
-[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Hyoung EA & Co', 'Machine')
+[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacy FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('JwtSettings__Audience', 'FMSUsers', 'Machine')
 
 Write-Host "Environment variables set successfully!" -ForegroundColor Green
@@ -241,7 +241,7 @@ cd git-secrets
 sudo make install
 
 # Configure for FMS repository
-cd /path/to/Hyoung.FMS
+cd /path/to/Tenacy.FMS
 git secrets --install
 git secrets --register-aws
 
@@ -371,8 +371,8 @@ REACT_APP_IS_LOCAL_DEV=false
 
 ## 📞 Support and Questions
 
-**Security Issues**: security@hyoung.co.ke
-**Development Lead**: kevin.kagiri@hyoung.co.ke
+**Security Issues**: security@example.com
+**Development Lead**: kevin.kagiri@example.com
 **Documentation**: See Documentation/Security/
 
 ---

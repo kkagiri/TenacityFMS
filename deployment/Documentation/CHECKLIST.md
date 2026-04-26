@@ -1,17 +1,17 @@
-# ✅ CI/CD Implementation Checklist
+﻿# ✅ CI/CD Implementation Checklist
 
 ## 📦 Phase 1: Setup Complete ✓
 
 ### IIS Configuration ✓
-- [x] Backend site created (HyoungFMS.WebAPI)
-- [x] Frontend site created (HyoungFMS.ReactApp)
+- [x] Backend site created (TenacyFMS.WebAPI)
+- [x] Frontend site created (TenacyFMS.ReactApp)
 - [x] Backend running on port 7009
 - [x] Frontend running on port 80
 - [x] App pools configured with No Managed Code
 - [x] Permissions set for IIS_IUSRS
 
 ### Scripts Created ✓
-- [x] `setup-iis-hyoungfms.ps1` - One-time IIS configuration
+- [x] `setup-iis-tenacyfms.ps1` - One-time IIS configuration
 - [x] `control-iis.ps1` - IIS management tool
 - [x] `deploy-manual.ps1` - Direct deployment method
 - [x] `deploy-alternative.ps1` - Folder swap deployment (recommended)
@@ -55,8 +55,8 @@
 
 ### Create Dev Workspace
 - [ ] Create directory: `mkdir C:\dev`
-- [ ] Clone repository: `git clone https://github.com/kagz100/Hyoung.FMS.git`
-- [ ] Navigate to repo: `cd C:\dev\Hyoung.FMS`
+- [ ] Clone repository: `git clone https://github.com/kagz100/Tenacy.FMS.git`
+- [ ] Navigate to repo: `cd C:\dev\Tenacy.FMS`
 - [ ] Checkout branch: `git checkout productionv1`
 - [ ] Verify .git folder exists
 
@@ -70,7 +70,7 @@
 ## 📝 Phase 4: Enable CI/CD
 
 ### Test in Dev Workspace
-- [ ] Navigate to: `cd C:\dev\Hyoung.FMS`
+- [ ] Navigate to: `cd C:\dev\Tenacy.FMS`
 - [ ] Test deployment: `.\deploy-alternative.ps1`
 - [ ] Verify deployment succeeds
 - [ ] Confirm applications work
@@ -84,7 +84,7 @@
 ### Monitor First Deployment
 - [ ] Open GitHub repository in browser
 - [ ] Navigate to Actions tab
-- [ ] Watch "Deploy Hyoung FMS to IIS" workflow
+- [ ] Watch "Deploy Tenacy FMS to IIS" workflow
 - [ ] Verify workflow completes successfully
 - [ ] Check IIS status after deployment
 - [ ] Test both applications
@@ -172,7 +172,7 @@ Phase 6: Regular Workflow       ⏸️ PENDING
 
 ### Enable CI/CD
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 git add .
 git commit -m "Enable CI/CD"
 git push origin productionv1

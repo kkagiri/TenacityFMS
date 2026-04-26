@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TransactionSummaryStep.js
  *
  * Displays a summary/receipt of the completed fueling transaction.
@@ -84,7 +84,7 @@ Device: ${deviceName || "N/A"}
 
 ${isTransfer ? "TANK TRANSFER" : "VEHICLE FUELING"}
 ------------------
-${isTransfer ? `Source Tank: ${tankInfo?.name || "N/A"}` : `Vehicle: ${vehicleInfo?.vehicleName || vehicleInfo?.hyoungNo || "N/A"}`}
+${isTransfer ? `Source Tank: ${tankInfo?.name || "N/A"}` : `Vehicle: ${vehicleInfo?.vehicleName || vehicleInfo?.vehicleCode || "N/A"}`}
 ${isTransfer ? `Destination Tank: ${transactionData?.destinationTank?.tankName || "N/A"}` : `Plate: ${vehicleInfo?.numberPlate || "N/A"}`}
 ${driverInfo ? `Driver: ${driverInfo.name}` : ""}
 Pump: ${pumpId || "N/A"} | Nozzle: ${nozzleId || "N/A"}
@@ -193,13 +193,13 @@ Thank you!
               <Text style={styles.detailLabel}>Vehicle</Text>
               <Text style={styles.detailValue}>
                 {vehicleInfo.vehicleName ||
-                  vehicleInfo.hyoungNo ||
+                  vehicleInfo.vehicleCode ||
                   vehicleInfo.numberPlate ||
                   "N/A"}
               </Text>
               {vehicleInfo.numberPlate &&
                 vehicleInfo.numberPlate !==
-                  (vehicleInfo.vehicleName || vehicleInfo.hyoungNo) && (
+                  (vehicleInfo.vehicleName || vehicleInfo.vehicleCode) && (
                   <Text style={styles.detailSubValue}>
                     Plate: {vehicleInfo.numberPlate}
                   </Text>

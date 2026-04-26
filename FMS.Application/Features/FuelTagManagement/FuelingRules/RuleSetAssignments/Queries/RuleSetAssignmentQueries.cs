@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -92,7 +92,7 @@ public class GetRuleSetAssignmentsQueryHandler
                 VehicleTypeId = a.VehicleTypeId,
                 VehicleTypeName = a.VehicleType?.Name,
                 VehicleId = a.VehicleId,
-                VehicleHyoungNo = a.Vehicle?.HyoungNo,
+                VehicleCode = a.Vehicle?.VehicleCode,
                 TagId = a.TagId,
                 TagName = a.Tag?.Name,
                 Priority = a.Priority,
@@ -168,7 +168,7 @@ public class GetRuleSetAssignmentByIdQueryHandler
                 VehicleTypeId = assignment.VehicleTypeId,
                 VehicleTypeName = assignment.VehicleType?.Name,
                 VehicleId = assignment.VehicleId,
-                VehicleHyoungNo = assignment.Vehicle?.HyoungNo,
+                VehicleCode = assignment.Vehicle?.VehicleCode,
                 TagId = assignment.TagId,
                 TagName = assignment.Tag?.Name,
                 Priority = assignment.Priority,
@@ -270,7 +270,7 @@ public class GetAssignmentsForVehicleQueryHandler
                 VehicleTypeId = a.VehicleTypeId,
                 VehicleTypeName = a.VehicleType?.Name,
                 VehicleId = a.VehicleId,
-                VehicleHyoungNo = a.Vehicle?.HyoungNo,
+                VehicleCode = a.Vehicle?.VehicleCode,
                 TagId = a.TagId,
                 TagName = a.Tag?.Name,
                 Priority = a.Priority,
@@ -284,7 +284,7 @@ public class GetAssignmentsForVehicleQueryHandler
 
             return FMSResponse<List<FuelingRuleSetAssignmentResponseDTO>>.Success(
                 results,
-                $"Found {results.Count} applicable assignments for vehicle {vehicle.HyoungNo}");
+                $"Found {results.Count} applicable assignments for vehicle {vehicle.VehicleCode}");
         }
         catch (Exception ex)
         {

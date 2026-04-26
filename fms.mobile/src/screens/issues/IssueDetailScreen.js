@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueDetailScreen.js
  * Purpose: Detailed issue view for mobile with tabbed sections:
  *          Overview, Activity Stream, Attachments.
@@ -590,7 +590,7 @@ const IssueDetailScreen = () => {
                     <Text style={styles.propertyLabel}>Vehicle</Text>
                     <View style={styles.linkRow}>
                       <Text style={styles.propertyValueLink}>
-                        {issue.vehicleHyoungNo || issue.vehicleNumber || `#${issue.vehicleId}`}
+                        {issue.vehicleCode || issue.vehicleNumber || `#${issue.vehicleId}`}
                       </Text>
                       <Icon name="external-link-alt" size={10} color="#6D28D9" style={{ marginLeft: 6 }} />
                     </View>

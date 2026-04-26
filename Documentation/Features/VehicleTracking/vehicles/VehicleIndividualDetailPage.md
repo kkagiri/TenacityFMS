@@ -1,4 +1,4 @@
-# Vehicle Individual Detail Page Implementation
+﻿# Vehicle Individual Detail Page Implementation
 
 ## Overview
 This document describes the implementation of the Individual Vehicle Detail Page feature which provides comprehensive vehicle information management through an intuitive interface.
@@ -16,7 +16,7 @@ This document describes the implementation of the Individual Vehicle Detail Page
 
 #### Header Section
 - **Back Navigation**: Arrow button to return to vehicle list
-- **Vehicle Title**: Displays `{hyoungNo} - {numberPlate}`
+- **Vehicle Title**: Displays `{vehicleCode} - {numberPlate}`
 - **Vehicle Subtitle**: Shows `{manufacturer} {model} • {year}`
 
 #### Quick Actions Dropdown

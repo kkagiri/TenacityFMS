@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -26,9 +26,9 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
         public string? NumberPlate { get; set; }
 
         /// <summary>
-        /// Hyoung number (vehicle identifier)
+        /// Tenacy number (vehicle identifier)
         /// </summary>
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
 
         /// <summary>
         /// Driver name (if assigned)
@@ -141,7 +141,7 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
     {
         public int VehicleId { get; set; }
         public string? NumberPlate { get; set; }
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
 
         public long EventId { get; set; }
         public string EventType { get; set; } = string.Empty;
@@ -173,7 +173,7 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
     {
         public int VehicleId { get; set; }
         public string? NumberPlate { get; set; }
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
 
         public bool IsOnline { get; set; }
         public string Status { get; set; } = string.Empty; // "Connected", "Disconnected", "Sending", etc.

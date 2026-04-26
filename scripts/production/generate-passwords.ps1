@@ -1,5 +1,5 @@
-# ===============================================================================
-# Strong Password Generator for Hyoung.FMS
+﻿# ===============================================================================
+# Strong Password Generator for Tenacy.FMS
 # ===============================================================================
 #
 # Generates cryptographically secure passwords for:
@@ -41,7 +41,7 @@ function Generate-HexKey {
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host " Strong Password Generator - Hyoung.FMS" -ForegroundColor Cyan
+Write-Host " Strong Password Generator - Tenacy.FMS" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -76,7 +76,7 @@ Write-Host " EMAIL PASSWORD" -ForegroundColor Green
 Write-Host "===============================================================================" -ForegroundColor Green
 Write-Host ""
 
-Write-Host "Email Account (hy.gps@hyoung.co.ke):" -ForegroundColor Cyan
+Write-Host "Email Account (hy.gps@example.com):" -ForegroundColor Cyan
 $passwords['EMAIL'] = Generate-StrongPassword -Length 24 -Alphanumeric
 Write-Host $passwords['EMAIL'] -ForegroundColor White
 Write-Host ""
@@ -124,7 +124,7 @@ if ($save -eq 'Y' -or $save -eq 'y') {
 
     $content = @"
 ================================================================================
-Hyoung.FMS - Generated Passwords
+Tenacy.FMS - Generated Passwords
 Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 ================================================================================
 
@@ -162,13 +162,13 @@ To apply:
 EMAIL PASSWORD
 ================================================================================
 
-Account: hy.gps@hyoung.co.ke
-Server: mail.hyoung.co.ke
+Account: hy.gps@example.com
+Server: mail.example.com
 Password: $($passwords['EMAIL'])
 
 To apply:
   1. Log into webmail or email admin panel
-  2. Change password for hy.gps@hyoung.co.ke
+  2. Change password for hy.gps@example.com
   3. Enable 2FA if available
 
 ================================================================================
@@ -267,7 +267,7 @@ Write-Host ""
 Write-Host "Step 1: Apply New Passwords to Systems" -ForegroundColor Yellow
 Write-Host "  [ ] MySQL FMS Database - Change fms_app password" -ForegroundColor White
 Write-Host "  [ ] MySQL ATG Database - Change kkagiri password" -ForegroundColor White
-Write-Host "  [ ] Email - Change hy.gps@hyoung.co.ke password" -ForegroundColor White
+Write-Host "  [ ] Email - Change hy.gps@example.com password" -ForegroundColor White
 Write-Host "  [ ] GPSGate - Regenerate API key" -ForegroundColor White
 Write-Host "  [ ] GPSGate - Change kkagiri user password" -ForegroundColor White
 Write-Host ""

@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Migration Script: Fix TankVolumeHistory Issues
 -- ============================================================================
 --
@@ -126,7 +126,7 @@ SELECT
     tvh.ReferenceId,
     pt.Id as PumpTransactionId,
     pt.Transaction as PTSNumber,
-    v.HyoungNo as VehicleName,
+    v.VehicleCode as VehicleName,
     vt.Name as VehicleType,
     tvh.VolumeChange as Volume,
     tvh.TimeStamp as TransactionDateTime

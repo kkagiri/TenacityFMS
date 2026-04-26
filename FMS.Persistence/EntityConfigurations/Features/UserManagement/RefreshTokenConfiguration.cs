@@ -20,7 +20,6 @@ namespace FMS.Persistence.EntityConfigurations
 
             // Token property - required, indexed for fast lookups
             builder.Property(rt => rt.Token)
-                .HasColumnName("token")
                 .HasMaxLength(500)
                 .IsRequired();
 
@@ -30,7 +29,6 @@ namespace FMS.Persistence.EntityConfigurations
 
             // UserId - required, indexed for fast user token lookups
             builder.Property(rt => rt.UserId)
-                .HasColumnName("user_id")
                 .HasMaxLength(450)
                 .IsRequired();
 
@@ -45,14 +43,10 @@ namespace FMS.Persistence.EntityConfigurations
 
             // CreatedAt
             builder.Property(rt => rt.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .IsRequired();
 
             // ExpiresAt - indexed for efficient cleanup of expired tokens
             builder.Property(rt => rt.ExpiresAt)
-                .HasColumnName("expires_at")
-                .HasColumnType("datetime")
                 .IsRequired();
 
             builder.HasIndex(rt => rt.ExpiresAt)
@@ -60,7 +54,6 @@ namespace FMS.Persistence.EntityConfigurations
 
             // IsRevoked
             builder.Property(rt => rt.IsRevoked)
-                .HasColumnName("is_revoked")
                 .HasDefaultValue(false)
                 .IsRequired();
 
@@ -70,37 +63,29 @@ namespace FMS.Persistence.EntityConfigurations
 
             // RevokedAt
             builder.Property(rt => rt.RevokedAt)
-                .HasColumnName("revoked_at")
-                .HasColumnType("datetime")
                 .IsRequired(false);
 
             // RevocationReason
             builder.Property(rt => rt.RevocationReason)
-                .HasColumnName("revocation_reason")
                 .HasMaxLength(200)
                 .IsRequired(false);
 
             // CreatedByIp
             builder.Property(rt => rt.CreatedByIp)
-                .HasColumnName("created_by_ip")
                 .HasMaxLength(50)
                 .IsRequired(false);
 
             // LastUsedAt
             builder.Property(rt => rt.LastUsedAt)
-                .HasColumnName("last_used_at")
-                .HasColumnType("datetime")
                 .IsRequired(false);
 
             // LastUsedByIp
             builder.Property(rt => rt.LastUsedByIp)
-                .HasColumnName("last_used_by_ip")
                 .HasMaxLength(50)
                 .IsRequired(false);
 
             // ReplacedByTokenId - for token rotation tracking
             builder.Property(rt => rt.ReplacedByTokenId)
-                .HasColumnName("replaced_by_token_id")
                 .IsRequired(false);
 
             // Self-referencing relationship for token rotation
@@ -113,3 +98,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

@@ -23,45 +23,33 @@ namespace FMS.Persistence.EntityConfigurations
                 //Cursor: Primary key
                 builder.HasKey(ar => ar.Id);
                 builder.Property(ar => ar.Id)
-                    .HasColumnName("id")
                     .ValueGeneratedOnAdd();
 
                 //Cursor: Required properties
                 builder.Property(ar => ar.PtsId)
-                    .HasColumnName("pts_id")
                     .HasMaxLength(50)
                     .IsRequired();
 
                 builder.Property(ar => ar.DeviceType)
-                    .HasColumnName("device_type")
                     .HasMaxLength(20)
                     .IsRequired();
 
-                builder.Property(ar => ar.DeviceNumber)
-                    .HasColumnName("device_number");
+                builder.Property(ar => ar.DeviceNumber);
 
-                builder.Property(ar => ar.AlertCode)
-                    .HasColumnName("alert_code");
+                builder.Property(ar => ar.AlertCode);
 
                 builder.Property(ar => ar.State)
-                    .HasColumnName("state")
                     .HasMaxLength(20)
                     .IsRequired();
 
-                builder.Property(ar => ar.DateTime)
-                    .HasColumnName("date_time")
-                    .HasColumnType("datetime");
+                builder.Property(ar => ar.DateTime);
 
                 builder.Property(ar => ar.ConfigurationId)
-                    .HasColumnName("configuration_id")
                     .HasMaxLength(50);
 
-                builder.Property(ar => ar.AlarmId)
-                    .HasColumnName("alarm_id");
+                builder.Property(ar => ar.AlarmId);
 
                 builder.Property(ar => ar.ProcessedAt)
-                    .HasColumnName("processed_at")
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 //Cursor: Indexes for performance

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionGridItemDto.cs
  * Purpose: Defines raw vehicle consumption grid rows for the vehicle module landing page.
  * Dependencies: None
@@ -12,7 +12,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
     {
         public int Id { get; set; }
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; } = string.Empty;
+        public string VehicleCode { get; set; } = string.Empty;
         public string NumberPlate { get; set; } = string.Empty;
         public int VehicleTypeId { get; set; }
         public string VehicleTypeName { get; set; } = string.Empty;

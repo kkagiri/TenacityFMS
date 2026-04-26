@@ -59,11 +59,11 @@ namespace FMS.Testing.ConsumptionQueriesTest {
 
     //        var consumptionInfo1 = result.First(x => x.VehicleId == 1);
     //        Assert.NotNull(consumptionInfo1);
-    //        Assert.Equal("ADT02", consumptionInfo1.HyoungNo);
+    //        Assert.Equal("ADT02", consumptionInfo1.VehicleCode);
 
     //        var consumptionInfo2 = result.First(x => x.VehicleId == 1);
     //        Assert.NotNull(consumptionInfo1);
-    //        Assert.Equal("Tp01", consumptionInfo1.HyoungNo);
+    //        Assert.Equal("Tp01", consumptionInfo1.VehicleCode);
 
     //    }
 
@@ -112,11 +112,11 @@ namespace FMS.Testing.ConsumptionQueriesTest {
 
     //        var consumptionInfo1 = result.First(x => x.VehicleId == 1);
     //        Assert.NotNull(consumptionInfo1);
-    //        Assert.Equal("ADT02", consumptionInfo1.HyoungNo);
+    //        Assert.Equal("ADT02", consumptionInfo1.VehicleCode);
 
     //        var consumptionInfo2 = result.First(x => x.VehicleId == 1);
     //        Assert.NotNull(consumptionInfo1);
-    //        Assert.Equal("Tp01", consumptionInfo1.HyoungNo);
+    //        Assert.Equal("Tp01", consumptionInfo1.VehicleCode);
 
     //    }
 
@@ -127,7 +127,7 @@ namespace FMS.Testing.ConsumptionQueriesTest {
     //    //       new Vehicle
     //    //       {
     //    //           VehicleId = 1,
-    //    //             HyoungNo = "ADT02",
+    //    //             VehicleCode = "ADT02",
 
     //    //             FuelConsumptionType =  FuelConsumptionType.LitersPerHour,
 
@@ -155,7 +155,7 @@ namespace FMS.Testing.ConsumptionQueriesTest {
     //    //       new Vehicle
     //    //       {
     //    //           VehicleId = 2,
-    //    //             HyoungNo = "Tp01",
+    //    //             VehicleCode = "Tp01",
 
     //    //             FuelConsumptionType =  FuelConsumptionType.KilometersPerLiter,
 

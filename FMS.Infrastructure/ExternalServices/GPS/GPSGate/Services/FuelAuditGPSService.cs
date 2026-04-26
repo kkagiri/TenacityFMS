@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -918,7 +918,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         .Select(v => new
                         {
                             v.VehicleId,
-                            v.HyoungNo,
+                            v.VehicleCode,
                             v.FuelTankCapacity, // Tank capacity in liters
                             v.AverageKmL // true = km/L (distance), false = L/hr (hours)
                         })
@@ -1075,7 +1075,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 return new VehicleFuelPositionDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = (string)(vehicleData.HyoungNo ?? ""),
+                    VehicleName = (string)(vehicleData.VehicleCode ?? ""),
                     ReadingDate = date,
                     ReadingType = readingType,
                     FuelLevel = estimatedFuelLevel,

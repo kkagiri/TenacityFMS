@@ -21,15 +21,12 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("vehicletype", tb => tb.HasComment("			"));
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.Abbvr).HasMaxLength(45);
                 builder.Property(e => e.Name).HasMaxLength(45);
                 builder.Property(e => e.Nothinghere).HasMaxLength(45);
             }
-
 
             catch (Exception ex)
             {
@@ -40,3 +37,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

@@ -12,7 +12,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
         [JsonPropertyName("vehicleId")]
         public int VehicleId { get; set; }
 
-        [JsonPropertyName("hyoungNo")]
-        public string HyoungNo { get; set; }
+        [JsonPropertyName("vehicleCode")]
+        public string VehicleCode { get; set; }
     }
 }

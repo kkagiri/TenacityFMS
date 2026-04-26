@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -95,9 +95,9 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard {
                 activities.Add (new VehicleActivityDTO {
                     ActivityId = i + 1,
                         VehicleId = vehicle.VehicleId,
-                        VehicleNumber = vehicle.HyoungNo,
+                        VehicleNumber = vehicle.VehicleCode,
                         ActivityType = activityType,
-                        Description = GenerateActivityDescription (activityType, vehicle.HyoungNo),
+                        Description = GenerateActivityDescription (activityType, vehicle.VehicleCode),
                         ActivityDate = DateTime.UtcNow.AddHours (-hoursAgo),
                         UserId = random.Next (1, 10), // TODO: Get from actual user data
                         UserName = $"User{random.Next(1, 10)}", // TODO: Get from actual user data

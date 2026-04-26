@@ -16,22 +16,15 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnType("int(11)")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.GroupId)
-                .HasColumnName("group_id")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.GeofenceId)
-                .HasColumnName("geofence_id")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             // Composite unique index to prevent duplicate memberships
@@ -43,3 +36,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

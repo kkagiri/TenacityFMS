@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -144,7 +144,7 @@ public class SetVehicleOdometerCommandHandler : IRequestHandler<SetVehicleOdomet
             var result = new OdometerSyncResultDTO
             {
                 VehicleId = request.VehicleId,
-                HyoungNo = vehicle.HyoungNo,
+                VehicleCode = vehicle.VehicleCode,
                 SourceUsed = OdometerSource.ManualEntry
             };
 

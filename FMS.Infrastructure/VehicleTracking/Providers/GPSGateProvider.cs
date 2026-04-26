@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GPSGateProvider.cs
  * Purpose: Implements IVehicleTrackingProvider for GPSGate APIs and provider-mapping lookups.
  * Dependencies: IDbContextFactory<GpsdataContext>, HttpClient, ILogger<GPSGateProvider>
@@ -313,7 +313,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 if (mapping == null || string.IsNullOrEmpty(mapping.ExternalDeviceId))
                 {
                     _logger.LogWarning("⚠ Vehicle {VehicleId} ({VehicleName}) has no active provider mapping",
-                        vehicleId, vehicle.HyoungNo);
+                        vehicleId, vehicle.VehicleCode);
                     return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have an active GPS provider mapping");
                 }
 
@@ -349,7 +349,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 var locationDto = new VehicleLocationDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     HasGPSInstalled = vehicle.HasGPSInstalled == 1,
                     DeviceId = int.TryParse(mapping.ExternalDeviceId, out var deviceId) ? deviceId : (int?)null,
@@ -728,7 +728,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     var dto = new VehicleLocationDTO
                     {
                         VehicleId = vehicle.VehicleId,
-                        VehicleName = vehicle.HyoungNo ?? string.Empty,
+                        VehicleName = vehicle.VehicleCode ?? string.Empty,
                         NumberPlate = vehicle.NumberPlate,
                         HasGPSInstalled = vehicle.HasGPSInstalled == 1,
                         DeviceId = externalDeviceId,
@@ -826,7 +826,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 var odometerDto = new VehicleOdometerDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     CurrentOdometer = odometerKm,
                     TotalDistance = odometerKm,
                     LastUpdated = DateTime.TryParse(odometerData.Timestamp, out var timestamp)
@@ -973,7 +973,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                         // Mapping info
                         IsMapped = mapping != null,
                         MappedVehicleId = mapping?.VehicleId,
-                        MappedVehicleName = mapping?.Vehicle?.HyoungNo,
+                        MappedVehicleName = mapping?.Vehicle?.VehicleCode,
                         MappedVehicleNumberPlate = mapping?.Vehicle?.NumberPlate,
 
                         // Additional metadata

@@ -24,23 +24,18 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.VehicleId, "calibrationDataRow_idx");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
 
-                builder.Property(e => e.CalibrationData).HasColumnType("text");
+                builder.Property(e => e.CalibrationData);
 
-                builder.Property(e => e.CalibrationDate).HasColumnName("calibrationDate");
+                builder.Property(e => e.CalibrationDate);
 
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleID");
+                builder.Property(e => e.VehicleId);
 
                 builder.HasOne(d => d.Vehicle).WithMany(p => p.Calibrationdata)
                     .HasForeignKey(d => d.VehicleId)
                     .HasConstraintName("calibrationData_vehicle");
             }
-
 
             catch (Exception ex)
             {
@@ -51,3 +46,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

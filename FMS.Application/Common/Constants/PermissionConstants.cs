@@ -521,17 +521,9 @@ namespace FMS.Application.Common.Constants
         }
 
         /// <summary>
-        /// [NEW] Vehicle sub-module permissions (documents, maintenance, transfer, tracking, health).
+        /// [NEW] Vehicle sub-module permissions (maintenance, transfer, tracking, health).
         /// Requires DB migration before use.
         /// </summary>
-        public static class VehicleDocuments
-        {
-            public const string Read = "_Read_VehicleDocuments";
-            public const string Create = "_Create_VehicleDocuments";
-            public const string Edit = "_Edit_VehicleDocuments";
-            public const string Delete = "_Delete_VehicleDocuments";
-        }
-
         public static class VehicleMaintenance
         {
             public const string Read = "_Read_VehicleMaintenance";
@@ -634,16 +626,6 @@ namespace FMS.Application.Common.Constants
         {
             public const string Read = "_Read_OdometerSync";
             public const string Manage = "_Manage_OdometerSync";
-        }
-
-        /// <summary>
-        /// [NEW] Fuel comparison permissions.
-        /// Requires DB migration before use.
-        /// </summary>
-        public static class FuelComparison
-        {
-            public const string Read = "_Read_FuelComparison";
-            public const string Manage = "_Manage_FuelComparison";
         }
 
         /// <summary>
@@ -785,16 +767,6 @@ namespace FMS.Application.Common.Constants
         }
 
         /// <summary>
-        /// [NEW] Fuel Import Management permissions.
-        /// Read: view files list and summary. Manage: trigger import, retry, update settings.
-        /// Requires DB migration before use.
-        /// </summary>
-        public static class FuelImport
-        {
-            public const string Read = "_Read_FuelImport";
-            public const string Manage = "_Manage_FuelImport";
-        }
-
         // ============================================================
         // MOBILE APP PERMISSIONS
         // Parent: MobileAppModule (Id: 226)

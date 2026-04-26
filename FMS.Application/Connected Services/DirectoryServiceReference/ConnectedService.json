@@ -1,4 +1,4 @@
-{
+﻿{
   "ExtendedData": {
     "inputs": [
       "http://10.0.10.150/GpsGateServer/Services/directory.asmx?WSDL"
@@ -13,8 +13,8 @@
     ],
     "references": [
       "AutoMapper, {AutoMapper, 12.0.1}",
-      "C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\FMS.Application\\bin\\Release\\net8.0\\FMS.Domain.dll",
-      "C:\\Users\\kkagiri\\source\\repos\\Hyoung.Fms\\FMS.Application\\bin\\Release\\net8.0\\FMS.Persistence.dll",
+      "C:\\Users\\kkagiri\\source\\repos\\Tenacy.Fms\\FMS.Application\\bin\\Release\\net8.0\\FMS.Domain.dll",
+      "C:\\Users\\kkagiri\\source\\repos\\Tenacy.Fms\\FMS.Application\\bin\\Release\\net8.0\\FMS.Persistence.dll",
       "MediatR, {MediatR, 12.5.0}",
       "MediatR.Contracts, {MediatR.Contracts, 2.0.1}",
       "Microsoft.AspNetCore.Cryptography.Internal, {Microsoft.AspNetCore.Cryptography.Internal, 8.0.4}",

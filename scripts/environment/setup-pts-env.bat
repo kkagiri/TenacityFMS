@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 echo Setting up environment variables for PTS Windows Service...
 
 REM Create logging directory if it doesn't exist
@@ -9,7 +9,7 @@ if not exist "C:\Logs\FMS.PTS" (
 
 REM Database Connection Strings
 setx PTSService__ConnectionStrings__FMSConnection "server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;" /M
-setx PTSService__ConnectionStrings__ATGConnection "server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;" /M
+setx PTSService__ConnectionStrings__ATGConnection "server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Tenacy2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;" /M
 setx PTSService__ConnectionStrings__RedisConnection "10.0.10.154:6379"
 
 REM WebSocket Configuration
@@ -29,7 +29,7 @@ setx PTSService__Logging__MinimumLevel "Information" /M
 
 REM JWT Settings
 setx Jwt__Key "YourLongSecretKeyHereMustBeAtLeast32Characters" /M
-setx Jwt__Issuer "Hyoung EA & Co" /M
+setx Jwt__Issuer "Tenacy FMS" /M
 setx Jwt__Audience "FMSUsers" /M
 setx Jwt__ExpiryInMinutes "10080" /M
 

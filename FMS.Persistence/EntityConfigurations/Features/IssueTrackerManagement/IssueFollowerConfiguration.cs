@@ -23,38 +23,25 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasIndex(e => new { e.IssueId, e.UserId }, "uq_issue_follower_issue_user").IsUnique();
 
             builder.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("int(11)")
-                .HasColumnName("id");
+                .ValueGeneratedOnAdd();
 
             builder.Property(e => e.IssueId)
-                .HasColumnType("int(11)")
-                .HasColumnName("issue_id")
                 .IsRequired();
 
             builder.Property(e => e.UserId)
                 .HasMaxLength(100)
-                .HasColumnName("user_id")
-                .IsRequired()
-                .UseCollation("utf8_general_ci")
-                .HasCharSet("utf8");
+                .IsRequired();
 
             builder.Property(e => e.UserName)
-                .HasMaxLength(200)
-                .HasColumnName("user_name")
-                .UseCollation("utf8_general_ci")
-                .HasCharSet("utf8");
+                .HasMaxLength(200);
 
             builder.Property(e => e.FollowedDate)
-                .HasColumnName("followed_date")
                 .IsRequired();
 
             builder.Property(e => e.NotifyByEmail)
-                .HasColumnName("notify_by_email")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.NotifyByPush)
-                .HasColumnName("notify_by_push")
                 .HasDefaultValue(true);
 
             // Navigation properties are [NotMapped] on the entity,
@@ -65,3 +52,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

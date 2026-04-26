@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Features.Notifications;
+﻿using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,9 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("notification_policy_recipient")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("notification_policy_recipient");
 
                 // Indexes
                 builder.HasIndex(e => e.NotificationPolicyId, "IX_NotificationPolicyRecipient_NotificationPolicyId");
@@ -29,11 +27,9 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // Properties
                 builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
                     .ValueGeneratedOnAdd();
 
                 builder.Property(e => e.NotificationPolicyId)
-                    .HasColumnType("int(11)")
                     .IsRequired();
 
                 builder.Property(e => e.UserId)
@@ -52,7 +48,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(20);
 
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.CreatedBy)
@@ -90,3 +85,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

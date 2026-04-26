@@ -1,4 +1,4 @@
-# 🔴 IMMEDIATE ACTION CHECKLIST
+﻿# 🔴 IMMEDIATE ACTION CHECKLIST
 ## Critical Security Issues - ACT NOW!
 
 **Date**: 2025-11-05
@@ -36,7 +36,7 @@ FLUSH PRIVILEGES;
 
 ### 2. ATG Database Password
 ```bash
-# Current EXPOSED password: Hyoung2030
+# Current EXPOSED password: Tenacy2030
 # Server: 10.0.11.239:3306
 # User: kkagiri
 ```
@@ -57,14 +57,14 @@ FLUSH PRIVILEGES;
 
 ### 3. Email Account Password
 ```bash
-# Current EXPOSED password: Hyoung2030
-# Account: hy.gps@hyoung.co.ke
-# Server: mail.hyoung.co.ke
+# Current EXPOSED password: Tenacy2030
+# Account: hy.gps@example.com
+# Server: mail.example.com
 ```
 
 **Action**:
 1. Log into webmail or email admin panel
-2. Change password for hy.gps@hyoung.co.ke
+2. Change password for hy.gps@example.com
 3. Enable 2FA if available
 4. Review recent login activity for suspicious access
 
@@ -124,9 +124,9 @@ Run as Administrator:
 [Environment]::SetEnvironmentVariable('ConnectionStrings__RedisConnection', '10.0.10.154:6379', 'Machine')
 
 # Email Settings
-[Environment]::SetEnvironmentVariable('EmailSettings__SmtpServer', 'mail.hyoung.co.ke', 'Machine')
+[Environment]::SetEnvironmentVariable('EmailSettings__SmtpServer', 'mail.example.com', 'Machine')
 [Environment]::SetEnvironmentVariable('EmailSettings__SmtpPort', '25', 'Machine')
-[Environment]::SetEnvironmentVariable('EmailSettings__Username', 'hy.gps@hyoung.co.ke', 'Machine')
+[Environment]::SetEnvironmentVariable('EmailSettings__Username', 'hy.gps@example.com', 'Machine')
 [Environment]::SetEnvironmentVariable('EmailSettings__Password', 'YOUR_NEW_EMAIL_PASSWORD', 'Machine')
 
 # API Keys
@@ -139,7 +139,7 @@ Run as Administrator:
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('JwtSettings__SecretKey', 'GENERATE_NEW_JWT_SECRET_AT_LEAST_32_CHARS', 'Machine')
-[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Hyoung EA & Co', 'Machine')
+[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacy FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('JwtSettings__Audience', 'FMSUsers', 'Machine')
 
 Write-Host "Environment variables set successfully!" -ForegroundColor Green
@@ -170,7 +170,7 @@ Get-Service | Where-Object {$_.Name -like "*FMS*"}
 ### Step 1: Remove from Current Tracking
 
 ```bash
-cd /home/user/Hyoung.FMS
+cd /home/user/Tenacy.FMS
 
 # Remove sensitive files from git tracking (keeps local files)
 git rm --cached fms.frontend/.env
@@ -265,12 +265,12 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
     "RedisConnection": "REPLACED_BY_ENV_VAR"
   },
   "EmailSettings": {
-    "SmtpServer": "mail.hyoung.co.ke",
+    "SmtpServer": "mail.example.com",
     "SmtpPort": 25,
     "UseSsl": false,
-    "Username": "hy.gps@hyoung.co.ke",
+    "Username": "hy.gps@example.com",
     "Password": "REPLACED_BY_ENV_VAR",
-    "FromAddress": "hy.gps@hyoung.co.ke",
+    "FromAddress": "hy.gps@example.com",
     "FromDisplayName": "FMS Notifications"
   },
   "GPSGate": {
@@ -284,7 +284,7 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
   },
   "JwtSettings": {
     "SecretKey": "REPLACED_BY_ENV_VAR",
-    "Issuer": "Hyoung EA & Co",
+    "Issuer": "Tenacy FMS",
     "Audience": "FMSUsers",
     "ExpireDays": 7
   }
@@ -304,7 +304,7 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
 ### Passwords Changed
 - [ ] MySQL root password (10.0.10.150)
 - [ ] MySQL ATG password (10.0.11.239)
-- [ ] Email password (hy.gps@hyoung.co.ke)
+- [ ] Email password (hy.gps@example.com)
 - [ ] GPSGate API key
 - [ ] GPSGate user password (kkagiri)
 - [ ] JWT secret key (generate new one)
@@ -392,7 +392,7 @@ Get-EventLog -LogName Application -Source "FMS*" -Newest 50
 ## 📞 Emergency Contacts
 
 **If you need help**:
-- Development Lead: kevin.kagiri@hyoung.co.ke
+- Development Lead: kevin.kagiri@example.com
 - Database Administrator: [Add contact]
 - System Administrator: [Add contact]
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities.Features.FuelRuleSet;
 
@@ -23,7 +23,7 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("fuelingruleset");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.Description).HasMaxLength(255);
             }
@@ -36,3 +36,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

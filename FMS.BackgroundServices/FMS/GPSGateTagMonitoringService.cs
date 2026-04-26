@@ -207,7 +207,7 @@ namespace FMS.BackgroundServices.FMS {
         private async Task LogTagChange (GpsdataContext context, Vehicle vehicle, string oldTag, string newTag, string location, string action, string note, CancellationToken token) {
             context.TagChangeLogs.Add (new VehicleTagChangeLog {
                 VehicleId = vehicle.VehicleId,
-                    Username = vehicle.HyoungNo,
+                    Username = vehicle.VehicleCode,
                     OldTag = oldTag,
                     NewTag = newTag,
                     Location = location,
@@ -228,9 +228,9 @@ namespace FMS.BackgroundServices.FMS {
                     SubType = TagMonitoringEvent.SubTypeTagUpdateError,
                     Severity = "Medium",
                     VehicleId = vehicle.VehicleId,
-                    VehicleName = vehicle.HyoungNo ?? "",
+                    VehicleName = vehicle.VehicleCode ?? "",
                     ErrorMessage = errorMessage,
-                    Message = $"Tag monitoring error for vehicle {vehicle.HyoungNo}: {errorMessage}",
+                    Message = $"Tag monitoring error for vehicle {vehicle.VehicleCode}: {errorMessage}",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
                 };
                 await eventEngine.ProcessAsync (evt, cancellationToken);
@@ -248,10 +248,10 @@ namespace FMS.BackgroundServices.FMS {
                     SubType = TagMonitoringEvent.SubTypeTagUpdateSuccess,
                     Severity = "Low",
                     VehicleId = vehicle.VehicleId,
-                    VehicleName = vehicle.HyoungNo ?? "",
+                    VehicleName = vehicle.VehicleCode ?? "",
                     TagName = newTag,
                     Location = location,
-                    Message = $"Vehicle {vehicle.HyoungNo} tag updated to '{newTag}' based on location: {location}",
+                    Message = $"Vehicle {vehicle.VehicleCode} tag updated to '{newTag}' based on location: {location}",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
                 };
                 await eventEngine.ProcessAsync (evt, cancellationToken);

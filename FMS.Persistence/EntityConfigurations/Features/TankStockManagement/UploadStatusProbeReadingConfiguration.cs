@@ -20,36 +20,27 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
                 builder.ToTable("uploadstatusprobereading");
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("Id");
+                builder.Property(e => e.Id);
 
-                builder.Property(e => e.DateTime)
-                    .HasColumnType("datetime");
+                builder.Property(e => e.DateTime);
 
                 builder.Property(e => e.DeviceId)
                     .HasMaxLength(100)
                     .IsRequired();
 
-                builder.Property(e => e.ProbeNumber)
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.ProbeNumber);
 
-                builder.Property(e => e.ProductTcvolume)
-                    .HasColumnName("ProductTCVolume");
+                builder.Property(e => e.ProductTcvolume);
 
-                builder.Property(e => e.TankFillingPercentage)
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.TankFillingPercentage);
 
                 builder.Property(e => e.TankId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 builder.Property(e => e.FuelGradeId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 builder.Property(e => e.FuelGradeName)
@@ -73,3 +64,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

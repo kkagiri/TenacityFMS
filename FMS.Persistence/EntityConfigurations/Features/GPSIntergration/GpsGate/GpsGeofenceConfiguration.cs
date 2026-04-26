@@ -17,12 +17,9 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnType("int(11)")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.ExternalGeofenceId)
-                .HasColumnName("external_geofence_id")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.HasIndex(e => e.ExternalGeofenceId)
@@ -30,59 +27,41 @@ namespace FMS.Persistence.EntityConfigurations
                 .IsUnique();
 
             builder.Property(e => e.Name)
-                .HasColumnName("name")
                 .HasMaxLength(200)
                 .IsRequired();
 
             builder.Property(e => e.Description)
-                .HasColumnName("description")
                 .HasMaxLength(500);
 
             builder.Property(e => e.GeofenceType)
-                .HasColumnName("geofence_type")
                 .HasConversion<string>()
                 .HasMaxLength(20)
                 .IsRequired();
 
-            builder.Property(e => e.GeometryJson)
-                .HasColumnName("geometry_json")
-                .HasColumnType("longtext");
+            builder.Property(e => e.GeometryJson);
 
             builder.Property(e => e.CenterLatitude)
-                .HasColumnName("center_latitude")
                 .HasColumnType("decimal(10, 8)");
 
             builder.Property(e => e.CenterLongitude)
-                .HasColumnName("center_longitude")
                 .HasColumnType("decimal(11, 8)");
 
             builder.Property(e => e.RadiusMeters)
-                .HasColumnName("radius_meters")
                 .HasColumnType("decimal(10, 2)");
 
             builder.Property(e => e.Classification)
-                .HasColumnName("classification")
-                .HasColumnType("tinyint")
                 .HasDefaultValue(SiteClassification.Unknown)
                 .HasComment("Operational classification: 0=Unknown, 1=Parking, 2=Load, 3=Dump, 4=Fuel, 5=Workshop");
 
             builder.Property(e => e.IsActive)
-                .HasColumnName("is_active")
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(true);
 
-            builder.Property(e => e.LastSyncedAt)
-                .HasColumnName("last_synced_at")
-                .HasColumnType("datetime");
+            builder.Property(e => e.LastSyncedAt);
 
             builder.Property(e => e.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasColumnType("datetime");
+            builder.Property(e => e.UpdatedAt);
 
             // Navigation property for group memberships
             builder.HasMany(e => e.GroupMemberships)
@@ -92,3 +71,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

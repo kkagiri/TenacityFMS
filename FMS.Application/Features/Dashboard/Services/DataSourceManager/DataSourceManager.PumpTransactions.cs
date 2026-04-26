@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DataSourceManager.PumpTransactions.cs
  * Purpose: Provides dashboard data sources for live PTS fueling visibility and recent pump transactions.
  * Dependencies: GpsdataContext, ITransactionContextService, UploadStatus, Pumptransaction, Ptsdevice
@@ -217,8 +217,8 @@ namespace FMS.Application.Services.Dashboard
                     VehicleDisplay = transaction.Vehicle != null
                         ? (!string.IsNullOrWhiteSpace(transaction.Vehicle.NumberPlate)
                             ? transaction.Vehicle.NumberPlate
-                            : !string.IsNullOrWhiteSpace(transaction.Vehicle.HyoungNo)
-                                ? transaction.Vehicle.HyoungNo
+                            : !string.IsNullOrWhiteSpace(transaction.Vehicle.VehicleCode)
+                                ? transaction.Vehicle.VehicleCode
                                 : $"Vehicle {transaction.VehicleId}")
                         : "Walk-in",
                     TankName = transaction.Tank != null ? transaction.Tank.Name : null,
@@ -362,8 +362,8 @@ namespace FMS.Application.Services.Dashboard
                         vehicle.VehicleId,
                         DisplayName = !string.IsNullOrWhiteSpace(vehicle.NumberPlate)
                             ? vehicle.NumberPlate
-                            : !string.IsNullOrWhiteSpace(vehicle.HyoungNo)
-                                ? vehicle.HyoungNo
+                            : !string.IsNullOrWhiteSpace(vehicle.VehicleCode)
+                                ? vehicle.VehicleCode
                                 : $"Vehicle {vehicle.VehicleId}"
                     })
                     .ToDictionaryAsync(vehicle => vehicle.VehicleId, vehicle => vehicle.DisplayName)

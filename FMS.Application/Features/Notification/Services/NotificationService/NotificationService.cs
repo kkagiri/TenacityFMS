@@ -639,7 +639,7 @@ namespace FMS.Application.Features.Notification.Services
                         Status = n.Status,
                         SiteName = n.Site != null ? n.Site.Name : null,
                         TankName = n.Tank != null ? $"Tank {n.Tank.Name}" : null,
-                        VehicleName = n.Vehicle != null ? n.Vehicle.HyoungNo : null,
+                        VehicleName = n.Vehicle != null ? n.Vehicle.VehicleCode : null,
                         PtsDeviceName = n.PtsDevice != null ? n.PtsDevice.Ptsid : null, //Cursor: Add PTS device name
                         IsRead = n.Recipients.Any(r => r.UserId == request.UserId) && n.Recipients.First(r => r.UserId == request.UserId).IsRead,
                         IsAcknowledged = n.Recipients.Any(r => r.UserId == request.UserId) && n.Recipients.First(r => r.UserId == request.UserId).IsAcknowledged,

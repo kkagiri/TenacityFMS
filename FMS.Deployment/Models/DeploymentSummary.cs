@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Text;
 
-namespace HyoungFMS.Deployment.Models
+namespace TenacyFMS.Deployment.Models
 {
 
       /// <summary>

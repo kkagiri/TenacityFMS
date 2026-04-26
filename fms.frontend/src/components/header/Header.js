@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+﻿import React, { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 
@@ -79,7 +79,7 @@ export default function Header({ menuToggleEnabled, title }) {
           visible={!!title}
         >
           <div className="header-brand" aria-label={title}>
-            <img className="header-brand__logo" src={brandingLogoSrc} alt="Hyoung logo" />
+            <img className="header-brand__logo" src={brandingLogoSrc} alt="Tenacy logo" />
             <span className="header-brand__title">{title}</span>
           </div>
         </Item>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetTransactionDetailsQuery.cs
  * Purpose: Query to get transaction details including reference data from source tables
  * Dependencies: MediatR, Entity Framework Core
@@ -131,7 +131,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             {
                 fuelRefill.Id,
                 fuelRefill.VehicleId,
-                VehicleName = fuelRefill.Vehicle?.HyoungNo ?? fuelRefill.Vehicle?.NumberPlate,
+                VehicleName = fuelRefill.Vehicle?.VehicleCode ?? fuelRefill.Vehicle?.NumberPlate,
                 fuelRefill.TankId,
                 TankName = fuelRefill.Tank?.Name,
                 fuelRefill.SiteId,

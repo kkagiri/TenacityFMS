@@ -21,11 +21,10 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("navigationitems");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.Icon)
-                    .HasMaxLength(100)
-                    .HasColumnName("icon");
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.Link)
                     .IsRequired()
@@ -35,9 +34,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired()
                     .HasMaxLength(100);
 
-                builder.Property(e => e.ParentId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("parentId");
+                builder.Property(e => e.ParentId);
 
                 // Configure the relationship with Rolenavigation
                 builder.HasMany(e => e.Rolenavigations)
@@ -45,7 +42,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(e => e.NavigationItemId)
                     .OnDelete(DeleteBehavior.Cascade);
             }
-
 
             catch (Exception ex)
             {
@@ -56,3 +52,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

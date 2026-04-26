@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionComparisonPage.js
  * Purpose: Compares vehicle consumption performance by vehicle, site, or vehicle type using vehicleconsumption source rows.
  * Dependencies: React, DevExtreme DataGrid, usePermissions, local consumption service/components
@@ -121,7 +121,7 @@ const VehicleConsumptionComparisonPage = () => {
           ? record.siteName || "Unknown Site"
           : groupBy === "vehicleType"
             ? record.vehicleTypeName || "Unknown Type"
-            : record.hyoungNo || record.numberPlate || `Vehicle ${record.vehicleId}`;
+            : record.vehicleCode || record.numberPlate || `Vehicle ${record.vehicleId}`;
 
       const secondaryLabel =
         groupBy === "site"

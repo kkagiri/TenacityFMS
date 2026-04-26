@@ -1,12 +1,11 @@
-using FMS.Domain.Entities.Dashboard;
+﻿using FMS.Domain.Entities.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FMS.Persistence.EntityConfigurations {
     public class DashboardWidgetTemplateConfiguration : EntityTypeConfiguration<DashboardWidgetTemplate> {
         public override void Configure (EntityTypeBuilder<DashboardWidgetTemplate> builder) {
-            builder.ToTable ("dashboard_widget_template")
-                .HasCharSet ("utf8mb4").UseCollation ("utf8mb4_general_ci");
+            builder.ToTable ("dashboard_widget_template");
 
             builder.HasKey (x => x.Id).HasName ("PRIMARY");
 

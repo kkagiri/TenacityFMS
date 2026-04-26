@@ -19,9 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("notification")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("notification");
 
                 // Indexes
                 builder.HasIndex(e => e.NotificationId, "IX_Notification_NotificationId").IsUnique();
@@ -41,27 +39,22 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.ActiveAlarmId, "IX_Notification_AlarmId");
 
                 // Properties - Configure ALL properties explicitly
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.NotificationId).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.Type).HasMaxLength(50).IsRequired();
                 builder.Property(e => e.Category)
-                    .HasMaxLength(100)
-                    .HasColumnName("category");
+                    .HasMaxLength(100);
                 builder.Property(e => e.NotificationCategoryId)
-                    .HasColumnType("int(11)")
-                    .HasDefaultValue(0)
-                    .HasColumnName("NotificationCategoryId");
+                    .HasDefaultValue(0);
                 builder.Property(e => e.Priority).HasMaxLength(20).HasDefaultValue("Medium");
                 builder.Property(e => e.Title).HasMaxLength(255).IsRequired();
-                builder.Property(e => e.Message).HasColumnType("text").IsRequired();
-                builder.Property(e => e.Data).HasColumnType("text"); // Changed from json to text to match DB
+                builder.Property(e => e.Message).IsRequired();
+                builder.Property(e => e.Data); // Changed from json to text to match DB
                 builder.Property(e => e.Link)
                     .HasMaxLength(500)
-                    .HasColumnName("Link")
                     .IsRequired(false);
                 builder.Property(e => e.LinkLabel)
                     .HasMaxLength(100)
-                    .HasColumnName("LinkLabel")
                     .IsRequired(false);
                 builder.Property(e => e.TriggerSource).HasMaxLength(50).IsRequired();
                 builder.Property(e => e.TriggeredBy).HasMaxLength(100);
@@ -74,26 +67,23 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // CRITICAL: Explicitly configure ActiveAlarmId to prevent shadow properties
                 builder.Property(e => e.ActiveAlarmId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ActiveAlarmId")
                     .IsRequired(false); // Make it nullable to match DB
 
                 // Configure other nullable FKs explicitly
-                builder.Property(e => e.SiteId).HasColumnType("int(11)").IsRequired(false);
-                builder.Property(e => e.TankId).HasColumnType("int(11)").IsRequired(false);
-                builder.Property(e => e.VehicleId).HasColumnType("int(11)").IsRequired(false);
-                builder.Property(e => e.IssueTrackerId).HasColumnType("int(11)").IsRequired(false);
-                builder.Property(e => e.NotificationPolicyId).HasColumnType("int(11)").IsRequired(false);
+                builder.Property(e => e.SiteId).IsRequired(false);
+                builder.Property(e => e.TankId).IsRequired(false);
+                builder.Property(e => e.VehicleId).IsRequired(false);
+                builder.Property(e => e.IssueTrackerId).IsRequired(false);
+                builder.Property(e => e.NotificationPolicyId).IsRequired(false);
 
                 builder.Property(e => e.PtsDeviceId)
                     .HasMaxLength(100)
-                    .HasColumnName("PtsDeviceId")
                     .IsRequired(false);
                 // Configure timestamp properties explicitly
-                builder.Property(e => e.ScheduledAt).HasColumnType("timestamp").IsRequired(false);
-                builder.Property(e => e.SentAt).HasColumnType("timestamp").IsRequired(false);
-                builder.Property(e => e.ReadAt).HasColumnType("timestamp").IsRequired(false);
-                builder.Property(e => e.ArchivedAt).HasColumnType("timestamp").IsRequired(false);
+                builder.Property(e => e.ScheduledAt).IsRequired(false);
+                builder.Property(e => e.SentAt).IsRequired(false);
+                builder.Property(e => e.ReadAt).IsRequired(false);
+                builder.Property(e => e.ArchivedAt).IsRequired(false);
 
                 // Foreign key relationships - Configure AFTER properties
                 builder.HasOne(d => d.Site)
@@ -154,3 +144,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

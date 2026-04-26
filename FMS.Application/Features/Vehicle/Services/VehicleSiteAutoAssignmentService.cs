@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -165,8 +165,8 @@ public class VehicleSiteAutoAssignmentService : IVehicleSiteAutoAssignmentServic
             vehicle.DateModified = DateTime.UtcNow;
 
             _logger.LogInformation(
-                "Auto-assigning vehicle {VehicleId} ({HyoungNo}) from site {FromSite} to site {ToSite} ({ToSiteName}) based on {Count} consecutive refuels",
-                vehicleId, vehicle.HyoungNo, previousSiteId, refuelSiteId, newSite.Name, CONSECUTIVE_REFUELS_THRESHOLD);
+                "Auto-assigning vehicle {VehicleId} ({VehicleCode}) from site {FromSite} to site {ToSite} ({ToSiteName}) based on {Count} consecutive refuels",
+                vehicleId, vehicle.VehicleCode, previousSiteId, refuelSiteId, newSite.Name, CONSECUTIVE_REFUELS_THRESHOLD);
 
             await _context.SaveChangesAsync(cancellationToken);
 

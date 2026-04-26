@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -26,7 +26,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
     public class VehicleFuelInfoDTO
     {
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public string NumberPlate { get; set; } // Vehicle number plate
         public bool IsCompanyVehicle { get; set; } // Company vehicle flag
 
@@ -120,7 +120,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
                 var vehicleFuelInfo = new VehicleFuelInfoDTO
                 {
                     VehicleId = vehicle.VehicleId,
-                    HyoungNo = vehicle.HyoungNo,
+                    VehicleCode = vehicle.VehicleCode,
                     NumberPlate = vehicle.NumberPlate,
                     IsCompanyVehicle = vehicle.IsCompanyVehicle.HasValue && vehicle.IsCompanyVehicle.Value == 1,
 

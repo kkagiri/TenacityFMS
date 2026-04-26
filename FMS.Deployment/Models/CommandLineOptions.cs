@@ -1,6 +1,6 @@
-using CommandLine;
+﻿using CommandLine;
 
-namespace HyoungFMS.Deployment.Models
+namespace TenacyFMS.Deployment.Models
 {
     /// <summary>
     /// Command-line options for the deployment application

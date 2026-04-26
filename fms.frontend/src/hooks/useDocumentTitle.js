@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: useDocumentTitle.js
  * Purpose: Sets the browser tab title based on the current route path
  * Dependencies: react-router-dom
@@ -10,7 +10,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const APP_NAME = "Hyoung FMS";
+const APP_NAME = "Tenacy FMS";
 
 /**
  * Converts a URL path segment into a readable title.

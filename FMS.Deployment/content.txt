@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -17,7 +17,7 @@ using Serilog.Events;
 using Serilog.Sinks.Email;
 using CommandLine;
 
-namespace HyoungFMS.Deployment
+namespace TenacyFMS.Deployment
 {
     class Program
     {

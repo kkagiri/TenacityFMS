@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,16 +27,16 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.AdjustmentTimestamp, "IX_TankVolumeAdjustmentAudit_Timestamp");
                 builder.HasIndex(e => e.ProcessedBy, "IX_TankVolumeAdjustmentAudit_ProcessedBy");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
-                builder.Property(e => e.AdjustmentId).HasColumnType("int(11)");
-                builder.Property(e => e.AffectedRecordId).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
+                builder.Property(e => e.AdjustmentId);
+                builder.Property(e => e.AffectedRecordId);
                 builder.Property(e => e.OriginalRunningBalance).HasPrecision(15, 3);
                 builder.Property(e => e.NewRunningBalance).HasPrecision(15, 3);
                 builder.Property(e => e.AdjustmentAmount).HasPrecision(15, 3);
-                builder.Property(e => e.AdjustmentTimestamp).HasColumnType("datetime");
+                builder.Property(e => e.AdjustmentTimestamp);
                 builder.Property(e => e.AdjustmentReason).HasMaxLength(255);
                 builder.Property(e => e.ProcessedBy).HasMaxLength(100);
-                builder.Property(e => e.TankId).HasColumnType("int(11)");
+                builder.Property(e => e.TankId);
                 builder.Property(e => e.OriginalVolumeChange).HasPrecision(15, 3);
                 builder.Property(e => e.NewVolumeChange).HasPrecision(15, 3);
                 builder.Property(e => e.OperationType).HasMaxLength(20);

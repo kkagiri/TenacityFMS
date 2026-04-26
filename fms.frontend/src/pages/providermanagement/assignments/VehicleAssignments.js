@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { DataGrid } from "devextreme-react";
@@ -112,7 +112,7 @@ const VehicleAssignments = () => {
 
       return {
         vehicleId,
-        hyoungNo: v.hyoungNo || v.HyoungNo,
+        vehicleCode: v.vehicleCode || v.VehicleCode,
         numberPlate: v.numberPlate || v.NumberPlate,
         externalDeviceId: mapping?.externalDeviceId || mapping?.ExternalDeviceId || null,
         deviceIMEI: mapping?.deviceIMEI || mapping?.DeviceIMEI || null,
@@ -388,7 +388,7 @@ const VehicleAssignments = () => {
               <Paging enabled={true} defaultPageSize={20} pageSizes={[20, 50, 100]} showPageSizeSelector={true} />
 
               <Column dataField="vehicleId" caption="Vehicle ID" width={100} />
-              <Column dataField="hyoungNo" caption="Vehicle Name" width={150} />
+              <Column dataField="vehicleCode" caption="Vehicle Name" width={150} />
               <Column
                 dataField="numberPlate"
                 caption="Number Plate"
@@ -694,7 +694,7 @@ const VehicleAssignments = () => {
                   <div className="tw-text-sm">
                     <div className="tw-mb-1">
                       <span className="tw-font-semibold tw-text-gray-700">Vehicle:</span>{' '}
-                      <span className="tw-text-gray-900">{vehicleToUnassign.hyoungNo}</span>
+                      <span className="tw-text-gray-900">{vehicleToUnassign.vehicleCode}</span>
                     </div>
                     <div className="tw-mb-1">
                       <span className="tw-font-semibold tw-text-gray-700">Number Plate:</span>{' '}

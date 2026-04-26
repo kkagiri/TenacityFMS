@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using FMS.Application.Common;
@@ -67,7 +67,7 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
                 .Include (x => x.DefaultExptdAvg != null ? x.DefaultExptdAvg.ExpectedAverageClassification : null)
                 .Include (x => x.Tags)
                 .Where (v =>
-                    v.HyoungNo.ToLower ().Contains (searchTerm) ||
+                    v.VehicleCode.ToLower ().Contains (searchTerm) ||
                     v.NumberPlate.ToLower ().Contains (searchTerm) ||
                     (v.VehicleModel != null && v.VehicleModel.ToLower ().Contains (searchTerm)) ||
                     (v.VehicleManufacturer != null && v.VehicleManufacturer.ToLower ().Contains (searchTerm))
@@ -1033,12 +1033,12 @@ const VehicleSearchBar = ({ placeholder = "Search vehicles..." }) => {
                             vehicle - icon ">🚛</span>
                     <span className="
                             vehicle - name ">
-                      {highlightText (vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`, searchTerm)}
+                      {highlightText (vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`, searchTerm)}
                     </span>
                   </div>
                   <div className="
                             vehicle - secondary ">
-                    {vehicle.numberPlate && vehicle.hyoungNo !== vehicle.numberPlate && (
+                    {vehicle.numberPlate && vehicle.vehicleCode !== vehicle.numberPlate && (
                       <span className="
                             tw - text - gray - 600 tw - text - xs ">
                         Plate: {highlightText (vehicle.numberPlate, searchTerm)}
@@ -1312,12 +1312,12 @@ const VehicleSearchBar = ({ placeholder = "
                   <span className="
                             vehicle - name ">
                     {highlightText (
-                      vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
+                      vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
                       searchTerm
                     )}
                   </span>
                 </div>
-                {vehicle.numberPlate && vehicle.hyoungNo !== vehicle.numberPlate && (
+                {vehicle.numberPlate && vehicle.vehicleCode !== vehicle.numberPlate && (
                   <div className="
                             vehicle - secondary ">
                     <span className="
@@ -1500,7 +1500,7 @@ const VehicleDetails = () => {
   };
 
   const handleDelete = async () => {
-    const confirmed = window.confirm (`Are you sure you want to delete vehicle ${vehicle.hyoungNo} - ${vehicle.numberPlate}? This action cannot be undone.`);
+    const confirmed = window.confirm (`Are you sure you want to delete vehicle ${vehicle.vehicleCode} - ${vehicle.numberPlate}? This action cannot be undone.`);
     if (!confirmed) return;
 
     try {
@@ -1725,7 +1725,7 @@ const VehicleDetails = () => {
             <div>
               <h1 className="
                             tw - text - xl md: tw - text - 2 xl tw - font - bold tw - text - gray - 800 ">
-                {vehicle.hyoungNo} - {vehicle.numberPlate}
+                {vehicle.vehicleCode} - {vehicle.numberPlate}
               </h1>
               <p className="
                             tw - text - sm md: tw - text - base tw - text - gray - 600 ">
@@ -1873,7 +1873,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowTagPopup (false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Assign RFID Tag to ${vehicle.hyoungNo}`}
+        title={`Assign RFID Tag to ${vehicle.vehicleCode}`}
         width="
                             auto "
         height="
@@ -1899,7 +1899,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowSitePopup (false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Change Working Site for ${vehicle.hyoungNo}`}
+        title={`Change Working Site for ${vehicle.vehicleCode}`}
         width="
                             90 % "
         height="
@@ -1961,7 +1961,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowExpectedAvgPopup (false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Set Expected Average for ${vehicle.hyoungNo}`}
+        title={`Set Expected Average for ${vehicle.vehicleCode}`}
         width="
                             90 % "
         height={'400'}

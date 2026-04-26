@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VehicleInformation.js
  * Purpose: Display comprehensive vehicle information
  * Admin users can edit fuel tank capacity
@@ -212,7 +212,7 @@ const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
           <Icon name="truck" size={28} color="#10b981" />
         </View>
         <View style={styles.headerInfo}>
-          <Text style={styles.hyoungNo}>{vehicle.hyoungNo}</Text>
+          <Text style={styles.vehicleCode}>{vehicle.vehicleCode}</Text>
           <Text style={styles.vehicleName}>{vehicle.vehicleName}</Text>
           <View style={styles.statusRow}>
             <View
@@ -253,7 +253,7 @@ const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
           <InfoRow
             icon="id-card"
             label="Number Plate"
-            value={vehicle.numberPlate || vehicle.hyoungNo}
+            value={vehicle.numberPlate || vehicle.vehicleCode}
             iconColor="#6366f1"
           />
           <InfoRow
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     marginLeft: 14,
     justifyContent: "center",
   },
-  hyoungNo: {
+  vehicleCode: {
     fontSize: 22,
     fontWeight: "700",
     color: "#1f2937",

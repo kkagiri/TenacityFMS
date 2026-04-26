@@ -1,13 +1,11 @@
-using FMS.Domain.Entities.Features.Notifications;
+﻿using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FMS.Persistence.EntityConfigurations {
     public class NotificationPolicyGroupConfiguration : IEntityTypeConfiguration<NotificationPolicyGroup> {
         public void Configure (EntityTypeBuilder<NotificationPolicyGroup> builder) {
-            builder.ToTable ("notification_policy_group")
-                .HasCharSet ("utf8mb4")
-                .UseCollation ("utf8mb4_general_ci");
+            builder.ToTable ("notification_policy_group");
 
             builder.HasKey (e => e.Id).HasName ("PRIMARY");
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          VehicleDetailPanel.js
  * Purpose:       M365 Admin Center style detail panel for viewing/managing a vehicle.
  *                Follows the same design language as UserDetailPanel — single wide panel,
@@ -27,7 +27,7 @@ import VehicleGPSInformation from "../details/components/VehicleGPSInformation";
 import VehicleFuelingRuleAssignment from "../details/components/VehicleFuelingRuleAssignment";
 import VehicleMaintenanceHistory from "../maintenance/VehicleMaintenanceHistory";
 import VehicleFuelingHistory from "../maintenance/VehicleFuelingHistory";
-import VehicleDocumentsList from "../documents/VehicleDocumentsList";
+// import VehicleDocumentsList from "../documents/VehicleDocumentsList"; // removed
 import VehicleTransferHistory from "../transfers/VehicleTransferHistory";
 
 import {
@@ -62,7 +62,6 @@ const VIEWS = {
     CONSUMPTION: "consumption",
     MAINTENANCE: "maintenance",
     FUELING: "fueling",
-    DOCUMENTS: "documents",
     FUELING_RULES: "fuelingRules",
     TRANSFERS: "transfers",
 };
@@ -151,7 +150,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
 
     // ── Helpers ────────────────────────────────────────────────────────────
     const displayName = vehicle
-        ? `${vehicle.hyoungNo} — ${vehicle.numberPlate}`
+        ? `${vehicle.vehicleCode} — ${vehicle.numberPlate}`
         : "Vehicle";
 
     const emptyDisplay = "-";
@@ -318,7 +317,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
         if (!vehicle) return;
         if (
             !window.confirm(
-                `Delete vehicle ${vehicle.hyoungNo} - ${vehicle.numberPlate}? This cannot be undone.`
+                `Delete vehicle ${vehicle.vehicleCode} - ${vehicle.numberPlate}? This cannot be undone.`
             )
         )
             return;
@@ -378,13 +377,6 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                 bg: "var(--m365-blue-bg, #deecf9)",
             },
             {
-                key: VIEWS.DOCUMENTS,
-                label: "Documents",
-                icon: "fa-light fa-file-lines",
-                color: "var(--m365-success, #107c10)",
-                bg: "var(--m365-green-bg, #dff6dd)",
-            },
-            {
                 key: VIEWS.FUELING_RULES,
                 label: "Fueling Rules",
                 icon: "fa-light fa-gavel",
@@ -412,9 +404,9 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                 <h3 className="m365-flat-section__title">Basic Information</h3>
                 <div className="m365-info-grid">
                 <div className="m365-info-cell">
-                    <span className="m365-info-cell__label">Hyoung No</span>
+                    <span className="m365-info-cell__label">Tenacy No</span>
                     <span className="m365-info-cell__value">
-                        {vehicle?.hyoungNo || "—"}
+                        {vehicle?.vehicleCode || "—"}
                     </span>
                 </div>
                 <div className="m365-info-cell">
@@ -766,7 +758,6 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
         [VIEWS.CONSUMPTION]: "Consumption History",
         [VIEWS.MAINTENANCE]: "Maintenance History",
         [VIEWS.FUELING]: "Fueling History",
-        [VIEWS.DOCUMENTS]: "Documents",
         [VIEWS.FUELING_RULES]: "Fueling Rules",
         [VIEWS.TRANSFERS]: "Transfer History",
     };
@@ -803,9 +794,6 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                 )}
                 {activeView === VIEWS.FUELING && (
                     <VehicleFuelingHistory vehicleId={vehicleId} />
-                )}
-                {activeView === VIEWS.DOCUMENTS && (
-                    <VehicleDocumentsList vehicleId={vehicleId} />
                 )}
                 {activeView === VIEWS.FUELING_RULES && (
                     <VehicleFuelingRuleAssignment

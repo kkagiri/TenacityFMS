@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ScheduledReportPayloadBuilder.cs
  * Purpose: Fetches data via MediatR and builds template-ready payloads for all report types.
  *          Used by ScheduledReportDeliveryService to generate attachments for scheduled reports.
@@ -190,7 +190,7 @@ namespace FMS.Application.Features.Notification.Services
             {
                 rowNumber = i + 1,
                 dateTime = FormatDateTime(r.Date),
-                vehicleName = r.HyoungNo ?? "-",
+                vehicleName = r.VehicleCode ?? "-",
                 siteName = r.SiteName ?? "-",
                 volume = Fmt(r.ManualFuelrefillAmount),
                 fuelAverage = "0.00",
@@ -297,8 +297,8 @@ namespace FMS.Application.Features.Notification.Services
             var mapped = orderedRecords.Select((r, i) => new
             {
                 rowNumber = i + 1,
-                vehicleName = r.HyoungNo ?? r.VehicleInfo ?? "-",
-                numberPlate = r.HyoungNo ?? "-",
+                vehicleName = r.VehicleCode ?? r.VehicleInfo ?? "-",
+                numberPlate = r.VehicleCode ?? "-",
                 vehicleType = r.VehicleType ?? "-",
                 siteName = r.WorkingSiteName ?? "-",
                 driverName = string.IsNullOrWhiteSpace(r.DriverName) ? "-" : r.DriverName,
@@ -446,8 +446,8 @@ namespace FMS.Application.Features.Notification.Services
             var mapped = records.Select((r, i) => new
             {
                 rowNumber = i + 1,
-                vehicleName = r.HyoungNo ?? r.VehicleInfo ?? "-",
-                numberPlate = r.HyoungNo ?? "-",
+                vehicleName = r.VehicleCode ?? r.VehicleInfo ?? "-",
+                numberPlate = r.VehicleCode ?? "-",
                 vehicleType = r.VehicleType ?? "-",
                 siteName = r.WorkingSiteName ?? "-",
                 refillCount = r.RecordCount,
@@ -784,7 +784,7 @@ namespace FMS.Application.Features.Notification.Services
                 dueDate = FormatDate(r.DueDate),
                 closingDate = FormatDate(r.ClosingDate),
                 siteName = r.SiteName ?? "-",
-                vehicleNumber = r.VehicleNumber ?? r.VehicleHyoungNo ?? "-",
+                vehicleNumber = r.VehicleNumber ?? r.VehicleCode ?? "-",
                 categoryName = r.CategoryName ?? "-",
                 statusName = r.StatusName ?? "-",
                 priorityName = r.PriorityName ?? "-",

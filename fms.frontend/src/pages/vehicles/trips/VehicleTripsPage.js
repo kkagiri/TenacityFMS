@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTripsPage.js
  * Purpose: Provides a vehicle trip workbench with filtering, anomaly review, reconciliation actions, and drill-down panels.
  * Dependencies: React, axiosInstance, DevExtreme controls, trip service, trip side panels, permissions.
@@ -206,7 +206,7 @@ const VehicleTripsPage = () => {
             const rawVehicles = Array.isArray(response.data) ? response.data : [];
             const mappedVehicles = rawVehicles.map((vehicle) => ({
                 vehicleId: vehicle.vehicleId ?? vehicle.VehicleId,
-                label: vehicle.hyoungNo ?? vehicle.HyoungNo,
+                label: vehicle.vehicleCode ?? vehicle.VehicleCode,
             }));
 
             setVehicleOptions(mappedVehicles);

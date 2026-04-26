@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+﻿import React, { useState, useMemo, useCallback } from 'react';
 import {
     Chart,
     Series,
@@ -53,7 +53,7 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
         if (!summaryData?.vehicleComparisons) return [];
         return summaryData.vehicleComparisons.map(v => ({
             id: v.vehicleId,
-            name: `${v.hyoungNo} (${v.vehicleType})`
+            name: `${v.vehicleCode} (${v.vehicleType})`
         }));
     }, [summaryData]);
 
@@ -78,12 +78,12 @@ const ConsumptionCharts = ({ summaryData, loading, groupBy }) => {
                     return vehicles
                         .filter(v => selectedVehicles.includes(v.vehicleId))
                         .map(v => ({
-                            label: v.hyoungNo,
+                            label: v.vehicleCode,
                             ...v
                         }));
                 }
                 return vehicles.slice(0, 10).map(v => ({
-                    label: v.hyoungNo,
+                    label: v.vehicleCode,
                     ...v
                 }));
             default:

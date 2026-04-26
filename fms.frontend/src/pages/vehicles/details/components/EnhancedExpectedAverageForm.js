@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
@@ -209,7 +209,7 @@ const EnhancedExpectedAverageForm = ({ vehicle, onClose, onSuccess }) => {
             <i className="fa-light fa-truck tw-text-white tw-text-xl"></i>
           </div>
           <div>
-            <h3 className="tw-font-bold tw-text-lg tw-text-gray-800">{vehicle?.hyoungNo}</h3>
+            <h3 className="tw-font-bold tw-text-lg tw-text-gray-800">{vehicle?.vehicleCode}</h3>
             <div className="tw-flex tw-gap-4 tw-text-sm tw-text-gray-600">
               <span>
                 <i className="fa-light fa-car tw-mr-1"></i>

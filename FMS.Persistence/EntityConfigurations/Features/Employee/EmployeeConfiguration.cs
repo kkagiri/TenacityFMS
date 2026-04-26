@@ -34,51 +34,38 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.SiteId, "Employee_site_idx");
                 builder.HasIndex(e => e.CreatedBy, "Employee_user_idx");
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("id");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.CreatedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.EmployeeWorkNo)
                     .HasMaxLength(45);
 
                 builder.Property(e => e.EmployeephoneNumber)
                     .HasMaxLength(45)
-                    .HasDefaultValueSql("'0700000000'")
-                    .HasColumnName("employeephoneNumber");
+                    .HasDefaultValueSql("'0700000000'");
 
                 builder.Property(e => e.Employeestatus)
-                    .HasMaxLength(45)
-                    .HasColumnName("employeestatus");
+                    .HasMaxLength(45);
 
                 builder.Property(e => e.FullName)
                     .HasMaxLength(45)
                     .HasDefaultValueSql("'Employee Name'");
 
                 builder.Property(e => e.Position)
-                    .HasMaxLength(100)
-                    .HasColumnName("Trade");
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.Email)
-                    .HasMaxLength(255)
-                    .HasColumnName("Email");
+                    .HasMaxLength(255);
 
                 builder.Property(e => e.IsModified)
-                    .HasDefaultValueSql("'0'")
-                    .HasColumnType("tinyint(4)");
+                    .HasDefaultValueSql("'0'");
 
                 builder.Property(e => e.ModifiedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
+                builder.Property(e => e.SiteId);
 
                 // Keep only the Site relationship
                 builder.HasOne(e => e.Site)
@@ -116,3 +103,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

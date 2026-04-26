@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ExpectedFuelAverageAlertService.cs
  * Purpose: Evaluates completed vehicle fueling records against assigned expected
  *          fuel average benchmarks and emits Event Engine events when the actual
@@ -223,9 +223,9 @@ namespace FMS.Application.Features.ExpectedFuelAverage.Services
                     TankId = input.TankId,
                     Severity = severity,
                     TriggeredBy = string.IsNullOrWhiteSpace(input.TriggeredBy) ? "System" : input.TriggeredBy!,
-                    Message = BuildMessage(vehicle.HyoungNo, actualValue.Value, expectedValue, variancePercent, measurementUnit, input.Source, isKmPerLiter),
+                    Message = BuildMessage(vehicle.VehicleCode, actualValue.Value, expectedValue, variancePercent, measurementUnit, input.Source, isKmPerLiter),
                     VehicleId = vehicle.VehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     VehicleNumberPlate = vehicle.NumberPlate ?? string.Empty,
                     SiteName = siteName,
                     TankName = tank?.Name ?? string.Empty,

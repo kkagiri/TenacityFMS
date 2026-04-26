@@ -83,8 +83,7 @@ const isFileImportNotification = (notification) => {
 
   return (
     notification.categoryName === "File Importation Notification Details" ||
-    notification.category === "File Importation Notification Details" ||
-    notification.triggerSource === "FuelImport"
+    notification.category === "File Importation Notification Details"
   );
 };
 

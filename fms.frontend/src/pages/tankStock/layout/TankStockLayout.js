@@ -47,13 +47,6 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         showFilters: true,
         showUserFilter: false
       };
-    } else if (pathname.includes('/fueldatacomparison')) {
-      return {
-        title: 'Fuel Data Comparison',
-        subtitle: 'Compare manual, PTS, and GPS fuel data with variance analysis',
-        showFilters: true,
-        showUserFilter: false
-      };
     } else if (pathname.includes('/fuel-audit')) {
       return {
         title: 'Fuel Audit',
@@ -129,14 +122,6 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-satellite-dish',
       path: tankStockRoutes.automaticTankStock,
       badge: null,
-    },
-    {
-      id: 'fuelDataComparison',
-      title: 'Fuel Data Comparison',
-      icon: 'fa-light fa-code-compare',
-      path: tankStockRoutes.fuelDataComparison,
-      badge: null,
-      adminOnly: true,
     },
     {
       id: 'fuelAudit',

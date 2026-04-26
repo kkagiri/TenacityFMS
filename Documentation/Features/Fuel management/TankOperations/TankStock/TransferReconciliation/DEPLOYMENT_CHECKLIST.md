@@ -1,4 +1,4 @@
-# Transfer Reconciliation Feature - Deployment Checklist
+﻿# Transfer Reconciliation Feature - Deployment Checklist
 
 ## Overview
 This document provides a comprehensive checklist for deploying the Transfer Reconciliation feature (Phase 2) along with the Stock Validation feature (Phase 1).
@@ -82,7 +82,7 @@ WHERE n.Page = 'transfer reconciliation';
 
 **Build Verification**:
 ```bash
-dotnet build Hyoung.Fms.sln
+dotnet build Tenacy.Fms.sln
 ```
 
 ---
@@ -131,7 +131,7 @@ npm run build:prod
 
 #### Backend Testing
 
-- [ ] **Build Success**: `dotnet build Hyoung.Fms.sln` completes without errors
+- [ ] **Build Success**: `dotnet build Tenacy.Fms.sln` completes without errors
 - [ ] **API Endpoint**: Test GET `/api/v1/tankstock/transfer-reconciliation?tankId=1&startDate=2024-01-01&endDate=2024-01-31`
 - [ ] **Response Structure**: Verify FMSResponse<TransferReconciliationResult> format
 - [ ] **Variance Calculation**: Verify ACCEPTABLE/MODERATE/HIGH severity logic:
@@ -235,12 +235,12 @@ mysql -u [username] -p [database_name] -e "SELECT * FROM navigationitems WHERE P
 #### Step 2: Backend Deployment
 1. Build solution:
 ```bash
-dotnet build Hyoung.Fms.sln --configuration Release
+dotnet build Tenacy.Fms.sln --configuration Release
 ```
 
 2. Run tests (if available):
 ```bash
-dotnet test Hyoung.Fms.sln --configuration Release
+dotnet test Tenacy.Fms.sln --configuration Release
 ```
 
 3. Publish backend:

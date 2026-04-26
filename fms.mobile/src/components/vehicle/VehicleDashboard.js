@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleDashboard.js
  * Purpose: Vehicle tracking dashboard with summary cards (Total GPS, Online, Moving, Parked, Stopped),
  *          tag-based group selection, and a searchable vehicle list showing live status.
@@ -164,7 +164,7 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
       const query = searchQuery.toLowerCase();
       list = list.filter((v) => {
         const name = (v.vehicleName || v.VehicleName || v.name || v.Name || "").toLowerCase();
-        const plate = (v.numberPlate || v.NumberPlate || v.hyoungNo || v.HyoungNo || "").toLowerCase();
+        const plate = (v.numberPlate || v.NumberPlate || v.vehicleCode || v.VehicleCode || "").toLowerCase();
         const driver = (v.driverName || v.DriverName || "").toLowerCase();
         return name.includes(query) || plate.includes(query) || driver.includes(query);
       });
@@ -235,7 +235,7 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
   const renderVehicleItem = ({ item }) => {
     const status = getStatusInfo(item);
     const vehicleName = item.vehicleName || item.VehicleName || item.name || item.Name || "";
-    const plate = item.numberPlate || item.NumberPlate || item.hyoungNo || item.HyoungNo || "";
+    const plate = item.numberPlate || item.NumberPlate || item.vehicleCode || item.VehicleCode || "";
     const driver = item.driverName || item.DriverName || "";
 
     return (

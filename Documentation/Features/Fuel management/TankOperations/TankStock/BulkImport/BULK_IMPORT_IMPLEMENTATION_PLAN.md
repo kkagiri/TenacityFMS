@@ -1,4 +1,4 @@
-# Tank Stock Bulk Import - Implementation Plan
+﻿# Tank Stock Bulk Import - Implementation Plan
 
 ## 📋 Overview
 
@@ -1004,7 +1004,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 1. **Backend Deployment:**
    ```powershell
    # Build solution
-   dotnet build Hyoung.Fms.sln --configuration Release
+   dotnet build Tenacy.Fms.sln --configuration Release
 
    # Run tests
    dotnet test

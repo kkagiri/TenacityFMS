@@ -21,13 +21,9 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("vehiclemodel");
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
-                builder.Property(e => e.ManufacturerId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ManufacturerID");
+                builder.Property(e => e.ManufacturerId);
 
                 builder.Property(e => e.Name).HasMaxLength(45);
 
@@ -36,7 +32,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.ManufacturerId)
                     .HasConstraintName("vehiclemodel_manufacturer");
             }
-
 
             catch (Exception ex)
             {
@@ -47,3 +42,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

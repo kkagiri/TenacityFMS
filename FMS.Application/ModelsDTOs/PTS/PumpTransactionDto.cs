@@ -38,7 +38,7 @@ namespace FMS.Application.Features.ATG
         public int? TankId { get; set; }
         public string? TankName { get; set; }
         public int? VehicleId { get; set; }
-        public string? VehicleName { get; set; } // This will be HyoungNo from Vehicle entity
+        public string? VehicleName { get; set; } // This will be VehicleCode from Vehicle entity
         public string? VehicleNumberPlate { get; set; }
 
         /// <summary>

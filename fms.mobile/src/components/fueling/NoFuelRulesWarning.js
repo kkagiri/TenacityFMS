@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NoFuelRulesWarning.js
  * Purpose: Display warning when vehicle has no fueling rules assigned
  * Shows options to either assign rules or continue with master tag
@@ -151,7 +151,7 @@ const NoFuelRulesWarning = ({
             </View>
             <Text style={styles.title}>No Fueling Rules</Text>
             <Text style={styles.subtitle}>
-              Vehicle "{vehicle?.hyoungNo || vehicle?.numberPlate}" has no fuel
+              Vehicle "{vehicle?.vehicleCode || vehicle?.numberPlate}" has no fuel
               rules configured
             </Text>
           </View>

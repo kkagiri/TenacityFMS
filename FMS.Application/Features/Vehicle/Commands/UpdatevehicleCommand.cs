@@ -46,25 +46,25 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
             {
                 var updatedVehicles = new List<VehicleDTO>();
                 var errors = new List<string>();
-                var seenHyoungNos = new Dictionary<string, int>(StringComparer.Ordinal);
+                var seenVehicleCodes = new Dictionary<string, int>(StringComparer.Ordinal);
 
                 foreach (var vehicleDto in request.VehicleDTOs)
                 {
                     VehicleIdentifierNormalizer.NormalizeVehicleDto(vehicleDto);
 
-                    if (string.IsNullOrWhiteSpace(vehicleDto.HyoungNo))
+                    if (string.IsNullOrWhiteSpace(vehicleDto.VehicleCode))
                     {
-                        errors.Add("Hyoung No is required");
+                        errors.Add("Tenacy No is required");
                         continue;
                     }
 
-                    if (seenHyoungNos.TryGetValue(vehicleDto.HyoungNo, out var seenVehicleId) && seenVehicleId != vehicleDto.VehicleId)
+                    if (seenVehicleCodes.TryGetValue(vehicleDto.VehicleCode, out var seenVehicleId) && seenVehicleId != vehicleDto.VehicleId)
                     {
-                        errors.Add($"Duplicate Hyoung No {vehicleDto.HyoungNo} found in request payload");
+                        errors.Add($"Duplicate Tenacy No {vehicleDto.VehicleCode} found in request payload");
                         continue;
                     }
 
-                    seenHyoungNos[vehicleDto.HyoungNo] = vehicleDto.VehicleId;
+                    seenVehicleCodes[vehicleDto.VehicleCode] = vehicleDto.VehicleId;
                 }
 
                 if (errors.Any())
@@ -125,33 +125,33 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
 
         }
 
-        private Task<bool> HasNormalizedHyoungNoConflictAsync(string normalizedHyoungNo, int currentVehicleId, CancellationToken cancellationToken)
+        private Task<bool> HasNormalizedVehicleCodeConflictAsync(string normalizedVehicleCode, int currentVehicleId, CancellationToken cancellationToken)
         {
             return _context.Vehicles
                 .AsNoTracking()
                 .AnyAsync(
                     vehicle =>
                         vehicle.VehicleId != currentVehicleId &&
-                        (((vehicle.HyoungNo ?? string.Empty)
+                        (((vehicle.VehicleCode ?? string.Empty)
                             .Replace(" ", string.Empty)
                             .Replace("\r", string.Empty)
                             .Replace("\n", string.Empty)
-                            .ToUpper()) == normalizedHyoungNo),
+                            .ToUpper()) == normalizedVehicleCode),
                     cancellationToken);
         }
 
         private async Task<(bool IsValid, List<string> Errors)> ValidateVehicleDTO(VehicleDTO vehicleDTO)
         {
             var errors = new List<string>();
-            if (string.IsNullOrWhiteSpace(vehicleDTO.HyoungNo))
+            if (string.IsNullOrWhiteSpace(vehicleDTO.VehicleCode))
             {
-                errors.Add("Hyoung No is required");
+                errors.Add("Tenacy No is required");
                 return (false, errors);
             }
 
-            if (await HasNormalizedHyoungNoConflictAsync(vehicleDTO.HyoungNo, vehicleDTO.VehicleId, CancellationToken.None))
+            if (await HasNormalizedVehicleCodeConflictAsync(vehicleDTO.VehicleCode, vehicleDTO.VehicleId, CancellationToken.None))
             {
-                errors.Add($"Vehicle with Hyoung No {vehicleDTO.HyoungNo} already exists");
+                errors.Add($"Vehicle with Tenacy No {vehicleDTO.VehicleCode} already exists");
             }
 
             if (vehicleDTO.VehicleTypeId.HasValue)

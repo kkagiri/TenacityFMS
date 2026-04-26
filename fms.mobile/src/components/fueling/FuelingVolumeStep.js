@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+﻿import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -403,7 +403,7 @@ const FuelingVolumeStep = ({
           <View style={styles.vehicleMaxLeft}>
             <Icon name="truck" size={16} color="#2563eb" />
             <Text style={styles.vehicleMaxName}>
-              {selectedVehicle?.hyoungNo}
+              {selectedVehicle?.vehicleCode}
             </Text>
           </View>
           <View style={styles.vehicleMaxRight}>
@@ -722,7 +722,7 @@ const FuelingVolumeStep = ({
           <Text style={styles.summaryTitle}>Fueling Summary</Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Vehicle:</Text>
-            <Text style={styles.summaryValue}>{selectedVehicle?.hyoungNo}</Text>
+            <Text style={styles.summaryValue}>{selectedVehicle?.vehicleCode}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Source Tank:</Text>

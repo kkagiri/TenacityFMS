@@ -31,7 +31,7 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("vehicle");
 
-                builder.HasIndex(e => e.HyoungNo, "HyoungNo_UNIQUE").IsUnique();
+                builder.HasIndex(e => e.VehicleCode, "VehicleCode_UNIQUE").IsUnique();
 
                 //builder.HasIndex (e => e.DeviceId, "Vehicle_Device_idx");
                 builder.HasIndex(e => e.DefaultEmployeeId, "Vehicle_employee_idx");
@@ -43,82 +43,46 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.ModifiedBy, "vehilce_user_idx");
                 builder.HasIndex(e => e.CreatedBy, "vehicle_user1_idx");
 
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("vehicleID");
+                builder.Property(e => e.VehicleId);
 
-                builder.Property(e => e.AverageKmL).HasColumnName("Average_km_l");
+                builder.Property(e => e.AverageKmL);
                 // Note: Legacy 'Capacity' column removed - use FuelTankCapacity instead
                 builder.Property(e => e.CurrentPhysicalReading).HasMaxLength(45);
-                builder.Property(e => e.DefaultEmployeeId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DefaultEmployeeID");
-                builder.Property(e => e.DefaultExptdAvgid)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DefaultExptdAVGId");
+                builder.Property(e => e.DefaultEmployeeId);
+                builder.Property(e => e.DefaultExptdAvgid);
                 //builder.Property (e => e.DeviceId)
                 //    .HasColumnType ("int(11)")
-                //    .HasColumnName ("DeviceID");
+                //;
                 builder.Property(e => e.ExcessWorkingHrCost).HasPrecision(10);
-                builder.Property(e => e.GpsgategeneratedId)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("GPSGATEGeneratedID");
-                builder.Property(e => e.HasGPSInstalled)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("HasGPSInstalled");
-                builder.Property(e => e.IsCompanyVehicle)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("IsCompanyVehicle");
-                builder.Property(e => e.IsActive)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("IsActive");
+                builder.Property(e => e.GpsgategeneratedId);
+                builder.Property(e => e.HasGPSInstalled);
+                builder.Property(e => e.IsCompanyVehicle);
+                builder.Property(e => e.IsActive);
                 builder.Property(e => e.VehicleStatusValue)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("VehicleStatus")
                     .HasDefaultValue(VehicleStatus.Working)
                     .HasConversion<int>();
                 builder.Property(e => e.MovementProfile)
-                    .HasColumnType("tinyint(4)")
-                    .HasColumnName("MovementProfile")
                     .HasDefaultValue(VehicleMovementProfile.Geofence)
                     .HasConversion<int>();
-                builder.Property(e => e.HyoungNo).HasMaxLength(45);
+                builder.Property(e => e.VehicleCode).HasMaxLength(45);
                 builder.Property(e => e.FuelTankCapacity)
-                    .HasColumnType("decimal(10,2)")
-                    .HasColumnName("FuelTankCapacity");
+                    .HasColumnType("decimal(10,2)");
                 builder.Property(e => e.IsFullTankPolicy);
                 builder.Property(e => e.ModifiedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
                 builder.Property(e => e.CreatedBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
-                builder.Property(e => e.DateCreated)
-                    .HasColumnType("datetime")
-                    .HasColumnName("DateCreated");
-                builder.Property(e => e.DateModified)
-                    .HasColumnType("datetime")
-                    .HasColumnName("DateModified");
+                    .HasMaxLength(100);
+                builder.Property(e => e.DateCreated);
+                builder.Property(e => e.DateModified);
                 builder.Property(e => e.NumberPlate).HasMaxLength(45);
                 builder.Property(e => e.Passenger).HasMaxLength(100);
-                builder.Property(e => e.VehicleManufacturerId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleManufacturerID");
-                builder.Property(e => e.VehicleModelId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleModelID");
+                builder.Property(e => e.VehicleManufacturerId);
+                builder.Property(e => e.VehicleModelId);
                 builder.Property(e => e.VehicleTypeId)
-                    .HasDefaultValueSql("'1'")
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleTypeID");
-                builder.Property(e => e.WorkingSiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("WorkingSiteID");
+                    .HasDefaultValueSql("'1'");
+                builder.Property(e => e.WorkingSiteId);
                 builder.Property(e => e.Yom)
-                    .HasMaxLength(45)
-                    .HasColumnName("YOM");
+                    .HasMaxLength(45);
 
                 builder.HasOne(v => v.DefaultExptdAvg)
                     .WithMany()
@@ -138,9 +102,6 @@ namespace FMS.Persistence.EntityConfigurations
                 //builder.HasOne (d => d.Device).WithMany (p => p.Vehicles)
                 //    .HasForeignKey (d => d.DeviceId)
                 //    .HasConstraintName ("Vehicle_Device");
-                builder.HasMany(v => v.VehicleDocuments)
-                           .WithOne(vd => vd.Vehicle)
-                           .HasForeignKey(vd => vd.VehicleId);
 
                 builder.HasMany(v => v.VehicleTripGroups)
                     .WithOne(g => g.Vehicle)
@@ -187,3 +148,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

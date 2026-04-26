@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.PumpCommands;
@@ -87,13 +87,13 @@ namespace FMS.Application.Features.PTS.Services
 
                 var vehicleInfo = await _context.Vehicles
                     .Where(v => v.VehicleId == vehicleId.Value)
-                    .Select(v => new { v.NumberPlate, v.HyoungNo, v.VehicleTypeId })
+                    .Select(v => new { v.NumberPlate, v.VehicleCode, v.VehicleTypeId })
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (vehicleInfo != null)
                 {
-                    _logger.LogInformation("[PumpAuth] 🚗 VEHICLE DETAILS - Plate: {NumberPlate}, HyoungNo: {HyoungNo}, TypeId: {TypeId}",
-                        vehicleInfo.NumberPlate, vehicleInfo.HyoungNo, vehicleInfo.VehicleTypeId);
+                    _logger.LogInformation("[PumpAuth] 🚗 VEHICLE DETAILS - Plate: {NumberPlate}, VehicleCode: {VehicleCode}, TypeId: {TypeId}",
+                        vehicleInfo.NumberPlate, vehicleInfo.VehicleCode, vehicleInfo.VehicleTypeId);
                 }
                 else
                 {

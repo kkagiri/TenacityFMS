@@ -21,13 +21,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("issuetemplate");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
 
-                builder.Property(e => e.DeviceTypeId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DeviceTypeID");
+                builder.Property(e => e.DeviceTypeId);
 
                 builder.Property(e => e.Name)
                     .HasMaxLength(100)
@@ -39,39 +35,29 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.DescriptionTemplate)
                     .HasMaxLength(945);
 
-                builder.Property(e => e.DefaultPriorityId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DefaultPriorityID");
+                builder.Property(e => e.DefaultPriorityId);
 
-                builder.Property(e => e.DefaultStatusId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DefaultStatusID");
+                builder.Property(e => e.DefaultStatusId);
 
                 builder.Property(e => e.IsActive)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(true);
 
                 builder.Property(e => e.CanAutoCreate)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.OfflineThresholdMinutes)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(30);
 
                 builder.Property(e => e.DefaultAssignee)
                     .HasMaxLength(1000);
 
                 builder.Property(e => e.CooldownMinutes)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(null);
 
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.UpdatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.HasIndex(e => new { e.DeviceTypeId, e.Name }).IsUnique();
@@ -120,7 +106,6 @@ namespace FMS.Persistence.EntityConfigurations
                             j.HasKey("IssueTemplateID", "IssueCategoryID");
                             j.ToTable("issuetemplate_categories");
                             j.Property<DateTime>("CreatedAt")
-                                .HasColumnType("datetime")
                                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
                         });
             }
@@ -132,3 +117,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

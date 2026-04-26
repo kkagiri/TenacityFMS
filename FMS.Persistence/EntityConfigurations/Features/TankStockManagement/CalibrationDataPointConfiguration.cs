@@ -22,58 +22,41 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("calibrationdatapoints");
 
             builder.Property(e => e.Id)
-                .HasColumnName("Id")
-                .HasColumnType("bigint")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.TankId)
-                .HasColumnName("TankId")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.HeightBefore)
-                .HasColumnName("HeightBefore")
                 .HasColumnType("decimal(12,3)")
                 .IsRequired();
 
             builder.Property(e => e.HeightAfter)
-                .HasColumnName("HeightAfter")
                 .HasColumnType("decimal(12,3)")
                 .IsRequired();
 
             builder.Property(e => e.VolumeChange)
-                .HasColumnName("VolumeChange")
                 .HasColumnType("decimal(18,3)")
                 .IsRequired();
 
             builder.Property(e => e.HeightInterval)
-                .HasColumnName("HeightInterval")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.VolumePerMm)
-                .HasColumnName("VolumePerMm")
                 .HasColumnType("decimal(18,6)")
                 .IsRequired();
 
             builder.Property(e => e.SourceType)
-                .HasColumnName("SourceType")
                 .HasMaxLength(32)
                 .IsRequired();
 
             builder.Property(e => e.SourceEventId)
-                .HasColumnName("SourceEventId")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.RecordedAtUtc)
-                .HasColumnName("RecordedAtUtc")
-                .HasColumnType("datetime")
                 .IsRequired();
 
             builder.Property(e => e.IsProcessed)
-                .HasColumnName("IsProcessed")
-                .HasColumnType("tinyint(1)")
                 .IsRequired();
 
             builder.HasIndex(e => new { e.TankId, e.SourceType, e.SourceEventId })

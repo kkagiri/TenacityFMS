@@ -1,13 +1,13 @@
-# IoT Project Setup Summary
+﻿# IoT Project Setup Summary
 
 ## Overview
-Successfully created three new .NET projects to implement ISO 30141 compliant IoT architecture for the Hyoung.Fms fuel management system. This represents the foundational structure for separating IoT concerns from business logic.
+Successfully created three new .NET projects to implement ISO 30141 compliant IoT architecture for the Tenacy.Fms fuel management system. This represents the foundational structure for separating IoT concerns from business logic.
 
 ## Projects Created
 
 ### 1. FMS.IoT.Contracts ✅
 **Purpose**: Shared contracts and interfaces for IoT layer communication
-**Location**: `c:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.IoT.Contracts\`
+**Location**: `c:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.IoT.Contracts\`
 **Status**: ✅ Built successfully with 2 warnings (EnumeratorCancellation attributes)
 
 **Key Interfaces Implemented**:
@@ -32,7 +32,7 @@ Successfully created three new .NET projects to implement ISO 30141 compliant Io
 
 ### 2. FMS.IoT.Gateway ✅
 **Purpose**: IoT Gateway layer implementation following ISO 30141 Device Layer
-**Location**: `c:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.IoT.Gateway\`
+**Location**: `c:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.IoT.Gateway\`
 **Status**: ✅ Built successfully
 **Dependencies**: References FMS.IoT.Contracts
 
@@ -45,7 +45,7 @@ Successfully created three new .NET projects to implement ISO 30141 compliant Io
 
 ### 3. FMS.IoT.ProcessingEngine ✅
 **Purpose**: IoT Processing Engine following ISO 30141 Information Processing Layer
-**Location**: `c:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.IoT.ProcessingEngine\`
+**Location**: `c:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.IoT.ProcessingEngine\`
 **Status**: ✅ Built successfully
 **Dependencies**: References FMS.IoT.Contracts
 
@@ -75,7 +75,7 @@ Successfully created three new .NET projects to implement ISO 30141 compliant Io
 ## Solution Integration
 
 ### Added to Main Solution ✅
-All three projects are now part of `Hyoung.Fms.sln`:
+All three projects are now part of `Tenacy.Fms.sln`:
 - FMS.IoT.Contracts
 - FMS.IoT.Gateway
 - FMS.IoT.ProcessingEngine

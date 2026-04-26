@@ -368,7 +368,7 @@ scripts/environment/setup-environment.ps1
 scripts/environment/setup-pts-env.bat
 scripts/environment/setup-pts-env.ps1
 
-Hyoung.FMS/
+Tenacy.FMS/
 .vscode/settings.json
 
 nul

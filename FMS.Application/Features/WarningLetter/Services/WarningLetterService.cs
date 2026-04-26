@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterService.cs
  * Purpose: Handles warning letter preview, PDF persistence, and email delivery workflows.
  * Dependencies: EF Core, SystemConfigurationService, IEmailService, IWarningLetterPdfRenderer
@@ -274,7 +274,7 @@ public class WarningLetterService : IWarningLetterService
             modifiedBy,
             settings.MaxWarningCountBeforeLast,
             cancellationToken);
-        var subject = $"Warning Letter - {templateModel.ViolationTitle} - {bundle.Vehicle.HyoungNo}";
+        var subject = $"Warning Letter - {templateModel.ViolationTitle} - {bundle.Vehicle.VehicleCode}";
         var body = WarningLetterHtmlTemplates.BuildEmailBody(templateModel);
 
         var sent = await _emailService.SendEmailAsync(
@@ -411,7 +411,7 @@ public class WarningLetterService : IWarningLetterService
             return FMSResponse<WarningLetterDto>.Failed(documentResult.Message, documentResult.ErrorCode);
         }
 
-        var subject = $"Signature Required - Warning Letter #{warningLetterId} - {bundle.Vehicle.HyoungNo}";
+        var subject = $"Signature Required - Warning Letter #{warningLetterId} - {bundle.Vehicle.VehicleCode}";
         var body = WarningLetterWorkflowSupport.BuildSignatureRequestEmailBody(
             bundle.WarningLetter,
             bundle.Employee,

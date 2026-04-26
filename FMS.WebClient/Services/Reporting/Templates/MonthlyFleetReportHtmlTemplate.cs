@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: MonthlyFleetReportHtmlTemplate.cs
  * Purpose: Embedded HTML template for the monthly fleet executive PDF report.
  * Dependencies: Chart.js 4.4.1 (CDN)
@@ -278,7 +278,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Fuel Used GPS &amp; Monthly Average</h3><p class=""csub"">Bar = total fuel used GPS · Line = rolling average</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Fuel Used GPS</span><span><span class=""ld"" style=""background:#107C10;border-radius:50%""></span>Average</span></div><div style=""position:relative;height:170px""><canvas id=""c_execFuel""></canvas></div></div>
 <div class=""ccard""><h3>Fuel Dispensed vs Delivered by Month</h3><p class=""csub"">Received into tanks vs dispensed to fleet</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Delivered</span><span><span class=""ld"" style=""background:#D13438""></span>Fuel Dispensed</span></div><div style=""position:relative;height:170px""><canvas id=""c_issDeliv""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 1 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 1 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 2: Stock Analysis -->
 <div class=""report-page"">
@@ -298,7 +298,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""ccard""><h3>Stock Control Watchlist</h3><p class=""csub"">Sites ranked by reconciliation variance using opening stock, month movement, and closing stock</p><div class=""stock-mini-grid"">{{#each stockControlSummary}}<div class=""stock-mini""><div class=""stock-mini__value"">{{value}}</div><div class=""stock-mini__label"">{{label}}</div><div class=""stock-mini__note"">{{note}}</div></div>{{/each}}</div>{{#each stockControlHighlights}}<div class=""stock-watch""><div class=""stock-watch__top""><span class=""fw"">{{siteName}}</span><span class=""stock-pill {{statusClass}}"">{{statusLabel}}</span></div><div class=""stock-watch__metrics""><div class=""stock-watch__metric"">Opening Stock: <strong>{{openingStock}}</strong></div><div class=""stock-watch__metric"">Expected Closing: <strong>{{expectedClosing}}</strong></div><div class=""stock-watch__metric"">Actual Closing: <strong>{{actualClosing}}</strong></div><div class=""stock-watch__metric"">Variance: <strong>{{variance}}</strong> ({{variancePercent}})</div></div><div class=""mini-note"">{{movementSummary}}</div><div class=""bar-track""><div class=""bar-fill"" style=""width:{{barWidth}};background:{{barColor}}""></div></div></div>{{/each}}</div>
 -->
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 2 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 2 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 3: LV Fuel & Loss -->
 <div class=""report-page"">
@@ -311,7 +311,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Total Distance by Month</h3><p class=""csub"">Trend with running average</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Distance</span><span><span class=""ld"" style=""background:#107C10""></span>Average</span></div><div style=""position:relative;height:170px""><canvas id=""c_lv3_distMonth""></canvas></div></div>
 <div class=""ccard""><h3>Total Distance by Vehicle Type</h3><p class=""csub"">Current-month km/L fleet</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Distance (km)</span></div><div style=""position:relative;height:170px""><canvas id=""c_lv3_distType""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 3 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 3 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 4: LV Efficiency -->
 <div class=""report-page"">
@@ -325,7 +325,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Actual vs expected km/L</h3><p class=""csub"">Solid = actual · Dashed = expected</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Actual</span><span><span class=""ld"" style=""background:#107C10""></span>Expected</span></div><div style=""position:relative;height:170px""><canvas id=""c_lvEffLine""></canvas></div></div>
 <div class=""ccard""><h3>Efficiency by vehicle type</h3><p class=""csub"">Current month comparison</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Actual</span><span><span class=""ld"" style=""background:#C8C6C4""></span>Expected</span></div><div style=""position:relative;height:170px""><canvas id=""c_lvEffType""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 4 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 4 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 5: LV Distance -->
 <div class=""report-page"">
@@ -337,7 +337,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>GPS distance by site</h3><p class=""csub"">Total km per site</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Distance</span></div><div style=""position:relative;height:170px""><canvas id=""c_lvDistSite""></canvas></div></div>
 <div class=""ccard""><h3>Distance trend</h3><p class=""csub"">Monthly total distance</p><div class=""leg""><span><span class=""ld"" style=""background:#0078D4""></span>Distance</span></div><div style=""position:relative;height:170px""><canvas id=""c_lvDistTrend""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 5 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 5 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 6: HE Overview -->
 <div class=""report-page"">
@@ -349,7 +349,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Fuel distribution by type</h3><p class=""csub"">Share of total heavy-equipment fuel</p><div style=""position:relative;height:200px""><canvas id=""c_heDashType""></canvas></div></div>
 <div class=""ccard""><h3>Fuel Used GPS by Site</h3><p class=""csub"">Heavy-equipment consumption per site</p><div class=""leg""><span><span class=""ld"" style=""background:#D97706""></span>Fuel Used GPS</span></div><div style=""position:relative;height:200px""><canvas id=""c_heDashSite""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 6 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 6 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 7: HE Fuel & Loss -->
 <div class=""report-page"">
@@ -361,7 +361,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Fuel lost by site</h3><p class=""csub"">Heavy-equipment fuel loss per site</p><div class=""leg""><span><span class=""ld"" style=""background:#D13438""></span>Fuel lost</span></div><div style=""position:relative;height:170px""><canvas id=""c_heFuSite""></canvas></div></div>
 <div class=""ccard""><h3>Fuel loss trend</h3><p class=""csub"">Monthly heavy-equipment fuel loss</p><div class=""leg""><span><span class=""ld"" style=""background:#D13438""></span>Fuel lost</span></div><div style=""position:relative;height:170px""><canvas id=""c_heFuTrend""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 7 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 7 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 8: HE Engine Hours -->
 <div class=""report-page"">
@@ -373,7 +373,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Engine hours trend</h3><p class=""csub"">Monthly total hours</p><div class=""leg""><span><span class=""ld"" style=""background:#D97706""></span>Engine hrs</span></div><div style=""position:relative;height:170px""><canvas id=""c_heEngTrend""></canvas></div></div>
 <div class=""ccard""><h3>Avg hours per unit by type</h3><p class=""csub"">Equipment utilization</p><div class=""leg""><span><span class=""ld"" style=""background:#D97706""></span>Avg hrs</span></div><div style=""position:relative;height:170px""><canvas id=""c_heEngAvg""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 8 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 8 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 9: HE Efficiency -->
 <div class=""report-page"">
@@ -385,7 +385,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Actual vs expected L/hr by site</h3><p class=""csub"">Comparison per site</p><div class=""leg""><span><span class=""ld"" style=""background:#D97706""></span>Actual</span><span><span class=""ld"" style=""background:#C8C6C4""></span>Expected</span></div><div style=""position:relative;height:170px""><canvas id=""c_heEffSite""></canvas></div></div>
 <div class=""ccard""><h3>Efficiency trend</h3><p class=""csub"">Actual vs expected over months</p><div class=""leg""><span><span class=""ld"" style=""background:#D97706""></span>Actual</span><span><span class=""ld"" style=""background:#C8C6C4""></span>Expected</span></div><div style=""position:relative;height:170px""><canvas id=""c_heEffTrend""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 9 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 9 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 10: Site Usage Matrix -->
 <div class=""report-page"">
@@ -397,7 +397,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""crow c2""><div class=""ccard""><h3>Total fuel by site — monthly</h3><p class=""csub"">All vehicle types combined</p><div style=""position:relative;height:200px""><canvas id=""c_siteFuelTrend""></canvas></div></div>
 <div class=""ccard""><h3>Fuel lost by site — monthly</h3><p class=""csub"">Recorded loss trend</p><div class=""leg""><span><span class=""ld"" style=""background:#D13438""></span>Fuel lost</span></div><div style=""position:relative;height:200px""><canvas id=""c_siteLostTrend""></canvas></div></div></div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 10 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 10 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 11: Fuel Movement Flow -->
 <div class=""report-page"">
@@ -412,7 +412,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""group-intro""><div class=""group-intro__title"">Flow Diagram</div><div class=""group-intro__desc"">Sankey-style view of dispensed fuel distribution from the total fuel source through site, tank, vehicle type, and vehicle nodes.</div></div>
 <div class=""flow-diagram-card"">{{{fuelFlowDiagramSvg}}}</div>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 11 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 11 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- PAGE 12: Executive Takeaways -->
 <div class=""report-page"">
@@ -427,7 +427,7 @@ tbody tr.grp td{padding:4px 7px;font-size:9px}
 <div class=""narrative"">This report is designed for executive PDF circulation. It presents a month-close view using persisted vehicle consumption, expected-average assignments, and tank ledger movement data in A4 landscape format.</div>
 <h3>Reporting Notes</h3><ul class=""note-list"">{{#each chartNotes}}<li>{{this}}</li>{{/each}}</ul>
 </div>
-<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Hyoung FMS</strong></div><div>Page 12 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
+<div class=""page-footer""><div class=""pf-brand""><span class=""pf-dot""></span><strong>Tenacy FMS</strong></div><div>Page 12 of 12 &nbsp;|&nbsp; {{reportId}}</div></div></div>
 
 <!-- Chart Data & Initialization -->
 <script id=""chartData"" type=""application/json"">{{{chartDataJson}}}</script>

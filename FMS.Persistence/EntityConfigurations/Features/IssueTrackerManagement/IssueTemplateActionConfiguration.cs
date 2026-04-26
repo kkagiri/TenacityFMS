@@ -19,13 +19,9 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("issuetemplateaction");
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnType("int(11)")
-                .HasColumnName("ID");
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.IssueTemplateId)
-                .HasColumnType("int(11)")
-                .HasColumnName("IssueTemplateID");
+            builder.Property(e => e.IssueTemplateId);
 
             builder.Property(e => e.Name)
                 .HasMaxLength(150)
@@ -40,41 +36,30 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasMaxLength(500);
 
             builder.Property(e => e.RequiresDeviceDetails)
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(false);
 
             builder.Property(e => e.RequiresSourceVehicle)
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(false);
 
             builder.Property(e => e.RequiresCameraDetails)
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(false);
 
-            builder.Property(e => e.StageId)
-                .HasColumnType("int(11)")
-                .HasColumnName("StageID");
+            builder.Property(e => e.StageId);
 
-            builder.Property(e => e.PositionX)
-                .HasColumnType("double");
+            builder.Property(e => e.PositionX);
 
-            builder.Property(e => e.PositionY)
-                .HasColumnType("double");
+            builder.Property(e => e.PositionY);
 
             builder.Property(e => e.SortOrder)
-                .HasColumnType("int(11)")
                 .HasDefaultValue(0);
 
             builder.Property(e => e.IsActive)
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.CreatedAt)
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             builder.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             // Index for fast lookup by template
@@ -101,3 +86,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

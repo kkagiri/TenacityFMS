@@ -1,4 +1,4 @@
-# RefreshToken Implementation - Step-by-Step Guide
+﻿# RefreshToken Implementation - Step-by-Step Guide
 **MySQL Version: 5.5.6**
 **Date: November 26, 2025**
 **Status: ✅ Backend Complete | ⏳ Database Migration Pending | ⏳ Testing Pending**
@@ -169,7 +169,7 @@ DESCRIBE refreshtokens;
 **Generate Migration:**
 ```powershell
 # Navigate to solution directory
-cd "C:\Users\kkagiri\source\repos\Hyoung.Fms"
+cd "C:\Users\kkagiri\source\repos\Tenacy.Fms"
 
 # Generate migration
 dotnet ef migrations add AddRefreshTokensTable `

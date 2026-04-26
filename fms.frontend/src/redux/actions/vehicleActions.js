@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: vehicleActions.js
  * Purpose: Redux actions for vehicle CRUD and related vehicle data operations
  * Dependencies: axiosInstance
@@ -32,15 +32,15 @@ const normalizeNumberPlate = (value) => {
 
 const normalizeVehiclePayload = (vehicleData = {}) => {
   const normalizedPayload = { ...vehicleData };
-  const normalizedHyoungNo = normalizeCompactVehicleCode(vehicleData.hyoungNo ?? vehicleData.HyoungNo);
+  const normalizedVehicleCode = normalizeCompactVehicleCode(vehicleData.vehicleCode ?? vehicleData.VehicleCode);
   const normalizedPlate = normalizeNumberPlate(vehicleData.numberPlate ?? vehicleData.NumberPlate);
 
-  if ("hyoungNo" in normalizedPayload || (!('HyoungNo' in normalizedPayload) && normalizedHyoungNo !== undefined)) {
-    normalizedPayload.hyoungNo = normalizedHyoungNo;
+  if ("vehicleCode" in normalizedPayload || (!('VehicleCode' in normalizedPayload) && normalizedVehicleCode !== undefined)) {
+    normalizedPayload.vehicleCode = normalizedVehicleCode;
   }
 
-  if ("HyoungNo" in normalizedPayload) {
-    normalizedPayload.HyoungNo = normalizedHyoungNo;
+  if ("VehicleCode" in normalizedPayload) {
+    normalizedPayload.VehicleCode = normalizedVehicleCode;
   }
 
   if ("numberPlate" in normalizedPayload || (!('NumberPlate' in normalizedPayload) && normalizedPlate !== undefined)) {
@@ -708,7 +708,7 @@ export const fetchVehicleConsumptionComparison = (params) => async (dispatch) =>
     // Normalize the response data
     const normalizedData = (response.data || []).map((item, index) => ({
       vehicleId: item.vehicleId || item.VehicleId,
-      vehicleNo: item.vehicleNo || item.VehicleNo || item.hyoungNo || item.HyoungNo,
+      vehicleNo: item.vehicleNo || item.VehicleNo || item.vehicleCode || item.VehicleCode,
       siteId: item.siteId || item.SiteId,
       site: item.site || item.siteName || item.SiteName,
       date: item.date || item.Date,

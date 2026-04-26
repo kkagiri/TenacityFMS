@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTransferListPage.js
  * Purpose: M365 Admin Center style vehicle transfer list page with SlidePanel detail view.
  * Dependencies: DataGrid, SlidePanel, VehicleTransferDetails, axiosInstance, Redux
@@ -195,7 +195,7 @@ const VehicleTransferListPage = () => {
   };
 
   const handleCancelTransfer = async (transfer) => {
-    if (!window.confirm(`Cancel transfer #${transfer.transferId} for ${transfer.vehicleHyoungNo}?`)) return;
+    if (!window.confirm(`Cancel transfer #${transfer.transferId} for ${transfer.vehicleCode}?`)) return;
     try {
       const response = await axiosInstance.put(`/vehicletransfers/${transfer.transferId}/status`, {
         status: "Cancelled",
@@ -212,7 +212,7 @@ const VehicleTransferListPage = () => {
   };
 
   const handleApprove = async (transfer) => {
-    if (!window.confirm(`Approve transfer #${transfer.transferId} for ${transfer.vehicleHyoungNo}?`)) return;
+    if (!window.confirm(`Approve transfer #${transfer.transferId} for ${transfer.vehicleCode}?`)) return;
     try {
       const response = await axiosInstance.post(`/vehicletransfers/${transfer.transferId}/approve`, {
         approverName: "",
@@ -247,7 +247,7 @@ const VehicleTransferListPage = () => {
   };
 
   const handleDispatch = async (transfer) => {
-    if (!window.confirm(`Dispatch vehicle ${transfer.vehicleHyoungNo} from ${transfer.fromSiteName} to ${transfer.toSiteName}?`)) return;
+    if (!window.confirm(`Dispatch vehicle ${transfer.vehicleCode} from ${transfer.fromSiteName} to ${transfer.toSiteName}?`)) return;
     try {
       const response = await axiosInstance.post(`/vehicletransfers/${transfer.transferId}/dispatch`);
       if (response.data?.isSuccess) {
@@ -262,7 +262,7 @@ const VehicleTransferListPage = () => {
   };
 
   const handleConfirmReceipt = async (transfer) => {
-    const remarks = window.prompt(`Confirm receipt of vehicle ${transfer.vehicleHyoungNo}? Enter optional remarks:`);
+    const remarks = window.prompt(`Confirm receipt of vehicle ${transfer.vehicleCode}? Enter optional remarks:`);
     if (remarks === null) return;
     try {
       const response = await axiosInstance.post(`/vehicletransfers/${transfer.transferId}/confirm-receipt`, {
@@ -280,7 +280,7 @@ const VehicleTransferListPage = () => {
   };
 
   const handleDeleteTransfer = async (transfer) => {
-    if (!window.confirm(`Delete transfer #${transfer.transferId} for ${transfer.vehicleHyoungNo || transfer.deliveryNoteNumber || "this vehicle"}? This action cannot be undone.`)) {
+    if (!window.confirm(`Delete transfer #${transfer.transferId} for ${transfer.vehicleCode || transfer.deliveryNoteNumber || "this vehicle"}? This action cannot be undone.`)) {
       return;
     }
 
@@ -505,7 +505,7 @@ const VehicleTransferListPage = () => {
 
           <Column dataField="transferId" caption="ID" width={60} alignment="center" />
           <Column
-            dataField="vehicleHyoungNo"
+            dataField="vehicleCode"
             caption="Vehicle No"
             minWidth={100}
             fixed={true}
@@ -586,7 +586,7 @@ const VehicleTransferListPage = () => {
           <div className="transfer-approval-panel__summary">
             <div className="transfer-approval-panel__summary-item">
               <span className="transfer-approval-panel__summary-label">Vehicle</span>
-              <span className="transfer-approval-panel__summary-value">{approvalTransfer?.vehicleHyoungNo || "-"}</span>
+              <span className="transfer-approval-panel__summary-value">{approvalTransfer?.vehicleCode || "-"}</span>
             </div>
             <div className="transfer-approval-panel__summary-item">
               <span className="transfer-approval-panel__summary-label">Route</span>

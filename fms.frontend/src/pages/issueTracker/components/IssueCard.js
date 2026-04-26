@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Button } from 'devextreme-react';
 import IssuePriorityBadge from './IssuePriorityBadge';
 import IssueStatusIndicator from './IssueStatusIndicator';
@@ -27,7 +27,7 @@ const IssueCard = ({
     problemDescription: description,
     priorityName: priority,
     statusName: status,
-    vehicleHyoungNo,
+    vehicleCode,
     vehicleNumber,
     assignToUserName: assignedTo,
     openDate: createdDate,
@@ -104,11 +104,11 @@ const IssueCard = ({
         {/* Metadata */}
         <div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-mb-4">
           {/* Vehicle */}
-          {(vehicleHyoungNo || vehicleNumber) && (
+          {(vehicleCode || vehicleNumber) && (
             <div className="tw-flex tw-items-center tw-gap-2">
               <i className="fa-light fa-car tw-text-gray-400 tw-text-sm"></i>
               <span className="tw-text-sm tw-text-gray-700 tw-truncate">
-                {vehicleHyoungNo || vehicleNumber || 'N/A'}
+                {vehicleCode || vehicleNumber || 'N/A'}
               </span>
             </div>
           )}

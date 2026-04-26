@@ -30,7 +30,6 @@ import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
 import configReducer from "./configReducer";
 import automatedReconciliationReducer from "./automatedReconciliationReducer";
-import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 import stockManagementReducer from "./stockManagementReducer";
 import systemConfigReducer from "./systemConfigReducer";
@@ -38,7 +37,6 @@ import vehicleDashboardReducer from "./vehicleDashboardReducer";
 import issueTrackerReducer from "./issueTrackerReducer";
 import dashboardPreferencesReducer from "./dashboardPreferencesReducer";
 import dashboardLayoutReducer from "./dashboardLayoutReducer";
-import vehicleDocumentReducer from "./vehicleDocumentReducer";
 import providerReducer from "./providerReducer";
 import maintenanceReducer from "./maintenanceReducer";
 import reconciliationReducer from "../slices/reconciliationSlice";
@@ -63,7 +61,6 @@ const rootReducer = combineReducers({
   site: siteReducer,
   employee: employeeReducer,
   vehicle: vehicleReducer,
-  vehicleDocument: vehicleDocumentReducer,
   vehicleType: vehicleTypeReducer,
   vehicleManufacturer: vehicleManufacturerReducer,
   vehicleModel: vehicleModelReducer,
@@ -85,7 +82,6 @@ const rootReducer = combineReducers({
   config: configReducer,
   // ptsAutomationConfig removed - migrated to systemConfig
   automatedReconciliation: automatedReconciliationReducer,
-  fuelReport: fuelReportReducer,
   notification: notificationReducer,
   stockManagement: stockManagementReducer,
   systemConfig: systemConfigReducer,

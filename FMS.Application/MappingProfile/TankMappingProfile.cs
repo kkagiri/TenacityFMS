@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AutoMapper;
 using FMS.Application.Features.FMS.Tank;
 using FMS.Application.Features.FMS.TankReconciliation;
@@ -24,7 +24,7 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.TankType, opt => opt.MapFrom(src => src.TankType.ToString()))
                 .ForMember(dest => dest.LinkedVehicleName, opt => opt.MapFrom(src =>
                     src.LinkedVehicle != null
-                        ? (src.LinkedVehicle.HyoungNo ?? src.LinkedVehicle.NumberPlate ?? "Unknown")
+                        ? (src.LinkedVehicle.VehicleCode ?? src.LinkedVehicle.NumberPlate ?? "Unknown")
                         : null))
                 .ReverseMap()
                 .ForMember(dest => dest.UseBookKeeping, opt => opt.MapFrom(src => ConvertBoolToSbyte(src.UseBookKeeping)))

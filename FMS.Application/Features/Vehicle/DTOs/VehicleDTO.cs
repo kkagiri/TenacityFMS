@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +10,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
 {
     public class VehicleDTO
     {
-        public string HyoungNo { get; set; } = null!;
+        public string VehicleCode { get; set; } = null!;
 
         public int VehicleId { get; set; }
 
@@ -33,7 +33,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public decimal? ExcessWorkingHrCost { get; set; }
 
         /// <summary>
-        /// Do not change this property name to NumberPlate, use HyoungNo instead
+        /// Do not change this property name to NumberPlate, use VehicleCode instead
         /// </summary>
         public string? NumberPlate { get; set; } = null!;
 

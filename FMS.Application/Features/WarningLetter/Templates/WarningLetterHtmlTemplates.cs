@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterHtmlTemplates.cs
  * Purpose: Provides the warning letter jsreport Handlebars template and the supporting email body builder.
  * Dependencies: System.Text, System.Net
@@ -26,7 +26,7 @@ public static class WarningLetterHtmlTemplates
         public string EmployeeName { get; init; } = string.Empty;
         public string EmployeeWorkNo { get; init; } = "N/A";
         public string Position { get; init; } = "N/A";
-        public string VehicleHyoungNo { get; init; } = string.Empty;
+        public string VehicleCode { get; init; } = string.Empty;
         public string NumberPlate { get; init; } = "N/A";
         public string VehicleType { get; init; } = "N/A";
         public string SiteName { get; init; } = string.Empty;
@@ -130,7 +130,7 @@ public static class WarningLetterHtmlTemplates
                 <td class=""lh-brand"">
                     <div class=""brand-wrap"">
                         <div class=""brand-logo"">{{#if LogoDataUri}}<img src=""{{LogoDataUri}}"" alt=""H Young logo"" />{{else}}<span class=""hy-mark"">HY</span>{{/if}}</div>
-                        <div class=""company-name"">HYOUNG</div>
+                        <div class=""company-name"">TENACY</div>
                         <div class=""company-side"">
                             <div class=""company-side-top"">&amp; Co</div>
                             <div class=""company-side-bottom"">(EA) Ltd.</div>
@@ -154,8 +154,8 @@ public static class WarningLetterHtmlTemplates
                     <div>NAIROBI, KENYA</div>
                     <div>TEL: +254 20 6688000,</div>
                     <div>FAX: 531056/530151</div>
-                    <div>E-mail: hyoung@hyoung.co.ke</div>
-                    <div>Website: www.hyoung.com</div>
+                    <div>E-mail: info@example.com</div>
+                    <div>Website: www.example.com</div>
                 </td>
                 <td class=""lh-office"">
                     <div class=""lh-label"">HEAD OFFICE &amp; WORKS</div>
@@ -195,19 +195,19 @@ public static class WarningLetterHtmlTemplates
 
     <p class=""compact-gap"">Dear Sir,</p>
 
-    {{#if IsExcessFuelConsumption}}<p>It has come to the attention of management that there is an over-consumption of fuel in <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you. Please note that any misuse of fuel except for the normal fuel consumption, constitutes a breach of trust and by doing so, you cause irreversible damage and loss to the Company.</p>{{/if}}
+    {{#if IsExcessFuelConsumption}}<p>It has come to the attention of management that there is an over-consumption of fuel in <strong>{{VehicleCode}}</strong> that is entrusted to you. Please note that any misuse of fuel except for the normal fuel consumption, constitutes a breach of trust and by doing so, you cause irreversible damage and loss to the Company.</p>{{/if}}
 
-    {{#if IsExcessiveSpeed}}<p>It has come to the attention of management that there is excessive speeding in <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you. Please note that failure to observe approved speed limits constitutes a breach of trust and by doing so, you expose the Company to loss, damage, and unnecessary risk.</p>{{/if}}
+    {{#if IsExcessiveSpeed}}<p>It has come to the attention of management that there is excessive speeding in <strong>{{VehicleCode}}</strong> that is entrusted to you. Please note that failure to observe approved speed limits constitutes a breach of trust and by doing so, you expose the Company to loss, damage, and unnecessary risk.</p>{{/if}}
 
-    {{#if IsExcessiveIdling}}<p>It has come to the attention of management that there is excessive idling in <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you. Please note that unnecessary idling outside normal operational requirements constitutes a breach of trust and by doing so, you cause avoidable loss and damage to the Company.</p>{{/if}}
+    {{#if IsExcessiveIdling}}<p>It has come to the attention of management that there is excessive idling in <strong>{{VehicleCode}}</strong> that is entrusted to you. Please note that unnecessary idling outside normal operational requirements constitutes a breach of trust and by doing so, you cause avoidable loss and damage to the Company.</p>{{/if}}
 
     <p>The average <strong>{{ExpectedLabel}}</strong> is <strong>{{ExpectedValue}}</strong>. This average was established after rigorous tests by qualified Engineers and Managers.</p>
 
-    {{#if IsExcessFuelConsumption}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while driving <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
+    {{#if IsExcessFuelConsumption}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while driving <strong>{{VehicleCode}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
 
-    {{#if IsExcessiveSpeed}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while driving <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
+    {{#if IsExcessiveSpeed}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while driving <strong>{{VehicleCode}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
 
-    {{#if IsExcessiveIdling}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while operating <strong>{{VehicleHyoungNo}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
+    {{#if IsExcessiveIdling}}<p>It was noted that on <strong>{{AffectedDate}}</strong>, while operating <strong>{{VehicleCode}}</strong> that is entrusted to you there was <strong>{{ActualLabel}}</strong> of <strong>{{ActualValue}}</strong>, resulting in <strong>{{ExcessLabel}}</strong> of <strong>{{ExcessValue}}</strong>.</p>{{/if}}
 
     {{#if ExcessCost}}<p>{{#if FuelPrice}}(Calculated at the rate of {{FuelPrice}} per litre){{/if}} <strong>{{ExcessCost}}</strong> is hereby debited to you and will be imputed from your forthcoming salary.</p>{{/if}}
 
@@ -256,7 +256,7 @@ public static class WarningLetterHtmlTemplates
         sb.AppendLine($"<p>Please find attached the formal warning letter regarding <strong>{Encode(model.ViolationTitle)}</strong>.</p>");
         sb.AppendLine("<table style='border-collapse:collapse;'>");
         sb.AppendLine($"<tr><td style='padding:4px 12px 4px 0;'><strong>Employee</strong></td><td style='padding:4px 0;'>{Encode(model.EmployeeName)}</td></tr>");
-        sb.AppendLine($"<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{Encode(model.VehicleHyoungNo)} / {Encode(model.NumberPlate)}</td></tr>");
+        sb.AppendLine($"<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{Encode(model.VehicleCode)} / {Encode(model.NumberPlate)}</td></tr>");
         sb.AppendLine($"<tr><td style='padding:4px 12px 4px 0;'><strong>Affected Date</strong></td><td style='padding:4px 0;'>{Encode(model.AffectedDate)}</td></tr>");
         sb.AppendLine($"<tr><td style='padding:4px 12px 4px 0;'><strong>Site</strong></td><td style='padding:4px 0;'>{Encode(model.SiteName)}</td></tr>");
         sb.AppendLine("</table>");

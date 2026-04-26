@@ -104,7 +104,7 @@ namespace FMS.Application.Features.VehicleTracking.Commands.BulkAssignVehiclesTo
                                 var vehicleId = assignment.VehicleId;
                                 var vehicle = await scopedContext.Vehicles
                                     .Where(v => v.VehicleId == vehicleId)
-                                    .Select(v => new { v.VehicleId, v.HasGPSInstalled, v.HyoungNo })
+                                    .Select(v => new { v.VehicleId, v.HasGPSInstalled, v.VehicleCode })
                                     .FirstOrDefaultAsync();
 
                                 if (vehicle == null)
@@ -117,14 +117,14 @@ namespace FMS.Application.Features.VehicleTracking.Commands.BulkAssignVehiclesTo
                                 if (vehicle.HasGPSInstalled != 1)
                                 {
                                     failCount++;
-                                    errors.Add($"Vehicle {vehicle.HyoungNo}: GPS not installed");
+                                    errors.Add($"Vehicle {vehicle.VehicleCode}: GPS not installed");
                                     continue;
                                 }
 
                                 if (string.IsNullOrWhiteSpace(assignment.ExternalDeviceId))
                                 {
                                     failCount++;
-                                    errors.Add($"Vehicle {vehicle.HyoungNo}: Missing external device ID");
+                                    errors.Add($"Vehicle {vehicle.VehicleCode}: Missing external device ID");
                                     continue;
                                 }
 
@@ -141,7 +141,7 @@ namespace FMS.Application.Features.VehicleTracking.Commands.BulkAssignVehiclesTo
                                 else
                                 {
                                     failCount++;
-                                    errors.Add($"Vehicle {vehicle.HyoungNo}: Mapping failed");
+                                    errors.Add($"Vehicle {vehicle.VehicleCode}: Mapping failed");
                                 }
 
                                 var processedCount = successCount + failCount;

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueDetailPopups.js
  * Purpose: All dialogs and side panels for the Issue Detail page (close, print, completion-with-actions, reassign)
  * Dependencies: React, IssueActionPopup, IssuePrintPopup, IssueCompletionPopup, IssueReassignPopup
@@ -53,7 +53,7 @@ const IssueDetailPopups = ({
           dueDate: issue.dueDate,
           createdAt: issue.openDate,
           templateName: issue.templateName,
-          vehicleHyoungNumber: issue.vehicleHyoungNo || issue.vehicleNumber
+          vehicleCode: issue.vehicleCode || issue.vehicleNumber
         }}
       />
       <IssueCompletionPopup

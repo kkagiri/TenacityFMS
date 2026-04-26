@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueListScreen.js
  * Purpose: Issue list view with filter chips, search, and issue cards.
  *          Tap a card to navigate to IssueDetailScreen.
@@ -147,7 +147,7 @@ const IssueCard = React.memo(({ issue, onPress }) => {
   const assignee = issue.assignToUserName || "Unassigned";
   const avatarColor = getAvatarColor(assignee);
 
-  const vehicleLabel = issue.vehicleHyoungNo || issue.vehicleNumber || null;
+  const vehicleLabel = issue.vehicleCode || issue.vehicleNumber || null;
   const siteLabel = issue.siteName || null;
 
   return (
@@ -405,7 +405,7 @@ const IssueListScreen = () => {
           (issue.problemTitle || "").toLowerCase().includes(query) ||
           String(issue.id).includes(query) ||
           (issue.assignToUserName || "").toLowerCase().includes(query) ||
-          (issue.vehicleHyoungNo || "").toLowerCase().includes(query) ||
+          (issue.vehicleCode || "").toLowerCase().includes(query) ||
           (issue.vehicleNumber || "").toLowerCase().includes(query) ||
           (issue.siteName || "").toLowerCase().includes(query)
       );
@@ -692,7 +692,7 @@ const IssueListScreen = () => {
                     <Icon name="search" size={12} color="#9CA3AF" style={{ marginRight: 8 }} />
                     <TextInput
                       style={styles.filterSearchInput}
-                      placeholder="Search by plate, hyoung no..."
+                      placeholder="Search by plate, vehicle code..."
                       placeholderTextColor="#9CA3AF"
                       value={vehicleSearchText}
                       onChangeText={handleVehicleSearch}
@@ -703,7 +703,7 @@ const IssueListScreen = () => {
                     <View style={styles.searchResultsList}>
                       {vehicleSearchResults.map((v) => {
                         const vId = v.id || v.vehicleId;
-                        const vLabel = v.hyoungNo || v.vehicleHyoungNo || v.plateNumber || v.vehicleNumber || `#${vId}`;
+                        const vLabel = v.vehicleCode || v.vehicleCode || v.plateNumber || v.vehicleNumber || `#${vId}`;
                         return (
                           <TouchableOpacity
                             key={vId}

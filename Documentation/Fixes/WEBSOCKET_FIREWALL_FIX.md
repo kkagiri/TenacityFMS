@@ -1,4 +1,4 @@
-# WebSocket Connection Fix - Windows Firewall
+﻿# WebSocket Connection Fix - Windows Firewall
 
 ## Problem
 WebSocket connections to SignalR fail with "connection could not be found on server" even though:
@@ -28,7 +28,7 @@ This allows the connection to fall back to LongPolling if WebSocket is blocked.
 
 ```powershell
 # Navigate to scripts directory
-cd c:\dev\Hyoung.FMS
+cd c:\dev\Tenacy.FMS
 
 # Run the firewall configuration script
 .\scripts\firewall\enable-websocket-port-7009.ps1
@@ -45,11 +45,11 @@ This script will:
 
 ```powershell
 # Rebuild frontend with transport fallback
-cd c:\dev\Hyoung.FMS\fms.frontend
+cd c:\dev\Tenacy.FMS\fms.frontend
 npm run build
 
 # Deploy to production
-Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 ```
 
 ### Step 4: Restart Services (Optional)
@@ -61,7 +61,7 @@ If issues persist after firewall configuration:
 iisreset
 
 # Or restart specific app pool
-Restart-WebAppPool -Name "hyoungFMS"
+Restart-WebAppPool -Name "tenacyFMS"
 
 # Restart FMS backend service
 Get-Process | Where-Object { $_.Name -like "*FMS*" } | Stop-Process -Force
@@ -88,7 +88,7 @@ Look for messages like:
 Run the diagnostic script to check all components:
 
 ```powershell
-cd c:\dev\Hyoung.FMS
+cd c:\dev\Tenacy.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 

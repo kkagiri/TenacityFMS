@@ -9,7 +9,7 @@ public partial class Assest
 
     public string AssestId { get; set; } = null!;
 
-    public string? HyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
 
     public sbyte IsInstalled { get; set; }
 

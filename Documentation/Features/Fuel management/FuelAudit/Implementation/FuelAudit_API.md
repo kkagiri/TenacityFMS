@@ -1,4 +1,4 @@
-# Fuel Audit System - API Documentation
+﻿# Fuel Audit System - API Documentation
 
 **Version:** 1.0
 **Created:** November 28, 2025
@@ -121,7 +121,7 @@ Retrieves the current fuel position for a single vehicle.
   "data": {
     "vehicleId": 101,
     "vehicleName": "TRK-001",
-    "hyoungNo": "H-12345",
+    "vehicleCode": "H-12345",
     "currentFuelLevel": 45.5,
     "fuelPercentage": 65,
     "tankCapacity": 70.0,
@@ -601,7 +601,7 @@ public class VehicleFuelPositionDTO
 {
     public int VehicleId { get; set; }
     public string VehicleName { get; set; }
-    public string HyoungNo { get; set; }
+    public string VehicleCode { get; set; }
     public decimal CurrentFuelLevel { get; set; }
     public int FuelPercentage { get; set; }
     public decimal TankCapacity { get; set; }

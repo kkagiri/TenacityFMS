@@ -1,4 +1,4 @@
-# Pump Transaction Enhancement
+﻿# Pump Transaction Enhancement
 
 ## Overview
 Enhanced the Pump Transaction query and display to include tank and vehicle names for better user experience and data visualization.
@@ -18,7 +18,7 @@ public string? TankName { get; set; }
 
 // Vehicle information
 public int? VehicleId { get; set; }
-public string? VehicleName { get; set; } // HyoungNo from Vehicle entity
+public string? VehicleName { get; set; } // VehicleCode from Vehicle entity
 public string? VehicleNumberPlate { get; set; }
 ```
 
@@ -32,7 +32,7 @@ Enhanced the query to include tank and vehicle names:
     TankId = pt.TankId,
     TankName = pt.Tank != null ? pt.Tank.Name : null,
     VehicleId = pt.VehicleId,
-    VehicleName = pt.Vehicle != null ? pt.Vehicle.HyoungNo : null,
+    VehicleName = pt.Vehicle != null ? pt.Vehicle.VehicleCode : null,
     VehicleNumberPlate = pt.Vehicle != null ? pt.Vehicle.NumberPlate : null,
     // ... remaining properties
 })
@@ -46,7 +46,7 @@ Enhanced the query to include tank and vehicle names:
 Updated column configuration to display meaningful names:
 
 **Vehicle Column**:
-- Shows vehicle name (HyoungNo) as primary display
+- Shows vehicle name (VehicleCode) as primary display
 - Shows number plate as secondary information
 - Fallback to 'N/A' if no data available
 - Uses custom cellRender for enhanced display

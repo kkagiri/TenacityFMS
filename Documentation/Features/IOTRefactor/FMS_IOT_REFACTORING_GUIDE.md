@@ -1,4 +1,4 @@
-# FMS IoT Refactoring Guide
+﻿# FMS IoT Refactoring Guide
 ## Implementing ISO 30141 IoT Reference Architecture
 
 ### **Executive Summary**
@@ -131,7 +131,7 @@ using FMS.Application.Features.Dashboard;
 
 #### Create New Projects
 ```bash
-# From Hyoung.Fms root directory
+# From Tenacy.Fms root directory
 dotnet new classlib -n FMS.IoT.Gateway
 dotnet new classlib -n FMS.IoT.ProcessingEngine
 dotnet new classlib -n FMS.IoT.Contracts  # Shared contracts/interfaces

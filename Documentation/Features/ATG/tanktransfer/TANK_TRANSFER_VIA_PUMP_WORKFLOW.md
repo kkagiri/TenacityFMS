@@ -1,4 +1,4 @@
-# Tank Transfer via Pump - Implementation Complete ✅
+﻿# Tank Transfer via Pump - Implementation Complete ✅
 **Date**: November 13, 2025
 **Status**: IMPLEMENTED
 **Purpose**: Handle tank-to-tank transfers performed using pumps WITHOUT vehicle involvement
@@ -106,7 +106,7 @@ Step 2: ScanStep (VEHICLE REQUIRED ❌)
   └─> Nozzle state validation (must be UP)
 
 Step 3: FuelingDetailsStep
-  └─> Display vehicle info (HyoungNo, make, model)
+  └─> Display vehicle info (VehicleCode, make, model)
   └─> Show tag and limits
   └─> Select authorization type (Volume/FullTank)
   └─> Enter volume if applicable

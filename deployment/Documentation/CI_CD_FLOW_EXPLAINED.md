@@ -1,4 +1,4 @@
-# 🔄 CI/CD Flow - Complete Explanation
+﻿# 🔄 CI/CD Flow - Complete Explanation
 
 ## 📊 High-Level Overview
 
@@ -68,10 +68,10 @@ on:
 env:
   BACKEND_PROJECT: 'FMS.WebClient/FMS.WebClient.csproj'
   FRONTEND_PATH: 'fms.frontend'
-  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\webAPI'
-  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\reactApp'
-  BACKEND_APPPOOL: 'HyoungFMS.WebAPI'
-  FRONTEND_APPPOOL: 'HyoungFMS.ReactApp'
+  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\tenacyFMS\webAPI'
+  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\tenacyFMS\reactApp'
+  BACKEND_APPPOOL: 'TenacyFMS.WebAPI'
+  FRONTEND_APPPOOL: 'TenacyFMS.ReactApp'
 ```
 
 **What happens:**
@@ -93,7 +93,7 @@ env:
 
 **What happens:**
 ```
-Runner Workspace: C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+Runner Workspace: C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
     ↓
 Git clone/pull latest code from GitHub
     ↓
@@ -134,7 +134,7 @@ Code is now in runner workspace
 - name: 🔨 Build Backend
   run: |
     $timestamp = Get-Date -Format 'yyyyMMddHHmmss'
-    $tempPath = "C:\inetpub\wwwroot\hyoungFMS\webAPI_temp_20251007143052"
+    $tempPath = "C:\inetpub\wwwroot\tenacyFMS\webAPI_temp_20251007143052"
     
     dotnet publish FMS.WebClient/FMS.WebClient.csproj \
       --configuration Release \
@@ -148,7 +148,7 @@ Source Code (Runner Workspace)
     ↓
 dotnet publish compiles and packages
     ↓
-Output to: C:\inetpub\wwwroot\hyoungFMS\webAPI_temp_20251007143052
+Output to: C:\inetpub\wwwroot\tenacyFMS\webAPI_temp_20251007143052
     ├── FMS.WebClient.dll
     ├── appsettings.json
     ├── AutoMapper.dll
@@ -168,34 +168,34 @@ Output to: C:\inetpub\wwwroot\hyoungFMS\webAPI_temp_20251007143052
 - name: 🔄 Deploy Backend (Atomic Swap)
   run: |
     # 1. Copy existing web.config to temp deployment
-    Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" \
-              "C:\inetpub\wwwroot\hyoungFMS\webAPI_temp_20251007143052\web.config"
+    Copy-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" \
+              "C:\inetpub\wwwroot\tenacyFMS\webAPI_temp_20251007143052\web.config"
     
     # 2. Stop IIS
-    Stop-WebAppPool -Name "HyoungFMS.WebAPI"
+    Stop-WebAppPool -Name "TenacyFMS.WebAPI"
     Start-Sleep -Seconds 10
     
     # 3. Remove old backup
-    Remove-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI_old"
+    Remove-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI_old"
     
     # 4. ATOMIC SWAP (the magic moment!)
-    Rename-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI" \
-                "C:\inetpub\wwwroot\hyoungFMS\webAPI_old"
-    Rename-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI_temp_20251007143052" \
-                "C:\inetpub\wwwroot\hyoungFMS\webAPI"
+    Rename-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI" \
+                "C:\inetpub\wwwroot\tenacyFMS\webAPI_old"
+    Rename-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI_temp_20251007143052" \
+                "C:\inetpub\wwwroot\tenacyFMS\webAPI"
     
     # 5. Start IIS
-    Start-WebAppPool -Name "HyoungFMS.WebAPI"
+    Start-WebAppPool -Name "TenacyFMS.WebAPI"
     
     # 6. Cleanup old deployment
-    Remove-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI_old" -Recurse
+    Remove-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI_old" -Recurse
 ```
 
 **Visual Flow:**
 
 **Before Swap:**
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 ├── webAPI\                    ← Currently running (OLD version)
 │   ├── web.config             ← Your production config
 │   ├── FMS.WebClient.dll      ← Old version
@@ -214,7 +214,7 @@ C:\inetpub\wwwroot\hyoungFMS\
 
 **After Swap:**
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 ├── webAPI\                    ← Now running NEW version! 🎉
 │   ├── web.config             ← Preserved from old
 │   ├── FMS.WebClient.dll      ← New version
@@ -271,21 +271,21 @@ Output: fms.frontend/build/
   run: |
     # 1. Copy build to temp location
     Copy-Item "fms.frontend\build" \
-              "C:\inetpub\wwwroot\hyoungFMS\reactApp_temp_20251007143152" -Recurse
+              "C:\inetpub\wwwroot\tenacyFMS\reactApp_temp_20251007143152" -Recurse
     
     # 2. Copy existing web.config
-    Copy-Item "C:\inetpub\wwwroot\hyoungFMS\reactApp\web.config" \
-              "C:\inetpub\wwwroot\hyoungFMS\reactApp_temp_20251007143152\web.config"
+    Copy-Item "C:\inetpub\wwwroot\tenacyFMS\reactApp\web.config" \
+              "C:\inetpub\wwwroot\tenacyFMS\reactApp_temp_20251007143152\web.config"
     
     # 3. Stop IIS
-    Stop-WebAppPool -Name "HyoungFMS.ReactApp"
+    Stop-WebAppPool -Name "TenacyFMS.ReactApp"
     
     # 4. Atomic swap
     Rename-Item "reactApp" "reactApp_old"
     Rename-Item "reactApp_temp_*" "reactApp"
     
     # 5. Start IIS
-    Start-WebAppPool -Name "HyoungFMS.ReactApp"
+    Start-WebAppPool -Name "TenacyFMS.ReactApp"
     
     # 6. Cleanup
     Remove-Item "reactApp_old" -Recurse
@@ -300,8 +300,8 @@ Output: fms.frontend/build/
 ```yaml
 - name: ✅ Verify Deployment
   run: |
-    $backendState = (Get-WebAppPoolState -Name "HyoungFMS.WebAPI").Value
-    $frontendState = (Get-WebAppPoolState -Name "HyoungFMS.ReactApp").Value
+    $backendState = (Get-WebAppPoolState -Name "TenacyFMS.WebAPI").Value
+    $frontendState = (Get-WebAppPoolState -Name "TenacyFMS.ReactApp").Value
     
     Write-Host "Backend:  $backendState"
     Write-Host "Frontend: $frontendState"
@@ -330,12 +330,12 @@ git push origin productionv1
 - Notifies self-hosted runner
 
 **10:30:10 AM** - Runner starts job
-- Workflow: "Deploy Hyoung FMS to IIS #42"
+- Workflow: "Deploy Tenacy FMS to IIS #42"
 - Status: Running
 
 **10:30:15 AM** - Checkout code (15 seconds)
 ```
-Syncing repository: kagz100/Hyoung.FMS
+Syncing repository: kagz100/Tenacy.FMS
 Fetching the repository
 Checking out productionv1
 ```
@@ -488,7 +488,7 @@ if (Test-Path $oldPath) {
 ## 📈 Monitoring the Deployment
 
 ### Option 1: GitHub Web UI
-1. Go to https://github.com/kagz100/Hyoung.FMS
+1. Go to https://github.com/kagz100/Tenacy.FMS
 2. Click "Actions" tab
 3. See real-time progress:
    ```
@@ -578,7 +578,7 @@ on:
 
 **A:** Quick manual rollback:
 ```powershell
-cd C:\inetpub\wwwroot\hyoungFMS
+cd C:\inetpub\wwwroot\tenacyFMS
 
 # Stop IIS
 .\control-iis.ps1 -Stop
@@ -597,7 +597,7 @@ Rename-Item webAPI_old webAPI
 
 **Option 1**: Manual test first
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 .\deploy-alternative.ps1  # Test locally
 # If works, commit and push
 ```

@@ -1,12 +1,12 @@
-# Understanding GitHub Actions Workspace vs Dev Workspace
+﻿# Understanding GitHub Actions Workspace vs Dev Workspace
 
 ## **Two Different Directories - Two Different Purposes**
 
-### **1. C:\dev\Hyoung.FMS** (Your Development Workspace)
+### **1. C:\dev\Tenacy.FMS** (Your Development Workspace)
 **Purpose:** Where YOU work and develop code
 
 ```
-C:\dev\Hyoung.FMS
+C:\dev\Tenacy.FMS
 ├── This is YOUR personal development workspace
 ├── You edit code here
 ├── You test here
@@ -22,11 +22,11 @@ C:\dev\Hyoung.FMS
 
 ---
 
-### **2. C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS** (GitHub Actions Workspace)
+### **2. C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS** (GitHub Actions Workspace)
 **Purpose:** Where GITHUB ACTIONS temporarily clones your repo to build and deploy
 
 ```
-C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
 ├── GitHub Actions creates this automatically
 ├── It's a CLEAN COPY of your repo from GitHub
 ├── GitHub Actions builds your app here
@@ -51,7 +51,7 @@ C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
 └─────────────────────────────────────────────────────────────┘
 
 1. YOU DEVELOP CODE
-   📝 C:\dev\Hyoung.FMS
+   📝 C:\dev\Tenacy.FMS
    ├── Edit files in VS Code
    ├── Test locally
    └── Ready to deploy? ↓
@@ -64,7 +64,7 @@ C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
 
 3. GITHUB ACTIONS RUNS (Automatic)
    🤖 On runner machine (HY-FMS)
-   ├── Clones repo to: C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+   ├── Clones repo to: C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
    ├── Builds backend
    ├── Builds frontend
    ├── Runs deployment script
@@ -72,8 +72,8 @@ C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
 
 4. YOUR APP RUNS
    🌐 IIS Serves your app
-   ├── Backend: C:\inetpub\wwwroot\hyoungFMS\webAPI
-   ├── Frontend: C:\inetpub\wwwroot\hyoungFMS\reactApp
+   ├── Backend: C:\inetpub\wwwroot\tenacyFMS\webAPI
+   ├── Frontend: C:\inetpub\wwwroot\tenacyFMS\reactApp
    └── Users access: http://localhost:80
 ```
 
@@ -106,7 +106,7 @@ Great question! Here's what GitHub Actions provides:
 ```powershell
 # You have to manually:
 1. Open PowerShell on server
-2. cd C:\dev\Hyoung.FMS
+2. cd C:\dev\Tenacy.FMS
 3. git pull origin productionv1
 4. Run .\scripts\deploy-alternative.ps1
 5. Hope nothing goes wrong
@@ -167,20 +167,20 @@ GitHub Actions: (automatically)
 │  HY-FMS Server (Self-Hosted Runner)                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  C:\dev\Hyoung.FMS                                          │
+│  C:\dev\Tenacy.FMS                                          │
 │  └── Your development workspace                             │
 │      ├── Edit code here                                     │
 │      ├── Commit here                                        │
 │      └── Push to GitHub                                     │
 │                                                              │
-│  C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS             │
+│  C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS             │
 │  └── GitHub Actions temporary workspace                     │
 │      ├── Auto-created by GitHub Actions                     │
 │      ├── Fresh clone for each workflow                      │
 │      ├── Builds happen here                                 │
 │      └── Gets cleaned between runs                          │
 │                                                              │
-│  C:\inetpub\wwwroot\hyoungFMS\                             │
+│  C:\inetpub\wwwroot\tenacyFMS\                             │
 │  └── Production deployment (IIS)                            │
 │      ├── webAPI (Backend)                                   │
 │      └── reactApp (Frontend)                                │
@@ -192,24 +192,24 @@ GitHub Actions: (automatically)
 
 ## **Common Questions**
 
-### **Q: Why not just deploy from C:\dev\Hyoung.FMS?**
+### **Q: Why not just deploy from C:\dev\Tenacy.FMS?**
 **A:** Because:
 - Might have uncommitted changes
 - Might have temp files
 - Might have experiments you don't want deployed
 - Not a clean state
 
-### **Q: Can I delete C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS?**
+### **Q: Can I delete C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS?**
 **A:** Yes! GitHub Actions recreates it every time. That's why our cleanup scripts remove it.
 
 ### **Q: Do I need both directories?**
 **A:** 
-- **C:\dev\Hyoung.FMS** - Only if you develop on the server (optional)
+- **C:\dev\Tenacy.FMS** - Only if you develop on the server (optional)
 - **C:\actions-runner\_work\...** - Required for GitHub Actions (automatic)
 
 ### **Q: What if I only want manual deployment?**
 **A:** Then you could:
-1. Keep only C:\dev\Hyoung.FMS
+1. Keep only C:\dev\Tenacy.FMS
 2. Run `deploy-alternative.ps1` manually
 3. Skip GitHub Actions entirely
 
@@ -222,18 +222,18 @@ But you lose automation, consistency, and audit trail.
 ### **Keep Both - They Serve Different Purposes:**
 
 ```
-C:\dev\Hyoung.FMS
+C:\dev\Tenacy.FMS
 └── Use for: Development, testing, debugging
 
-C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
 └── Use for: Automated builds and deployments (via GitHub Actions)
 
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 └── Use for: Running production app (IIS)
 ```
 
 ### **Typical Workflow:**
-1. **Develop locally** (your PC or C:\dev\Hyoung.FMS on server)
+1. **Develop locally** (your PC or C:\dev\Tenacy.FMS on server)
 2. **Commit & push** to GitHub
 3. **GitHub Actions automatically** builds and deploys from its own workspace
 4. **App runs** from IIS directories
@@ -247,7 +247,7 @@ If you prefer **manual control** and find GitHub Actions overkill:
 ### **Option A: Manual Deployment Only**
 ```powershell
 # On server
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 git pull origin productionv1
 .\scripts\deploy-alternative.ps1
 ```
@@ -270,9 +270,9 @@ git push → Auto deployment
 
 | Directory | Purpose | Managed By | Can Delete? |
 |-----------|---------|------------|-------------|
-| **C:\dev\Hyoung.FMS** | Development | You | Yes (if not developing on server) |
+| **C:\dev\Tenacy.FMS** | Development | You | Yes (if not developing on server) |
 | **C:\actions-runner\_work\...** | CI/CD Builds | GitHub Actions | Yes (recreated automatically) |
-| **C:\inetpub\wwwroot\hyoungFMS\** | Production | IIS | No (your running app!) |
+| **C:\inetpub\wwwroot\tenacyFMS\** | Production | IIS | No (your running app!) |
 
 **Bottom line:** The Actions workspace is GitHub Actions' "scratch space" for building your app. It's separate from your dev workspace by design, ensuring clean, reproducible builds.
 

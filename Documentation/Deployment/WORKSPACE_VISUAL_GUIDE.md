@@ -1,4 +1,4 @@
-# GitHub Actions Workflow - Visual Guide
+﻿# GitHub Actions Workflow - Visual Guide
 
 ## The Complete Picture
 
@@ -9,7 +9,7 @@
 
 Step 1: DEVELOP
 ═══════════════
-📍 Location: C:\dev\Hyoung.FMS (or your local PC)
+📍 Location: C:\dev\Tenacy.FMS (or your local PC)
 ┌─────────────────────────────────┐
 │  Your Development Workspace     │
 │  ─────────────────────────────  │
@@ -40,7 +40,7 @@ Step 3: GITHUB ACTIONS RUNS AUTOMATICALLY
 
 ┌────────────────────────────────────────────────────────────┐
 │  GitHub Actions Workspace                                  │
-│  C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS            │
+│  C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS            │
 │  ────────────────────────────────────────────────────────  │
 │                                                             │
 │  🤖 Checkout Action:                                       │
@@ -61,7 +61,7 @@ Step 3: GITHUB ACTIONS RUNS AUTOMATICALLY
                 ↓
 Step 4: DEPLOYED TO IIS
 ═══════════════════════
-📍 Location: C:\inetpub\wwwroot\hyoungFMS\
+📍 Location: C:\inetpub\wwwroot\tenacyFMS\
 
 ┌────────────────────────────────────────┐
 │  Production Deployment (IIS)           │
@@ -90,7 +90,7 @@ Step 4: DEPLOYED TO IIS
 ═══════════════════════════════════════════════════════════════════════════
 
 ┌────────────────────────────┬────────────────────────────┬──────────────────┐
-│  C:\dev\Hyoung.FMS         │  C:\actions-runner\_work\  │  C:\inetpub\     │
+│  C:\dev\Tenacy.FMS         │  C:\actions-runner\_work\  │  C:\inetpub\     │
 │  (Development)             │  (Build/Deploy)            │  (Production)    │
 ├────────────────────────────┼────────────────────────────┼──────────────────┤
 │                            │                            │                  │
@@ -161,18 +161,18 @@ Result:        Your app is live with new changes!
                            DO YOU NEED BOTH?
 ═══════════════════════════════════════════════════════════════════════════
 
-C:\dev\Hyoung.FMS
+C:\dev\Tenacy.FMS
 ─────────────────
 NEEDED IF:  You develop code on the server
 OPTIONAL:   If you develop on your local PC only
 
-C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
 ──────────────────────────────────────────────
 NEEDED IF:  Using GitHub Actions for deployment ✓ (You are)
 AUTOMATIC:  GitHub Actions creates and manages this
 CAN DELETE: Yes! It's recreated for each workflow run
 
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 ─────────────────────────────
 REQUIRED:   This is your running application!
 NEVER DELETE: Users are accessing this!
@@ -183,7 +183,7 @@ NEVER DELETE: Users are accessing this!
 ═══════════════════════════════════════════════════════════════════════════
 
 Morning:
-  • Open C:\dev\Hyoung.FMS in VS Code
+  • Open C:\dev\Tenacy.FMS in VS Code
   • Make code changes
   • Test locally
   • Commit: git commit -m "Fixed login bug"
@@ -208,7 +208,7 @@ Solution: .\scripts\reset-runner-workspace.ps1
 Effect:   Cleans C:\actions-runner\_work\... (safe to delete)
 
 Problem: "I want to test without pushing to GitHub"
-Solution: cd C:\dev\Hyoung.FMS
+Solution: cd C:\dev\Tenacy.FMS
           .\scripts\deploy-alternative.ps1
 Effect:   Deploys from your dev workspace directly
 

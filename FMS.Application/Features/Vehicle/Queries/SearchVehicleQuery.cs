@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -73,7 +73,7 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             }
 
             var searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
-            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeHyoungNo(searchTerm);
+            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeVehicleCode(searchTerm);
             var normalizedPlateSearchTerm = VehicleIdentifierNormalizer.NormalizeNumberPlate(searchTerm) ?? string.Empty;
             var limit = request.Limit ?? 10;
 
@@ -122,8 +122,8 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             // Don't use ToLower() on columns as it prevents index usage
             // Use contains search to match anywhere in the vehicle identifier
             query = query.Where(v =>
-                v.HyoungNo.Contains(searchTerm) ||
-                v.HyoungNo.Replace(" ", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Contains(compactSearchTerm) ||
+                v.VehicleCode.Contains(searchTerm) ||
+                v.VehicleCode.Replace(" ", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Contains(compactSearchTerm) ||
                 (v.NumberPlate != null && (
                     v.NumberPlate.Contains(normalizedPlateSearchTerm) ||
                     v.NumberPlate.Replace(" ", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Contains(compactSearchTerm))));
@@ -136,7 +136,7 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
                 .Include(x => x.VehicleManufacturer);
 
             var results = await query
-                .OrderBy(v => v.HyoungNo)
+                .OrderBy(v => v.VehicleCode)
                 .Take(limit)
                 .ProjectTo<VehicleDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);

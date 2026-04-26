@@ -1,4 +1,4 @@
-# Database Setup Guide - Provider Management System
+﻿# Database Setup Guide - Provider Management System
 
 ## 📋 Prerequisites
 
@@ -152,7 +152,7 @@ ON DUPLICATE KEY UPDATE
 
 ```powershell
 # Navigate to the SQL file location
-cd "C:\Users\admin\Documents\GitHub\Hyoung.FMS\Documentation\Features\VehicleTracking\Phase4"
+cd "C:\Users\admin\Documents\GitHub\Tenacy.FMS\Documentation\Features\VehicleTracking\Phase4"
 
 # Create a copy with your credentials
 $apiKey = "your-api-key-here"

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -75,7 +75,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 var gpsInfo = new VehicleGPSInformationDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
                     DeviceId = ParseExternalDeviceId(externalDeviceId),
@@ -243,7 +243,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 var odometerDto = new VehicleOdometerDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     CurrentOdometer = odometerData?.Value.HasValue == true ? (decimal)odometerData.Value / 1000 : 0,
                     TotalDistance = odometerData?.Value.HasValue == true ? (decimal)odometerData.Value / 1000 : 0,

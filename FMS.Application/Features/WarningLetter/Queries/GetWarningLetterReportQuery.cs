@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          GetWarningLetterReportQuery.cs
  * Purpose:       CQRS query returning warning letter analytics report data with server-side aggregations.
  * Dependencies:  MediatR, GpsdataContext, FMSResponse, WarningLetterReportDataDto
@@ -115,7 +115,7 @@ public class GetWarningLetterReportQueryHandler : IRequestHandler<GetWarningLett
             EmployeeId = w.EmployeeId,
             EmployeeName = w.Employee?.FullName ?? string.Empty,
             VehicleId = w.VehicleId,
-            VehicleHyoungNo = w.Vehicle?.HyoungNo ?? string.Empty,
+            VehicleCode = w.Vehicle?.VehicleCode ?? string.Empty,
             NumberPlate = w.Vehicle?.NumberPlate ?? string.Empty,
             VehicleTypeId = w.Vehicle?.VehicleTypeId,
             VehicleTypeName = w.Vehicle?.VehicleType?.Name ?? "Unknown",

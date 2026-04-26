@@ -15,9 +15,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("devicetype");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
 
                 builder.Property(e => e.Name)
                     .HasMaxLength(100)
@@ -27,18 +25,15 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(945);
 
                 builder.Property(e => e.IsMonitored)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.MonitoringEndpoint)
                     .HasMaxLength(255);
 
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.UpdatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.HasIndex(e => e.Name).IsUnique();
@@ -57,3 +52,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

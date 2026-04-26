@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ReassignIssueCommandHandler.cs
  * Purpose: Handles issue reassignment — updates assignee, creates tracking record, notifies new assignee only
  * Dependencies: MediatR, GpsdataContext, INotificationService, IIssueActivityService, IConfiguration
@@ -190,7 +190,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                 {
                     vehicleName = await _context.Vehicles
                         .Where(v => v.VehicleId == issue.VehicleId)
-                        .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
+                        .Select(v => v.VehicleCode ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
                         .FirstOrDefaultAsync(cancellationToken);
                 }
 
@@ -370,7 +370,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
   <tr><td style=""padding:24px 32px 20px;border-bottom:1px solid #edebe9;"">
     <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%""><tr>
       <td style=""vertical-align:middle;"">
-        <span style=""font-size:20px;font-weight:600;color:#323130;"">Hyoung FMS</span>
+        <span style=""font-size:20px;font-weight:600;color:#323130;"">Tenacy FMS</span>
       </td>
       <td style=""text-align:right;vertical-align:middle;"">
         <span style=""display:inline-block;padding:4px 12px;background:#fff4ce;color:#835c00;font-size:12px;font-weight:600;border-radius:2px;letter-spacing:0.02em;"">REASSIGNED</span>
@@ -426,7 +426,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
 
   <!-- Footer -->
   <tr><td style=""padding:16px 32px;background:#faf9f8;border-top:1px solid #edebe9;border-radius:0 0 4px 4px;"">
-    <p style=""margin:0;font-size:12px;color:#a19f9d;text-align:center;line-height:1.5;"">This is an automated notification from <strong style=""color:#605e5c;"">Hyoung FMS</strong>. Do not reply to this email.</p>
+    <p style=""margin:0;font-size:12px;color:#a19f9d;text-align:center;line-height:1.5;"">This is an automated notification from <strong style=""color:#605e5c;"">Tenacy FMS</strong>. Do not reply to this email.</p>
   </td></tr>
 
 </table>

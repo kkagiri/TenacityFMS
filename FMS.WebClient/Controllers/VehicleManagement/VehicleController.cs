@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleController.cs
  * Purpose: Handles vehicle CRUD, dashboard analytics, and search endpoints.
  * Dependencies: MediatR, distributed cache, BaseApiController helpers.
@@ -710,22 +710,22 @@ namespace FMS.WebClient.Controllers
             }
         }
 
-        [HttpGet("search-by-hyoung")]
+        [HttpGet("search-by-code")]
         [RequirePermission(Permissions.Vehicle.Read)]
-        public async Task<IActionResult> SearchVehiclesByHyoungNo([FromQuery] string hyoungNo)
+        public async Task<IActionResult> SearchVehiclesByVehicleCode([FromQuery] string vehicleCode)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(hyoungNo))
+                if (string.IsNullOrWhiteSpace(vehicleCode))
                 {
-                    return BadRequest("Hyoung number is required");
+                    return BadRequest("Tenacy number is required");
                 }
 
-                var normalizedHyoungNo = NormalizeVehicleSearchTerm(hyoungNo);
+                var normalizedVehicleCode = NormalizeVehicleSearchTerm(vehicleCode);
 
                 var query = new SearchVehicleQuery
                 {
-                    SearchTerm = normalizedHyoungNo,
+                    SearchTerm = normalizedVehicleCode,
                     Limit = 5
                 };
 
@@ -740,7 +740,7 @@ namespace FMS.WebClient.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error searching by Hyoung number", error = ex.Message });
+                return StatusCode(500, new { message = "Error searching by Tenacy number", error = ex.Message });
             }
         }
 
@@ -767,9 +767,9 @@ namespace FMS.WebClient.Controllers
                 {
                     var vehicleLabel = vehicle.VehicleId > 0
                         ? $"Vehicle {vehicle.VehicleId}"
-                        : string.IsNullOrWhiteSpace(vehicle.HyoungNo)
+                        : string.IsNullOrWhiteSpace(vehicle.VehicleCode)
                             ? "Vehicle"
-                            : $"Vehicle {vehicle.HyoungNo}";
+                            : $"Vehicle {vehicle.VehicleCode}";
 
                     errors.Add($"{vehicleLabel} has an invalid MovementProfile value '{vehicle.MovementProfile}'.");
                 }

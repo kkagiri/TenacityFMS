@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -40,14 +40,14 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
             var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             while (dir != null)
             {
-                if (File.Exists(Path.Combine(dir, "Hyoung.Fms.sln")))
+                if (File.Exists(Path.Combine(dir, "Tenacy.Fms.sln")))
                 {
                     return dir;
                 }
                 dir = Path.GetDirectoryName(dir);
             }
 
-            return @"c:\Users\kkagiri\Sources\Repo\Hyoung.FMS";
+            return @"c:\Users\kkagiri\Sources\Repo\Tenacy.FMS";
         }
 
         /// <summary>

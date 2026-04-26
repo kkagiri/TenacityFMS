@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetWarningLettersQuery.cs
  * Purpose: Returns filtered warning letter lists for API consumers.
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetter DTOs/entities
@@ -107,7 +107,7 @@ public class GetWarningLettersQueryHandler : IRequestHandler<GetWarningLettersQu
                 EmployeeId = w.EmployeeId,
                 EmployeeName = w.Employee.FullName,
                 VehicleId = w.VehicleId,
-                VehicleHyoungNo = w.Vehicle.HyoungNo,
+                VehicleCode = w.Vehicle.VehicleCode,
                 NumberPlate = w.Vehicle.NumberPlate,
                 SiteId = w.SiteId,
                 SiteName = w.Site.Name,

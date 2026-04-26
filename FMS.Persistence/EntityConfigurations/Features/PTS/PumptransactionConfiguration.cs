@@ -37,38 +37,36 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => new { e.PtsId, e.Transaction }, "idx_pumptransaction_pts_transaction_unique")
                     .IsUnique();
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
 
                 //Cursor: Update decimal precision for fuel measurements
                 builder.Property(e => e.Amount).HasPrecision(10, 2); // 2 decimal places for currency
                 builder.Property(e => e.TotalAmount).HasPrecision(10, 2); // 2 decimal places for currency
                 builder.Property(e => e.Volume).HasPrecision(10, 3); // 3 decimal places for volume
-                builder.Property(e => e.Tcvolume).HasPrecision(10, 3).HasColumnName("TCVolume"); // 3 decimal places
+                builder.Property(e => e.Tcvolume).HasPrecision(10, 3); // 3 decimal places
                 builder.Property(e => e.Price).HasPrecision(10, 3); // 3 decimal places for price per unit
                 builder.Property(e => e.TotalVolume).HasPrecision(10, 3); // 3 decimal places for volume
 
                 builder.Property(e => e.ConfigurationId).HasMaxLength(45);
-                builder.Property(e => e.FuelGradeId).HasColumnType("int(11)");
+                builder.Property(e => e.FuelGradeId);
                 builder.Property(e => e.FuelGradeName).HasMaxLength(45);
-                builder.Property(e => e.Nozzle).HasColumnType("int(11)");
-                builder.Property(e => e.PacketId).HasColumnType("int(11)");
+                builder.Property(e => e.Nozzle);
+                builder.Property(e => e.PacketId);
                 builder.Property(e => e.PtsId).HasMaxLength(100);
-                builder.Property(e => e.Pump).HasColumnType("int(11)");
+                builder.Property(e => e.Pump);
                 builder.Property(e => e.Tag).HasMaxLength(45);
-                builder.Property(e => e.Transaction).HasColumnType("int(11)");
-                builder.Property(e => e.UserId).HasColumnType("VARCHAR(50)");
+                builder.Property(e => e.Transaction);
+                builder.Property(e => e.UserId).HasMaxLength(50);
 
                 //Cursor: Configure new columns
-                builder.Property(e => e.TankId).HasColumnType("int(11)");
-                builder.Property(e => e.VehicleId).HasColumnType("int(11)");
-                builder.Property(e => e.DestinationTankId).HasColumnType("int(11)");
-                builder.Property(e => e.EmployeeId).HasColumnType("int(11)");
+                builder.Property(e => e.TankId);
+                builder.Property(e => e.VehicleId);
+                builder.Property(e => e.DestinationTankId);
+                builder.Property(e => e.EmployeeId);
                 builder.Property(e => e.IsTransferMode)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false)
                     .HasComment("True for tank-to-tank transfers, false for vehicle fueling");
                 builder.Property(e => e.HasBeenProcessed)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false)
                     .HasComment("Indicates whether this transaction has been processed by business logic");
 
@@ -138,3 +136,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

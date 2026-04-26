@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: vehicleTrackingSidebarConfig.js
  * Purpose: Provides sidebar sort, filter, and visible-column configuration for the vehicle tracking page
  * Dependencies: None
@@ -77,7 +77,7 @@ export const filterVehicleCollection = (vehicles = [], options = {}) => {
         const searchableValues = [
             vehicle.name,
             vehicle.description,
-            vehicle.hyoungNo,
+            vehicle.vehicleCode,
             vehicle.numberPlate,
             vehicle.plateNumber,
             vehicle.address,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LocationSettingsScreen.js
  * Admin-only screen for managing location bypass
  * Features:
@@ -107,7 +107,7 @@ const LocationSettingsScreen = ({ navigation }) => {
   // Normalize vehicle results
   const normalizeVehicle = useCallback((v) => ({
     vehicleId: v.VehicleId || v.vehicleId,
-    hyoungNo: v.HyoungNo || v.hyoungNo || "",
+    vehicleCode: v.VehicleCode || v.vehicleCode || "",
     numberPlate: v.NumberPlate || v.numberPlate || v.PlateNumber || v.plateNumber || "",
     vehicleName: v.VehicleName || v.vehicleName || v.Name || v.name || "",
   }), []);
@@ -121,7 +121,7 @@ const LocationSettingsScreen = ({ navigation }) => {
 
   // Get vehicle display info
   const getVehicleDisplay = useCallback((item) => ({
-    title: item.hyoungNo || "Unknown",
+    title: item.vehicleCode || "Unknown",
     subtitle: item.numberPlate || "",
     icon: "car",
   }), []);
@@ -512,7 +512,7 @@ const LocationSettingsScreen = ({ navigation }) => {
               <View key={index} style={styles.specificBypassItem}>
                 <View style={styles.specificBypassItemInfo}>
                   <Text style={styles.specificBypassItemName}>
-                    {bypass.vehicleName || bypass.hyoungNo || `Vehicle #${bypass.vehicleId}`}
+                    {bypass.vehicleName || bypass.vehicleCode || `Vehicle #${bypass.vehicleId}`}
                   </Text>
                   <Text style={styles.specificBypassItemExpiry}>
                     Expires: {new Date(bypass.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}

@@ -1,4 +1,4 @@
-//Cursor - Entity Framework Configuration for ReconciliationPolicy
+﻿//Cursor - Entity Framework Configuration for ReconciliationPolicy
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
@@ -30,24 +30,24 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.NextExecution, "IX_ReconciliationPolicy_NextExecution");
 
                 // Properties
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.Description).HasMaxLength(500);
                 builder.Property(e => e.IsActive).HasDefaultValue(true);
-                builder.Property(e => e.ScheduleConfiguration).HasColumnType("text");
+                builder.Property(e => e.ScheduleConfiguration);
                 builder.Property(e => e.DiscrepancyThreshold).HasPrecision(10, 2);
                 builder.Property(e => e.DiscrepancyPercentageThreshold).HasPrecision(5, 2);
-                builder.Property(e => e.SiteId).HasColumnType("int(11)");
-                builder.Property(e => e.TankScopeConfiguration).HasColumnType("text");
-                builder.Property(e => e.Priority).HasColumnType("int(11)").HasDefaultValue(100);
-                builder.Property(e => e.MaxTanksPerExecution).HasColumnType("int(11)");
-                builder.Property(e => e.NotificationConfiguration).HasColumnType("text");
+                builder.Property(e => e.SiteId);
+                builder.Property(e => e.TankScopeConfiguration);
+                builder.Property(e => e.Priority).HasDefaultValue(100);
+                builder.Property(e => e.MaxTanksPerExecution);
+                builder.Property(e => e.NotificationConfiguration);
                 builder.Property(e => e.CreatedBy).HasMaxLength(50).IsRequired();
-                builder.Property(e => e.CreatedOn).HasColumnType("datetime").HasDefaultValueSql("CURRENT_TIMESTAMP");
+                builder.Property(e => e.CreatedOn).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 builder.Property(e => e.ModifiedBy).HasMaxLength(50);
-                builder.Property(e => e.ModifiedOn).HasColumnType("datetime");
-                builder.Property(e => e.LastExecuted).HasColumnType("datetime");
-                builder.Property(e => e.NextExecution).HasColumnType("datetime");
+                builder.Property(e => e.ModifiedOn);
+                builder.Property(e => e.LastExecuted);
+                builder.Property(e => e.NextExecution);
 
                 // Relationships
                 builder.HasOne(d => d.Site)

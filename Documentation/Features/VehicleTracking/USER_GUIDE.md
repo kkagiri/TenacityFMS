@@ -1,4 +1,4 @@
-# Provider Management System - User Guide
+﻿# Provider Management System - User Guide
 
 ## 📚 Table of Contents
 
@@ -402,7 +402,7 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Assignment Table Shows**:
 
 - Vehicle ID
-- Vehicle Name (Hyoung Number)
+- Vehicle Name (Tenacy Number)
 - Number Plate
 - Assigned Provider (or "Not assigned")
 

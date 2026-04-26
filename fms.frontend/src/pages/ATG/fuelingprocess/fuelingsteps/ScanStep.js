@@ -1,4 +1,4 @@
-//Cursor
+﻿//Cursor
 import React, { memo, useCallback, useMemo, useState, useEffect } from "react";
 import { Button } from "devextreme-react/button";
 import { RadioGroup } from "devextreme-react/radio-group";
@@ -256,7 +256,7 @@ const ScanStep = memo(
           <div className="vehicle-header tw-flex tw-items-center tw-mb-3 tw-pb-3 tw-border-b">
             <i className="fa-light fa-truck tw-text-xl tw-text-blue-600 tw-mr-3"></i>
             <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-              {vehicleInfo.hyoungNo || "N/A"}
+              {vehicleInfo.vehicleCode || "N/A"}
             </h4>
             {scanResult && (
               <span className="tag-id tw-ml-auto tw-font-mono tw-text-xs tw-bg-gray-100 tw-px-2 tw-py-1 tw-rounded">

@@ -13,52 +13,38 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasKey(e => e.ReportExecutionId);
 
             builder.Property(e => e.ReportExecutionId)
-                .HasColumnName("ReportExecutionId")
                 .ValueGeneratedOnAdd();
 
-            builder.Property(e => e.ReportDefinitionId)
-                .HasColumnName("ReportDefinitionId");
+            builder.Property(e => e.ReportDefinitionId);
 
             builder.Property(e => e.ExecutedBy)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("ExecutedBy");
+                .HasMaxLength(100);
 
             builder.Property(e => e.ExecutedAt)
                 .IsRequired()
-                .HasColumnName("ExecutedAt")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.Filters)
-                .HasColumnName("Filters")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.Filters);
 
             builder.Property(e => e.ExportFormat)
-                .HasMaxLength(50)
-                .HasColumnName("ExportFormat");
+                .HasMaxLength(50);
 
-            builder.Property(e => e.RecordCount)
-                .HasColumnName("RecordCount");
+            builder.Property(e => e.RecordCount);
 
-            builder.Property(e => e.ExecutionTimeMs)
-                .HasColumnName("ExecutionTimeMs");
+            builder.Property(e => e.ExecutionTimeMs);
 
             builder.Property(e => e.Success)
                 .IsRequired()
-                .HasColumnName("Success")
                 .HasDefaultValue(true);
 
-            builder.Property(e => e.ErrorMessage)
-                .HasColumnName("ErrorMessage")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.ErrorMessage);
 
             builder.Property(e => e.IpAddress)
-                .HasMaxLength(50)
-                .HasColumnName("IpAddress");
+                .HasMaxLength(50);
 
             builder.Property(e => e.UserAgent)
-                .HasMaxLength(500)
-                .HasColumnName("UserAgent");
+                .HasMaxLength(500);
 
             // Relationship
             builder.HasOne(e => e.ReportDefinition)
@@ -81,3 +67,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

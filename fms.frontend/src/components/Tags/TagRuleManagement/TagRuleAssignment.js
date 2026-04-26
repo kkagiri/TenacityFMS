@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { Popup } from "devextreme-react/popup";
 import { Button } from "devextreme-react/button";
 import { CheckBox } from "devextreme-react/check-box";
@@ -160,7 +160,7 @@ const TagRuleAssignment = ({ isVisible, onClose, tags, ruleSets }) => {
     if (!vehicleId) return "No vehicle";
     const vehicle = vehicles.find((v) => v && v.vehicleId === vehicleId);
     return vehicle
-      ? `${vehicle.numberPlate || "No plate"} (${vehicle.hyoungNo || ""})`
+      ? `${vehicle.numberPlate || "No plate"} (${vehicle.vehicleCode || ""})`
       : "Unknown vehicle";
   };
 
@@ -287,7 +287,7 @@ const TagRuleAssignment = ({ isVisible, onClose, tags, ruleSets }) => {
                 dataSource={vehicles || []}
                 displayExpr={(item) =>
                   item
-                    ? `${item.numberPlate || ""} (${item.hyoungNo || ""})`
+                    ? `${item.numberPlate || ""} (${item.vehicleCode || ""})`
                     : ""
                 }
                 valueExpr="vehicleId"

@@ -29,11 +29,6 @@ import { TemplateManager, TemplateDesigner } from "./templates";
 import { ReportScheduleManager } from "./scheduling";
 import { ReportMonitorDashboard } from "./monitoring";
 
-// ──── Data Import (unchanged) ────
-import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
-import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportPage";
-import ImportManagementPage from "./import-management/ImportManagementPage";
-
 // ──── Legacy / Kept-for-now routes ────
 import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
 import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
@@ -82,11 +77,6 @@ const ReportsMain = () => {
         {/* ── Monitoring (new) ── */}
         <Route path="monitoring" element={<ReportMonitorDashboard />} />
 
-        {/* ── Data Import (unchanged) ── */}
-        <Route path="fuel-importer" element={<FuelReportImporter />} />
-        <Route path="fuel-importer/batch" element={<BatchImportPage />} />
-        <Route path="fuel-importer/*" element={<FuelReportImporter />} />
-        <Route path="import-management" element={<ImportManagementPage />} />
         <Route
           path="scheduled-emails"
           element={<Navigate to={canManageReportSchedules ? "/reports/scheduling" : "/reports/dashboard"} replace />}

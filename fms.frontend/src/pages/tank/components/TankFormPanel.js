@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          TankFormPanel.js
  * Purpose:       Create / Edit tank form rendered inside a SlidePanel.
  *                Uses native M365 inputs; DevExtreme SelectBox only for
@@ -453,7 +453,7 @@ const TankFormPanel = ({ mode = "create", tank, onSubmit, onClose }) => {
                   valueExpr="vehicleId"
                   displayExpr={(item) =>
                     item
-                      ? `${item.hyoungNo || item.registrationNo || "Unknown"} - ${item.vehicleName || item.model || ""}`
+                      ? `${item.vehicleCode || item.registrationNo || "Unknown"} - ${item.vehicleName || item.model || ""}`
                       : ""
                   }
                   onValueChanged={(e) => set("linkedVehicleId", e.value)}

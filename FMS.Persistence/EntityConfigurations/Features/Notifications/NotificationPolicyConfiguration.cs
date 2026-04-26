@@ -19,9 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("notification_policy")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("notification_policy");
 
                 // Indexes
                 builder.HasIndex(e => e.Name, "IX_NotificationPolicy_Name");
@@ -34,11 +32,11 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.CreatedBy, "IX_NotificationPolicy_CreatedBy");
 
                 // Properties
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.Description).HasMaxLength(500);
                 builder.Property(e => e.IsActive).HasDefaultValue(true);
-                builder.Property(e => e.NotificationCategoryId).IsRequired().HasColumnType("int(11)");
+                builder.Property(e => e.NotificationCategoryId).IsRequired();
                 builder.Property(e => e.NotificationType).HasMaxLength(50).IsRequired();
                 builder.Property(e => e.Priority).HasMaxLength(20).HasDefaultValue("Medium");
                 builder.Property(e => e.MaxNotificationsPerHour).HasDefaultValue(0);
@@ -49,19 +47,18 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.EnableSystem).HasDefaultValue(true);
                 builder.Property(e => e.EnableSound).HasDefaultValue(false);
                 builder.Property(e => e.SoundFile).HasMaxLength(255);
-                builder.Property(e => e.EscalationRules).HasColumnType("TEXT");
-                builder.Property(e => e.TriggerConditions).HasColumnType("TEXT");
-                builder.Property(e => e.RecipientRules).HasColumnType("TEXT");
-                builder.Property(e => e.ScheduleConfiguration).HasColumnType("TEXT");
+                builder.Property(e => e.EscalationRules);
+                builder.Property(e => e.TriggerConditions);
+                builder.Property(e => e.RecipientRules);
+                builder.Property(e => e.ScheduleConfiguration);
 
                 //Cursor: Configure PtsDeviceId to match Ptsdevice.Ptsid exactly
                 builder.Property(e => e.PtsDeviceId)
-                    .HasMaxLength(100) // Match Ptsdevice.Ptsid length
-                    .HasColumnName("PtsDeviceId"); // Explicit column name
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.TitleTemplate).HasMaxLength(255);
-                builder.Property(e => e.MessageTemplate).HasColumnType("text");
-                builder.Property(e => e.EmailTemplate).HasColumnType("text");
+                builder.Property(e => e.MessageTemplate);
+                builder.Property(e => e.EmailTemplate);
                 builder.Property(e => e.SmsTemplate).HasMaxLength(500);
                 builder.Property(e => e.RequireAcknowledgment).HasDefaultValue(false);
                 builder.Property(e => e.AcknowledgmentTimeoutMinutes).HasDefaultValue(0);
@@ -128,3 +125,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

@@ -38,119 +38,69 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.ActiveAlarmId, "activealarm_idx");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedOnAdd();
                 builder.Property(e => e.AssignTo)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
-                builder.Property(e => e.ClosingDate).HasColumnName("closingDate");
+                    .HasMaxLength(100);
+                builder.Property(e => e.ClosingDate);
                 //builder.Property(e => e.DeviceId)
-                //    .HasColumnType("int(11)")
-                //    .HasColumnName("DeviceID");
+                //
+                //;
                 builder.Ignore(e => e.DeviceType);
-                builder.Property(e => e.DueDate).HasColumnName("dueDate");
-                builder.Property(e => e.IssueCategoryId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("IssueCategoryID");
-                builder.Property(e => e.OpenDate).HasColumnName("openDate");
+                builder.Property(e => e.DueDate);
+                builder.Property(e => e.IssueCategoryId);
+                builder.Property(e => e.OpenDate);
                 builder.Property(e => e.Openby)
-                    .HasMaxLength(100)
-                    .HasColumnName("openby")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
-                builder.Property(e => e.Priority)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("priority");
+                    .HasMaxLength(100);
+                builder.Property(e => e.Priority);
                 builder.Property(e => e.ProblemDescription)
-                    .HasMaxLength(2000)
-                    .HasColumnName("problemDescription");
+                    .HasMaxLength(2000);
                 builder.Property(e => e.ProblemTitle)
-                    .HasMaxLength(255)
-                    .HasColumnName("problemTitle");
-                builder.Property(e => e.RelatedIssue)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("relatedIssue");
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("siteID");
-                builder.Property(e => e.Status)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("status");
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleID");
+                    .HasMaxLength(255);
+                builder.Property(e => e.RelatedIssue);
+                builder.Property(e => e.SiteId);
+                builder.Property(e => e.Status);
+                builder.Property(e => e.VehicleId);
 
-                builder.Property(e => e.ActiveAlarmId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ActiveAlarmId");
+                builder.Property(e => e.ActiveAlarmId);
 
-                builder.Property(e => e.LastModfield)
-                    .HasColumnName("LastModfield");
+                builder.Property(e => e.LastModfield);
 
                 // V2 Template-based fields
-                builder.Property(e => e.IssueTemplateId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("IssueTemplateId");
+                builder.Property(e => e.IssueTemplateId);
 
-                builder.Property(e => e.DeviceTypeId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DeviceTypeId");
+                builder.Property(e => e.DeviceTypeId);
 
                 // CRITICAL FIX: These are client-set values, not database-generated
                 // Previously had HasDefaultValue(false) which caused EF to try reading them back
                 // This triggered a SELECT after INSERT that failed with concurrency exception
                 builder.Property(e => e.CanAutoClose)
-                    .HasColumnName("CanAutoClose")
                     .IsRequired()
                     .ValueGeneratedNever(); // Not database-generated
 
                 builder.Property(e => e.AutoCloseReason)
-                    .HasMaxLength(500)
-                    .HasColumnName("AutoCloseReason")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(500);
 
                 builder.Property(e => e.IsAutoCreated)
-                    .HasColumnName("IsAutoCreated")
                     .IsRequired()
                     .ValueGeneratedNever(); // Not database-generated
 
                 // V2 Related entity fields for background service auto-creation
-                builder.Property(e => e.RelatedEntityId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("RelatedEntityId");
+                builder.Property(e => e.RelatedEntityId);
 
                 builder.Property(e => e.RelatedEntityType)
-                    .HasMaxLength(50)
-                    .HasColumnName("RelatedEntityType")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(50);
 
                 builder.Property(e => e.AssignedTo)
-                    .HasMaxLength(500)
-                    .HasColumnName("AssignedTo")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(500);
 
                 builder.Property(e => e.ReportedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("ReportedBy")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.CompletionNotes)
-                    .HasMaxLength(2000)
-                    .HasColumnName("CompletionNotes")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(2000);
 
                 builder.Property(e => e.ClosingNotes)
-                    .HasMaxLength(2000)
-                    .HasColumnName("ClosingNotes")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(2000);
 
                 builder.HasOne(d => d.AssignToNavigation)
                     .WithMany(p => p.IssuetrackerAssignToNavigations)
@@ -221,7 +171,6 @@ namespace FMS.Persistence.EntityConfigurations
                     (e.OpenbyNavigation == null || e.OpenbyNavigation.IsDeleted != true));
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring IssuetrackerConfiguration: {ex.Message}");
@@ -230,3 +179,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

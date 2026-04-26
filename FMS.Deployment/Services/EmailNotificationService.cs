@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
-using HyoungFMS.Deployment.Interfaces;
-using HyoungFMS.Deployment.Models;
+using TenacyFMS.Deployment.Interfaces;
+using TenacyFMS.Deployment.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace HyoungFMS.Deployment.Services
+namespace TenacyFMS.Deployment.Services
 {
     /// <summary>
     /// Implementation of the Notification Service interface using email
@@ -98,7 +98,7 @@ namespace HyoungFMS.Deployment.Services
         </table>
     </div>
 
-    <p>This is an automated message from the HyoungFMS Deployment System.</p>
+    <p>This is an automated message from the TenacyFMS Deployment System.</p>
 </body>
 </html>";
 
@@ -138,7 +138,7 @@ namespace HyoungFMS.Deployment.Services
         " : "")}
     </div>
 
-    <p>This is an automated message from the HyoungFMS Deployment System.</p>
+    <p>This is an automated message from the TenacyFMS Deployment System.</p>
 </body>
 </html>";
 
@@ -164,7 +164,7 @@ namespace HyoungFMS.Deployment.Services
         <p>{WebUtility.HtmlEncode(message).Replace(Environment.NewLine, "<br/>")}</p>
     </div>
 
-    <p>This is an automated message from the HyoungFMS Deployment System.</p>
+    <p>This is an automated message from the TenacyFMS Deployment System.</p>
 </body>
 </html>";
 

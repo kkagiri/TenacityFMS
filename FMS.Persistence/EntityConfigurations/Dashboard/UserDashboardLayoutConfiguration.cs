@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Dashboard;
+﻿using FMS.Domain.Entities.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,8 +8,7 @@ namespace FMS.Persistence.EntityConfigurations
     {
         public override void Configure(EntityTypeBuilder<UserDashboardLayout> builder)
         {
-            builder.ToTable("user_dashboard_layout")
-                .HasCharSet("utf8mb4").UseCollation("utf8mb4_general_ci");
+            builder.ToTable("user_dashboard_layout");
 
             builder.HasKey(x => x.Id).HasName("PRIMARY");
 
@@ -17,7 +16,7 @@ namespace FMS.Persistence.EntityConfigurations
 
             builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
             builder.Property(x => x.LayoutName).HasMaxLength(100).IsRequired();
-            builder.Property(x => x.LayoutJson).HasColumnType("longtext").IsRequired();
+            builder.Property(x => x.LayoutJson).IsRequired();
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             builder.Property(x => x.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
             builder.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
@@ -38,3 +37,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

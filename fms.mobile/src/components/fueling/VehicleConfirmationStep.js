@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   View,
   Text,
@@ -128,7 +128,7 @@ const VehicleConfirmationStep = ({
               <Icon name="truck" size={24} color="#1f2937" />
             </View>
             <View style={styles.vehicleInfo}>
-              <Text style={styles.vehicleHyoung}>{vehicle.hyoungNo}</Text>
+              <Text style={styles.vehicleTenacy}>{vehicle.vehicleCode}</Text>
               <Text style={styles.vehicleName}>{vehicle.vehicleName}</Text>
             </View>
           </View>
@@ -435,7 +435,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
   },
-  vehicleHyoung: {
+  vehicleTenacy: {
     fontSize: 20,
     fontWeight: "700",
     color: "#1f2937",

@@ -157,20 +157,8 @@ const ReportsDashboard = () => {
         <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Data Management</h3>
         <div className="activity-list">
           <div className="activity-item">
-            <div className="activity-icon">
+            <div class="activity-icon-removed" style={{display: 'none'}}>
               <i className="fa-light fa-upload tw-text-green-400"></i>
-            </div>
-            <div className="activity-content">
-              <h4>Import Fuel Data</h4>
-              <p className="tw-text-sm tw-text-gray-600">Upload and process fuel report files</p>
-            </div>
-            <div className="activity-actions">
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => navigate(reportsRoutes.fuelImporter)}
-              >
-                Import Now
-              </button>
             </div>
           </div>
         </div>

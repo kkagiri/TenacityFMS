@@ -1,4 +1,4 @@
-# Issue Tracker Frontend Updates - DTO Integration
+﻿# Issue Tracker Frontend Updates - DTO Integration
 
 ## Summary of Changes
 
@@ -12,7 +12,7 @@ This document outlines the changes made to integrate the new `IssueTrackerRespon
 - **Key Properties**:
   - `problemTitle`, `problemDescription` - Issue details
   - `categoryName`, `siteName`, `statusName`, `priorityName` - Resolved names
-  - `vehicleHyoungNo`, `vehicleNumber` - Vehicle identification
+  - `vehicleCode`, `vehicleNumber` - Vehicle identification
   - `openbyUserName`, `assignToUserName` - User names instead of IDs
   - `openDate`, `dueDate`, `closingDate` - Date fields
 
@@ -40,12 +40,12 @@ This document outlines the changes made to integrate the new `IssueTrackerRespon
   - `priority` → `priorityName`
   - `status` → `statusName`
   - `category` → `categoryName`
-  - `vehicle.name` → `vehicleHyoungNo`
+  - `vehicle.name` → `vehicleCode`
   - `assignedTo` → `assignToUserName`
   - `createdDate` → `openDate`
 
 ### 3. IssueTrackerDashboard.js
-- **Updated vehicle column**: `vehicleName` → `vehicleHyoungNo`
+- **Updated vehicle column**: `vehicleName` → `vehicleCode`
 
 ## Key Benefits
 

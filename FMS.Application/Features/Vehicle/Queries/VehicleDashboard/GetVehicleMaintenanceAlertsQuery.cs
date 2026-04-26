@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -84,12 +84,12 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard {
 
                     alerts.Add (new MaintenanceAlertDTO {
                         VehicleId = vehicle.VehicleId,
-                            VehicleNumber = vehicle.HyoungNo,
+                            VehicleNumber = vehicle.VehicleCode,
                             AlertType = alertType,
                             Priority = priority,
                             DueDate = DateTime.UtcNow.AddDays (-daysOverdue),
                             DaysOverdue = Math.Max (0, daysOverdue),
-                            Description = $"{alertType} due for {vehicle.HyoungNo}",
+                            Description = $"{alertType} due for {vehicle.VehicleCode}",
                             EstimatedCost = random.Next (100, 1000), // TODO: Get from maintenance cost database
                             LastMaintenanceDate = DateTime.UtcNow.AddDays (-random.Next (30, 180))
                     });

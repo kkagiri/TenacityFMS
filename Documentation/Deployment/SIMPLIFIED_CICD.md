@@ -1,4 +1,4 @@
-# Simplified CI/CD Using Proven Deployment Script
+﻿# Simplified CI/CD Using Proven Deployment Script
 
 ## Overview
 
@@ -156,7 +156,7 @@ You can still deploy manually using the same script:
 
 ```powershell
 # From the repository root
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Deploy everything
 .\scripts\deploy-alternative.ps1
@@ -237,7 +237,7 @@ Total: ~95 lines, 6 steps
 
 ```powershell
 # From repository root
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Test the script
 .\scripts\deploy-alternative.ps1

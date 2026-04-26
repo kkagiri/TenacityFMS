@@ -75,7 +75,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FMS.Application.Communication;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
-using FMS.BackgroundServices.VehicleDocumentNotifier;
 using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
@@ -104,6 +103,12 @@ public static class FmsServiceCollectionExtensions
     {
         // File storage configuration (external writable path for uploads)
         services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
+
+        // Multi-tenancy: scoped tenant context resolved from JWT by TenantResolutionMiddleware,
+        // and SaveChanges interceptor that auto-stamps TenantId on inserted ITenantOwned entities.
+        services.AddScoped<FMS.Application.Features.MultiTenancy.Services.ITenantContext,
+                           FMS.Application.Features.MultiTenancy.Services.TenantContext>();
+        services.AddScoped<FMS.Application.Features.MultiTenancy.Services.TenantSaveChangesInterceptor>();
 
         // Controllers & JSON
         services.AddControllers().AddJsonOptions(o =>
@@ -251,13 +256,14 @@ public static class FmsServiceCollectionExtensions
             options.Password.RequireDigit = false;
         });
 
-        services.AddDbContext<GpsdataContext>(opt =>
+        services.AddDbContext<GpsdataContext>((sp, opt) =>
         {
-            opt.UseMySql(fmsConnectionString, new MySqlServerVersion(new Version(5, 5, 61)), mySql =>
+            opt.UseNpgsql(fmsConnectionString, npg =>
             {
-                mySql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
-                mySql.CommandTimeout(60);
+                npg.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                npg.CommandTimeout(60);
             })
+            .UseSnakeCaseNamingConvention()
             .LogTo(msg =>
             {
                 if (msg.Contains("Executed DbCommand"))
@@ -266,6 +272,11 @@ public static class FmsServiceCollectionExtensions
                 }
             }, LogLevel.Information)
             .EnableDetailedErrors();
+
+            // Multi-tenancy: auto-stamp TenantId on inserted ITenantOwned entities.
+            // Interceptor is scoped — resolve from the request's service provider.
+            opt.AddInterceptors(
+                sp.GetRequiredService<FMS.Application.Features.MultiTenancy.Services.TenantSaveChangesInterceptor>());
 
             if (env.IsDevelopment())
             {
@@ -277,11 +288,12 @@ public static class FmsServiceCollectionExtensions
         // for parallel operations (prevents "A second operation was started" threading errors)
         services.AddDbContextFactory<GpsdataContext>(opt =>
         {
-            opt.UseMySql(fmsConnectionString, new MySqlServerVersion(new Version(5, 5, 61)), mySql =>
+            opt.UseNpgsql(fmsConnectionString, npg =>
             {
-                mySql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
-                mySql.CommandTimeout(60);
+                npg.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                npg.CommandTimeout(60);
             })
+            .UseSnakeCaseNamingConvention()
             .EnableDetailedErrors();
         }, ServiceLifetime.Scoped);
 
@@ -495,7 +507,6 @@ public static class FmsServiceCollectionExtensions
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();
         services.AddScoped<IFileHandlingService, FileHandlingService>();
-        services.AddScoped<FMS.Application.Features.VehicleDocumentManagement.Services.IDocumentOcrService, FMS.Infrastructure.Services.DocumentOcrService>();
 
         // Ensure file storage directory exists at startup
         var fileStorageSettings = configuration.GetSection(FileStorageSettings.SectionName).Get<FileStorageSettings>() ?? new FileStorageSettings();
@@ -663,7 +674,6 @@ public static class FmsServiceCollectionExtensions
 
         // Other Background Services
         services.AddHostedService<SystemUserInitializationService>();
-        services.AddHostedService<VehicleDocumentExpiryNotifierService>();
         services.AddHostedService<VehicleMaintenanceNotifierService>();
         // DEAD CODE: OdometerSyncBackgroundService temporarily disabled (2026-01-28)
         // services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
@@ -770,11 +780,6 @@ public static class FmsServiceCollectionExtensions
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
         services.AddHostedService<LogCleanupBackgroundService>();
-
-        // Fuel Auto-Import Services
-        services.AddScoped<FMS.Application.Features.FuelImport.Services.IExcelParsingService, FMS.Application.Features.FuelImport.Services.ExcelParsingService>();
-        services.AddScoped<FMS.Application.Features.FuelImport.Services.IFileTrackerService, FMS.Application.Features.FuelImport.Services.FileTrackerService>();
-        services.AddScoped<FMS.Application.Features.FuelImport.Services.IFuelAutoImportService, FMS.Application.Features.FuelImport.Services.FuelAutoImportService>();
 
         // Async Report Job Services
         services.AddSingleton<FMS.Application.Features.Reporting.Services.IReportJobProgressService, FMS.Application.Features.Reporting.Services.ReportJobProgressService>();

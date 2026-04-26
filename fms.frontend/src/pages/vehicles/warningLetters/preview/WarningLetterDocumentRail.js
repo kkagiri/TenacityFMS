@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterDocumentRail.js
  * Purpose: Renders the warning letter detail and workflow document cards shown in the left rail.
  * Dependencies: React
@@ -123,7 +123,7 @@ const WarningLetterDocumentRail = ({
                     <div><span>Type</span><strong>{typeMap[letter.letterType] || "Unknown"}</strong></div>
                     <div><span>Employee</span><strong>{letter.employeeName}</strong></div>
                     <div><span>Email</span><strong>{letter.emailRecipient || letter.employeeEmail || "N/A"}</strong></div>
-                    <div><span>Vehicle</span><strong>{letter.vehicleHyoungNo}</strong></div>
+                    <div><span>Vehicle</span><strong>{letter.vehicleCode}</strong></div>
                     <div><span>Site</span><strong>{letter.siteName}</strong></div>
                     <div><span>Recipient</span><strong>{letter.signatureRequestRecipient || "N/A"}</strong></div>
                 </div>

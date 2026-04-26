@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: EmployeeFormPanel.js
  * Purpose: Side-panel form used for creating and editing employee records.
  * Dependencies: react, devextreme-react/tag-box, vehicle search API
@@ -459,7 +459,7 @@ const EmployeeFormPanel = ({
               <span className="m365-field__hint">
                 {duplicateState.isChecking
                   ? "Checking for duplicate employee records..."
-                  : "Search vehicles by Hyoung No or plate, then add each vehicle to the selection list."}
+                  : "Search vehicles by Tenacy No or plate, then add each vehicle to the selection list."}
               </span>
             </div>
           </div>

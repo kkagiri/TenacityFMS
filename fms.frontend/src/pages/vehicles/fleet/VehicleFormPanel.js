@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          VehicleFormPanel.js
  * Purpose:       M365 native form for vehicle create/edit, rendered in detail and add panels.
  *                Uses native M365 inputs; DevExtreme SelectBox only for
@@ -37,7 +37,7 @@ const MOVEMENT_PROFILE_OPTIONS = [
 
 /* ── empty form shape ── */
 const buildFormData = (v) => ({
-    hyoungNo: v?.hyoungNo || "",
+    vehicleCode: v?.vehicleCode || "",
     numberPlate: v?.numberPlate || "",
     yom: v?.yom || "",
     vehicleTypeId: v?.vehicleTypeId ?? v?.VehicleTypeId ?? v?.vehicleType?.id ?? null,
@@ -304,7 +304,7 @@ const VehicleFormPanel = ({
     /* ── Validation ── */
     const validate = () => {
         const e = {};
-        if (!form.hyoungNo?.trim()) e.hyoungNo = "Hyoung No is required";
+        if (!form.vehicleCode?.trim()) e.vehicleCode = "Tenacy No is required";
         if (
             form.fuelTankCapacity === null ||
             form.fuelTankCapacity === undefined ||
@@ -338,20 +338,20 @@ const VehicleFormPanel = ({
                 <M365SectionCard title="Basic Information">
                     <div className="tw-space-y-4">
                         <div className="tw-grid tw-grid-cols-2 tw-gap-4">
-                            {/* Hyoung No */}
+                            {/* Tenacy No */}
                             <div>
                                 <label className="m365-field__label">
-                                    Hyoung No <span style={{ color: "#d13438" }}>*</span>
+                                    Tenacy No <span style={{ color: "#d13438" }}>*</span>
                                 </label>
                                 <input
-                                    className={`m365-input${errors.hyoungNo ? " m365-input--error" : ""}`}
+                                    className={`m365-input${errors.vehicleCode ? " m365-input--error" : ""}`}
                                     placeholder="Enter company registration number"
-                                    value={form.hyoungNo}
-                                    onChange={(e) => set("hyoungNo", e.target.value)}
+                                    value={form.vehicleCode}
+                                    onChange={(e) => set("vehicleCode", e.target.value)}
                                     maxLength={50}
                                 />
-                                {errors.hyoungNo && (
-                                    <span className="m365-field__error">{errors.hyoungNo}</span>
+                                {errors.vehicleCode && (
+                                    <span className="m365-field__error">{errors.vehicleCode}</span>
                                 )}
                             </div>
 

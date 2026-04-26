@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetVehicleConsumptionRecordDetailQuery.cs
  * Purpose: Retrieves a single raw vehicle consumption row with vehicle and site context for drill-down details.
  * Dependencies: GpsdataContext, VehicleConsumptionRecordDetailDto, MediatR, EF Core
@@ -80,7 +80,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             {
                 Id = record.Id,
                 VehicleId = record.VehicleId,
-                HyoungNo = record.Vehicle.HyoungNo ?? string.Empty,
+                VehicleCode = record.Vehicle.VehicleCode ?? string.Empty,
                 NumberPlate = record.Vehicle.NumberPlate ?? string.Empty,
                 VehicleTypeName = record.Vehicle.VehicleType != null ? record.Vehicle.VehicleType.Name : "Unknown",
                 VehicleModelName = record.Vehicle.VehicleModel != null ? record.Vehicle.VehicleModel.Name : string.Empty,

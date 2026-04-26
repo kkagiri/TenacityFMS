@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DataSourceManager.VehicleTrips.Duration.cs
  * Purpose: Provides average trip-duration snapshot and trend builders for trip-management dashboard widgets.
  * Dependencies: GpsdataContext, VehicleTripGroup, DataSourceMetadata
@@ -63,7 +63,7 @@ namespace FMS.Application.Services.Dashboard
                     .Where(vehicle => vehicleIds.Contains(vehicle.VehicleId))
                     .ToDictionaryAsync(
                         vehicle => vehicle.VehicleId,
-                        vehicle => BuildVehicleDisplayName(vehicle.HyoungNo, vehicle.NumberPlate, vehicle.VehicleId));
+                        vehicle => BuildVehicleDisplayName(vehicle.VehicleCode, vehicle.NumberPlate, vehicle.VehicleId));
 
             var rows = vehicleAverages
                 .Select(item =>

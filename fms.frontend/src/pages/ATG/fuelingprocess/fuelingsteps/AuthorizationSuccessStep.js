@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 /**
  * AuthorizationSuccessStep.js
@@ -48,10 +48,10 @@ const AuthorizationSuccessStep = ({
                     <p className="tw-font-semibold tw-text-gray-900">{displayDetails.numberPlate}</p>
                   </div>
                 )}
-                {displayDetails.hyoungNo && (
+                {displayDetails.vehicleCode && (
                   <div>
-                    <span className="tw-text-gray-600 tw-text-sm">Hyoung No:</span>
-                    <p className="tw-font-semibold tw-text-gray-900">{displayDetails.hyoungNo}</p>
+                    <span className="tw-text-gray-600 tw-text-sm">Tenacy No:</span>
+                    <p className="tw-font-semibold tw-text-gray-900">{displayDetails.vehicleCode}</p>
                   </div>
                 )}
               </div>

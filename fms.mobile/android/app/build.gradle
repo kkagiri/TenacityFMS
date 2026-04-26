@@ -1,4 +1,4 @@
-apply plugin: "com.android.application"
+﻿apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
 
 /**
@@ -73,7 +73,7 @@ android {
 
     compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace "com.Hyoung"
+    namespace "com.Tenacy"
 
     buildFeatures {
         buildConfig true
@@ -85,7 +85,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.Hyoung"
+        applicationId "com.Tenacy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 126

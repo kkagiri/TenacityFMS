@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,9 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("user_notification_preference")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("user_notification_preference");
 
                 // Indexes
                 builder.HasIndex(e => e.UserId, "IX_UserNotificationPreference_UserId");
@@ -33,7 +31,6 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // Properties
                 builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
                     .ValueGeneratedOnAdd();
 
                 builder.Property(e => e.UserId)
@@ -54,11 +51,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.Priority)
                     .HasMaxLength(20);
 
-                builder.Property(e => e.QuietHoursStart)
-                    .HasColumnType("time");
+                builder.Property(e => e.QuietHoursStart);
 
-                builder.Property(e => e.QuietHoursEnd)
-                    .HasColumnType("time");
+                builder.Property(e => e.QuietHoursEnd);
 
                 builder.Property(e => e.MaxNotificationsPerHour)
                     .HasDefaultValue(0);
@@ -117,3 +112,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

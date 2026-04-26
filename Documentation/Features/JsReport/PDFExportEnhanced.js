@@ -1,4 +1,4 @@
-// Enhanced PDF Export Function with Professional Layout
+﻿// Enhanced PDF Export Function with Professional Layout
 // This function will replace the existing onExportToPDF function
 
 const enhancedPDFExport = useCallback(() => {
@@ -28,10 +28,10 @@ const generatePDFReport = useCallback((selectedCols) => {
 
         // Set up document properties
         doc.setProperties({
-            title: 'HYoung FMS - Pump Transactions Report',
+            title: 'Tenacy FMS - Pump Transactions Report',
             subject: 'Pump Transactions Report',
             author: user?.userName || user?.email || 'FMS User',
-            creator: 'HYoung Fuel Management System'
+            creator: 'Tenacy Fuel Management System'
         });
 
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -43,7 +43,7 @@ const generatePDFReport = useCallback((selectedCols) => {
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(0, 51, 153); // Blue color
-            doc.text('HYoung', 15, 15);
+            doc.text('Tenacy', 15, 15);
 
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
@@ -305,7 +305,7 @@ const generatePDFReport = useCallback((selectedCols) => {
         // Generate filename with timestamp
         const now = new Date();
         const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
-        const filename = `HYoung_FMS_Pump_Transactions_${timestamp}.pdf`;
+        const filename = `TenacyFMS_Pump_Transactions_${timestamp}.pdf`;
 
         // Save the PDF
         doc.save(filename);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -465,7 +465,7 @@ namespace FMS.Testing.FuelAudit
             var vehicle = new Vehicle
             {
                 VehicleId = vehicleId,
-                HyoungNo = $"TEST-{vehicleId}",
+                VehicleCode = $"TEST-{vehicleId}",
                 DeviceId = int.Parse(externalDeviceId) // Legacy fallback
             };
             _context.Vehicles.Add(vehicle);

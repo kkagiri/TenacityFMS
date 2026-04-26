@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          VehicleDataGrid.js
  * Purpose:       Renders the vehicle fleet DataGrid with CSV export, column chooser, refresh, and row selection actions.
  * Dependencies:  React, Redux, DevExtreme DataGrid, file-saver
@@ -572,10 +572,10 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           />
 
           <Column
-            dataField="hyoungNo"
+            dataField="vehicleCode"
             allowHiding={false}
             fixed={true}
-            caption="Hyoung No"
+            caption="Tenacy No"
             allowEditing={false}
             minWidth={120}
           >
@@ -803,7 +803,7 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
         onHiding={() => setShowTagForm(false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Assign RFID Tag to Vehicle ${selectedVehicle?.hyoungNo}`}
+        title={`Assign RFID Tag to Vehicle ${selectedVehicle?.vehicleCode}`}
         width="auto"
         height="auto"
         showCloseButton={true}

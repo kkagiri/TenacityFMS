@@ -142,7 +142,7 @@ public class RejectTransferCommandHandler : IRequestHandler<RejectTransferComman
   <h3>Vehicle Transfer Rejected</h3>
   <p>Transfer #{transfer.DeliveryNoteNumber ?? transfer.TransferId.ToString()} was rejected and moved back to Draft.</p>
   <p><strong>Reason:</strong> {reason}</p>
-  <p><strong>Vehicle:</strong> {transfer.Vehicle?.HyoungNo}</p>
+  <p><strong>Vehicle:</strong> {transfer.Vehicle?.VehicleCode}</p>
   <p><strong>From:</strong> {transfer.FromSite?.Name} <strong>To:</strong> {transfer.ToSite?.Name}</p>
 </body></html>";
     }

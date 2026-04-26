@@ -1,6 +1,6 @@
-# 📦 Hyoung FMS - Deployment & Documentation
+﻿# 📦 Tenacy FMS - Deployment & Documentation
 
-This folder contains all CI/CD deployment scripts and documentation for Hyoung FMS.
+This folder contains all CI/CD deployment scripts and documentation for Tenacy FMS.
 
 ---
 
@@ -26,7 +26,7 @@ notepad START_HERE.md
 
 | Script | Purpose | When to Use |
 |--------|---------|-------------|
-| `setup-iis-hyoungfms.ps1` | One-time IIS configuration | Already done ✓ |
+| `setup-iis-tenacyfms.ps1` | One-time IIS configuration | Already done ✓ |
 | `control-iis.ps1` | IIS management | Start/stop/restart/status |
 | `deploy-alternative.ps1` | Manual deployment (folder swap) | **Recommended for testing** |
 | `deploy-manual.ps1` | Manual deployment (direct) | Alternative method |
@@ -52,16 +52,16 @@ notepad START_HERE.md
 ## 🎯 Important Paths
 
 ```
-Development Workspace:  C:\dev\Hyoung.FMS
+Development Workspace:  C:\dev\Tenacy.FMS
     └── Work here, commit & push from here
 
-Runner Workspace:       C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+Runner Workspace:       C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
     └── Temporary, used during CI/CD only
 
-IIS Backend:            C:\inetpub\wwwroot\hyoungFMS\webAPI
+IIS Backend:            C:\inetpub\wwwroot\tenacyFMS\webAPI
     └── Production backend (port 7009)
 
-IIS Frontend:           C:\inetpub\wwwroot\hyoungFMS\reactApp
+IIS Frontend:           C:\inetpub\wwwroot\tenacyFMS\reactApp
     └── Production frontend (port 80)
 
 Deployment Docs:        C:\dev\deployment
@@ -78,10 +78,10 @@ These are configured in `.github/workflows/deploy-to-iis.yml`:
 env:
   BACKEND_PROJECT: 'FMS.WebClient/FMS.WebClient.csproj'
   FRONTEND_PATH: 'fms.frontend'
-  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\webAPI'
-  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\hyoungFMS\reactApp'
-  BACKEND_APPPOOL: 'HyoungFMS.WebAPI'
-  FRONTEND_APPPOOL: 'HyoungFMS.ReactApp'
+  IIS_BACKEND_PATH: 'C:\inetpub\wwwroot\tenacyFMS\webAPI'
+  IIS_FRONTEND_PATH: 'C:\inetpub\wwwroot\tenacyFMS\reactApp'
+  BACKEND_APPPOOL: 'TenacyFMS.WebAPI'
+  FRONTEND_APPPOOL: 'TenacyFMS.ReactApp'
 ```
 
 ---
@@ -203,7 +203,7 @@ Done! Total: ~5 minutes, 26 seconds downtime
 
 ### Need to Rollback?
 ```powershell
-cd C:\inetpub\wwwroot\hyoungFMS
+cd C:\inetpub\wwwroot\tenacyFMS
 Rename-Item webAPI webAPI_broken
 Rename-Item webAPI_old webAPI
 .\control-iis.ps1 -Restart
@@ -233,7 +233,7 @@ After running setup:
 
 Next steps:
 - [ ] Test manual deployment
-- [ ] Setup dev workspace at C:\dev\Hyoung.FMS
+- [ ] Setup dev workspace at C:\dev\Tenacy.FMS
 - [ ] Enable CI/CD by committing workflow
 
 ---
@@ -246,5 +246,5 @@ All documentation is in this folder. Start with **START_HERE.md** and follow the
 
 **Location:** C:\dev\deployment  
 **Last Updated:** October 7, 2025  
-**Repository:** https://github.com/kagz100/Hyoung.FMS  
+**Repository:** https://github.com/kagz100/Tenacy.FMS  
 **Branch:** productionv1

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { Popup } from "devextreme-react/popup";
 import { SelectBox } from "devextreme-react/select-box";
 import { NumberBox } from "devextreme-react/number-box";
@@ -196,7 +196,7 @@ const FuelingRulePopup = ({
             <div className="tw-text-sm">
               <span className="tw-text-gray-500">Registration:</span>
               <span className="tw-font-medium tw-ml-2 tw-break-all">
-                {vehicleData?.regNumber || vehicleData?.hyoungNo || "N/A"}
+                {vehicleData?.regNumber || vehicleData?.vehicleCode || "N/A"}
               </span>
             </div>
 

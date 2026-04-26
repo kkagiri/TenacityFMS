@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -68,7 +68,7 @@ public class PTSDeviceLocationSettingsDTO
 public class VehicleLocationSettingsDTO
 {
     public int VehicleId { get; set; }
-    public string HyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
     public string? VehicleTypeName { get; set; }
     public bool HasGPSInstalled { get; set; }
@@ -136,7 +136,7 @@ public class GetLocationSettingsOverviewQueryHandler : IRequestHandler<GetLocati
                 .Select(v => new VehicleLocationSettingsDTO
                 {
                     VehicleId = v.VehicleId,
-                    HyoungNo = v.HyoungNo ?? string.Empty,
+                    VehicleCode = v.VehicleCode ?? string.Empty,
                     NumberPlate = v.NumberPlate,
                     VehicleTypeName = v.VehicleType != null ? v.VehicleType.Name : null,
                     HasGPSInstalled = v.HasGPSInstalled == 1,
@@ -144,7 +144,7 @@ public class GetLocationSettingsOverviewQueryHandler : IRequestHandler<GetLocati
                     IsCompanyVehicle = v.IsCompanyVehicle == 1
                 })
                 .OrderByDescending(v => v.HasGPSInstalled)
-                .ThenBy(v => v.HyoungNo)
+                .ThenBy(v => v.VehicleCode)
                 .ToListAsync(cancellationToken);
 
             var result = new LocationSettingsOverviewDTO

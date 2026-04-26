@@ -54,7 +54,7 @@ namespace FMS.Application.Features.VehicleTracking.Commands.AssignVehicleToProvi
 
                 var vehicle = await _context.Vehicles
                     .Where(v => v.VehicleId == request.VehicleId)
-                    .Select(v => new { v.VehicleId, v.HasGPSInstalled, v.HyoungNo })
+                    .Select(v => new { v.VehicleId, v.HasGPSInstalled, v.VehicleCode })
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (vehicle == null)
@@ -64,13 +64,13 @@ namespace FMS.Application.Features.VehicleTracking.Commands.AssignVehicleToProvi
 
                 if (vehicle.HasGPSInstalled != 1)
                 {
-                    return FMSResponse<bool>.Failed($"Vehicle {vehicle.HyoungNo} does not have GPS installed");
+                    return FMSResponse<bool>.Failed($"Vehicle {vehicle.VehicleCode} does not have GPS installed");
                 }
 
                 if (string.IsNullOrWhiteSpace(request.ExternalDeviceId))
                 {
                     return FMSResponse<bool>.Failed(
-                        $"Vehicle {vehicle.HyoungNo} requires an external device ID. " +
+                        $"Vehicle {vehicle.VehicleCode} requires an external device ID. " +
                         "Provide VehicleProviderMapping.ExternalDeviceId in the request.");
                 }
 
@@ -87,10 +87,10 @@ namespace FMS.Application.Features.VehicleTracking.Commands.AssignVehicleToProvi
 
                 _logger.LogInformation(
                     "Successfully assigned vehicle {VehicleId} ({VehicleName}) to provider {ProviderName} with device ID {DeviceId}",
-                    request.VehicleId, vehicle.HyoungNo, provider.Name, request.ExternalDeviceId);
+                    request.VehicleId, vehicle.VehicleCode, provider.Name, request.ExternalDeviceId);
 
                 return FMSResponse<bool>.Success(true,
-                    $"Vehicle {vehicle.HyoungNo} assigned to provider {provider.DisplayName} successfully");
+                    $"Vehicle {vehicle.VehicleCode} assigned to provider {provider.DisplayName} successfully");
             }
             catch (Exception ex)
             {

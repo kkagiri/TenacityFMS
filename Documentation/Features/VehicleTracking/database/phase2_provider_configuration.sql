@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Vehicle Tracking Provider Configuration System - Database Schema
 -- Phase 2 Implementation
 -- MySQL 8.0+
@@ -177,7 +177,7 @@ CREATE OR REPLACE VIEW `v_vehicle_provider_assignments` AS
 SELECT 
     vpm.`vehicle_id`,
     v.`VehicleNo` AS `vehicle_number`,
-    v.`Hyoung_No` AS `hyoung_number`,
+    v.`Tenacy_No` AS `vehicle_code`,
     pc.`name` AS `provider_name`,
     pc.`display_name` AS `provider_display_name`,
     vpm.`external_device_id`,

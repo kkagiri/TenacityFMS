@@ -19,84 +19,60 @@ public class EmployeeDocumentConfiguration : IEntityTypeConfiguration<EmployeeDo
         builder.HasKey(document => document.Id);
 
         builder.Property(document => document.Id)
-            .HasColumnName("Id")
             .HasColumnType("CHAR(36)")
             .IsRequired();
 
         builder.Property(document => document.EmployeeId)
-            .HasColumnName("EmployeeId")
-            .HasColumnType("INT")
             .IsRequired();
 
         builder.Property(document => document.DocumentType)
-            .HasColumnName("DocumentType")
-            .HasColumnType("INT")
             .IsRequired();
 
         builder.Property(document => document.DocumentNumber)
-            .HasColumnName("DocumentNumber")
-            .HasColumnType("VARCHAR(100)")
+            .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(document => document.IssueDate)
-            .HasColumnName("IssueDate")
-            .HasColumnType("DATETIME")
             .IsRequired();
 
         builder.Property(document => document.ExpiryDate)
-            .HasColumnName("ExpiryDate")
-            .HasColumnType("DATETIME")
             .IsRequired();
 
         builder.Property(document => document.AlertLeadDays)
-            .HasColumnName("AlertLeadDays")
-            .HasColumnType("INT")
             .HasDefaultValue(30)
             .IsRequired();
 
         builder.Property(document => document.IssuingAuthority)
-            .HasColumnName("IssuingAuthority")
-            .HasColumnType("VARCHAR(200)")
+            .HasMaxLength(200)
             .IsRequired(false);
 
         builder.Property(document => document.Notes)
-            .HasColumnName("Notes")
-            .HasColumnType("VARCHAR(1000)")
+            .HasMaxLength(1000)
             .IsRequired(false);
 
         builder.Property(document => document.DocumentFileName)
-            .HasColumnName("DocumentFileName")
-            .HasColumnType("VARCHAR(255)")
+            .HasMaxLength(255)
             .IsRequired(false);
 
         builder.Property(document => document.DocumentFileUrl)
-            .HasColumnName("DocumentFileUrl")
-            .HasColumnType("VARCHAR(500)")
+            .HasMaxLength(500)
             .IsRequired(false);
 
         builder.Property(document => document.Status)
-            .HasColumnName("Status")
-            .HasColumnType("INT")
             .IsRequired();
 
         builder.Property(document => document.CreatedAt)
-            .HasColumnName("CreatedAt")
-            .HasColumnType("DATETIME")
             .IsRequired();
 
         builder.Property(document => document.CreatedBy)
-            .HasColumnName("CreatedBy")
-            .HasColumnType("VARCHAR(100)")
+            .HasMaxLength(100)
             .IsRequired();
 
         builder.Property(document => document.UpdatedAt)
-            .HasColumnName("UpdatedAt")
-            .HasColumnType("DATETIME")
             .IsRequired(false);
 
         builder.Property(document => document.UpdatedBy)
-            .HasColumnName("UpdatedBy")
-            .HasColumnType("VARCHAR(100)")
+            .HasMaxLength(100)
             .IsRequired(false);
 
         builder.HasIndex(document => document.EmployeeId)

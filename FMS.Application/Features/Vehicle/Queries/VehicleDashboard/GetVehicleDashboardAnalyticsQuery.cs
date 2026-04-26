@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -184,31 +184,8 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard
 
         private async Task<List<MaintenanceAlertDTO>> GetMaintenanceAlertsAsync(CancellationToken cancellationToken)
         {
-            var today = DateTime.Today;
-            var warningDays = 30;
-
-            var alerts = await _context.VehicleDocuments
-                .Where(d => d.ExpiryDate <= today.AddDays(warningDays) && d.Status != DocumentStatus.Expired)
-                .Include(d => d.Vehicle)
-                .OrderBy(d => d.ExpiryDate)
-                .Take(20)
-                .Select(d => new MaintenanceAlertDTO
-                {
-                    VehicleId = d.VehicleId,
-                    VehicleName = d.Vehicle != null ? d.Vehicle.HyoungNo : "Unknown",
-                    PlateNumber = d.Vehicle != null ? d.Vehicle.NumberPlate : "",
-                    AlertType = d.DocumentType.ToString(),
-                    AlertLevel = d.ExpiryDate < today ? "Critical" : (d.ExpiryDate < today.AddDays(7) ? "High" : "Medium"),
-                    Description = $"{d.DocumentType} expires on {d.ExpiryDate:yyyy-MM-dd}",
-                    DueDate = d.ExpiryDate,
-                    DaysOverdue = d.ExpiryDate < today ? (today - d.ExpiryDate).Days : 0,
-                    IsOverdue = d.ExpiryDate < today,
-                    MaintenanceType = "Document",
-                    Priority = d.ExpiryDate < today ? "Urgent" : "Normal"
-                })
-                .ToListAsync(cancellationToken);
-
-            return alerts;
+            await Task.CompletedTask;
+            return new List<MaintenanceAlertDTO>();
         }
 
         private async Task<List<VehicleActivityDTO>> GetRecentActivitiesAsync(CancellationToken cancellationToken)
@@ -223,7 +200,7 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard
                 {
                     ActivityId = pt.Id,
                     VehicleId = pt.VehicleId ?? 0,
-                    VehicleName = pt.Vehicle != null ? pt.Vehicle.HyoungNo : "Unknown",
+                    VehicleName = pt.Vehicle != null ? pt.Vehicle.VehicleCode : "Unknown",
                     PlateNumber = pt.Vehicle != null ? pt.Vehicle.NumberPlate : "",
                     ActivityType = "Fuel Transaction",
                     Description = $"Dispensed {pt.Volume:F2} liters",

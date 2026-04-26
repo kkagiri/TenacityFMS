@@ -18,14 +18,12 @@ import StockManagement from "./management/StockManagement";
 import AutomaticTankStockMain from "./automatic/AutomaticTankStockMain";
 import TankStockSettings from "./settings/TankStockSettings";
 import ReconciliationMain from "../reconciliation/ReconciliationMain";
-import FuelDataComparisonMain from "./fueldatacomparison/FuelDataComparisonMain";
 import FuelAuditMain from "./fuelAudit/FuelAuditMain";
 import VolumeCorrectionMain from "../tankManagement/volumeCorrection/VolumeCorrectionMain";
 import withPermissionProtection from "../../utils/withPermissionProtection";
 
 const AdminStockAnalytics = withPermissionProtection(StockAnalytics, ["_Read_TankStock"]);
 const AdminReconciliationMain = withPermissionProtection(ReconciliationMain, ["_Read_TankStock"]);
-const AdminFuelDataComparisonMain = withPermissionProtection(FuelDataComparisonMain, ["_Read_FuelComparison", "_Read_TankStock"]);
 const AdminFuelAuditMain = withPermissionProtection(FuelAuditMain, ["_Read_FuelAudit", "_Read_TankStock"]);
 const AdminVolumeCorrectionMain = withPermissionProtection(VolumeCorrectionMain, ["_Read_TankStock"]);
 
@@ -47,10 +45,6 @@ const TankStockMain = () => {
             <Route path="/automatic-tank-stock/*" element={<AutomaticTankStockMain />} />
             <Route path="/reconciliation" element={<AdminReconciliationMain />} />
 
-            <Route
-              path="/fueldatacomparison/*"
-              element={<AdminFuelDataComparisonMain />}
-            />
             <Route path="/fuel-audit/*" element={<AdminFuelAuditMain />} />
             <Route path="/volume-correction/*" element={<AdminVolumeCorrectionMain />} />
             <Route path="/settings" element={<TankStockSettings />} />

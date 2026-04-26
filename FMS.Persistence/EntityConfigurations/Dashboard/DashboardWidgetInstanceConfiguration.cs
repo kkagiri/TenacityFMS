@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Dashboard;
+﻿using FMS.Domain.Entities.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,8 +8,7 @@ namespace FMS.Persistence.EntityConfigurations
     {
         public override void Configure(EntityTypeBuilder<DashboardWidgetInstance> builder)
         {
-            builder.ToTable("dashboard_widget_instance")
-                .HasCharSet("utf8mb4").UseCollation("utf8mb4_general_ci");
+            builder.ToTable("dashboard_widget_instance");
 
             builder.HasKey(x => x.Id).HasName("PRIMARY");
 
@@ -23,7 +22,7 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(x => x.DataSource).HasMaxLength(50).IsRequired();
 
             // Configuration and metadata
-            builder.Property(x => x.ConfigurationJson).HasColumnType("longtext").IsRequired();
+            builder.Property(x => x.ConfigurationJson).IsRequired();
             builder.Property(x => x.IsCustomWidget).HasDefaultValue(false);
 
             // Layout properties
@@ -62,3 +61,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: transactionExportUtils.js
  * Purpose: Utility functions for exporting transaction data to Excel with proper formatting
  * Last Modified: 2025-11-24
@@ -74,7 +74,7 @@ export const exportTransactionsToExcel = async ({
   // Add title row
   worksheet.mergeCells('A1:K1');
   const titleRow = worksheet.getCell('A1');
-  titleRow.value = 'HYOUNG FUEL TRANSACTION LEDGER';
+  titleRow.value = 'TENACY FUEL TRANSACTION LEDGER';
   titleRow.font = {
     name: 'Calibri',
     size: 16,
@@ -235,7 +235,7 @@ export const exportTransactionsToExcel = async ({
   });
 
   // Generate filename with date range
-  const filename = `Hyoung_Fuel_Transaction_Ledger_${startDateFormatted}_to_${endDateFormatted}.xlsx`;
+  const filename = `Tenacy_Fuel_Transaction_Ledger_${startDateFormatted}_to_${endDateFormatted}.xlsx`;
 
   // Save file
   const buffer = await workbook.xlsx.writeBuffer();

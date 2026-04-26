@@ -1,4 +1,4 @@
-# Tank Stock Bulk Import - Quick Reference Guide
+﻿# Tank Stock Bulk Import - Quick Reference Guide
 
 ## 🎯 Overview
 
@@ -378,7 +378,7 @@ if (variance > tolerance && variance > 20) {
 
 ```bash
 # 1. Build backend
-dotnet build Hyoung.Fms.sln --configuration Release
+dotnet build Tenacy.Fms.sln --configuration Release
 
 # 2. Run tests
 dotnet test

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: LocationBypassHistoryView.js
  * Purpose: View component for displaying location bypass history with filtering
  * Dependencies: DevExtreme, geofenceService
@@ -309,7 +309,7 @@ const LocationBypassHistoryView = ({ onHeaderActionsChange = null }) => {
             width={150}
             cellRender={(cellData) =>
               cellData.data.bypassType === "Vehicle"
-                ? cellData.value || cellData.data.vehicleHyoungNo || "-"
+                ? cellData.value || cellData.data.vehicleCode || "-"
                 : "-"
             }
           />

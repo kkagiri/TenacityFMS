@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -120,12 +120,12 @@ public class LocationBypassMonitorService : BackgroundService
                 {
                     Type = "Vehicle",
                     Id = bypass.VehicleId ?? 0,
-                    Label = bypass.Vehicle?.HyoungNo ?? $"Vehicle {bypass.VehicleId}"
+                    Label = bypass.Vehicle?.VehicleCode ?? $"Vehicle {bypass.VehicleId}"
                 });
 
                 _logger.LogInformation(
                     "Vehicle bypass expired for Vehicle {VehicleId} ({VehicleName})",
-                    bypass.VehicleId, bypass.Vehicle?.HyoungNo);
+                    bypass.VehicleId, bypass.Vehicle?.VehicleCode);
 
                 statusChanged = true;
             }
@@ -302,8 +302,8 @@ public class LocationBypassMonitorService : BackgroundService
             {
                 id = b.Id,
                 vehicleId = b.VehicleId,
-                vehicleName = b.Vehicle?.HyoungNo,
-                vehicleHyoungNo = b.Vehicle?.HyoungNo,
+                vehicleName = b.Vehicle?.VehicleCode,
+                vehicleCode = b.Vehicle?.VehicleCode,
                 isActive = true,
                 expiresAt = b.ExpiresAt,
                 reason = b.Reason,

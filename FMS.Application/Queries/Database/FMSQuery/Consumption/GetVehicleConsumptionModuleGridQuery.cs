@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetVehicleConsumptionModuleGridQuery.cs
  * Purpose: Retrieves raw vehicle consumption rows for the vehicle consumption module grid.
  * Dependencies: GpsdataContext, VehicleConsumptionGridItemDto, MediatR, EF Core
@@ -88,12 +88,12 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
             var results = await query
                 .OrderByDescending(record => record.Date)
-                .ThenBy(record => record.Vehicle.HyoungNo)
+                .ThenBy(record => record.Vehicle.VehicleCode)
                 .Select(record => new VehicleConsumptionGridItemDto
                 {
                     Id = record.Id,
                     VehicleId = record.VehicleId,
-                    HyoungNo = record.Vehicle.HyoungNo ?? string.Empty,
+                    VehicleCode = record.Vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = record.Vehicle.NumberPlate ?? string.Empty,
                     VehicleTypeId = record.Vehicle.VehicleTypeId ?? 0,
                     VehicleTypeName = record.Vehicle.VehicleType != null ? record.Vehicle.VehicleType.Name : "Unknown",

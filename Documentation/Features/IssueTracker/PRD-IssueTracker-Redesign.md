@@ -1,4 +1,4 @@
-# Product Requirements Document (PRD)
+﻿# Product Requirements Document (PRD)
 # Issue Tracker System Redesign
 
 **Document Version:** 1.0
@@ -604,7 +604,7 @@ public async Task OnAlarmCleared(int alarmId)
 | Placeholder       | Description                    |
 |-------------------|--------------------------------|
 | {VehicleName}     | Vehicle registration/name      |
-| {VehicleHyoungNo} | Hyoung vehicle number          |
+| {VehicleCode} | Tenacy vehicle number          |
 | {SiteName}        | Site name                      |
 | {TankName}        | Tank name (for ATG)            |
 | {DeviceName}      | Device identifier              |

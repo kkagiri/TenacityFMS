@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
-using HyoungFMS.Deployment.Models;
+using TenacyFMS.Deployment.Models;
 
-namespace HyoungFMS.Deployment.Interfaces
+namespace TenacyFMS.Deployment.Interfaces
 {
     /// <summary>
     /// Interface for sending deployment notifications

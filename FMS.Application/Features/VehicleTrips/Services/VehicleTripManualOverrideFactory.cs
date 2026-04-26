@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTripManualOverrideFactory.cs
  * Purpose: Builds mutable trip models, persisted override entities, detail snapshots, and standard responses.
  * Dependencies: Vehicle trip entities and trip DTOs.
@@ -215,7 +215,7 @@ public static class VehicleTripManualOverrideFactory
             VehicleTripGroupId = group.VehicleTripGroupId,
             VehicleId = group.VehicleId,
             VehicleLabel = group.Vehicle != null
-                ? (!string.IsNullOrWhiteSpace(group.Vehicle.NumberPlate) ? $"{group.Vehicle.HyoungNo} / {group.Vehicle.NumberPlate}" : group.Vehicle.HyoungNo)
+                ? (!string.IsNullOrWhiteSpace(group.Vehicle.NumberPlate) ? $"{group.Vehicle.VehicleCode} / {group.Vehicle.NumberPlate}" : group.Vehicle.VehicleCode)
                 : string.Empty,
             NumberPlate = group.Vehicle?.NumberPlate,
             TripDate = group.TripDate,

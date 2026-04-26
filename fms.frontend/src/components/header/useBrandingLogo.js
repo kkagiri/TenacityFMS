@@ -1,7 +1,7 @@
-/**
+﻿/**
  * File: useBrandingLogo.js
  * Purpose: Resolves the shared header logo from SystemConfiguration with a bundled fallback asset.
- * Dependencies: react, axiosInstance, logoHyoung
+ * Dependencies: react, axiosInstance, logoTenacy
  * Last Modified: 2026-03-30
  *
  * Key Functions:
@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
-import logoHyoung from "../../assets/logoHyoung.png";
+import logoTenacy from "../../assets/logoTenacy.png";
 
 const BRANDING_LOGO_KEYS = [
     "Branding.HeaderLogo",
@@ -142,7 +142,7 @@ const resolveConfiguredBrandingLogo = (configurations) => {
 };
 
 export default function useBrandingLogo() {
-    const [logoSrc, setLogoSrc] = useState(logoHyoung);
+    const [logoSrc, setLogoSrc] = useState(logoTenacy);
 
     useEffect(() => {
         let isMounted = true;
@@ -176,7 +176,7 @@ export default function useBrandingLogo() {
             }
 
             if (isMounted) {
-                setLogoSrc(logoHyoung);
+                setLogoSrc(logoTenacy);
             }
         };
 

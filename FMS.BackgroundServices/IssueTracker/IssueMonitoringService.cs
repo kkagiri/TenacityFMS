@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueMonitoringService.cs
  * Purpose: Runs automated issue monitoring checks and creates issues for offline/suspicious devices.
  * Dependencies: GpsdataContext, ISystemConfigurationService, IGPSService, IIssueActivityService, IEventExpressionEngine
@@ -299,7 +299,7 @@ namespace FMS.BackgroundServices.IssueTracker
                     try
                     {
                         var vehicle = mapping.Vehicle!;
-                        var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
+                        var vehicleName = vehicle.VehicleCode ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
 
                         // Skip if there's already an open issue or recently-closed issue (cooldown) for this vehicle+template
                         var existingIssue = await HasOpenIssueForDevice(
@@ -426,7 +426,7 @@ namespace FMS.BackgroundServices.IssueTracker
                     .Include(m => m.Vehicle)
                     .Where(m => m.IsActive && m.Vehicle != null
                              && m.Vehicle.IsActive.HasValue && m.Vehicle.IsActive.Value == 1)
-                    .Select(m => new { m.Vehicle!.VehicleId, m.Vehicle.HyoungNo, m.Vehicle.NumberPlate, m.Vehicle.WorkingSiteId, m.Vehicle.VehicleStatusValue })
+                    .Select(m => new { m.Vehicle!.VehicleId, m.Vehicle.VehicleCode, m.Vehicle.NumberPlate, m.Vehicle.WorkingSiteId, m.Vehicle.VehicleStatusValue })
                     .ToListAsync(cancellationToken);
 
                 if (!gpsVehicles.Any())
@@ -523,7 +523,7 @@ namespace FMS.BackgroundServices.IssueTracker
                         if (existingIssue)
                             continue;
 
-                        var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
+                        var vehicleName = vehicle.VehicleCode ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
                         var vehicleStatusLabel = vehicle.VehicleStatusValue switch
                         {
                             VehicleStatus.Working => "Working (Active)",
@@ -1052,7 +1052,7 @@ namespace FMS.BackgroundServices.IssueTracker
                 {
                     vehicleName = await context.Vehicles
                         .Where(v => v.VehicleId == issue.VehicleId)
-                        .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
+                        .Select(v => v.VehicleCode ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
                         .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
                 }
 
@@ -1205,7 +1205,7 @@ namespace FMS.BackgroundServices.IssueTracker
                                 <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:800px;background-color:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);"">
                                         <tr>
                                                 <td style=""background-color:#1e293b;padding:24px 32px;"">
-                                                        <h1 style=""margin:0;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;"">Hyoung FMS</h1>
+                                                        <h1 style=""margin:0;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;"">Tenacy FMS</h1>
                                                         <p style=""margin:4px 0 0 0;font-size:14px;color:#94a3b8;"">Fleet Management Notification</p>
                                                 </td>
                                         </tr>
@@ -1261,7 +1261,7 @@ namespace FMS.BackgroundServices.IssueTracker
                                         <tr>
                                                 <td style=""padding:24px 32px;background-color:#f8fafc;border-top:1px solid #e2e8f0;"">
                                                         <p style=""margin:0;font-size:13px;color:#64748b;line-height:1.5;text-align:center;"">
-                                                                This is an automated message from Hyoung FMS. Please do not reply directly to this email.
+                                                                This is an automated message from Tenacy FMS. Please do not reply directly to this email.
                                                         </p>
                                                 </td>
                                         </tr>

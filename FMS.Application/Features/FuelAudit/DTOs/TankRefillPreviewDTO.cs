@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.FuelAudit.DTOs
@@ -20,7 +20,7 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public int VehicleId { get; set; }
 
         /// <summary>
-        /// Vehicle number/plate (HyoungNo)
+        /// Vehicle number/plate (VehicleCode)
         /// </summary>
         public string VehicleNo { get; set; } = string.Empty;
 

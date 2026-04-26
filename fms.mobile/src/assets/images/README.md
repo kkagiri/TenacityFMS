@@ -1,11 +1,11 @@
-# Logo Assets
+﻿# Logo Assets
 
 ## Required Logo File
 
-Please add the Hyoung company logo image to this folder:
+Please add the Tenacy company logo image to this folder:
 
-**File name:** `hyoung-logo.png`
-**Location:** `src/assets/images/hyoung-logo.png`
+**File name:** `tenacy-logo.png`
+**Location:** `src/assets/images/tenacy-logo.png`
 
 ### Recommended Specifications:
 - **Format:** PNG with transparent background
@@ -15,8 +15,8 @@ Please add the Hyoung company logo image to this folder:
 
 ### How to Add the Logo:
 
-1. Copy your logo file (the Hyoung logo with blue "H" icon and black text)
-2. Rename it to `hyoung-logo.png`
+1. Copy your logo file (the Tenacy logo with blue "H" icon and black text)
+2. Rename it to `tenacy-logo.png`
 3. Place it in this folder: `fms.mobile/src/assets/images/`
 4. Rebuild the app: `npm run android`
 

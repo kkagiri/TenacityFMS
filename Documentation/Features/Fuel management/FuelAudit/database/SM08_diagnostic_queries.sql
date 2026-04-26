@@ -1,4 +1,4 @@
--- =============================================================================
+﻿-- =============================================================================
 -- SM08 VEHICLE FUEL AUDIT DIAGNOSTIC QUERIES
 -- Purpose: Investigate GPS data display issues, duplicates, and N/A values
 -- Date: 2025-12-12
@@ -22,7 +22,7 @@
 -- 1.1 Get vehicle details for SM08
 SELECT
     v.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     v.NumberPlate,
     v.WorkingSiteId,
     v.IsActive,
@@ -35,14 +35,14 @@ SELECT
     s.SiteName
 FROM vehicles v
 LEFT JOIN sites s ON v.WorkingSiteId = s.SiteId
-WHERE v.HyoungNo LIKE '%SM08%' OR v.NumberPlate LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%' OR v.NumberPlate LIKE '%SM08%'
 ORDER BY v.VehicleId;
 
 -- 1.2 Get provider mapping for SM08 (modern GPS tracking)
 SELECT
     vpm.Id AS MappingId,
     vpm.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     vpm.ProviderId,
     pc.Name AS ProviderName,
     vpm.ExternalDeviceId AS GPSGateDeviceId,
@@ -53,7 +53,7 @@ SELECT
 FROM vehicle_provider_mappings vpm
 INNER JOIN vehicles v ON vpm.VehicleId = v.VehicleId
 LEFT JOIN provider_configurations pc ON vpm.ProviderId = pc.ProviderId
-WHERE v.HyoungNo LIKE '%SM08%' OR v.NumberPlate LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%' OR v.NumberPlate LIKE '%SM08%'
 ORDER BY vpm.IsActive DESC, vpm.Id;
 
 -- =============================================================================
@@ -65,7 +65,7 @@ SELECT
     gre.Id,
     gre.ReportId,
     gre.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     DATE(gre.DispenseDate) AS RefillDate,
     gre.StartTime,
     gre.Duration,
@@ -79,7 +79,7 @@ SELECT
     gre.CreatedAt
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
   AND gre.IsDeleted = 0
 ORDER BY gre.DispenseDate, gre.StartTime;
@@ -88,7 +88,7 @@ ORDER BY gre.DispenseDate, gre.StartTime;
 SELECT
     DATE(gre.DispenseDate) AS RefillDate,
     gre.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     COUNT(*) AS EntryCount,
     GROUP_CONCAT(gre.RefillVolume ORDER BY gre.StartTime SEPARATOR ', ') AS Volumes,
     GROUP_CONCAT(gre.FuelBefore ORDER BY gre.StartTime SEPARATOR ', ') AS FuelBeforeValues,
@@ -96,10 +96,10 @@ SELECT
     GROUP_CONCAT(TIME(gre.StartTime) ORDER BY gre.StartTime SEPARATOR ', ') AS StartTimes
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
   AND gre.IsDeleted = 0
-GROUP BY DATE(gre.DispenseDate), gre.VehicleId, v.HyoungNo
+GROUP BY DATE(gre.DispenseDate), gre.VehicleId, v.VehicleCode
 HAVING COUNT(*) > 1
 ORDER BY RefillDate;
 
@@ -111,7 +111,7 @@ ORDER BY RefillDate;
 SELECT
     fr.Id AS RefillId,
     fr.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     DATE(fr.Date) AS RefillDate,
     TIME(fr.Date) AS RefillTime,
     fr.ManualFuelrefillAmount AS FuelAmount,
@@ -128,7 +128,7 @@ FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
 LEFT JOIN tanks t ON fr.TankId = t.TankId
 LEFT JOIN sites s ON fr.SiteId = s.SiteId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
   AND fr.IsDeleted = 0
 ORDER BY fr.Date;
@@ -137,17 +137,17 @@ ORDER BY fr.Date;
 SELECT
     DATE(fr.Date) AS RefillDate,
     fr.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     COUNT(*) AS EntryCount,
     SUM(fr.ManualFuelrefillAmount) AS TotalAmount,
     GROUP_CONCAT(fr.ManualFuelrefillAmount ORDER BY fr.Date SEPARATOR ', ') AS Amounts,
     GROUP_CONCAT(TIME(fr.Date) ORDER BY fr.Date SEPARATOR ', ') AS Times
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
   AND fr.IsDeleted = 0
-GROUP BY DATE(fr.Date), fr.VehicleId, v.HyoungNo
+GROUP BY DATE(fr.Date), fr.VehicleId, v.VehicleCode
 HAVING COUNT(*) > 1
 ORDER BY RefillDate;
 
@@ -165,7 +165,7 @@ ORDER BY RefillDate;
 SELECT
         DATE(fr.Date) AS RefillDate,
         fr.VehicleId,
-        v.HyoungNo AS VehicleName,
+        v.VehicleCode AS VehicleName,
         COUNT(*) AS EntryCount,
         SUM(fr.ManualFuelrefillAmount) AS TotalAmount,
         GROUP_CONCAT(fr.Id ORDER BY fr.Date SEPARATOR ', ') AS RefillIds,
@@ -178,7 +178,7 @@ INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
 WHERE fr.Date >= '2025-09-01'
     AND fr.Date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
     AND fr.IsDeleted = 0
-GROUP BY DATE(fr.Date), fr.VehicleId, v.HyoungNo
+GROUP BY DATE(fr.Date), fr.VehicleId, v.VehicleCode
 HAVING COUNT(*) > 1
 ORDER BY RefillDate DESC, VehicleName;
 
@@ -187,7 +187,7 @@ ORDER BY RefillDate DESC, VehicleName;
 SELECT
         DATE(fr.Date) AS RefillDate,
         fr.VehicleId,
-        v.HyoungNo AS VehicleName,
+        v.VehicleCode AS VehicleName,
         fr.ManualFuelrefillAmount AS Amount,
         COUNT(*) AS DuplicateCount,
         GROUP_CONCAT(fr.Id ORDER BY fr.Date SEPARATOR ', ') AS RefillIds,
@@ -197,7 +197,7 @@ INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
 WHERE fr.Date >= '2025-09-01'
     AND fr.Date < DATE_ADD(CURDATE(), INTERVAL 1 DAY)
     AND fr.IsDeleted = 0
-GROUP BY DATE(fr.Date), fr.VehicleId, v.HyoungNo, fr.ManualFuelrefillAmount
+GROUP BY DATE(fr.Date), fr.VehicleId, v.VehicleCode, fr.ManualFuelrefillAmount
 HAVING COUNT(*) > 1
 ORDER BY RefillDate DESC, VehicleName, Amount;
 
@@ -217,7 +217,7 @@ WITH gps_daily AS (
         MAX(gre.FuelAfter) AS GPS_LastFuelAfter
     FROM gpsgate_report_entries gre
     INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
       AND gre.IsDeleted = 0
     GROUP BY DATE(gre.DispenseDate), gre.VehicleId
@@ -231,14 +231,14 @@ manual_daily AS (
         GROUP_CONCAT(fr.ManualFuelrefillAmount ORDER BY fr.Date SEPARATOR ', ') AS Manual_Amounts
     FROM fuelrefill fr
     INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
       AND fr.IsDeleted = 0
     GROUP BY DATE(fr.Date), fr.VehicleId
 )
 SELECT
     COALESCE(g.RefillDate, m.RefillDate) AS Date,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     -- GPS Data
     COALESCE(g.GPS_TotalVolume, 0) AS GPS_Volume,
     COALESCE(g.GPS_FirstFuelBefore, 0) AS GPS_FuelBefore,
@@ -266,7 +266,7 @@ ORDER BY COALESCE(g.RefillDate, m.RefillDate);
 -- 4.2 Alternative for MySQL (no FULL OUTER JOIN support) - LEFT + RIGHT UNION
 SELECT
     COALESCE(g.RefillDate, m.RefillDate) AS Date,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     g.GPS_TotalVolume AS GPS_Volume,
     g.GPS_FirstFuelBefore AS GPS_FuelBefore,
     g.GPS_LastFuelAfter AS GPS_FuelAfter,
@@ -290,7 +290,7 @@ FROM (
         MAX(gre.FuelAfter) AS GPS_LastFuelAfter
     FROM gpsgate_report_entries gre
     INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
       AND gre.IsDeleted = 0
     GROUP BY DATE(gre.DispenseDate), gre.VehicleId
@@ -303,7 +303,7 @@ LEFT JOIN (
         COUNT(*) AS Manual_EntryCount
     FROM fuelrefill fr
     INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
       AND fr.IsDeleted = 0
     GROUP BY DATE(fr.Date), fr.VehicleId
@@ -314,7 +314,7 @@ UNION
 
 SELECT
     COALESCE(g.RefillDate, m.RefillDate) AS Date,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     g.GPS_TotalVolume AS GPS_Volume,
     g.GPS_FirstFuelBefore AS GPS_FuelBefore,
     g.GPS_LastFuelAfter AS GPS_FuelAfter,
@@ -334,7 +334,7 @@ FROM (
         COUNT(*) AS Manual_EntryCount
     FROM fuelrefill fr
     INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
       AND fr.IsDeleted = 0
     GROUP BY DATE(fr.Date), fr.VehicleId
@@ -349,7 +349,7 @@ LEFT JOIN (
         MAX(gre.FuelAfter) AS GPS_LastFuelAfter
     FROM gpsgate_report_entries gre
     INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-    WHERE v.HyoungNo LIKE '%SM08%'
+    WHERE v.VehicleCode LIKE '%SM08%'
       AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
       AND gre.IsDeleted = 0
     GROUP BY DATE(gre.DispenseDate), gre.VehicleId
@@ -402,7 +402,7 @@ ORDER BY r.GeneratedAt DESC;
 SELECT
     DATE(fr.Date) AS RefillDate,
     v.VehicleId,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     SUM(fr.ManualFuelrefillAmount) AS Manual_Amount,
     COUNT(*) AS Manual_Count,
     (
@@ -424,10 +424,10 @@ SELECT
     END AS GPS_Status
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
   AND fr.IsDeleted = 0
-GROUP BY DATE(fr.Date), v.VehicleId, v.HyoungNo
+GROUP BY DATE(fr.Date), v.VehicleId, v.VehicleCode
 ORDER BY RefillDate;
 
 -- =============================================================================
@@ -437,23 +437,23 @@ ORDER BY RefillDate;
 -- 7.1 Check if SM08 has correct ExternalDeviceId in provider mappings
 SELECT
     vpm.*,
-    v.HyoungNo,
+    v.VehicleCode,
     v.DeviceId AS LegacyDeviceId
 FROM vehicle_provider_mappings vpm
 INNER JOIN vehicles v ON vpm.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%';
+WHERE v.VehicleCode LIKE '%SM08%';
 
 -- 7.2 Check all GPS entries for SM08 (including deleted)
 SELECT
     gre.*,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     r.HandleId AS ReportHandle,
     r.StartDate AS ReportStartDate,
     r.EndDate AS ReportEndDate
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
 LEFT JOIN gpsgate_reports r ON gre.ReportId = r.ReportId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
 ORDER BY gre.DispenseDate, gre.StartTime;
 
@@ -465,7 +465,7 @@ ORDER BY gre.DispenseDate, gre.StartTime;
 SELECT
     'GPS' AS Source,
     gre.Id,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     gre.DispenseDate,
     gre.StartTime,
     gre.FuelBefore,
@@ -475,7 +475,7 @@ SELECT
     gre.MatchedManualRefillId
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(gre.DispenseDate) = '2025-09-02'
 
 UNION ALL
@@ -483,7 +483,7 @@ UNION ALL
 SELECT
     'MANUAL' AS Source,
     fr.Id,
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     fr.Date,
     TIME(fr.Date) AS StartTime,
     NULL AS FuelBefore,
@@ -493,7 +493,7 @@ SELECT
     NULL AS MatchedManualRefillId
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(fr.Date) = '2025-09-02'
 
 ORDER BY DispenseDate, StartTime;
@@ -502,7 +502,7 @@ ORDER BY DispenseDate, StartTime;
 SELECT
     'GPS' AS Source,
         gre.Id,
-            v.HyoungNo AS VehicleName,
+            v.VehicleCode AS VehicleName,
                 gre.DispenseDate,
                     gre.StartTime,
                         gre.FuelBefore,
@@ -512,7 +512,7 @@ SELECT
                                         gre.MatchedManualRefillId
                                         FROM gpsgate_report_entries gre
                                         INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-                                        WHERE v.HyoungNo LIKE '%SM08%'
+                                        WHERE v.VehicleCode LIKE '%SM08%'
                                           AND DATE(gre.DispenseDate) = '2025-09-09'
 
                                           UNION ALL
@@ -520,7 +520,7 @@ SELECT
                                           SELECT
                                               'MANUAL' AS Source,
                                                   fr.Id,
-                                                      v.HyoungNo AS VehicleName,
+                                                      v.VehicleCode AS VehicleName,
                                                           fr.Date,
                                                               TIME(fr.Date) AS StartTime,
                                                                   NULL AS FuelBefore,
@@ -530,7 +530,7 @@ SELECT
                                                                                   NULL AS MatchedManualRefillId
                                                                                   FROM fuelrefill fr
                                                                                   INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-                                                                                  WHERE v.HyoungNo LIKE '%SM08%'
+                                                                                  WHERE v.VehicleCode LIKE '%SM08%'
                                                                                     AND DATE(fr.Date) = '2025-09-09'
 
                                                                                     ORDER BY DispenseDate, StartTime;
@@ -541,7 +541,7 @@ SELECT
 
 -- 9.1 Count of GPS entries vs Manual entries per vehicle per day
 SELECT
-    v.HyoungNo AS VehicleName,
+    v.VehicleCode AS VehicleName,
     DATE(COALESCE(gre.DispenseDate, fr.Date)) AS RefillDate,
     COUNT(DISTINCT gre.Id) AS GPS_Entries,
     SUM(DISTINCT COALESCE(gre.RefillVolume, 0)) AS GPS_Total,
@@ -554,8 +554,8 @@ LEFT JOIN gpsgate_report_entries gre ON v.VehicleId = gre.VehicleId
 LEFT JOIN fuelrefill fr ON v.VehicleId = fr.VehicleId
     AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
     AND fr.IsDeleted = 0
-WHERE v.HyoungNo LIKE '%SM08%'
-GROUP BY v.HyoungNo, DATE(COALESCE(gre.DispenseDate, fr.Date))
+WHERE v.VehicleCode LIKE '%SM08%'
+GROUP BY v.VehicleCode, DATE(COALESCE(gre.DispenseDate, fr.Date))
 ORDER BY RefillDate;
 
 -- =============================================================================
@@ -571,7 +571,7 @@ SELECT
 SELECT
     fr.Id AS RefillId,
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     fr.Date AS RefillDateTime,
     fr.ManualFuelrefillAmount AS Amount,
     fr.TankId,
@@ -586,7 +586,7 @@ SELECT
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
 LEFT JOIN tanks t ON fr.TankId = t.TankId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(fr.Date) = '2025-09-02'
 ORDER BY fr.Date;
 
@@ -594,7 +594,7 @@ ORDER BY fr.Date;
 SELECT
     gre.Id AS EntryId,
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     gre.DispenseDate,
     gre.StartTime,
     gre.FuelBefore,
@@ -604,7 +604,7 @@ SELECT
     'GPS_ENTRY' AS DataType
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(gre.DispenseDate) = '2025-09-02';
 
 -- 10.2 Detailed analysis for 09/09/2025 (date with GPS data)
@@ -615,7 +615,7 @@ SELECT
 SELECT
     fr.Id AS RefillId,
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     fr.Date AS RefillDateTime,
     fr.ManualFuelrefillAmount AS Amount,
     fr.TankId,
@@ -627,7 +627,7 @@ SELECT
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
 LEFT JOIN tanks t ON fr.TankId = t.TankId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(fr.Date) = '2025-09-09'
 ORDER BY fr.Date;
 
@@ -635,7 +635,7 @@ ORDER BY fr.Date;
 SELECT
     gre.Id AS EntryId,
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     gre.DispenseDate,
     gre.StartTime,
     gre.FuelBefore,
@@ -645,7 +645,7 @@ SELECT
     'GPS_ENTRY' AS DataType
 FROM gpsgate_report_entries gre
 INNER JOIN vehicles v ON gre.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND DATE(gre.DispenseDate) = '2025-09-09';
 
 -- =============================================================================
@@ -689,7 +689,7 @@ ORDER BY r.GeneratedAt DESC;
 -- Check if SM08 has ANY GPS entries in September
 SELECT
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     COUNT(gre.Id) AS GPS_Entry_Count,
     MIN(DATE(gre.DispenseDate)) AS First_GPS_Date,
     MAX(DATE(gre.DispenseDate)) AS Last_GPS_Date,
@@ -698,8 +698,8 @@ FROM vehicles v
 LEFT JOIN gpsgate_report_entries gre ON v.VehicleId = gre.VehicleId
     AND gre.DispenseDate BETWEEN '2025-09-01' AND '2025-09-30'
     AND gre.IsDeleted = 0
-WHERE v.HyoungNo LIKE '%SM08%'
-GROUP BY v.VehicleId, v.HyoungNo;
+WHERE v.VehicleCode LIKE '%SM08%'
+GROUP BY v.VehicleId, v.VehicleCode;
 
 -- 12.2 Check all manual refill dates vs GPS entry dates for SM08
 SELECT
@@ -725,10 +725,10 @@ SELECT
     END AS Status
 FROM fuelrefill fr
 INNER JOIN vehicles v ON fr.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%'
+WHERE v.VehicleCode LIKE '%SM08%'
   AND fr.Date BETWEEN '2025-09-01' AND '2025-09-30'
   AND fr.IsDeleted = 0
-GROUP BY DATE(fr.Date), v.VehicleId, v.HyoungNo
+GROUP BY DATE(fr.Date), v.VehicleId, v.VehicleCode
 ORDER BY Manual_Refill_Date;
 
 -- =============================================================================
@@ -749,4 +749,4 @@ SELECT
     'This ID should match the Vehicle column in GPSGate Report 212' AS Note
 FROM vehicle_provider_mappings vpm
 INNER JOIN vehicles v ON vpm.VehicleId = v.VehicleId
-WHERE v.HyoungNo LIKE '%SM08%';
+WHERE v.VehicleCode LIKE '%SM08%';

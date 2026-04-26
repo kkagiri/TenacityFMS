@@ -1,4 +1,4 @@
-# Log Management System - Deployment Checklist
+﻿# Log Management System - Deployment Checklist
 
 ## Pre-Deployment Verification
 
@@ -96,7 +96,7 @@ WHERE ConfigurationKey = 'Logging.RetentionDays';
 
 #### Step 2.1: Build Solution
 ```bash
-cd "C:\Users\kkagiri\source\repos\Hyoung.Fms"
+cd "C:\Users\kkagiri\source\repos\Tenacy.Fms"
 dotnet clean
 dotnet restore
 dotnet build --configuration Release
@@ -128,7 +128,7 @@ Check application startup logs for:
 
 #### Step 3.1: Build React App
 ```bash
-cd "C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend"
+cd "C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend"
 npm install
 npm run build
 ```

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -304,7 +304,7 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         TankId = pt.TankId,
                         TankName = pt.Tank?.Name,
                         VehicleId = pt.VehicleId,
-                        VehicleName = pt.Vehicle?.HyoungNo,
+                        VehicleName = pt.Vehicle?.VehicleCode,
                         VehicleNumberPlate = pt.Vehicle?.NumberPlate,
                         DestinationTankId = pt.DestinationTankId, // Destination tank for tank-to-tank transfers
                         DestinationTankName = pt.DestinationTank?.Name, // Destination tank name

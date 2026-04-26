@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ===============================================================================
 # Git History Cleanup Script
 # Automated cleanup of sensitive data from git history using BFG Repo-Cleaner
@@ -27,7 +27,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/Hyoung-EA/Hyoung.FMS.git"
+REPO_URL="https://github.com/your-org/Tenacy.FMS.git"
 WORK_DIR="$HOME/git-cleanup"
 BACKUP_DIR="$HOME/git-cleanup-backups"
 BFG_JAR="$HOME/tools/bfg.jar"
@@ -142,12 +142,12 @@ create_backup() {
     git clone --mirror "$REPO_URL"
 
     print_info "Creating archive..."
-    tar -czf "Hyoung.FMS-backup-$TIMESTAMP.tar.gz" Hyoung.FMS.git
+    tar -czf "Tenacy.FMS-backup-$TIMESTAMP.tar.gz" Tenacy.FMS.git
 
-    BACKUP_SIZE=$(du -sh "Hyoung.FMS-backup-$TIMESTAMP.tar.gz" | cut -f1)
-    print_success "Backup created: $BACKUP_PATH/Hyoung.FMS-backup-$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
+    BACKUP_SIZE=$(du -sh "Tenacy.FMS-backup-$TIMESTAMP.tar.gz" | cut -f1)
+    print_success "Backup created: $BACKUP_PATH/Tenacy.FMS-backup-$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
 
-    echo "$BACKUP_PATH/Hyoung.FMS-backup-$TIMESTAMP.tar.gz" > "$BACKUP_DIR/latest-backup.txt"
+    echo "$BACKUP_PATH/Tenacy.FMS-backup-$TIMESTAMP.tar.gz" > "$BACKUP_DIR/latest-backup.txt"
 }
 
 prepare_cleanup_files() {
@@ -176,10 +176,10 @@ EOF
     # Create passwords to remove list
     cat > passwords-to-remove.txt << 'EOF'
 Niwewenamimi1000==>***REMOVED***
-Hyoung2030==>***REMOVED***
+Tenacy2030==>***REMOVED***
 Niwewe1000==>***REMOVED***
 hk%2bXL3thlikm31JLAon0FjBxyyOtnrUOMCHIP%2bFfrhEXQPffqSrPDVGperVhCXPA==>***REMOVED***
-hy.gps@hyoung.co.ke==>***REMOVED***
+hy.gps@example.com==>***REMOVED***
 EOF
 
     print_success "Created passwords-to-remove.txt"
@@ -200,11 +200,11 @@ clone_mirror() {
     mkdir -p "$WORK_DIR"
     cd "$WORK_DIR"
 
-    if [ -d "Hyoung.FMS.git" ]; then
-        print_warning "Hyoung.FMS.git already exists"
+    if [ -d "Tenacy.FMS.git" ]; then
+        print_warning "Tenacy.FMS.git already exists"
         read -p "Delete and re-clone? (y/n): " -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            rm -rf Hyoung.FMS.git
+            rm -rf Tenacy.FMS.git
         else
             print_error "Aborted"
             exit 1
@@ -214,7 +214,7 @@ clone_mirror() {
     print_info "Cloning as mirror (this may take a few minutes)..."
     git clone --mirror "$REPO_URL"
 
-    cd Hyoung.FMS.git
+    cd Tenacy.FMS.git
     ORIG_SIZE=$(du -sh . | cut -f1)
     print_success "Repository cloned: $ORIG_SIZE"
 }
@@ -228,7 +228,7 @@ run_bfg_cleanup() {
     print_info "Removing sensitive files from history..."
     java -jar "$BFG_JAR" \
         --delete-files '{appsettings.json,appsettings.*.json,.env,setup-environment.ps1,setup-*.ps1,setup-*.bat}' \
-        Hyoung.FMS.git
+        Tenacy.FMS.git
 
     echo ""
 
@@ -236,7 +236,7 @@ run_bfg_cleanup() {
     print_info "Scrubbing passwords from remaining files..."
     java -jar "$BFG_JAR" \
         --replace-text passwords-to-remove.txt \
-        Hyoung.FMS.git
+        Tenacy.FMS.git
 
     print_success "BFG cleanup complete"
 }
@@ -244,7 +244,7 @@ run_bfg_cleanup() {
 cleanup_refs() {
     print_header "Cleaning References and Garbage Collection"
 
-    cd "$WORK_DIR/Hyoung.FMS.git"
+    cd "$WORK_DIR/Tenacy.FMS.git"
 
     print_info "Expiring reflog..."
     git reflog expire --expire=now --all
@@ -259,7 +259,7 @@ cleanup_refs() {
 verify_cleanup() {
     print_header "Verifying Cleanup"
 
-    cd "$WORK_DIR/Hyoung.FMS.git"
+    cd "$WORK_DIR/Tenacy.FMS.git"
 
     ISSUES=0
 
@@ -290,11 +290,11 @@ verify_cleanup() {
         print_success "Password 'Niwewenamimi1000' removed"
     fi
 
-    if git log --all -S "Hyoung2030" | grep -q 'commit'; then
-        print_error "Found password 'Hyoung2030' in history"
+    if git log --all -S "Tenacy2030" | grep -q 'commit'; then
+        print_error "Found password 'Tenacy2030' in history"
         ((ISSUES++))
     else
-        print_success "Password 'Hyoung2030' removed"
+        print_success "Password 'Tenacy2030' removed"
     fi
 
     # Check that example files still exist
@@ -319,7 +319,7 @@ verify_cleanup() {
 force_push() {
     print_header "Force Pushing to Remote"
 
-    cd "$WORK_DIR/Hyoung.FMS.git"
+    cd "$WORK_DIR/Tenacy.FMS.git"
 
     print_warning "⚠️  About to force push - this REWRITES history!"
     echo ""
@@ -357,7 +357,7 @@ show_next_steps() {
 
     echo "3. Team re-sync (each developer):"
     echo "   • Save work: git stash"
-    echo "   • Delete local: rm -rf Hyoung.FMS"
+    echo "   • Delete local: rm -rf Tenacy.FMS"
     echo "   • Clone fresh: git clone $REPO_URL"
     echo "   • Restore config files from .example"
     echo ""
@@ -379,7 +379,7 @@ show_next_steps() {
 
 # Main script
 main() {
-    print_header "Git History Cleanup - Hyoung.FMS"
+    print_header "Git History Cleanup - Tenacy.FMS"
 
     case "${1:-}" in
         --backup)
@@ -388,7 +388,7 @@ main() {
             ;;
 
         --verify)
-            if [ ! -d "$WORK_DIR/Hyoung.FMS.git" ]; then
+            if [ ! -d "$WORK_DIR/Tenacy.FMS.git" ]; then
                 print_error "No repository to verify. Run with --full first."
                 exit 1
             fi

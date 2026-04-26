@@ -29,73 +29,57 @@
 
                  // Column configurations
                  builder.Property (e => e.Id)
-                     .HasColumnType ("int(11)")
-                     .HasColumnName ("id");
+                     .HasColumnType ("int(11)");
 
                  builder.Property (e => e.ReportType)
                      .HasMaxLength (50)
-                     .HasColumnName ("report_type")
                      .IsRequired ();
 
                  builder.Property (e => e.GeneratedDate)
-                     .HasColumnType ("datetime")
-                     .HasColumnName ("generated_date");
+                     .HasColumnType ("datetime");
 
                  builder.Property (e => e.GeneratedBy)
                      .HasMaxLength (100)
-                     .HasColumnName ("generated_by")
                      .IsRequired ();
 
                  builder.Property (e => e.Status)
                      .HasColumnType ("tinyint(4)")
-                     .HasColumnName ("status")
                      .HasDefaultValue (1)
                      .HasComment ("0=Generating, 1=Completed, 2=Failed");
 
                  builder.Property (e => e.StartDate)
-                     .HasColumnType ("datetime")
-                     .HasColumnName ("start_date");
+                     .HasColumnType ("datetime");
 
                  builder.Property (e => e.EndDate)
-                     .HasColumnType ("datetime")
-                     .HasColumnName ("end_date");
+                     .HasColumnType ("datetime");
 
                  builder.Property (e => e.SiteId)
-                     .HasColumnType ("int(11)")
-                     .HasColumnName ("site_id");
+                     .HasColumnType ("int(11)");
 
                  builder.Property (e => e.FilePath)
-                     .HasMaxLength (500)
-                     .HasColumnName ("file_path");
+                     .HasMaxLength (500);
 
                  builder.Property (e => e.FileName)
-                     .HasMaxLength (255)
-                     .HasColumnName ("file_name");
+                     .HasMaxLength (255);
 
                  builder.Property (e => e.ContentType)
-                     .HasMaxLength (100)
-                     .HasColumnName ("content_type");
+                     .HasMaxLength (100);
 
                  builder.Property (e => e.FileSize)
-                     .HasColumnType ("bigint(20)")
-                     .HasColumnName ("file_size");
+                     .HasColumnType ("bigint(20)");
 
                  builder.Property (e => e.Parameters)
-                     .HasMaxLength (1000)
-                     .HasColumnName ("parameters");
+                     .HasMaxLength (1000);
 
                  builder.Property (e => e.ErrorMessage)
-                     .HasMaxLength (500)
-                     .HasColumnName ("error_message");
+                     .HasMaxLength (500);
 
                  builder.Property (e => e.CreatedOn)
                      .HasColumnType ("datetime")
-                     .HasColumnName ("created_on")
                      .HasDefaultValueSql ("CURRENT_TIMESTAMP");
 
                  builder.Property (e => e.UpdatedOn)
-                     .HasColumnType ("datetime")
-                     .HasColumnName ("updated_on");
+                     .HasColumnType ("datetime");
 
                  // Relationships
                  builder.HasOne (d => d.GeneratedByNavigation)

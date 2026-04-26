@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using FMS.Domain.Entities.Features.FuelRuleSet;
 
@@ -38,7 +38,7 @@ public class FuelingRuleSetAssignmentResponseDTO
     public string? VehicleTypeName { get; set; }
 
     public int? VehicleId { get; set; }
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
 
     public int? TagId { get; set; }
     public string? TagName { get; set; }

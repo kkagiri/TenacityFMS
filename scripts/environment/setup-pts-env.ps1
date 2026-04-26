@@ -1,4 +1,4 @@
-# PowerShell script to set up PTS Windows Service environment variables
+﻿# PowerShell script to set up PTS Windows Service environment variables
 # Run this script as Administrator
 
 # Set environment variables for the PTS Windows Service
@@ -12,7 +12,7 @@ if (-not (Test-Path "C:\Logs\FMS.PTS")) {
 
 # Database Connection Strings
 [Environment]::SetEnvironmentVariable('PTSService__ConnectionStrings__FMSConnection', 'server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000;connection timeout=2000;command timeout=2000;AllowZeroDateTime=True;', 'Machine')
-[Environment]::SetEnvironmentVariable('PTSService__ConnectionStrings__ATGConnection', 'server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;', 'Machine')
+[Environment]::SetEnvironmentVariable('PTSService__ConnectionStrings__ATGConnection', 'server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Tenacy2030;connection timeout=10000;command timeout=10000;AllowZeroDateTime=True;', 'Machine')
 [Environment]::SetEnvironmentVariable('PTSService__ConnectionStrings__RedisConnection', '10.0.10.154:6379', 'Machine')
 
 # WebSocket Configuration
@@ -32,7 +32,7 @@ if (-not (Test-Path "C:\Logs\FMS.PTS")) {
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('Jwt__Key', 'YourLongSecretKeyHereMustBeAtLeast32Characters', 'Machine')
-[Environment]::SetEnvironmentVariable('Jwt__Issuer', 'Hyoung EA & Co', 'Machine')
+[Environment]::SetEnvironmentVariable('Jwt__Issuer', 'Tenacy FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('Jwt__Audience', 'FMSUsers', 'Machine')
 [Environment]::SetEnvironmentVariable('Jwt__ExpiryInMinutes', '10080', 'Machine')
 

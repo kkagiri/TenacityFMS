@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Features.LocationValidation;
+﻿using FMS.Domain.Entities.Features.LocationValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,11 +16,9 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnType("int(11)")
             .ValueGeneratedOnAdd();
 
         builder.Property(e => e.ValidationTime)
-            .HasColumnType("datetime")
             .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.Property(e => e.PtsId)
@@ -28,11 +26,9 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
             .IsRequired();
 
         builder.Property(e => e.TankId)
-            .HasColumnType("int(11)")
             .IsRequired();
 
-        builder.Property(e => e.VehicleId)
-            .HasColumnType("int(11)");
+        builder.Property(e => e.VehicleId);
 
         builder.Property(e => e.TankType)
             .HasConversion<string>()
@@ -63,11 +59,9 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
             .HasColumnType("decimal(10, 2)");
 
         builder.Property(e => e.VehicleProximityRequired)
-            .HasColumnType("tinyint(1)")
             .HasDefaultValue(false);
 
-        builder.Property(e => e.VehicleProximityValid)
-            .HasColumnType("tinyint(1)");
+        builder.Property(e => e.VehicleProximityValid);
 
         // Mobile location
         builder.Property(e => e.MobileLatitude)
@@ -83,22 +77,17 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
             .HasColumnType("decimal(10, 2)");
 
         builder.Property(e => e.MobileProximityRequired)
-            .HasColumnType("tinyint(1)")
             .HasDefaultValue(false);
 
-        builder.Property(e => e.MobileProximityValid)
-            .HasColumnType("tinyint(1)");
+        builder.Property(e => e.MobileProximityValid);
 
         // GPS accuracy validation
-        builder.Property(e => e.MinimumGPSAccuracyRequired)
-            .HasColumnType("int");
+        builder.Property(e => e.MinimumGPSAccuracyRequired);
 
-        builder.Property(e => e.GPSAccuracyValid)
-            .HasColumnType("tinyint(1)");
+        builder.Property(e => e.GPSAccuracyValid);
 
         // Validation result
         builder.Property(e => e.IsValid)
-            .HasColumnType("tinyint(1)")
             .IsRequired();
 
         builder.Property(e => e.ValidationResult)
@@ -109,25 +98,20 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
             .HasMaxLength(500);
 
         // Settings used
-        builder.Property(e => e.VehicleRadiusUsed)
-            .HasColumnType("int");
+        builder.Property(e => e.VehicleRadiusUsed);
 
-        builder.Property(e => e.MobileRadiusUsed)
-            .HasColumnType("int");
+        builder.Property(e => e.MobileRadiusUsed);
 
-        builder.Property(e => e.GracePeriodMetersUsed)
-            .HasColumnType("int");
+        builder.Property(e => e.GracePeriodMetersUsed);
 
         builder.Property(e => e.WasBypassedDueToGPSFailure)
-            .HasColumnType("tinyint(1)")
             .HasDefaultValue(false);
 
         // Context
         builder.Property(e => e.UserId)
             .HasMaxLength(100);
 
-        builder.Property(e => e.TransactionId)
-            .HasColumnType("int(11)");
+        builder.Property(e => e.TransactionId);
 
         // Indexes
         builder.HasIndex(e => e.PtsId)
@@ -146,3 +130,4 @@ public class LocationValidationLogConfiguration : EntityTypeConfiguration<Locati
             .HasDatabaseName("IX_LocationValidationLog_IsValid");
     }
 }
+

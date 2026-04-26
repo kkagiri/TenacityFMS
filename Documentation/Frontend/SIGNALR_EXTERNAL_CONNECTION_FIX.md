@@ -1,4 +1,4 @@
-# SignalR External Network Connection Fix
+﻿# SignalR External Network Connection Fix
 
 ## 🚨 Problem Summary
 
@@ -14,7 +14,7 @@
 
 ### 1. **Hardcoded Internal IP in Production Build**
 
-**Location**: `c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html`
+**Location**: `c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html`
 
 ```html
 <meta name="x-api-url" content="http://10.0.10.153:7009/api" />
@@ -29,7 +29,7 @@
 
 ### 2. **IIS URL Rewrite Cannot Proxy WebSockets**
 
-**Location**: `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config`
+**Location**: `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`
 
 **Problem**:
 
@@ -181,7 +181,7 @@ npm run build
 ```
 
 **C. Deploy to IIS**:
-Copy the `build` folder contents to `c:\inetpub\wwwroot\hyoungFMS\reactApp\`
+Copy the `build` folder contents to `c:\inetpub\wwwroot\tenacyFMS\reactApp\`
 
 #### Step 4: Verify Configuration
 
@@ -396,4 +396,4 @@ curl http://localhost:7009/ptsHub/negotiate?negotiateVersion=1
 
 **Last Updated**: 2025-10-31
 **Server**: Production (197.254.33.227)
-**Application**: Hyoung FMS
+**Application**: Tenacy FMS

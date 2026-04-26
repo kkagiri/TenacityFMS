@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterTemplateFactory.cs
  * Purpose: Builds warning-letter template models and resolves rendering settings.
  * Dependencies: EF Core, SystemConfigurationService, QRCoder, WarningLetterHtmlTemplates
@@ -110,7 +110,7 @@ internal sealed class WarningLetterTemplateFactory
             EmployeeName = employee.FullName,
             EmployeeWorkNo = string.IsNullOrWhiteSpace(employee.EmployeeWorkNo) ? "N/A" : employee.EmployeeWorkNo,
             Position = string.IsNullOrWhiteSpace(employee.Position) ? "N/A" : employee.Position,
-            VehicleHyoungNo = vehicle.HyoungNo,
+            VehicleCode = vehicle.VehicleCode,
             NumberPlate = string.IsNullOrWhiteSpace(vehicle.NumberPlate) ? "N/A" : vehicle.NumberPlate,
             VehicleType = vehicle.VehicleType?.Name ?? "N/A",
             SiteName = site.Name,
@@ -448,7 +448,7 @@ internal sealed class WarningLetterWorkflowSupport
                 EmployeeId = warningLetter.EmployeeId,
                 EmployeeName = employee.FullName,
                 VehicleId = warningLetter.VehicleId,
-                VehicleLabel = vehicle.HyoungNo,
+                VehicleLabel = vehicle.VehicleCode,
                 SiteId = warningLetter.SiteId,
                 SiteName = site.Name,
                 Action = "SignatureRequested",
@@ -505,7 +505,7 @@ internal sealed class WarningLetterWorkflowSupport
                 EmployeeId = warningLetter.EmployeeId,
                 EmployeeName = employee.FullName,
                 VehicleId = warningLetter.VehicleId,
-                VehicleLabel = vehicle.HyoungNo,
+                VehicleLabel = vehicle.VehicleCode,
                 SiteId = warningLetter.SiteId,
                 SiteName = site.Name,
                 UploadedBy = uploadedByDisplay,
@@ -539,12 +539,12 @@ internal sealed class WarningLetterWorkflowSupport
 
         if (string.IsNullOrWhiteSpace(issuer.Email)) return;
 
-        var subject = $"Signed Copy Received - Warning Letter #{warningLetter.Id} - {vehicle.HyoungNo}";
+        var subject = $"Signed Copy Received - Warning Letter #{warningLetter.Id} - {vehicle.VehicleCode}";
         var body = $@"<html><body style='font-family:Segoe UI,Arial,sans-serif;color:#201f1e;'>
 <p>The signed copy for warning letter <strong>#{warningLetter.Id}</strong> has been uploaded to the server.</p>
 <table style='border-collapse:collapse;'>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Employee</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(employee.FullName)}</td></tr>
-<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(vehicle.HyoungNo)}</td></tr>
+<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(vehicle.VehicleCode)}</td></tr>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Site</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(site.Name)}</td></tr>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Uploaded By</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(uploadedByDisplay)}</td></tr>
 </table>
@@ -594,7 +594,7 @@ internal sealed class WarningLetterWorkflowSupport
 <p>Please print the attached warning letter for <strong>{System.Net.WebUtility.HtmlEncode(employee.FullName)}</strong>, obtain the driver signature and stamp where applicable, then upload the signed scan back into FMS.</p>
 <table style='border-collapse:collapse;'>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Reference</strong></td><td style='padding:4px 0;'>#{warningLetter.Id}</td></tr>
-<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(vehicle.HyoungNo)}</td></tr>
+<tr><td style='padding:4px 12px 4px 0;'><strong>Vehicle</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(vehicle.VehicleCode)}</td></tr>
 <tr><td style='padding:4px 12px 4px 0;'><strong>Site</strong></td><td style='padding:4px 0;'>{System.Net.WebUtility.HtmlEncode(site.Name)}</td></tr>
 </table>
 <p>Open the warning-letter preview page to upload the signed copy after signature collection:</p>

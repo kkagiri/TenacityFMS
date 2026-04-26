@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 
@@ -12,13 +12,11 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("loginactivities")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("loginactivities");
 
                 builder.HasIndex(e => e.UserId, "FK_LoginActivities_Users");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.IpAddress).HasMaxLength(100);
                 builder.Property(e => e.UserId).HasMaxLength(100);
 
@@ -29,7 +27,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasConstraintName("FK_LoginActivities_Users");
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");
@@ -39,3 +36,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

@@ -22,66 +22,42 @@ public class VehicleTripOutOfBoundsEventConfiguration : EntityTypeConfiguration<
         builder.HasIndex(e => e.VehicleTripGroupId, "idx_vehicle_trip_oob_group");
         builder.HasIndex(e => e.VehicleTripId, "idx_vehicle_trip_oob_trip");
 
-        builder.Property(e => e.VehicleTripOutOfBoundsEventId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripOutOfBoundsEventId");
+        builder.Property(e => e.VehicleTripOutOfBoundsEventId);
 
-        builder.Property(e => e.VehicleId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleId");
+        builder.Property(e => e.VehicleId);
 
-        builder.Property(e => e.VehicleTripGroupId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripGroupId");
+        builder.Property(e => e.VehicleTripGroupId);
 
-        builder.Property(e => e.VehicleTripId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripId");
+        builder.Property(e => e.VehicleTripId);
 
         builder.Property(e => e.EventType)
             .HasMaxLength(50)
-            .HasDefaultValue("BoundaryExit")
-            .HasColumnName("EventType");
+            .HasDefaultValue("BoundaryExit");
 
-        builder.Property(e => e.OccurredAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("OccurredAtUtc");
+        builder.Property(e => e.OccurredAtUtc);
 
         builder.Property(e => e.Latitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("Latitude");
+            .HasColumnType("decimal(11,8)");
 
         builder.Property(e => e.Longitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("Longitude");
+            .HasColumnType("decimal(11,8)");
 
-        builder.Property(e => e.SiteId)
-            .HasColumnType("int(11)")
-            .HasColumnName("SiteId");
+        builder.Property(e => e.SiteId);
 
-        builder.Property(e => e.GeofenceId)
-            .HasColumnType("int(11)")
-            .HasColumnName("GeofenceId");
+        builder.Property(e => e.GeofenceId);
 
         builder.Property(e => e.DistanceFromBoundaryMeters)
-            .HasColumnType("decimal(10,2)")
-            .HasColumnName("DistanceFromBoundaryMeters");
+            .HasColumnType("decimal(10,2)");
 
         builder.Property(e => e.DurationMinutes)
-            .HasColumnType("decimal(10,2)")
-            .HasColumnName("DurationMinutes");
+            .HasColumnType("decimal(10,2)");
 
         builder.Property(e => e.Reason)
-            .HasMaxLength(255)
-            .HasColumnName("Reason");
+            .HasMaxLength(255);
 
-        builder.Property(e => e.MetadataJson)
-            .HasColumnType("longtext")
-            .HasColumnName("MetadataJson");
+        builder.Property(e => e.MetadataJson);
 
-        builder.Property(e => e.CreatedAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("CreatedAtUtc");
+        builder.Property(e => e.CreatedAtUtc);
 
         builder.HasOne(e => e.Vehicle)
             .WithMany()

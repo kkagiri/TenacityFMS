@@ -74,7 +74,7 @@ public static class PTSLoggingConfiguration
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("System", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
-            .MinimumLevel.Override("Pomelo.EntityFrameworkCore.MySql", LogEventLevel.Error)
+            .MinimumLevel.Override("Npgsql", LogEventLevel.Error)
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", "FMS.PTS")
             .Enrich.WithEnvironmentName()
@@ -116,7 +116,7 @@ public static class PTSLoggingConfiguration
                 sourceContext is ScalarValue sv &&
                 sv.Value is string contextString &&
                 (contextString.StartsWith("Microsoft.EntityFrameworkCore") ||
-                 contextString.StartsWith("Pomelo.EntityFrameworkCore")))
+                 contextString.StartsWith("Npgsql")))
             .WriteTo.Console(
                 outputTemplate: ConsoleTemplate,
                 theme: AnsiConsoleTheme.Code));

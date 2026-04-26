@@ -1,4 +1,4 @@
-using FMS.Application.Common;
+﻿using FMS.Application.Common;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.VehicleMaintenance.DTOs;
 using FMS.Application.ModelsDTOs.GPSGate;
@@ -54,7 +54,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     .Select(v => new
                     {
                         v.VehicleId,
-                        v.HyoungNo,
+                        v.VehicleCode,
                         v.NumberPlate,
                         v.AverageKmL,
                         v.CurrentPhysicalReading
@@ -69,7 +69,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 var dto = new OdometerSyncDTO
                 {
                     VehicleId = vehicle.VehicleId,
-                    HyoungNo = vehicle.HyoungNo,
+                    VehicleCode = vehicle.VehicleCode,
                     NumberPlate = vehicle.NumberPlate,
                     AverageKmL = vehicle.AverageKmL,
                     StoredPhysicalReading = vehicle.CurrentPhysicalReading
@@ -137,7 +137,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     {
                         m.VehicleId,
                         m.ExternalDeviceId,
-                        m.Vehicle!.HyoungNo,
+                        m.Vehicle!.VehicleCode,
                         m.Vehicle.NumberPlate,
                         m.Vehicle.AverageKmL,
                         m.Vehicle.CurrentPhysicalReading,
@@ -172,7 +172,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     var dto = new OdometerSyncDTO
                     {
                         VehicleId = vehicle.VehicleId,
-                        HyoungNo = vehicle.HyoungNo,
+                        VehicleCode = vehicle.VehicleCode,
                         NumberPlate = vehicle.NumberPlate,
                         AverageKmL = vehicle.AverageKmL,
                         SiteId = vehicle.SiteId,
@@ -242,7 +242,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 var result = new OdometerSyncResultDTO
                 {
                     VehicleId = vehicleId,
-                    HyoungNo = dto.HyoungNo
+                    VehicleCode = dto.VehicleCode
                 };
 
                 if (!dto.HasGPSMapping)
@@ -285,7 +285,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 result.Success = true;
                 result.Message = $"Updated odometer from GPS: {result.OldValue:N2} → {result.NewValue:N2} {dto.Unit}";
 
-                _logger.LogInformation($"Synced odometer for vehicle {vehicleId} ({dto.HyoungNo}) from GPS: {result.NewValue:N2} {dto.Unit}");
+                _logger.LogInformation($"Synced odometer for vehicle {vehicleId} ({dto.VehicleCode}) from GPS: {result.NewValue:N2} {dto.Unit}");
 
                 return FMSResponse<OdometerSyncResultDTO>.Success(result, result.Message);
             }
@@ -311,7 +311,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 var result = new OdometerSyncResultDTO
                 {
                     VehicleId = vehicleId,
-                    HyoungNo = dto.HyoungNo
+                    VehicleCode = dto.VehicleCode
                 };
 
                 if (!dto.HasGPSMapping || !dto.GPSUserId.HasValue)
@@ -372,7 +372,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
 
                 if (success)
                 {
-                    _logger.LogInformation($"Synced odometer to GPS for vehicle {vehicleId} ({dto.HyoungNo}): {result.NewValue:N2} {dto.Unit}");
+                    _logger.LogInformation($"Synced odometer to GPS for vehicle {vehicleId} ({dto.VehicleCode}): {result.NewValue:N2} {dto.Unit}");
                 }
 
                 return FMSResponse<OdometerSyncResultDTO>.Success(result, result.Message);
@@ -426,7 +426,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                             batchResult.Results.Add(new OdometerSyncResultDTO
                             {
                                 VehicleId = vehicle.VehicleId,
-                                HyoungNo = vehicle.HyoungNo,
+                                VehicleCode = vehicle.VehicleCode,
                                 Success = false,
                                 Message = syncResult.Message
                             });
@@ -438,7 +438,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                         batchResult.Results.Add(new OdometerSyncResultDTO
                         {
                             VehicleId = vehicle.VehicleId,
-                            HyoungNo = vehicle.HyoungNo,
+                            VehicleCode = vehicle.VehicleCode,
                             Success = false,
                             Message = ex.Message
                         });

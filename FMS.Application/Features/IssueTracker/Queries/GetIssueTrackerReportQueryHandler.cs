@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetIssueTrackerReportQueryHandler.cs
  * Purpose: Executes Issue Tracker report query with filtering and pagination.
  * Dependencies: GpsdataContext, MediatR, EF Core, FMSResponse
@@ -103,7 +103,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
                         SiteName = i.Site != null ? i.Site.Name : string.Empty,
                         VehicleId = i.VehicleId,
                         VehicleNumber = i.Vehicle != null ? i.Vehicle.NumberPlate : string.Empty,
-                        VehicleHyoungNo = i.Vehicle != null ? i.Vehicle.HyoungNo : string.Empty,
+                        VehicleCode = i.Vehicle != null ? i.Vehicle.VehicleCode : string.Empty,
                         IssueCategoryId = i.IssueCategoryId,
                         CategoryName = i.IssueCategory != null ? i.IssueCategory.Name : string.Empty,
                         Status = i.Status,

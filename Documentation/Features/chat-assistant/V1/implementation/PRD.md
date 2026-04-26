@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 File: PRD.md
 Purpose: Product Requirements Document for the FMS AI Chat Assistant feature.
 Dependencies: AGENTS.md, System.instructions.md, appsettings.json
@@ -285,7 +285,7 @@ Streaming uses the existing `FrontendHub` to push partial tokens:
     "MaxConversationTurns": 20,
     "MaxToolCallsPerTurn": 5,
     "RateLimitPerUserPerMinute": 10,
-    "SystemPromptTemplate": "You are an intelligent assistant for the Hyoung Fleet Management System (FMS). You help fleet managers, fuel auditors, and operations staff query live fleet data. Always be concise, accurate, and cite numbers. Only answer questions about FMS fleet data — politely decline unrelated requests.",
+    "SystemPromptTemplate": "You are an intelligent assistant for the Tenacy Fleet Management System (FMS). You help fleet managers, fuel auditors, and operations staff query live fleet data. Always be concise, accurate, and cite numbers. Only answer questions about FMS fleet data — politely decline unrelated requests.",
     "Enabled": true
   }
 }

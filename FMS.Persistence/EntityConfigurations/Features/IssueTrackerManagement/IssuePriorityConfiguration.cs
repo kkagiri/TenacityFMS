@@ -15,12 +15,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("issuepriority");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
                 builder.Property(e => e.Name).HasMaxLength(45);
             }
-
 
             catch (Exception ex)
             {
@@ -31,3 +28,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

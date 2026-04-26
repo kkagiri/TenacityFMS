@@ -1,4 +1,4 @@
-import React, { useEffect,useState,useCallback  } from 'react';
+﻿import React, { useEffect,useState,useCallback  } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {fetchRefillSummary} from '../../redux/actions/refillSummaryActions';
 import DataGrid, { FilterRow,Column,SearchPanel, Summary,GroupItem, TotalItem , GroupPanel,HeaderFilter, Grouping,Toolbar, Item as TBItem} from 'devextreme-react/data-grid';
@@ -131,7 +131,7 @@ const FuelRefillSummaryDatagrid = ({ selectedEndDate, selectedSite }) => {
                         }}
                     />
                 </Toolbar>
-                <Column dataField="vehicleName" caption="Hyoung No" />
+                <Column dataField="vehicleName" caption="Tenacy No" />
                 <Column dataField="vehicleType" caption="Vehicle Type" groupIndex={1} />
                 <Column dataField="siteName" caption="Site Name" groupIndex={0} />
                 <Column dataField="refillCount" sortOrder="asc" alignment='center'   allowGrouping={false} caption="Refill Count" dataType="number" />

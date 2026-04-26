@@ -14,14 +14,11 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.ToTable("event_expressions")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("event_expressions");
 
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
                 builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
                     .ValueGeneratedOnAdd();
 
                 builder.Property(e => e.Name)
@@ -35,7 +32,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue(true);
 
                 builder.Property(e => e.IsSystem)
-                    .HasColumnName("is_system")
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.EventType)
@@ -49,26 +45,21 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("json");
 
                 builder.Property(e => e.NotificationPolicyId)
-                    .HasColumnType("int(11)")
                     .IsRequired();
 
                 builder.Property(e => e.CooldownMinutes)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(30);
 
                 builder.Property(e => e.MaxNotificationsPerDay)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
                 builder.Property(e => e.MaxNotificationsPerHour)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
                 builder.Property(e => e.EscalationRules)
                     .HasColumnType("json");
 
-                builder.Property(e => e.MessageTemplate)
-                    .HasColumnType("text");
+                builder.Property(e => e.MessageTemplate);
 
                 builder.Property(e => e.Priority)
                     .IsRequired()
@@ -83,21 +74,17 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(100);
 
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.ModifiedBy)
                     .HasMaxLength(100);
 
-                builder.Property(e => e.ModifiedAt)
-                    .HasColumnType("datetime");
+                builder.Property(e => e.ModifiedAt);
 
                 builder.Property(e => e.TriggerCount)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
-                builder.Property(e => e.LastTriggeredAt)
-                    .HasColumnType("datetime");
+                builder.Property(e => e.LastTriggeredAt);
 
                 builder.Property(e => e.AssignIssueTo)
                     .HasMaxLength(100);
@@ -189,3 +176,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

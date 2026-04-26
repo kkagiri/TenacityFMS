@@ -1,4 +1,4 @@
-# 🚀 CI/CD Setup Guide for Hyoung FMS
+﻿# 🚀 CI/CD Setup Guide for Tenacy FMS
 
 ## Overview
 
@@ -6,7 +6,7 @@ This guide will help you set up automated deployments from your development work
 
 ## 📋 Prerequisites
 
-✅ IIS configured (already done via `setup-iis-hyoungfms.ps1`)
+✅ IIS configured (already done via `setup-iis-tenacyfms.ps1`)
 ✅ GitHub Actions self-hosted runner installed
 ✅ Development workspace ready
 
@@ -18,12 +18,12 @@ The development workspace keeps your `.git` folder safe from deletion that happe
 
 ```powershell
 # Create development workspace
-mkdir C:\dev\Hyoung.FMS
+mkdir C:\dev\Tenacy.FMS
 
 # Clone your repository
 cd C:\dev
-git clone https://github.com/kagz100/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/kagz100/Tenacy.FMS.git
+cd Tenacy.FMS
 
 # Checkout your production branch
 git checkout productionv1
@@ -35,11 +35,11 @@ From the runner workspace, copy the deployment scripts:
 
 ```powershell
 # Run this from the runner workspace
-$runnerPath = "C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS"
-$devPath = "C:\dev\Hyoung.FMS"
+$runnerPath = "C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS"
+$devPath = "C:\dev\Tenacy.FMS"
 
 # Copy all deployment scripts
-Copy-Item "$runnerPath\setup-iis-hyoungfms.ps1" "$devPath\" -Force
+Copy-Item "$runnerPath\setup-iis-tenacyfms.ps1" "$devPath\" -Force
 Copy-Item "$runnerPath\control-iis.ps1" "$devPath\" -Force
 Copy-Item "$runnerPath\deploy-manual.ps1" "$devPath\" -Force
 Copy-Item "$runnerPath\deploy-alternative.ps1" "$devPath\" -Force
@@ -67,7 +67,7 @@ Write-Host "✓ Files copied to development workspace" -ForegroundColor Green
 Before enabling automatic deployment, test the manual deployment:
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Test the alternative deployment method (most reliable)
 .\deploy-alternative.ps1
@@ -84,11 +84,11 @@ cd C:\dev\Hyoung.FMS
 Once manual deployment works, commit the deployment files:
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Stage the deployment files
 git add .github/workflows/deploy-to-iis.yml
-git add setup-iis-hyoungfms.ps1
+git add setup-iis-tenacyfms.ps1
 git add control-iis.ps1
 git add deploy-manual.ps1
 git add deploy-alternative.ps1
@@ -107,7 +107,7 @@ Watch the deployment in GitHub Actions:
 
 1. Go to your repository on GitHub
 2. Click "Actions" tab
-3. You'll see "Deploy Hyoung FMS to IIS" workflow running
+3. You'll see "Deploy Tenacy FMS to IIS" workflow running
 4. Click on it to see detailed progress
 
 Or monitor locally on the runner:
@@ -157,23 +157,23 @@ The workflow triggers automatically when you:
 ## 📁 Workspace Structure
 
 ```
-C:\dev\Hyoung.FMS\                    # Development workspace (safe .git)
+C:\dev\Tenacy.FMS\                    # Development workspace (safe .git)
 ├── .github\
 │   └── workflows\
 │       └── deploy-to-iis.yml         # CI/CD workflow
 ├── FMS.WebClient\                    # Backend project
 ├── fms.frontend\                     # Frontend project
-├── setup-iis-hyoungfms.ps1          # One-time IIS setup
+├── setup-iis-tenacyfms.ps1          # One-time IIS setup
 ├── control-iis.ps1                   # IIS control script
 ├── deploy-manual.ps1                 # Manual deployment (method 1)
 ├── deploy-alternative.ps1            # Manual deployment (method 2 - recommended)
 └── *.md                              # Documentation
 
-C:\actions-runner\_work\Hyoung.FMS\   # Runner workspace (temporary)
-└── Hyoung.FMS\                       # Code checkout for CI/CD
+C:\actions-runner\_work\Tenacy.FMS\   # Runner workspace (temporary)
+└── Tenacy.FMS\                       # Code checkout for CI/CD
     └── (same structure, .git may be cleaned)
 
-C:\inetpub\wwwroot\hyoungFMS\         # IIS deployment location
+C:\inetpub\wwwroot\tenacyFMS\         # IIS deployment location
 ├── webAPI\                           # Backend (port 7009)
 │   └── web.config                    # Never modified
 └── reactApp\                         # Frontend (port 80)
@@ -242,7 +242,7 @@ Use the alternative deployment method:
 
 ```powershell
 # Backend logs
-Get-Content C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\* -Tail 50
+Get-Content C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\* -Tail 50
 
 # IIS logs
 Get-Content C:\inetpub\logs\LogFiles\W3SVC*\*.log -Tail 50
@@ -272,7 +272,7 @@ Get-Content _diag\Runner_*.log -Tail 100
 
 ```powershell
 # Test backend build locally
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 dotnet restore FMS.WebClient\FMS.WebClient.csproj
 dotnet build FMS.WebClient\FMS.WebClient.csproj --configuration Release
 
@@ -305,7 +305,7 @@ Typical deployment takes **3-5 minutes**:
 
 After setup, verify:
 
-- [ ] Development workspace created at `C:\dev\Hyoung.FMS`
+- [ ] Development workspace created at `C:\dev\Tenacy.FMS`
 - [ ] All deployment scripts copied to dev workspace
 - [ ] Manual deployment tested and successful
 - [ ] Deployment scripts committed to repository
@@ -318,7 +318,7 @@ After setup, verify:
 
 ## 🎓 Best Practices
 
-1. **Always work in dev workspace** (`C:\dev\Hyoung.FMS`)
+1. **Always work in dev workspace** (`C:\dev\Tenacy.FMS`)
 2. **Test locally before pushing** (use `deploy-alternative.ps1`)
 3. **Monitor first deployment** after pushing
 4. **Keep backups** of web.config files separately
@@ -329,7 +329,7 @@ After setup, verify:
 
 ```powershell
 # Development workflow
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 git pull origin productionv1
 # Make your changes
 .\deploy-alternative.ps1           # Test locally

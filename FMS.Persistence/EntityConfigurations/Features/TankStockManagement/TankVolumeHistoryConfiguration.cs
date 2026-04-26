@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.TankStockManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -25,16 +25,16 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.TankId, "FK_TankVolumeHistory_Tank_idx");
                 builder.HasIndex(e => e.RecordedBy, "FK_TankVolumeHistory_User_idx");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
-                builder.Property(e => e.TankId).HasColumnType("int(11)");
-                builder.Property(e => e.Timestamp).HasColumnType("datetime");
+                builder.Property(e => e.Id);
+                builder.Property(e => e.TankId);
+                builder.Property(e => e.Timestamp);
                 builder.Property(e => e.VolumeChange).HasPrecision(10, 2);
                 builder.Property(e => e.NewVolume).HasPrecision(10, 2);
-                builder.Property(e => e.ChangeReason).HasColumnType("int(11)");
+                builder.Property(e => e.ChangeReason);
                 builder.Property(e => e.RecordedBy).HasMaxLength(100);
-                builder.Property(e => e.ReferenceId).HasColumnType("int(11)");
+                builder.Property(e => e.ReferenceId);
                 builder.Property(e => e.ReferenceType).HasMaxLength(50);
-                builder.Property(e => e.CreatedOn).HasColumnType("datetime");
+                builder.Property(e => e.CreatedOn);
 
                 // Soft delete fields
                 builder.Property(e => e.IsDeleted)
@@ -42,7 +42,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired(false);
 
                 builder.Property(e => e.DeletedAt)
-                    .HasColumnType("datetime")
                     .IsRequired(false);
 
                 builder.Property(e => e.DeletedBy)

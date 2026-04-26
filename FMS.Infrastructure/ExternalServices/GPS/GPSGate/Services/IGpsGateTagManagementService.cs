@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 
@@ -16,7 +16,7 @@ public class TagTransferResult
     public string? FromTagName { get; set; }
     public string? ToTagName { get; set; }
     public int GpsGateUserId { get; set; }
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public bool AddedToNewTag { get; set; }
     public bool RemovedFromOldTag { get; set; }
     public string? Error { get; set; }
@@ -75,12 +75,12 @@ public interface IGpsGateTagManagementService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Get the GPSGate user ID for a vehicle by HyoungNo
+    /// Get the GPSGate user ID for a vehicle by VehicleCode
     /// </summary>
-    /// <param name="hyoungNo">The vehicle's Hyoung number</param>
+    /// <param name="vehicleCode">The vehicle's Tenacy number</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>GPSGate user ID if found</returns>
-    Task<FMSResponse<int>> GetGpsGateUserIdByHyoungNoAsync(string hyoungNo, CancellationToken cancellationToken = default);
+    Task<FMSResponse<int>> GetGpsGateUserIdByVehicleCodeAsync(string vehicleCode, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get current tags assigned to a GPSGate user

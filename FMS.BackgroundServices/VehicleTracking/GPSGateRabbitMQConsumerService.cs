@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -406,7 +406,7 @@ namespace FMS.BackgroundServices.VehicleTracking
                 VehicleId = vehicleMapping.VehicleId,
                 GpsGateUserId = message.UserId,
                 NumberPlate = vehicleMapping.NumberPlate,
-                HyoungNo = vehicleMapping.HyoungNo,
+                VehicleCode = vehicleMapping.VehicleCode,
                 Latitude = message.Latitude,
                 Longitude = message.Longitude,
                 Altitude = message.Altitude,
@@ -610,7 +610,7 @@ namespace FMS.BackgroundServices.VehicleTracking
             {
                 VehicleId = vehicleMapping.VehicleId,
                 NumberPlate = vehicleMapping.NumberPlate,
-                HyoungNo = vehicleMapping.HyoungNo,
+                VehicleCode = vehicleMapping.VehicleCode,
                 EventId = message.Id,
                 EventType = DetermineEventType(message.RuleName),
                 EventName = message.RuleName ?? "Unknown",
@@ -834,7 +834,7 @@ namespace FMS.BackgroundServices.VehicleTracking
                         GpsGateUserId = m.ExternalDeviceId,
                         m.VehicleId,
                         m.Vehicle.NumberPlate,
-                        m.Vehicle.HyoungNo,
+                        m.Vehicle.VehicleCode,
                         m.Vehicle.MovementProfile
                     })
                     .ToListAsync(cancellationToken);
@@ -848,7 +848,7 @@ namespace FMS.BackgroundServices.VehicleTracking
                         {
                             VehicleId = mapping.VehicleId,
                             NumberPlate = mapping.NumberPlate,
-                            HyoungNo = mapping.HyoungNo,
+                            VehicleCode = mapping.VehicleCode,
                             MovementProfile = mapping.MovementProfile
                         };
                     }
@@ -869,7 +869,7 @@ namespace FMS.BackgroundServices.VehicleTracking
         {
             public int VehicleId { get; set; }
             public string? NumberPlate { get; set; }
-            public string? HyoungNo { get; set; }
+            public string? VehicleCode { get; set; }
             public VehicleMovementProfile MovementProfile { get; set; }
         }
 

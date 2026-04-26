@@ -35,7 +35,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.ExpectedAvg {
                     vehicleModel = item.Vehicle.VehicleModel.Name,
                     vehicleManufacturer = item.Vehicle.VehicleManufacturer.Name,
                     vehicleType = item.Vehicle.VehicleType.Name,
-                    HyoungNo = item.Vehicle.HyoungNo,
+                    VehicleCode = item.Vehicle.VehicleCode,
                     expectedAverageClassificationId = item.ExpectedAverageClassificationId,
                     siteId = item.SiteId,
                     site = item.Vehicle.WorkingSite.Name,

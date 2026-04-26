@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -12,14 +12,11 @@ namespace FMS.Persistence.EntityConfigurations
     {
         public void Configure(EntityTypeBuilder<ActiveEvent> builder)
         {
-            builder.ToTable("active_events")
-                .HasCharSet("utf8mb4")
-                .UseCollation("utf8mb4_general_ci");
+            builder.ToTable("active_events");
 
             builder.HasKey(e => e.Id).HasName("PRIMARY");
 
             builder.Property(e => e.Id)
-                .HasColumnType("int(11)")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.EventType)
@@ -36,7 +33,6 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasMaxLength(20);
 
             builder.Property(e => e.Severity)
-                .HasColumnType("int(11)")
                 .HasDefaultValue(2);
 
             builder.Property(e => e.Priority)
@@ -55,12 +51,11 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasMaxLength(50);
 
             builder.Property(e => e.TriggeredAt)
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.AcknowledgedAt).HasColumnType("datetime");
-            builder.Property(e => e.ResolvedAt).HasColumnType("datetime");
-            builder.Property(e => e.LastEscalatedAt).HasColumnType("datetime");
+            builder.Property(e => e.AcknowledgedAt);
+            builder.Property(e => e.ResolvedAt);
+            builder.Property(e => e.LastEscalatedAt);
 
             builder.Property(e => e.AcknowledgedBy).HasMaxLength(100);
             builder.Property(e => e.ResolvedBy).HasMaxLength(100);
@@ -71,11 +66,9 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.Unit).HasMaxLength(20);
 
             builder.Property(e => e.EscalationLevel)
-                .HasColumnType("int(11)")
                 .HasDefaultValue(0);
 
             builder.Property(e => e.AutoResolveMinutes)
-                .HasColumnType("int(11)")
                 .HasDefaultValue(0);
 
             builder.Property(e => e.EventData)
@@ -122,15 +115,17 @@ namespace FMS.Persistence.EntityConfigurations
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ActiveEvents_Expression");
 
-            // Ignore IssueTrackers navigation for now — the issuetracker table
+            // Ignore IssueTrackers navigation for now â€” the issuetracker table
             // does not yet have an ActiveEventId FK column. This prevents EF from
             // creating a shadow property that fails at query time.
             builder.Ignore(e => e.IssueTrackers);
 
-            // Ignore Notifications navigation for now — the notification table
+            // Ignore Notifications navigation for now â€” the notification table
             // does not yet have an ActiveEventId FK column in current deployments.
             // Without this, EF creates a shadow FK and generates INSERTs that fail.
             builder.Ignore(e => e.Notifications);
         }
     }
 }
+
+

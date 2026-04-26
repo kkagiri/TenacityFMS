@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,18 +14,14 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.ToTable("event_expression_executions")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("event_expression_executions");
 
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
                 builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
                     .ValueGeneratedOnAdd();
 
                 builder.Property(e => e.EventExpressionId)
-                    .HasColumnType("int(11)")
                     .IsRequired();
 
                 builder.Property(e => e.EventType)
@@ -33,7 +29,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(50);
 
                 builder.Property(e => e.ExecutedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.WasTriggered)
@@ -49,7 +44,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(500);
 
                 builder.Property(e => e.ExecutionTimeMs)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
                 builder.Property(e => e.ScopeKey)
@@ -94,3 +88,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

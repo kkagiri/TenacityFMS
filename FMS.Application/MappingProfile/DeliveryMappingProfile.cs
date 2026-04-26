@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DeliveryMappingProfile.cs
  * Purpose: AutoMapper profile for delivery/fuel-refill DTO transformations.
  * Dependencies: AutoMapper, Domain entities, FuelRefilDTO
@@ -27,7 +27,7 @@ namespace FMS.Application.MappingProfile
                 .ForMember(dest => dest.IsModified, opt => opt.MapFrom(src => src.IsModified.HasValue && src.IsModified.Value != 0))
                 .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.Date.HasValue && src.Date.Value.Year > 1900 ? src.Date : (DateTime?)null))
                 .ForMember(dest => dest.DateCreated, opt => opt.MapFrom(src => src.DateCreated.ToString("yyyy-MM-ddTHH:mm:ssZ")))
-                .ForMember(dest => dest.HyoungNo, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.HyoungNo : null))
+                .ForMember(dest => dest.VehicleCode, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.VehicleCode : null))
                 .ForMember(dest => dest.SiteName, opt => opt.MapFrom(src => src.Site != null ? src.Site.Name : null))
                 .ForMember(dest => dest.IsKmPerLiter, opt => opt.MapFrom(src => src.Vehicle != null && src.Vehicle.AverageKmL))
                 .ReverseMap()

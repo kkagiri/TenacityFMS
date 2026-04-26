@@ -1,4 +1,4 @@
-# GPSGate Tag Auto-Update on Vehicle Transfer
+﻿# GPSGate Tag Auto-Update on Vehicle Transfer
 
 ## Overview
 
@@ -181,7 +181,7 @@ The system resolves GPSGate user IDs in this order:
    - Check logs for API errors
 
 2. **Vehicle not found in GPSGate**
-   - Ensure vehicle name in GPSGate matches `HyoungNo`
+   - Ensure vehicle name in GPSGate matches `VehicleCode`
    - Check `VehicleProviderMappings` has correct `ExternalDeviceId`
 
 3. **API Authentication errors**

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useFuelingActions.js
  *
  * Custom hook to manage all action handlers for the fueling process.
@@ -572,7 +572,7 @@ export const useFuelingActions = ({
           const vehicleData = vehicleResult.data;
           state.setVehicleInfo({
             vehicleId: vehicleData.vehicleId,
-            hyoungNo: vehicleData.hyoungNo,
+            vehicleCode: vehicleData.vehicleCode,
             numberPlate: vehicleData.numberPlate,
             vehicleType: vehicleData.vehicleType,
             isCompanyVehicle: vehicleData.isCompanyVehicle || false,
@@ -608,7 +608,7 @@ export const useFuelingActions = ({
       return;
     }
 
-    const reg = validatedVehicleInfo?.hyoungNo ||
+    const reg = validatedVehicleInfo?.vehicleCode ||
                 validatedVehicleInfo?.numberPlate ||
                 validatedVehicleInfo?.registrationNumber;
 

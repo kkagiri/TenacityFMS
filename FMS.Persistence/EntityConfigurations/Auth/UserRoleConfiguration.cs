@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities.Auth;
 
@@ -14,9 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
                             builder.HasKey(ur => new { ur.UserId, ur.RoleId });
                             builder.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique();
 
-                            builder.ToTable("userroles")
-                                   .HasCharSet("utf8mb4")
-                                   .UseCollation("utf8mb4_general_ci");
+                            builder.ToTable("userroles");
 
                             // Optionally set property lengths if required by your model
                             builder.Property(ur => ur.UserId)
@@ -38,7 +36,6 @@ namespace FMS.Persistence.EntityConfigurations
                             builder.HasQueryFilter(ur => ur.User.IsDeleted != true);
                      }
 
-
                      catch (Exception ex)
                      {
                             throw new Exception($"Error configuring UserRoleConfiguration: {ex.Message}", ex);
@@ -46,3 +43,5 @@ namespace FMS.Persistence.EntityConfigurations
               }
        }
 }
+
+

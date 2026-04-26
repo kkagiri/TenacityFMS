@@ -19,164 +19,99 @@ namespace FMS.Persistence.EntityConfigurations
                             builder.HasIndex(i => i.Ptsid, "fk_psTID_idx");
 
                             builder.Property(i => i.DeliveryId)
-                                   .HasColumnName("DeliveryId")
-                                   .HasColumnType("int(11)")
                                    .IsRequired()
                                    .ValueGeneratedOnAdd();
 
                             builder.Property(i => i.Tank)
-                                   .HasColumnName("Tank")
-                                   .HasColumnType("int(11)")
                                    .IsRequired();
 
                             builder.Property(i => i.FuelGradeId)
-                                   .HasColumnName("FuelGradeId")
-                                   .HasColumnType("int(11)")
                                    .IsRequired();
 
                             builder.Property(i => i.FuelGradeName)
-                                   .HasColumnName("FuelGradeName")
-                                   .HasColumnType("varchar(20)")
+                                   .HasMaxLength(20)
                                    .HasMaxLength(20);
 
-                            builder.Property(i => i.StartDateTime)
-                                   .HasColumnName("StartDateTime")
-                                   .HasColumnType("datetime");
+                            builder.Property(i => i.StartDateTime);
 
-                            builder.Property(i => i.StartProductHeight)
-                                   .HasColumnName("StartProductHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartProductHeight);
 
-                            builder.Property(i => i.StartWaterHeight)
-                                   .HasColumnName("StartWaterHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartWaterHeight);
 
-                            builder.Property(i => i.StartTemperature)
-                                   .HasColumnName("StartTemperature")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartTemperature);
 
-                            builder.Property(i => i.StartProductVolume)
-                                   .HasColumnName("StartProductVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartProductVolume);
 
                             // Map property "StartProductTcvolume" to column "StartProductTCVolume"
-                            builder.Property(i => i.StartProductTcvolume)
-                                   .HasColumnName("StartProductTCVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartProductTcvolume);
 
-                            builder.Property(i => i.StartProductDensity)
-                                   .HasColumnName("StartProductDensity")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartProductDensity);
 
-                            builder.Property(i => i.StartProductMass)
-                                   .HasColumnName("StartProductMass")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.StartProductMass);
 
-                            builder.Property(i => i.EndDateTime)
-                                   .HasColumnName("EndDateTime")
-                                   .HasColumnType("datetime");
+                            builder.Property(i => i.EndDateTime);
 
-                            builder.Property(i => i.EndProductHeight)
-                                   .HasColumnName("EndProductHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndProductHeight);
 
-                            builder.Property(i => i.EndWaterHeight)
-                                   .HasColumnName("EndWaterHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndWaterHeight);
 
-                            builder.Property(i => i.EndTemperature)
-                                   .HasColumnName("EndTemperature")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndTemperature);
 
-                            builder.Property(i => i.EndProductVolume)
-                                   .HasColumnName("EndProductVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndProductVolume);
 
                             // Map property "EndProductTcvolume" to column "EndProductTCVolume"
-                            builder.Property(i => i.EndProductTcvolume)
-                                   .HasColumnName("EndProductTCVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndProductTcvolume);
 
-                            builder.Property(i => i.EndProductDensity)
-                                   .HasColumnName("EndProductDensity")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndProductDensity);
 
-                            builder.Property(i => i.EndProductMass)
-                                   .HasColumnName("EndProductMass")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.EndProductMass);
 
-                            builder.Property(i => i.AbsoluteProductHeight)
-                                   .HasColumnName("AbsoluteProductHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteProductHeight);
 
-                            builder.Property(i => i.AbsoluteWaterHeight)
-                                   .HasColumnName("AbsoluteWaterHeight")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteWaterHeight);
 
-                            builder.Property(i => i.AbsoluteTemperature)
-                                   .HasColumnName("AbsoluteTemperature")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteTemperature);
 
-                            builder.Property(i => i.AbsoluteProductVolume)
-                                   .HasColumnName("AbsoluteProductVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteProductVolume);
 
                             // Map property "AbsoluteProductTcvolume" to column "AbsoluteProductTCVolume"
-                            builder.Property(i => i.AbsoluteProductTcvolume)
-                                   .HasColumnName("AbsoluteProductTCVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteProductTcvolume);
 
-                            builder.Property(i => i.AbsoluteProductDensity)
-                                   .HasColumnName("AbsoluteProductDensity")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteProductDensity);
 
-                            builder.Property(i => i.AbsoluteProductMass)
-                                   .HasColumnName("AbsoluteProductMass")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.AbsoluteProductMass);
 
-                            builder.Property(i => i.PumpsDispensedVolume)
-                                   .HasColumnName("PumpsDispensedVolume")
-                                   .HasColumnType("float");
+                            builder.Property(i => i.PumpsDispensedVolume);
 
                             builder.Property(i => i.ConfigurationId)
-                                   .HasColumnName("ConfigurationId")
-                                   .HasColumnType("varchar(50)")
+                                   .HasMaxLength(50)
                                    .HasMaxLength(8);
 
                             // Map "Ptsid" property to column "PTSId" (as defined in the table, case-sensitive).
                             builder.Property(i => i.Ptsid)
-                                   .HasColumnName("PTSId")
-                                   .HasColumnType("varchar(100)")
+                                   .HasMaxLength(100)
                                    .HasMaxLength(100)
                                    .IsRequired();
 
                             // Map "PacketId" property to column "PacketID"
                             builder.Property(i => i.PacketId)
-                                   .HasColumnName("PacketID")
-                                   .HasColumnType("int(11)")
                                    .IsRequired();
 
                             // New detection fields
-                            builder.Property(i => i.TankId)
-                                   .HasColumnName("TankId");
+                            builder.Property(i => i.TankId);
 
-                            builder.Property(i => i.SiteId)
-                                   .HasColumnName("SiteId");
+                            builder.Property(i => i.SiteId);
 
                             builder.Property(i => i.Status)
-                                   .HasColumnName("Status")
                                    .HasMaxLength(50)
                                    .HasDefaultValue("Detected");
 
-                            builder.Property(i => i.MatchedDeliveryId)
-                                   .HasColumnName("MatchedDeliveryId");
+                            builder.Property(i => i.MatchedDeliveryId);
 
                             builder.Property(i => i.IsProcessed)
-                                   .HasColumnName("IsProcessed")
                                    .HasDefaultValue(false);
 
-                            builder.Property(i => i.DetectedAt)
-                                   .HasColumnName("DetectedAt");
+                            builder.Property(i => i.DetectedAt);
 
                             // Configure the foreign key relationship with Ptsdevice.
                             // The constraint name in the DB is "fk_psTID" and it references "ptsdevice(PTSId)".
@@ -205,7 +140,6 @@ namespace FMS.Persistence.EntityConfigurations
                             builder.HasIndex(i => i.Status).HasDatabaseName("IX_intankdelivery_Status");
                             builder.HasIndex(i => i.DetectedAt).HasDatabaseName("IX_intankdelivery_DetectedAt");
                      }
-
 
                      catch (Exception ex)
                      {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SplashScreen - Initial loading screen with branding
  * Shows app logo, name, and loading indicator
  *
@@ -130,7 +130,7 @@ const SplashScreen = ({
             <FallbackLogo />
           ) : (
             <Image
-              source={require("../../assets/images/hyoung-logo.png")}
+              source={require("../../assets/images/tenacy-logo.png")}
               style={styles.logo}
               resizeMode="contain"
               onError={handleImageError}
@@ -139,7 +139,7 @@ const SplashScreen = ({
         </View>
 
         {/* App Name */}
-        <Text style={styles.appName}>Hyoung FMS</Text>
+        <Text style={styles.appName}>Tenacy FMS</Text>
         <Text style={styles.appSubtitle}>Fleet Management System</Text>
 
         {/* Loading Indicator */}
@@ -172,7 +172,7 @@ const SplashScreen = ({
       <View style={styles.appInfo}>
         <Text style={styles.appVersion}>{APP_VERSION.displayName}</Text>
         <Text style={styles.appBuild}>Build {APP_VERSION.versionCode}</Text>
-        <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
+        <Text style={styles.copyright}>© 2026 Tenacy FMS</Text>
       </View>
     </View>
   );

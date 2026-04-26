@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -76,7 +76,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     PropertyNameCaseInsensitive = true
                 });
 
-                var events = gpsGateEvents?.Select(e => MapToEventDTO(e, vehicle.HyoungNo ?? string.Empty)).ToList()
+                var events = gpsGateEvents?.Select(e => MapToEventDTO(e, vehicle.VehicleCode ?? string.Empty)).ToList()
                     ?? new List<GPSEventDTO>();
 
                 return FMSResponse<List<GPSEventDTO>>.Success(events);
@@ -120,7 +120,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         && !string.IsNullOrWhiteSpace(m.ExternalDeviceId)
                         && m.ProviderConfiguration.Name == "GPSGate"
                         && m.ProviderConfiguration.IsEnabled)
-                    .Select(m => new { m.ExternalDeviceId, VehicleName = m.Vehicle.HyoungNo ?? string.Empty })
+                    .Select(m => new { m.ExternalDeviceId, VehicleName = m.Vehicle.VehicleCode ?? string.Empty })
                     .ToListAsync();
 
                 var vehicleNamesByExternalId = vehicles

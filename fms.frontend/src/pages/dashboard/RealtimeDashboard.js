@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: RealtimeDashboard.js
  * Purpose: Hosts the real-time dashboard shell, edit actions, and widget grouping controls.
  * Dependencies: React, Redux, DevExtreme, realtime dashboard hook, dashboard modal components
@@ -198,7 +198,7 @@ const RealtimeDashboard = () => {
       <div className="dashboard-header">
         <h1 className="dashboard-title">
           <i className="fa-solid fa-gauge-high"></i>
-          <span className="dashboard-title-text">Hyoung FMS Real-time Dashboard</span>
+          <span className="dashboard-title-text">Tenacy FMS Real-time Dashboard</span>
         </h1>
 
         {/* Header Controls - Right Side */}

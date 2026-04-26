@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Queries;
@@ -44,7 +44,7 @@ namespace FMS.Testing.TagQueries {
             var monthlyLimit = 500;
             var dailyUsed = 30m;
             var monthlyUsed = 200m;
-            var hyoungNo = "HYG123";
+            var vehicleCode = "HYG123";
             var vehicleTypeName = "Truck";
 
             // Create tag with rule set
@@ -72,7 +72,7 @@ namespace FMS.Testing.TagQueries {
             // Setup vehicle and vehicle type
             var vehicle = new Vehicle {
                 VehicleId = vehicleId,
-                HyoungNo = hyoungNo,
+                VehicleCode = vehicleCode,
                 VehicleTypeId = 2
             };
 
@@ -108,7 +108,7 @@ namespace FMS.Testing.TagQueries {
             Assert.NotNull (result);
             Assert.Equal (tagName, result.TagId);
             Assert.Equal (vehicleId, result.VehicleId);
-            Assert.Equal (hyoungNo, result.HyoungNo);
+            Assert.Equal (vehicleCode, result.VehicleCode);
             Assert.Equal (dailyUsed, result.DailyUsed);
             Assert.Equal (dailyLimit, result.DailyLimit);
             Assert.Equal (monthlyUsed, result.MonthlyUsed);
@@ -161,7 +161,7 @@ namespace FMS.Testing.TagQueries {
             // Setup vehicle and vehicle type
             var vehicle = new Vehicle {
                 VehicleId = vehicleId,
-                HyoungNo = "HYG123",
+                VehicleCode = "HYG123",
                 VehicleTypeId = 2
             };
 
@@ -256,7 +256,7 @@ namespace FMS.Testing.TagQueries {
             Assert.NotNull (result);
             Assert.Equal (vehicleId, result.VehicleId);
             // Should handle missing vehicle gracefully
-            Assert.Null (result.HyoungNo);
+            Assert.Null (result.VehicleCode);
             Assert.Null (result.VehicleType);
         }
 
@@ -271,7 +271,7 @@ namespace FMS.Testing.TagQueries {
             var vehicleId = 5;
             var dailyUsed = 30m;
             var monthlyUsed = 200m;
-            var hyoungNo = "HYG123";
+            var vehicleCode = "HYG123";
 
             // Create tag with rule set
             var tag = new FuelTag {
@@ -297,7 +297,7 @@ namespace FMS.Testing.TagQueries {
             // Setup vehicle with null VehicleTypeId
             var vehicle = new Vehicle {
                 VehicleId = vehicleId,
-                HyoungNo = hyoungNo,
+                VehicleCode = vehicleCode,
                 VehicleTypeId = null // Explicitly null
             };
 
@@ -325,7 +325,7 @@ namespace FMS.Testing.TagQueries {
             // Assert
             Assert.NotNull (result);
             Assert.Equal (vehicleId, result.VehicleId);
-            Assert.Equal (hyoungNo, result.HyoungNo); // HyoungNo should be present
+            Assert.Equal (vehicleCode, result.VehicleCode); // VehicleCode should be present
             Assert.Null (result.VehicleType); // VehicleType should be null
         }
     }

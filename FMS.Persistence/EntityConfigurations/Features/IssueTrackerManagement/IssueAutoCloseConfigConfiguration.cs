@@ -15,38 +15,28 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("issueautocloseconfig");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
 
-                builder.Property(e => e.IssueTemplateId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("IssueTemplateID");
+                builder.Property(e => e.IssueTemplateId);
 
                 builder.Property(e => e.IsEnabled)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.CheckerType)
                     .HasMaxLength(100)
                     .IsRequired();
 
-                builder.Property(e => e.CheckIntervalSeconds)
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.CheckIntervalSeconds);
 
-                builder.Property(e => e.CheckerConfigJson)
-                    .HasColumnType("text");
+                builder.Property(e => e.CheckerConfigJson);
 
                 builder.Property(e => e.AutoCloseWhenSatisfied)
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.Property(e => e.UpdatedAt)
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 builder.HasIndex(e => e.IssueTemplateId).IsUnique();
@@ -65,3 +55,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

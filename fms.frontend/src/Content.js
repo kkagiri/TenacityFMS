@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: Content.js
  * Purpose: Defines application routing and global layout wrappers
  * Dependencies: react-router-dom, react-redux, AppDrawerLayout
@@ -221,16 +221,6 @@ export default function Content() {
           element={React.createElement(resolvedComponents("issue tracker"))}
         />
 
-        {/* Task Management System Routes - Handle all task-management sub-routes internally */}
-        <Route
-          path="/task-management"
-          element={React.createElement(resolvedComponents("task management"))}
-        />
-        <Route
-          path="/task-management/*"
-          element={React.createElement(resolvedComponents("task management"))}
-        />
-
         {/* Event Expressions Management */}
         <Route
           path="/event-expressions"
@@ -273,8 +263,8 @@ export default function Content() {
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
             <span style={{ marginLeft: '10px', color: '#888' }}>v{appInfo.version}</span>
             <span style={{ marginLeft: '12px' }}>
-              Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
-              trademarks are property of Hyoung EA Co. Ltd.
+              Develop by Kevin.kagiri@example.com. All trademarks or registered
+              trademarks are property of Tenacy Co. Ltd.
             </span>
           </div>
           {/* SignalR Connection Status Indicator */}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: LiveTripOperationsHtmlTemplate.cs
  * Purpose: Handlebars/HTML template for the live trip operations report.
  * Dependencies: Live trip operations payload from the reporting engine.
@@ -12,7 +12,7 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <meta charset=""UTF-8"">
-    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <title>{{reportTitle}} - Tenacy FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"" rel=""stylesheet"">
     <style>
         :root {
@@ -487,7 +487,7 @@ namespace FMS.WebClient.Services.Reporting
         </div>
 
         <div class=""footer"">
-            <div>Hyoung Fleet Management System</div>
+            <div>Tenacy Fleet Management System</div>
             <div>Report ID: {{reportId}}</div>
         </div>
     </div>

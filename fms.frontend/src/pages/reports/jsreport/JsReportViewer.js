@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: JsReportViewer.js
  * Purpose: Report viewer with filter form and preview/download capabilities
  * Dependencies: React, DevExtreme, Redux, reportingService
@@ -62,7 +62,7 @@ const JsReportViewer = () => {
     const vehicleArray = Array.isArray(reduxVehicles) ? reduxVehicles : [];
     return vehicleArray.map(v => ({
       id: v.vehicleId || v.id,
-      name: v.hyoungNo || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`
+      name: v.vehicleCode || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`
     }));
   }, [reduxVehicles]);
 

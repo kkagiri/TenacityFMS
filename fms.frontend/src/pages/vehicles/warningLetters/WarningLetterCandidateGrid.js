@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterCandidateGrid.js
  * Purpose:       Renders warning letter candidates in a searchable grid for step 2 of the warning letter wizard.
  * Dependencies:  React, DevExtreme DataGrid
@@ -136,7 +136,7 @@ const WarningLetterCandidateGrid = ({
                     displayMode="compact"
                 />
                 <Column caption="Status" width={180} allowSorting={false} allowFiltering={false} cellRender={renderStatus} />
-                <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
+                <Column dataField="vehicleCode" caption="Vehicle" minWidth={120} />
                 <Column dataField="numberPlate" caption="Number Plate" minWidth={120} />
                 <Column dataField="employeeName" caption="Employee" minWidth={180} />
                 <Column caption="Violated Date" width={130} cellRender={renderViolationDate} sortOrder="desc" />

@@ -1,10 +1,10 @@
-# Event Expression Engine — Implementation Guide for AI Agents
+﻿# Event Expression Engine — Implementation Guide for AI Agents
 
 > **Purpose**: Complete reference for the FMS Event Expression Engine. Covers architecture, current
 > implementation state, the 15 TODO wiring locations, and step-by-step instructions for wiring
 > `IEventExpressionEngine.ProcessAsync()` into each call site.
 >
-> **Audience**: AI coding agents working on the Hyoung.FMS codebase.
+> **Audience**: AI coding agents working on the Tenacy.FMS codebase.
 >
 > **Last Updated**: 2026-02-11
 
@@ -567,7 +567,7 @@ var docEvent = new SystemEvent
     {
         ["DocumentId"] = doc.Id,
         ["DocumentType"] = doc.DocumentType,
-        ["VehicleNumber"] = doc.Vehicle?.HyoungNo ?? "",
+        ["VehicleNumber"] = doc.Vehicle?.VehicleCode ?? "",
         ["ExpiryDate"] = doc.ExpiryDate.ToString("yyyy-MM-dd"),
         ["DaysUntilExpiry"] = daysUntilExpiry,
     }
@@ -602,7 +602,7 @@ private async Task CreateMaintenanceAlarm(
         {
             ["MaintenanceId"] = maintenance.MaintenanceId,
             ["MaintenanceType"] = maintenance.MaintenanceType ?? "",
-            ["VehicleNumber"] = maintenance.Vehicle?.HyoungNo ?? "",
+            ["VehicleNumber"] = maintenance.Vehicle?.VehicleCode ?? "",
             ["ScheduledDate"] = maintenance.ScheduledDate?.ToString("yyyy-MM-dd") ?? "",
         }
     };

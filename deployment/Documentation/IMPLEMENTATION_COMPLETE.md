@@ -1,9 +1,9 @@
-# ✅ Implementation Complete!
+﻿# ✅ Implementation Complete!
 
 ## 🎉 All Files Created Successfully
 
 ### Scripts Created:
-1. ✅ **setup-iis-hyoungfms.ps1** - One-time IIS setup
+1. ✅ **setup-iis-tenacyfms.ps1** - One-time IIS setup
 2. ✅ **deploy-manual.ps1** - Manual deployment script
 3. ✅ **control-iis.ps1** - IIS control (stop/start/restart)
 4. ✅ **open-dev.ps1** - Quick open development workspace
@@ -23,14 +23,14 @@
 ### Step 1: Setup IIS (Run as Administrator)
 
 ```powershell
-cd c:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
-.\setup-iis-hyoungfms.ps1
+cd c:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
+.\setup-iis-tenacyfms.ps1
 ```
 
 **What this does:**
-- Creates IIS app pools: `HyoungFMS.WebAPI` and `HyoungFMS.ReactApp`
+- Creates IIS app pools: `TenacyFMS.WebAPI` and `TenacyFMS.ReactApp`
 - Creates IIS websites on ports 5000 and 3000
-- Creates folders: `C:\inetpub\wwwroot\hyoungFMS\webAPI` and `reactApp`
+- Creates folders: `C:\inetpub\wwwroot\tenacyFMS\webAPI` and `reactApp`
 - Creates web.config files
 - Sets permissions
 
@@ -69,15 +69,15 @@ Visit these URLs:
 
 ```powershell
 # Copy all scripts to your development workspace
-Copy-Item *.ps1 C:\dev\Hyoung.FMS\ -Force
-Copy-Item *.md C:\dev\Hyoung.FMS\ -Force
-Copy-Item .github\workflows\deploy-to-iis.yml C:\dev\Hyoung.FMS\.github\workflows\ -Force
+Copy-Item *.ps1 C:\dev\Tenacy.FMS\ -Force
+Copy-Item *.md C:\dev\Tenacy.FMS\ -Force
+Copy-Item .github\workflows\deploy-to-iis.yml C:\dev\Tenacy.FMS\.github\workflows\ -Force
 ```
 
 ### Step 6: Commit CI/CD Workflow
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Add all new files
 git add .
@@ -91,7 +91,7 @@ git push origin productionv1
 
 ### Step 7: Monitor First Auto-Deployment
 
-Go to: https://github.com/kagz100/Hyoung.FMS/actions
+Go to: https://github.com/kagz100/Tenacy.FMS/actions
 
 Watch your first automatic deployment happen!
 
@@ -122,7 +122,7 @@ Watch your first automatic deployment happen!
 ```
 ┌─────────────────────────────────────────────────────┐
 │         Development Workspace                       │
-│         C:\dev\Hyoung.FMS                          │
+│         C:\dev\Tenacy.FMS                          │
 │         (Work here! Safe from .git deletion)       │
 └─────────────┬───────────────────────────────────────┘
               │
@@ -130,7 +130,7 @@ Watch your first automatic deployment happen!
               ↓
 ┌─────────────────────────────────────────────────────┐
 │         GitHub Repository                           │
-│         github.com/kagz100/Hyoung.FMS              │
+│         github.com/kagz100/Tenacy.FMS              │
 └─────────────┬───────────────────────────────────────┘
               │
               │ Webhook trigger
@@ -145,7 +145,7 @@ Watch your first automatic deployment happen!
               ↓
 ┌─────────────────────────────────────────────────────┐
 │         IIS Deployment                              │
-│         C:\inetpub\wwwroot\hyoungFMS\              │
+│         C:\inetpub\wwwroot\tenacyFMS\              │
 │         ├── webAPI/     (Port 5000)                │
 │         └── reactApp/   (Port 3000)                │
 └─────────────────────────────────────────────────────┘
@@ -172,12 +172,12 @@ Watch your first automatic deployment happen!
 ### Development
 ```powershell
 .\open-dev.ps1                         # Open VS Code
-code C:\dev\Hyoung.FMS                 # Open workspace
+code C:\dev\Tenacy.FMS                 # Open workspace
 ```
 
 ### Logs
 ```powershell
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 50
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 50
 ```
 
 ---
@@ -228,7 +228,7 @@ Start-Sleep -Seconds 5
 
 ### Check Errors
 ```powershell
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 100
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 100
 ```
 
 ---
@@ -241,7 +241,7 @@ After setup, verify:
 - [ ] Can access http://localhost:5000
 - [ ] Can access http://localhost:3000
 - [ ] Manual deployment works
-- [ ] Scripts copied to C:\dev\Hyoung.FMS
+- [ ] Scripts copied to C:\dev\Tenacy.FMS
 - [ ] CI/CD workflow committed
 - [ ] Auto-deployment tested
 - [ ] Logs accessible
@@ -254,7 +254,7 @@ After setup, verify:
 2. **Check Full Guide**: `DEPLOYMENT_GUIDE.md`
 3. **Check IIS Status**: `.\control-iis.ps1 -Status`
 4. **Check Logs**: See logs commands above
-5. **Check GitHub Actions**: https://github.com/kagz100/Hyoung.FMS/actions
+5. **Check GitHub Actions**: https://github.com/kagz100/Tenacy.FMS/actions
 
 ---
 

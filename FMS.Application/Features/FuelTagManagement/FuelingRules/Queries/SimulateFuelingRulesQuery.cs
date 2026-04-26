@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -197,7 +197,7 @@ public class SimulateFuelingRulesQueryHandler
                 Vehicle = new VehicleInfoDTO
                 {
                     VehicleId = vehicle.VehicleId,
-                    HyoungNo = vehicle.HyoungNo,
+                    VehicleCode = vehicle.VehicleCode,
                     NumberPlate = vehicle.NumberPlate,
                     VehicleTypeId = vehicle.VehicleTypeId,
                     VehicleTypeName = vehicle.VehicleType?.Name,

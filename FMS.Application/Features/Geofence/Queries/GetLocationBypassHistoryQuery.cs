@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -159,8 +159,8 @@ public class GetLocationBypassHistoryQueryHandler : IRequestHandler<GetLocationB
                 Id = b.Id,
                 BypassType = b.BypassType,
                 VehicleId = b.VehicleId,
-                VehicleName = b.Vehicle?.NumberPlate ?? b.Vehicle?.HyoungNo,
-                VehicleHyoungNo = b.Vehicle?.HyoungNo,
+                VehicleName = b.Vehicle?.NumberPlate ?? b.Vehicle?.VehicleCode,
+                VehicleCode = b.Vehicle?.VehicleCode,
                 UserId = b.UserId,
                 UserName = null, // User lookup would require join to users table
                 IsActive = b.IsActive,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: warningLetterService.js
  * Purpose: Wraps warning letter API calls and normalizes response payloads for vehicle-module pages.
  * Dependencies: axiosInstance
@@ -61,7 +61,7 @@ const normalizeWarningLetterListItem = (item = {}) => ({
     employeeId: item?.employeeId ?? item?.EmployeeId ?? null,
     employeeName: item?.employeeName ?? item?.EmployeeName ?? "",
     vehicleId: item?.vehicleId ?? item?.VehicleId ?? null,
-    vehicleHyoungNo: item?.vehicleHyoungNo ?? item?.VehicleHyoungNo ?? "",
+    vehicleCode: item?.vehicleCode ?? item?.VehicleCode ?? "",
     numberPlate: item?.numberPlate ?? item?.NumberPlate ?? null,
     siteId: item?.siteId ?? item?.SiteId ?? null,
     siteName: item?.siteName ?? item?.SiteName ?? "",

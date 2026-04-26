@@ -1,4 +1,4 @@
-# Fuel Management System - Complete Feature Guide
+﻿# Fuel Management System - Complete Feature Guide
 
 ## 🛡️ Enterprise Fuel Control & Safety Platform
 
@@ -205,7 +205,7 @@ GET /api/v1/fueling-rule/vehicle/{vehicleId}/effective-rules
   "isSuccess": true,
   "data": {
     "vehicleId": 123,
-    "hyoungNo": "V-001",
+    "vehicleCode": "V-001",
     "hasRulesAssigned": true,
     "maxFuelAllowed": 50.0,
     "limitingFactor": "Tank Capacity",

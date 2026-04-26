@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,7 +20,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
     public class FuelTagDetailsDto {
         public string TagId { get; set; }
         public int? VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public decimal DailyUsed { get; set; }
         public decimal DailyLimit { get; set; }
         public decimal MonthlyUsed { get; set; }
@@ -82,7 +82,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingTags.Queries
             return new FuelTagDetailsDto {
                 TagId = request.fuelTagName,
                     VehicleId = tag.VehicleId,
-                    HyoungNo = vehicle?.HyoungNo,
+                    VehicleCode = vehicle?.VehicleCode,
                     DailyUsed = dailyUsed,
                     DailyLimit = dailyLimit,
                     MonthlyUsed = monthlyUsed,

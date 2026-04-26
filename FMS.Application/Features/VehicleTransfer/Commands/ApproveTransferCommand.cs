@@ -134,7 +134,7 @@ public class ApproveTransferCommandHandler : IRequestHandler<ApproveTransferComm
 <html><body style='font-family: Arial, sans-serif;'>
   <h3>Vehicle Transfer {outcome}</h3>
   <p>Transfer #{transfer.DeliveryNoteNumber ?? transfer.TransferId.ToString()} has been {outcome}.</p>
-  <p><strong>Vehicle:</strong> {transfer.Vehicle?.HyoungNo}</p>
+  <p><strong>Vehicle:</strong> {transfer.Vehicle?.VehicleCode}</p>
   <p><strong>From:</strong> {transfer.FromSite?.Name} <strong>To:</strong> {transfer.ToSite?.Name}</p>
   {reasonLine}
 </body></html>";

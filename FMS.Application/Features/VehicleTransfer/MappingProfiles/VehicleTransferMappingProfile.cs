@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AutoMapper;
 using FMS.Application.Features.VehicleTransfer.DTOs;
 using FMS.Domain.Entities.Features.VehicleManagement;
@@ -11,7 +11,7 @@ public class VehicleTransferMappingProfile : Profile
     {
         // VehicleTransfer -> VehicleTransferDTO
         CreateMap<Domain.Entities.Features.VehicleManagement.VehicleTransfer, VehicleTransferDTO>()
-            .ForMember(dest => dest.VehicleHyoungNo, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.HyoungNo : null))
+            .ForMember(dest => dest.VehicleCode, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.VehicleCode : null))
             .ForMember(dest => dest.VehicleNumberPlate, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.NumberPlate : null))
             .ForMember(dest => dest.FromSiteName, opt => opt.MapFrom(src => src.FromSite != null ? src.FromSite.Name : null))
             .ForMember(dest => dest.ToSiteName, opt => opt.MapFrom(src => src.ToSite != null ? src.ToSite.Name : null))

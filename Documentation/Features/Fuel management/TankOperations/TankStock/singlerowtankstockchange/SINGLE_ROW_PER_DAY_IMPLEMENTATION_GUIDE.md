@@ -1,4 +1,4 @@
-# TankStock Single-Row-Per-Day Implementation Guide
+﻿# TankStock Single-Row-Per-Day Implementation Guide
 
 ## Overview
 
@@ -298,7 +298,7 @@ python consolidate_tankstock_entries.py
 ### Phase 3: Deploy Updated Code
 ```bash
 # Build solution
-dotnet build Hyoung.Fms.sln
+dotnet build Tenacy.Fms.sln
 
 # Deploy backend (stop services first)
 # Copy updated DLLs to production

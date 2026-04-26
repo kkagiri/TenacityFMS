@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -201,8 +201,8 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
             vehicleBypasses.Add(new VehicleBypassDTO
             {
                 VehicleId = vehicleId,
-                VehicleName = vehicle.HyoungNo, // Vehicle entity uses HyoungNo as name
-                VehicleHyoungNo = vehicle.HyoungNo,
+                VehicleName = vehicle.VehicleCode, // Vehicle entity uses VehicleCode as name
+                VehicleCode = vehicle.VehicleCode,
                 IsActive = true,
                 ExpiresAt = expiresAt,
                 Reason = request.Reason,
@@ -212,7 +212,7 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
 
             _logger.LogWarning(
                 "VEHICLE-SPECIFIC location bypass ENABLED for Vehicle {VehicleId} ({VehicleName}) by {EnabledBy}. Reason: {Reason}. Expires at: {ExpiresAt}",
-                vehicleId, vehicle.HyoungNo, request.EnabledBy, request.Reason ?? "No reason provided", expiresAt?.ToString() ?? "Never");
+                vehicleId, vehicle.VehicleCode, request.EnabledBy, request.Reason ?? "No reason provided", expiresAt?.ToString() ?? "Never");
         }
 
         await _context.SaveChangesAsync(cancellationToken);

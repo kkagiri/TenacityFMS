@@ -62,7 +62,7 @@ public static class FmsLoggingConfiguration
         lc.MinimumLevel.Information()
           .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
           .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
-          .MinimumLevel.Override("Pomelo.EntityFrameworkCore.MySql", LogEventLevel.Warning)
+          .MinimumLevel.Override("Npgsql", LogEventLevel.Warning)
           .MinimumLevel.Override("System", LogEventLevel.Warning)
           .Enrich.FromLogContext()
           .Enrich.WithProperty("Application", "FMS.WebClient")
@@ -96,11 +96,6 @@ public static class FmsLoggingConfiguration
             sourceContextContains: new[] { "Fuel", "Tank", "Reconciliation", "Delivery" },
             messageContains: new[] { "fuel", "Fuel", "tank", "Tank", "refill", "Refill", "delivery", "Delivery" });
 
-        // ─── IMPORT: Fuel import scan, parsing, tracker, and import-management diagnostics ───
-        AddCategoryLogger(lc, "import", "import-.log",
-            sourceContextContains: new[] { "FuelImport", "ImportFuelReport", "ExcelParsingService", "FileTrackerService" },
-            messageContains: new[] { "Auto-import", "fuel import", "File imported", "Import command", "Import Management", "scan path" });
-
         // ─── SIGNALR: Hub connections, real-time events ───
         AddCategoryLogger(lc, "signalr", "signalr-.log",
             sourceContextContains: new[] { "SignalR", "Hub", "Notification" },
@@ -113,7 +108,7 @@ public static class FmsLoggingConfiguration
 
         // ─── EF CORE: Database SQL commands ───
         AddCategoryLogger(lc, "efcore", "efcore-.log",
-            sourceContextContains: new[] { "EntityFrameworkCore", "Pomelo" },
+            sourceContextContains: new[] { "EntityFrameworkCore", "Npgsql" },
             messageContains: new[] { "DbCommand", "INSERT INTO", "SELECT ", "UPDATE ", "DELETE FROM" },
             retainDays: 3);
 

@@ -1,4 +1,4 @@
-# Fuel Rule Management System Documentation
+﻿# Fuel Rule Management System Documentation
 
 ## Table of Contents
 
@@ -138,7 +138,7 @@ CREATE TABLE FuelTags (
 CREATE TABLE Vehicles (
     VehicleId INT PRIMARY KEY AUTO_INCREMENT,
     NumberPlate VARCHAR(20) UNIQUE NOT NULL,
-    HyoungNo VARCHAR(50),
+    VehicleCode VARCHAR(50),
     VehicleType INT,
     FuelTankCapacity DECIMAL(10,2),
     AverageFuelConsumption DECIMAL(10,2), -- Liters per 100km
@@ -342,7 +342,7 @@ public class TimeWindowRule : FuelingRule
     {
       "vehicleId": 101,
       "numberPlate": "KBA 123A",
-      "hyoungNo": "ISUZU-NQR-2021",
+      "vehicleCode": "ISUZU-NQR-2021",
       "vehicleType": "Delivery Truck",
       "fuelTankCapacity": 100,
       "averageFuelConsumption": 12.5,
@@ -352,7 +352,7 @@ public class TimeWindowRule : FuelingRule
     {
       "vehicleId": 102,
       "numberPlate": "KCA 456B",
-      "hyoungNo": "MITSUBISHI-CANTER-2020",
+      "vehicleCode": "MITSUBISHI-CANTER-2020",
       "vehicleType": "Delivery Truck",
       "fuelTankCapacity": 95,
       "averageFuelConsumption": 11.8,
@@ -1014,7 +1014,7 @@ GROUP BY TagId, DATE(DateCreated);
 ```sql
 SELECT
     v.NumberPlate,
-    v.HyoungNo as VehicleModel,
+    v.VehicleCode as VehicleModel,
     frs.Name as RuleSetName,
     MONTH(fr.DateCreated) as Month,
     YEAR(fr.DateCreated) as Year,
@@ -1026,7 +1026,7 @@ JOIN Vehicles v ON fr.VehicleId = v.VehicleId
 LEFT JOIN FuelTags ft ON v.VehicleId = ft.VehicleId
 LEFT JOIN FuelingRuleSets frs ON ft.FuelRuleSetId = frs.Id
 WHERE fr.DateCreated >= DATE_SUB(CURRENT_DATE, INTERVAL 3 MONTH)
-GROUP BY v.NumberPlate, v.HyoungNo, frs.Name, MONTH(fr.DateCreated), YEAR(fr.DateCreated)
+GROUP BY v.NumberPlate, v.VehicleCode, frs.Name, MONTH(fr.DateCreated), YEAR(fr.DateCreated)
 ORDER BY Year DESC, Month DESC, v.NumberPlate;
 ```
 

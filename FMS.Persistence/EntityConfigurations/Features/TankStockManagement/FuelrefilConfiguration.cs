@@ -24,40 +24,24 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.VehicleId, "fuelRefil_vehilce_idx");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
-                builder.Property(e => e.TankId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("TankID");
+                    .ValueGeneratedOnAdd();
+                builder.Property(e => e.TankId);
                 builder.Property(e => e.Comment).HasMaxLength(500);
                 builder.Property(e => e.ModifiedBy).HasMaxLength(100);
                 builder.Property(e => e.TagId).
                 HasMaxLength(50)
-                    .HasColumnType("varchar(50)")
-                    .HasColumnName("TagID");
+                    .HasMaxLength(50);
                 builder.Property(e => e.CurrentMeterReading).HasPrecision(10, 2);
-                builder.Property(e => e.DriverId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("DriverID");
+                builder.Property(e => e.DriverId);
                 builder.Property(e => e.FuelBy)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
                 builder.Property(e => e.IsModified)
-                    .HasDefaultValueSql("'0'")
-                    .HasColumnType("tinyint(4)");
-                builder.Property(e => e.ManualFuelrefillAmount).HasPrecision(10).HasColumnName("ManualFuelrefilAmount");
+                    .HasDefaultValueSql("'0'");
+                builder.Property(e => e.ManualFuelrefillAmount).HasPrecision(10);
                 builder.Property(e => e.PreviousMeterReading).HasPrecision(10, 2);
-                builder.Property(e => e.PumpTranscationId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("PumpTranscationID");
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("vehicleID");
+                builder.Property(e => e.PumpTranscationId);
+                builder.Property(e => e.SiteId);
+                builder.Property(e => e.VehicleId);
 
                 builder.HasOne(d => d.Driver)
                     .WithMany(p => p.Fuelrefils)
@@ -108,3 +92,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

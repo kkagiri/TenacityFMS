@@ -384,7 +384,7 @@ const notificationReducer = (state = initialState, action) => {
         errors: { ...state.errors, categories: action.payload },
       };
 
-    // Real-time notification from SignalR (e.g., FuelImport, Alarms)
+    // Real-time notification from SignalR
     case "NOTIFICATION_CREATED": {
       const newNotification = action.payload;
       // Avoid duplicates by checking if notification already exists
@@ -397,16 +397,8 @@ const notificationReducer = (state = initialState, action) => {
         return state;
       }
 
-      // Check if this is a FuelImport notification to clear the temporary progress UI
-      const isFuelImportNotification =
-        newNotification.title?.includes("Fuel Import") ||
-        newNotification.data?.ReportId ||
-        newNotification.data?.reportId;
-
       return {
         ...state,
-        // Clear import progress when final notification arrives
-        importProgress: isFuelImportNotification ? null : state.importProgress,
         backendNotifications: [
           {
             ...newNotification,

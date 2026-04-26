@@ -26,77 +26,55 @@ public class MaintenanceIssueConfiguration : EntityTypeConfiguration<Maintenance
             builder.HasIndex(e => e.DateReported, "idx_issue_date_reported");
 
             // Column configurations
-            builder.Property(e => e.IssueId)
-                .HasColumnType("int(11)")
-                .HasColumnName("IssueID");
+            builder.Property(e => e.IssueId);
 
-            builder.Property(e => e.MaintenanceId)
-                .HasColumnType("int(11)")
-                .HasColumnName("MaintenanceID");
+            builder.Property(e => e.MaintenanceId);
 
             builder.Property(e => e.IssueType)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("IssueType");
+                .HasMaxLength(100);
 
             builder.Property(e => e.Severity)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasColumnName("Severity")
                 .HasDefaultValue("Medium");
 
             builder.Property(e => e.Description)
                 .IsRequired()
-                .HasMaxLength(2000)
-                .HasColumnName("Description");
+                .HasMaxLength(2000);
 
             builder.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasColumnName("Status")
                 .HasDefaultValue("Open");
 
             builder.Property(e => e.ResponsiblePerson)
-                .HasMaxLength(255)
-                .HasColumnName("ResponsiblePerson");
+                .HasMaxLength(255);
 
             builder.Property(e => e.ReportedBy)
-                .HasMaxLength(255)
-                .HasColumnName("ReportedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.DateReported)
-                .HasColumnType("datetime")
-                .HasColumnName("DateReported")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.DateResolved)
-                .HasColumnType("datetime")
-                .HasColumnName("DateResolved");
+            builder.Property(e => e.DateResolved);
 
             builder.Property(e => e.ResolutionNotes)
-                .HasMaxLength(2000)
-                .HasColumnName("ResolutionNotes");
+                .HasMaxLength(2000);
 
             builder.Property(e => e.AdditionalCost)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("AdditionalCost");
+                .HasColumnType("decimal(10,2)");
 
             builder.Property(e => e.CreatedBy)
-                .HasMaxLength(255)
-                .HasColumnName("CreatedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.ModifiedBy)
-                .HasMaxLength(255)
-                .HasColumnName("ModifiedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.DateCreated)
-                .HasColumnType("datetime")
-                .HasColumnName("DateCreated")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.DateModified)
-                .HasColumnType("datetime")
-                .HasColumnName("DateModified");
+            builder.Property(e => e.DateModified);
 
             // Relationships
             builder.HasOne(d => d.Maintenance)
@@ -115,3 +93,4 @@ public class MaintenanceIssueConfiguration : EntityTypeConfiguration<Maintenance
         }
     }
 }
+

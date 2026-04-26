@@ -1,4 +1,4 @@
-# 🎯 Complete CI/CD Implementation - Getting Started
+﻿# 🎯 Complete CI/CD Implementation - Getting Started
 
 ## 🚀 Current Status
 
@@ -8,7 +8,7 @@
 - App pools configured and started
 
 ✅ **Deployment Scripts Created**
-- `setup-iis-hyoungfms.ps1` - One-time IIS configuration
+- `setup-iis-tenacyfms.ps1` - One-time IIS configuration
 - `control-iis.ps1` - IIS management (start/stop/status)
 - `deploy-manual.ps1` - Manual deployment (direct method)
 - `deploy-alternative.ps1` - Manual deployment (folder swap method - **recommended**)
@@ -50,8 +50,8 @@ Create a permanent development workspace (safe from .git deletion):
 # Create and clone
 mkdir C:\dev
 cd C:\dev
-git clone https://github.com/kagz100/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/kagz100/Tenacy.FMS.git
+cd Tenacy.FMS
 git checkout productionv1
 ```
 
@@ -61,7 +61,7 @@ Use the helper script to copy all deployment files:
 
 ```powershell
 # Run from runner workspace
-cd C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
+cd C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
 .\copy-to-dev.ps1
 ```
 
@@ -72,7 +72,7 @@ This copies all scripts, workflows, and documentation to your dev workspace.
 Commit and push from your dev workspace to enable CI/CD:
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Review what will be committed
 git status
@@ -100,9 +100,9 @@ git push origin productionv1
 Watch it run:
 
 **Option A: GitHub Web Interface**
-1. Go to https://github.com/kagz100/Hyoung.FMS
+1. Go to https://github.com/kagz100/Tenacy.FMS
 2. Click "Actions" tab
-3. Watch "Deploy Hyoung FMS to IIS" workflow
+3. Watch "Deploy Tenacy FMS to IIS" workflow
 
 **Option B: Local Status Check**
 ```powershell
@@ -121,7 +121,7 @@ Get-Content _diag\Runner_*.log -Tail 50 -Wait
 **Daily Development:**
 ```powershell
 # 1. Work in dev workspace
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # 2. Pull latest changes
 git pull origin productionv1
@@ -166,19 +166,19 @@ start http://localhost:80      # Frontend App
 ## 📂 Workspace Organization
 
 ```
-C:\dev\Hyoung.FMS\
+C:\dev\Tenacy.FMS\
 ├── Your development workspace (WORK HERE)
 ├── Safe from .git deletion
 ├── Contains all deployment scripts
 └── This is where you commit and push from
 
-C:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS\
+C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS\
 ├── GitHub Actions runner workspace
 ├── Code checked out temporarily during CI/CD
 ├── .git folder may be cleaned
 └── Don't work here directly
 
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 ├── webAPI\              # Backend on port 7009
 └── reactApp\            # Frontend on port 80
 ```
@@ -221,7 +221,7 @@ C:\inetpub\wwwroot\hyoungFMS\
 .\control-iis.ps1 -Restart
 
 # 3. Check for errors in logs
-Get-ChildItem C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\ | 
+Get-ChildItem C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\ | 
     Get-Content -Tail 50
 ```
 
@@ -240,7 +240,7 @@ iisreset
 
 ```powershell
 # View recent deployments
-cd C:\inetpub\wwwroot\hyoungFMS
+cd C:\inetpub\wwwroot\tenacyFMS
 Get-ChildItem -Directory | Where-Object { $_.Name -like "*_old" -or $_.Name -like "*_temp_*" }
 
 # Clean up old deployments if needed
@@ -258,7 +258,7 @@ Remove-Item *_temp_* -Recurse -Force -ErrorAction SilentlyContinue
 - ❌ Port confusion (5000 vs 7009 vs 3000 vs 80)
 
 ### After
-- ✅ Development workspace (C:\dev\Hyoung.FMS)
+- ✅ Development workspace (C:\dev\Tenacy.FMS)
 - ✅ .git folder safe and permanent
 - ✅ Automated CI/CD deployment
 - ✅ Folder swap method = no file locking
@@ -297,7 +297,7 @@ Benefits:
 
 You'll know everything is working when:
 
-- [ ] Development workspace exists at C:\dev\Hyoung.FMS
+- [ ] Development workspace exists at C:\dev\Tenacy.FMS
 - [ ] Manual deployment succeeds: `.\deploy-alternative.ps1`
 - [ ] Backend accessible: http://localhost:7009
 - [ ] Frontend accessible: http://localhost:80
@@ -310,7 +310,7 @@ You'll know everything is working when:
 
 ### Check These First
 1. IIS Status: `.\control-iis.ps1 -Status`
-2. Application logs in `C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\`
+2. Application logs in `C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\`
 3. IIS logs in `C:\inetpub\logs\LogFiles\W3SVC*\`
 4. Runner logs in `C:\actions-runner\_diag\`
 
@@ -323,7 +323,7 @@ iisreset
 Get-PSDrive C
 
 # Check app pool identity has permissions
-icacls C:\inetpub\wwwroot\hyoungFMS
+icacls C:\inetpub\wwwroot\tenacyFMS
 
 # Redeploy
 .\deploy-alternative.ps1
@@ -348,7 +348,7 @@ Follow the 5 steps above to complete your CI/CD setup:
 4. ⏳ Commit and push to enable CI/CD
 5. ⏳ Monitor first automatic deployment
 
-After that, just work in `C:\dev\Hyoung.FMS` and every push will automatically deploy to IIS!
+After that, just work in `C:\dev\Tenacy.FMS` and every push will automatically deploy to IIS!
 
 ---
 

@@ -8,7 +8,7 @@ namespace FMS.Application.Features.ExpectedAVG {
     public class ExpectedAVGVehicleDetailsDTO {
 
         public int id { get; set; }
-        public string HyoungNo { get; set; } = null!;
+        public string VehicleCode { get; set; } = null!;
 
         public int? vehicleID { get; set; }
 

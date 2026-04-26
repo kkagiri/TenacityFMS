@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.FMS.Issuetracker
@@ -35,7 +35,7 @@ namespace FMS.Application.Features.FMS.Issuetracker
         // Vehicle information
         public int VehicleId { get; set; }
         public string VehicleNumber { get; set; } = string.Empty;
-        public string VehicleHyoungNo { get; set; } = string.Empty;
+        public string VehicleCode { get; set; } = string.Empty;
         /// <summary>
         /// Current vehicle operational status: 0=Working, 1=ParkedYard, 2=Workshop
         /// </summary>

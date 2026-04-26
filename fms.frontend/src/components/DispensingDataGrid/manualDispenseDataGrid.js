@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+﻿import React, { useRef } from 'react';
 import { useSelector } from 'react-redux';
 import DataGrid, {
   Paging, HeaderFilter, SearchPanel, Toolbar, Item as TItems,
@@ -114,7 +114,7 @@ const ManualDispenseDataGrid = ({
         <Lookup
           dataSource={vehicles}
           valueExpr="vehicleId"
-          displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
+          displayExpr="vehicleCode" // Adjust the field name based on your vehicle data
         />
 
       </Column>

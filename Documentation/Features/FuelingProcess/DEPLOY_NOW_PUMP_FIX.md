@@ -1,4 +1,4 @@
-# 🎯 URGENT: Pump Authorization Fix - Final Implementation
+﻿# 🎯 URGENT: Pump Authorization Fix - Final Implementation
 
 ## Your Log Analysis Revealed the REAL Problem! 🔍
 
@@ -147,7 +147,7 @@ After deployment, check logs for:
 
 1. **Build Solution**
    ```bash
-   dotnet build Hyoung.Fms.sln
+   dotnet build Tenacy.Fms.sln
    ```
 
 2. **Deploy API** (FMS.WebClient)

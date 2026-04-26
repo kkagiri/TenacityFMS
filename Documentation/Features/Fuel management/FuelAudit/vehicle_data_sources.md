@@ -1,4 +1,4 @@
-# Vehicle Fuel Data Sources - Fuel Audit System
+﻿# Vehicle Fuel Data Sources - Fuel Audit System
 
 ## Overview
 
@@ -262,7 +262,7 @@ if (atSite && !hasGPS && (isFullTankPolicy || isKmL))
 -- Opening position from GPS
 SELECT
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     v.NumberPlate,
     v.Capacity AS TankCapacity,
     -- GPS data comes from FuelAuditGPSService API call
@@ -434,7 +434,7 @@ PeriodRefills AS (
 )
 SELECT
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     v.Capacity AS TankCapacity,
     v.AverageKmL AS IsKmL,
 
@@ -559,7 +559,7 @@ WHERE v.VehicleId = @VehicleId
 -- Non-Full Tank Vehicle - Limited data
 SELECT
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     v.Capacity AS TankCapacity,
     'Equipment/Machinery' AS VehicleCategory,
 
@@ -758,7 +758,7 @@ LIMIT 1;
 -- Step 3: Get fuel issued from audit site
 SELECT
     v.VehicleId,
-    v.HyoungNo AS VehicleNo,
+    v.VehicleCode AS VehicleNo,
     v.NumberPlate,
     v.WorkingSiteId AS HomeSiteId,
     home_site.SiteName AS HomeSiteName,
@@ -772,7 +772,7 @@ WHERE t.SiteId = @AuditSiteId
   AND v.IsCompanyVehicle = 1
   AND v.WorkingSiteId != @AuditSiteId
   AND fr.RefillDate BETWEEN @PeriodStart AND @PeriodEnd
-GROUP BY v.VehicleId, v.HyoungNo, v.NumberPlate, v.WorkingSiteId, home_site.SiteName;
+GROUP BY v.VehicleId, v.VehicleCode, v.NumberPlate, v.WorkingSiteId, home_site.SiteName;
 
 -- Step 4: Get Closing Stock from next GPS refuel event after period
 SELECT
@@ -901,7 +901,7 @@ WHERE v.IsCompanyVehicle = 0
 -- External non-company vehicles fueled at audit site
 SELECT
     v.VehicleId,
-    v.HyoungNo AS VehicleNo,
+    v.VehicleCode AS VehicleNo,
     v.NumberPlate,
     COALESCE(vt.VehicleTypeName, 'Unknown') AS VehicleType,
 
@@ -926,7 +926,7 @@ LEFT JOIN employees e ON fr.DriverId = e.EmployeeId
 WHERE t.SiteId = @AuditSiteId
   AND v.IsCompanyVehicle = 0  -- NOT company owned
   AND fr.RefillDate BETWEEN @PeriodStart AND @PeriodEnd
-GROUP BY v.VehicleId, v.HyoungNo, v.NumberPlate, vt.VehicleTypeName
+GROUP BY v.VehicleId, v.VehicleCode, v.NumberPlate, vt.VehicleTypeName
 ORDER BY SUM(fr.FuelAmount) DESC;
 
 -- Summary total
@@ -1010,7 +1010,7 @@ WHERE t.SiteId = @AuditSiteId
 -- Classify all vehicles for audit
 SELECT
     v.VehicleId,
-    v.HyoungNo,
+    v.VehicleCode,
     v.NumberPlate,
     v.WorkingSiteId,
     v.Capacity AS TankCapacity,

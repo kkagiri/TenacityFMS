@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -40,10 +40,10 @@ public class FuelRefillSummaryQueryHandler : IRequestHandler<FuelRefillSummaryQu
             }
 
             var result = await query
-                .GroupBy (x => new { VehicleTypeName = x.vt.Name, HyoungNo = x.v.HyoungNo, SiteName = x.s.Name })
+                .GroupBy (x => new { VehicleTypeName = x.vt.Name, VehicleCode = x.v.VehicleCode, SiteName = x.s.Name })
                 .Select (g => new RefillSummaryDTO {
                     VehicleType = g.Key.VehicleTypeName,
-                        VehicleName = g.Key.HyoungNo,
+                        VehicleName = g.Key.VehicleCode,
                         SiteName = g.Key.SiteName,
                         RefillCount = g.Count (),
                         TotalRefillAmount = g.Sum (x => x.fr.ManualFuelrefillAmount ?? 0),

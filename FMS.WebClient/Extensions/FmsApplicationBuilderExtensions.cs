@@ -25,6 +25,7 @@ using FMS.WebClient.Util;
 using DevExpress.AspNetCore;
 using DevExpress.XtraReports.Web.Extensions;
 using FMS.WebClient.Diagnostics;
+using FMS.WebClient.Middleware;
 
 namespace FMS.WebClient.Extensions;
 
@@ -206,6 +207,7 @@ public static class FmsApplicationBuilderExtensions
 
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseTenantResolution(); // Multi-tenancy: resolve tenant from JWT claim "tenant_id"
         app.UseRateLimiter();
         app.UseUserActivity(); // extension on IApplicationBuilder
 

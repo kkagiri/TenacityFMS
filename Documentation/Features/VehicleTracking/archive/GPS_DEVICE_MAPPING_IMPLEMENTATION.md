@@ -1,4 +1,4 @@
-# GPS Device Mapping Implementation
+﻿# GPS Device Mapping Implementation
 
 ## Overview
 Implementation of GPS device fetching and vehicle-to-device mapping workflow for the FMS system. This allows users to fetch all GPS devices from tracking providers (GPSGate, etc.) and manually map them to FMS vehicles.
@@ -245,7 +245,7 @@ Features:
   - Search: Name, IMEI, Username
 
 - **Right Grid**: FMS Vehicles (searchable)
-  - Show: HyoungNo, NumberPlate, VehicleType, Current Mapping
+  - Show: VehicleCode, NumberPlate, VehicleType, Current Mapping
   - Filter: Unmapped only, By vehicle type, By site
 
 - **Mapping Actions**:

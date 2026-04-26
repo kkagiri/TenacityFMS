@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: issueDisplayUtils.js
  * Purpose: Resolves issue title/description placeholders and extracts contextual values for Issue Tracker UI
  * Dependencies: None
@@ -113,7 +113,7 @@ const replacePlaceholders = (template, replacements) => {
 export const getIssueVehicleLabel = (issue = {}) => {
     return (
         safeText(issue.vehicleName) ||
-        safeText(issue.vehicleHyoungNo) ||
+        safeText(issue.vehicleCode) ||
         safeText(issue.vehicleNumber) ||
         safeText(issue.vehicleNo) ||
         ''

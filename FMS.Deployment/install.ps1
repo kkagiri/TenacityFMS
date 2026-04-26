@@ -1,8 +1,8 @@
-# Installation script for HyoungFMS Deployment Tool
+﻿# Installation script for TenacyFMS Deployment Tool
 # This script installs the deployment tool and sets up necessary permissions
 
 param (
-    [string]$InstallDir = "C:\HyoungFMS\Deployment",
+    [string]$InstallDir = "C:\TenacyFMS\Deployment",
     [switch]$Force
 )
 
@@ -69,11 +69,11 @@ Set-Acl -Path $LogsDir -AclObject $LogsAcl
 
 # Create a shortcut on the desktop
 $WshShell = New-Object -ComObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\HyoungFMS Deployment.lnk")
+$Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\TenacyFMS Deployment.lnk")
 $Shortcut.TargetPath = "cmd.exe"
 $Shortcut.Arguments = "/k `"cd /d $InstallDir && deployment.cmd`""
 $Shortcut.WorkingDirectory = $InstallDir
-$Shortcut.IconLocation = "$InstallDir\HyoungFMS.Deployment.exe,0"
+$Shortcut.IconLocation = "$InstallDir\TenacyFMS.Deployment.exe,0"
 $Shortcut.Save()
 
 Write-Host "Installation completed successfully!" -ForegroundColor Green

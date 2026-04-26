@@ -1,14 +1,14 @@
-@echo off
+﻿@echo off
 setlocal
 
-REM Deployment wrapper script for HyoungFMS Deployment Tool
+REM Deployment wrapper script for TenacyFMS Deployment Tool
 REM This script makes it easier to run the deployment tool with common options
 
 set SCRIPT_DIR=%~dp0
 cd %SCRIPT_DIR%
 
 REM Check if the deployment tool exists
-if not exist "bin\Release\net8.0\HyoungFMS.Deployment.exe" (
+if not exist "bin\Release\net8.0\TenacyFMS.Deployment.exe" (
     echo Building deployment tool...
     dotnet build -c Release
     if %ERRORLEVEL% neq 0 (
@@ -50,11 +50,11 @@ shift
 goto parse_args
 
 :run
-echo Running HyoungFMS Deployment Tool...
+echo Running TenacyFMS Deployment Tool...
 echo.
 
 REM Run the deployment tool with the specified options
-bin\Release\net8.0\HyoungFMS.Deployment.exe %FRONTEND_ONLY% %BACKEND_ONLY% %ENVIRONMENT% %VERBOSE% %NO_BACKUP% %SKIP_HEALTH_CHECK% %ROLLBACK_ON_FAILURE% %LOG_FILE%
+bin\Release\net8.0\TenacyFMS.Deployment.exe %FRONTEND_ONLY% %BACKEND_ONLY% %ENVIRONMENT% %VERBOSE% %NO_BACKUP% %SKIP_HEALTH_CHECK% %ROLLBACK_ON_FAILURE% %LOG_FILE%
 
 REM Return the exit code from the deployment tool
 exit /b %ERRORLEVEL%

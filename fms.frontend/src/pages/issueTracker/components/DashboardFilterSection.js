@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DashboardFilterSection.js
  * Purpose: Fluent-style filter card + quick-filter pills for Issue Dashboard
  * Dependencies: DevExtreme SelectBox, DateBox
@@ -43,7 +43,7 @@ const DashboardFilterSection = ({
                         <label>Vehicle</label>
                         <SelectBox
                             dataSource={vehicles}
-                            displayExpr="hyoungNo"
+                            displayExpr="vehicleCode"
                             valueExpr="vehicleId"
                             value={filters.vehicleId}
                             onValueChanged={(e) => onFilterChange('vehicleId', e.value)}

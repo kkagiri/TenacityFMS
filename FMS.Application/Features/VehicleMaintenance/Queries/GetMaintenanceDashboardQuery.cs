@@ -1,4 +1,4 @@
-using FMS.Application.Features.VehicleMaintenance.DTOs;
+﻿using FMS.Application.Features.VehicleMaintenance.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -90,7 +90,7 @@ public class GetMaintenanceDashboardQueryHandler : IRequestHandler<GetMaintenanc
                 {
                     MaintenanceId = m.MaintenanceId,
                     VehicleId = m.VehicleId,
-                    VehicleName = m.Vehicle?.HyoungNo,
+                    VehicleName = m.Vehicle?.VehicleCode,
                     NumberPlate = m.Vehicle?.NumberPlate,
                     MaintenanceType = m.MaintenanceType,
                     ScheduledDate = m.ScheduledDate,
@@ -110,7 +110,7 @@ public class GetMaintenanceDashboardQueryHandler : IRequestHandler<GetMaintenanc
                 {
                     MaintenanceId = m.MaintenanceId,
                     VehicleId = m.VehicleId,
-                    VehicleName = m.Vehicle?.HyoungNo,
+                    VehicleName = m.Vehicle?.VehicleCode,
                     NumberPlate = m.Vehicle?.NumberPlate,
                     MaintenanceType = m.MaintenanceType,
                     ScheduledDate = m.ScheduledDate,

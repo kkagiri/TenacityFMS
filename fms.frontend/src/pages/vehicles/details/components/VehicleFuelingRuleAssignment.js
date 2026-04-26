@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleFuelingRuleAssignment.js
  * Purpose: Manage fueling rule assignments for a specific vehicle.
  * Dependencies: Redux fuelingRule actions, DevExtreme DataGrid/Popup.
@@ -614,7 +614,7 @@ const VehicleFuelingRuleAssignment = ({ vehicle, canEdit = true }) => {
       <Popup
         visible={showEffectiveRules}
         onHiding={() => setShowEffectiveRules(false)}
-        title={`Effective Rules for ${vehicle?.hyoungNo || 'Vehicle'}`}
+        title={`Effective Rules for ${vehicle?.vehicleCode || 'Vehicle'}`}
         width={600}
         height="auto"
         showCloseButton

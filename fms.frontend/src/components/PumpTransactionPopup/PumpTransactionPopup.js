@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DataGrid, Paging, FilterRow, HeaderFilter, LoadPanel, Selection, Export, ColumnChooser, StateStoring, Toolbar, Item as TItems } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -8,7 +8,7 @@ import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import logoHyoung from '../../assets/logoHyoung.png';
+import logoTenacy from '../../assets/logoTenacy.png';
 import {
     fetchPumpTransactions
 } from '../../redux/actions/consumptionActions';
@@ -375,10 +375,10 @@ const PumpTransactionPopup = ({
 
             // Set up document properties
             doc.setProperties({
-                title: 'Hyoung EA & co FMS - Pump Transactions Report',
+                title: 'Tenacy & co FMS - Pump Transactions Report',
                 subject: 'Pump Transactions Report',
                 author: user?.userName || user?.email || 'FMS User',
-                creator: 'Hyoung Fuel Management System'
+                creator: 'Tenacy Fuel Management System'
             });
 
             const pageWidth = doc.internal.pageSize.getWidth();
@@ -401,7 +401,7 @@ const PumpTransactionPopup = ({
                         // Add logo (left side)
                         doc.addImage(logoDataUrl, 'PNG', 15, 8, 25, 15);
                     };
-                    img.src = logoHyoung;
+                    img.src = logoTenacy;
                 } catch (logoError) {
                     console.warn('Could not load logo:', logoError);
                 }
@@ -410,7 +410,7 @@ const PumpTransactionPopup = ({
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.setTextColor(0, 51, 153); // Blue color
-                doc.text('Hyoung EA & Co LTD', 45, 15);
+                doc.text('Tenacy FMS LTD', 45, 15);
 
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'normal');
@@ -577,7 +577,7 @@ const PumpTransactionPopup = ({
 
                         // Company info (left aligned)
                         doc.text(
-                            'HYoung Fuel Management System',
+                            'Tenacy Fuel Management System',
                             15,
                             pageHeight - 10
                         );
@@ -602,7 +602,7 @@ const PumpTransactionPopup = ({
             // Generate filename with timestamp
             const now = new Date();
             const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
-            const filename = `HYoung_FMS_Pump_Transactions_${timestamp}.pdf`;
+            const filename = `TenacyFMS_Pump_Transactions_${timestamp}.pdf`;
 
             // Save the PDF
             doc.save(filename);

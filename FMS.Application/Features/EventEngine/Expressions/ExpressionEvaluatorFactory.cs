@@ -41,7 +41,6 @@ namespace FMS.Application.Features.EventEngine.Expressions
             Register(new IssueTrackerEvaluator());
             Register(new InTankDeliveryEvaluator());
             Register(new ManualDeliveryEvaluator());
-            Register(new VehicleDocumentComplianceEvaluator());
         }
 
         /// <summary>

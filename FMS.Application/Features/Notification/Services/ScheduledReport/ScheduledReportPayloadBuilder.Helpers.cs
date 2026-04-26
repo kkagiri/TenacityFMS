@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ScheduledReportPayloadBuilder.Helpers.cs
  * Purpose: Houses static helper methods used by ScheduledReportPayloadBuilder for
  *          payload shaping, report envelope creation, formatting, and source inference.
@@ -472,8 +472,8 @@ namespace FMS.Application.Features.Notification.Services
             var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
             Func<ManualDispenseConsumptionDTO, object> keySelector = normalizedSortBy switch
             {
-                "vehiclename" => record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty,
-                "numberplate" => record => record.HyoungNo ?? string.Empty,
+                "vehiclename" => record => record.VehicleCode ?? record.VehicleInfo ?? string.Empty,
+                "numberplate" => record => record.VehicleCode ?? string.Empty,
                 "sitename" => record => record.WorkingSiteName ?? string.Empty,
                 "drivername" => record => record.DriverName ?? string.Empty,
                 "passenger" => record => record.Passenger ?? string.Empty,
@@ -481,7 +481,7 @@ namespace FMS.Application.Features.Notification.Services
                 "volumeraw" or "totalvolume" => record => record.TotalFuelAmount,
                 "distanceraw" or "totaldistance" => record => record.DistanceOrEngineHours,
                 "consumptionraw" or "consumption" => record => record.Consumption,
-                _ => record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty,
+                _ => record => record.VehicleCode ?? record.VehicleInfo ?? string.Empty,
             };
 
             var ordered = descending
@@ -489,7 +489,7 @@ namespace FMS.Application.Features.Notification.Services
                 : records.OrderBy(keySelector);
 
             return ordered
-                .ThenBy(record => record.HyoungNo ?? record.VehicleInfo ?? string.Empty)
+                .ThenBy(record => record.VehicleCode ?? record.VehicleInfo ?? string.Empty)
                 .ToList();
         }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: TankForm.js
  * Purpose: Tank create/edit form with validation and location options.
  * Dependencies: react, react-redux, devextreme-react, devextreme/ui/notify
@@ -525,7 +525,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                     dataSource: vehiclesDataSource,
                     displayExpr: (item) =>
                       item
-                        ? `${item.hyoungNo || item.registrationNo || "Unknown"
+                        ? `${item.vehicleCode || item.registrationNo || "Unknown"
                         } - ${item.vehicleName || item.model || ""}`
                         : "",
                     valueExpr: "vehicleId",

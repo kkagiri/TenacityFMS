@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: LocationSettingsOverview.js
  * Purpose: Show location settings overview for users and PTS devices in a tabbed panel view.
  * Dependencies: devextreme-react, geofenceService
@@ -80,7 +80,7 @@ const LocationSettingsOverview = ({ onHeaderActionsChange = null }) => {
 
   const normalizeVehicle = (item = {}) => ({
     vehicleId: item.vehicleId ?? item.VehicleId ?? 0,
-    hyoungNo: item.hyoungNo ?? item.HyoungNo ?? "",
+    vehicleCode: item.vehicleCode ?? item.VehicleCode ?? "",
     numberPlate: item.numberPlate ?? item.NumberPlate ?? "",
     vehicleTypeName: item.vehicleTypeName ?? item.VehicleTypeName ?? "",
     hasGPSInstalled: item.hasGPSInstalled ?? item.HasGPSInstalled ?? false,

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace FMS.Application.Dtos
 {
@@ -9,7 +9,7 @@ namespace FMS.Application.Dtos
     public class VehicleOdometerComparisonDTO
     {
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public string NumberPlate { get; set; }
 
         // GPS Data

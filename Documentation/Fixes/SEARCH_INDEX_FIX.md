@@ -1,4 +1,4 @@
-# Search Index Fix - ToLower() Preventing Index Usage
+﻿# Search Index Fix - ToLower() Preventing Index Usage
 
 ## Issue
 Employee and Vehicle search was returning 0 results despite having matching data in the database.
@@ -66,7 +66,7 @@ query = query.Where(e =>
 **Location**: `FMS.Application/Features/Vehicle/Queries/SearchVehicleQuery.cs`
 
 **Changes**:
-- Removed `.ToLower()` from `v.HyoungNo` in LIKE queries
+- Removed `.ToLower()` from `v.VehicleCode` in LIKE queries
 - Removed `.ToLower()` from `v.NumberPlate` in LIKE queries
 - Removed `.ToLower()` from Contains queries
 - Fixed filter queries (VehicleType, Manufacturer, Model) to only call `.ToLower()` once on the parameter
@@ -122,7 +122,7 @@ etc.
 ```
 GET /api/v1/vehicle/search?searchTerm=abc&isActive=true&limit=50
 
-Expected: Returns vehicles with HyoungNo or NumberPlate starting with "abc"
+Expected: Returns vehicles with VehicleCode or NumberPlate starting with "abc"
 - ABC123
 - abc-456
 - AbC789

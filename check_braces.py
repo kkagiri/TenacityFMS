@@ -1,6 +1,6 @@
-import os
+﻿import os
 
-folder = r'c:\Users\kkagiri\Sources\Repo\Hyoung.FMS\fms.frontend\src\styles\dark'
+folder = r'c:\Users\kkagiri\Sources\Repo\Tenacy.FMS\fms.frontend\src\styles\dark'
 files = sorted([f for f in os.listdir(folder) if f.endswith('.scss')])
 
 print(f"{'File':<40} {'Open':>5} {'Close':>5} {'Diff':>5} {'Status'}")

@@ -22,34 +22,22 @@ public class EmployeePositionConfiguration : EntityTypeConfiguration<EmployeePos
         builder.HasIndex(e => e.IsActive, "ix_employee_position_is_active");
         builder.HasIndex(e => e.SortOrder, "ix_employee_position_sort_order");
 
-        builder.Property(e => e.Id)
-            .HasColumnType("int(11)")
-            .HasColumnName("id");
+        builder.Property(e => e.Id);
 
         builder.Property(e => e.Name)
-            .HasMaxLength(100)
-            .HasColumnName("name");
+            .HasMaxLength(100);
 
         builder.Property(e => e.Description)
-            .HasMaxLength(255)
-            .HasColumnName("description");
+            .HasMaxLength(255);
 
         builder.Property(e => e.SortOrder)
-            .HasColumnType("int(11)")
-            .HasDefaultValue(0)
-            .HasColumnName("sort_order");
+            .HasDefaultValue(0);
 
         builder.Property(e => e.IsActive)
-            .HasColumnType("tinyint(1)")
-            .HasDefaultValue(true)
-            .HasColumnName("is_active");
+            .HasDefaultValue(true);
 
-        builder.Property(e => e.DateCreated)
-            .HasColumnType("datetime")
-            .HasColumnName("date_created");
+        builder.Property(e => e.DateCreated);
 
-        builder.Property(e => e.DateModified)
-            .HasColumnType("datetime")
-            .HasColumnName("date_modified");
+        builder.Property(e => e.DateModified);
     }
 }

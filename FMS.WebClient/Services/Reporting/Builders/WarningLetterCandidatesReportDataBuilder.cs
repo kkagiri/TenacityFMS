@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterCandidatesReportDataBuilder.cs
  * Purpose:       Builds normalized jsreport payloads for warning letter candidates reports.
  * Dependencies:  WarningLetterCandidatesReportDataDto, WarningLetterType
@@ -32,7 +32,7 @@ internal static class WarningLetterCandidatesReportDataBuilder
                 metricDate = record.MetricDate,
                 period = record.Period,
                 siteName = string.IsNullOrWhiteSpace(record.SiteName) ? "-" : record.SiteName,
-                vehicleHyoungNo = string.IsNullOrWhiteSpace(record.VehicleHyoungNo) ? "-" : record.VehicleHyoungNo,
+                vehicleCode = string.IsNullOrWhiteSpace(record.VehicleCode) ? "-" : record.VehicleCode,
                 numberPlate = string.IsNullOrWhiteSpace(record.NumberPlate) ? "-" : record.NumberPlate,
                 vehicleTypeName = string.IsNullOrWhiteSpace(record.VehicleTypeName) ? "-" : record.VehicleTypeName,
                 employeeName = string.IsNullOrWhiteSpace(record.EmployeeName) ? "-" : record.EmployeeName,

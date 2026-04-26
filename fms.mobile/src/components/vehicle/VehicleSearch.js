@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VehicleSearch.js
  * Purpose: Quick search component for finding vehicles using search term
  * Similar to VehicleSelectionStep search functionality
@@ -39,7 +39,7 @@ const VehicleSearch = ({ onSelectVehicle, selectedVehicle }) => {
           // Normalize the results to handle both PascalCase and camelCase
           const normalizedResults = (results || []).map((v) => ({
             vehicleId: v.VehicleId || v.vehicleId,
-            hyoungNo: v.HyoungNo || v.hyoungNo || "",
+            vehicleCode: v.VehicleCode || v.vehicleCode || "",
             vehicleName:
               v.VehicleName || v.vehicleName || v.Name || v.name || "",
             numberPlate:
@@ -117,11 +117,11 @@ const VehicleSearch = ({ onSelectVehicle, selectedVehicle }) => {
         <View style={styles.vehicleInfo}>
           <Text
             style={[
-              styles.vehicleHyoung,
-              isSelected && styles.vehicleHyoungSelected,
+              styles.vehicleTenacy,
+              isSelected && styles.vehicleCodeSelected,
             ]}
           >
-            {item.hyoungNo}
+            {item.vehicleCode}
           </Text>
           <Text style={styles.vehicleName}>{item.vehicleName}</Text>
           <View style={styles.vehicleMetaRow}>
@@ -153,7 +153,7 @@ const VehicleSearch = ({ onSelectVehicle, selectedVehicle }) => {
         />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by Hyoung No, Plate, or Name..."
+          placeholder="Search by Tenacy No, Plate, or Name..."
           placeholderTextColor="#9ca3af"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -312,12 +312,12 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 12,
   },
-  vehicleHyoung: {
+  vehicleTenacy: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1f2937",
   },
-  vehicleHyoungSelected: {
+  vehicleCodeSelected: {
     color: "#059669",
   },
   vehicleName: {

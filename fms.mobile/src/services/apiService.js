@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_CONFIG } from "../config/environment";
 
@@ -495,7 +495,7 @@ class ApiService {
   }
 
   /**
-   * Search vehicles by search term (hyoung number, plate, name)
+   * Search vehicles by search term (vehicle code, plate, name)
    * @param {string} searchTerm - Search query (minimum 2 characters)
    * @param {number} limit - Maximum results to return (default 10)
    * @returns {Promise<Array>} List of matching vehicles
@@ -561,7 +561,7 @@ class ApiService {
       // Create update payload with existing data and new capacity
       const updatePayload = {
         vehicleId: vehicleId,
-        hyoungNo: vehicleData.hyoungNo || vehicleData.HyoungNo,
+        vehicleCode: vehicleData.vehicleCode || vehicleData.VehicleCode,
         vehicleTypeId: vehicleData.vehicleTypeId || vehicleData.VehicleTypeId,
         vehicleModelId: vehicleData.vehicleModelId || vehicleData.VehicleModelId,
         vehicleManufacturerId: vehicleData.vehicleManufacturerId || vehicleData.VehicleManufacturerId,

@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle;
@@ -43,10 +43,10 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
         {
             VehicleIdentifierNormalizer.NormalizeVehicleDto(request.VehicleDTO);
 
-            // Check if hyoungNo already exists
-            if (await HasNormalizedHyoungNoConflictAsync(request.VehicleDTO.HyoungNo, null, cancellationToken))
+            // Check if vehicleCode already exists
+            if (await HasNormalizedVehicleCodeConflictAsync(request.VehicleDTO.VehicleCode, null, cancellationToken))
             {
-                return new FMSResponseMessage<VehicleDTO>(false, $"Vehicle with Hyoung No {request.VehicleDTO.HyoungNo} already exists", null);
+                return new FMSResponseMessage<VehicleDTO>(false, $"Vehicle with Tenacy No {request.VehicleDTO.VehicleCode} already exists", null);
             }
 
             var validationResult = await ValidateVehicleDTO(request.VehicleDTO);
@@ -84,18 +84,18 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
         }
     }
 
-    private Task<bool> HasNormalizedHyoungNoConflictAsync(string normalizedHyoungNo, int? currentVehicleId, CancellationToken cancellationToken)
+    private Task<bool> HasNormalizedVehicleCodeConflictAsync(string normalizedVehicleCode, int? currentVehicleId, CancellationToken cancellationToken)
     {
         return _context.Vehicles
             .AsNoTracking()
             .AnyAsync(
                 vehicle =>
                     (!currentVehicleId.HasValue || vehicle.VehicleId != currentVehicleId.Value) &&
-                    (((vehicle.HyoungNo ?? string.Empty)
+                    (((vehicle.VehicleCode ?? string.Empty)
                         .Replace(" ", string.Empty)
                         .Replace("\r", string.Empty)
                         .Replace("\n", string.Empty)
-                        .ToUpper()) == normalizedHyoungNo),
+                        .ToUpper()) == normalizedVehicleCode),
                 cancellationToken);
     }
 
@@ -103,10 +103,10 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
     {
         var errors = new List<string>();
 
-        // HyoungNo is required
-        if (string.IsNullOrWhiteSpace(vehicleDTO.HyoungNo))
+        // VehicleCode is required
+        if (string.IsNullOrWhiteSpace(vehicleDTO.VehicleCode))
         {
-            errors.Add("Hyoung No is required");
+            errors.Add("Tenacy No is required");
         }
 
         if (vehicleDTO.VehicleTypeId.HasValue)

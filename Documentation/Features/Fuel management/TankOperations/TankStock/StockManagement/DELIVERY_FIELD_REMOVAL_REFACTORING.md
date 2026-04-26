@@ -1,4 +1,4 @@
-# Delivery Feature Refactoring - Field Removal
+﻿# Delivery Feature Refactoring - Field Removal
 
 **Date**: November 13, 2025
 **Type**: Feature Refactoring
@@ -144,7 +144,7 @@ ADD INDEX `IX_Delivery_TankId_DeliveryDate` (`TankId`, `DeliveryDate`);
 ```bash
 # No EF migration needed - using manual SQL script
 # Rebuild solution to verify no compilation errors
-dotnet build Hyoung.Fms.sln
+dotnet build Tenacy.Fms.sln
 ```
 
 ### 2. Database

@@ -1,4 +1,4 @@
-# GPSGate SOAP Service Reference Setup Guide
+﻿# GPSGate SOAP Service Reference Setup Guide
 
 ## Overview
 The GPSGate integration requires two SOAP service references to be added to the FMS.Application project.
@@ -37,7 +37,7 @@ If you prefer command line:
 dotnet tool install --global dotnet-svcutil
 
 # Navigate to FMS.Application directory
-cd C:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.Application
+cd C:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.Application
 
 # Generate Directory Service reference
 dotnet-svcutil http://10.0.10.150/GpsGateServer/Services/directory.asmx?WSDL `

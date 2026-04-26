@@ -1,4 +1,4 @@
-# 🔧 FMS Local Development Environment Setup Guide
+﻿# 🔧 FMS Local Development Environment Setup Guide
 
 ## Overview
 
@@ -42,14 +42,14 @@ Make sure your backend API is running on `localhost:7009`:
 
 **Option A - Visual Studio:**
 ```powershell
-# Open Hyoung.Fms.sln in Visual Studio
+# Open Tenacy.Fms.sln in Visual Studio
 # Set FMS.WebClient as startup project
 # Press F5 to run
 ```
 
 **Option B - Command Line:**
 ```powershell
-cd "c:\Users\kkagiri\source\repos\Hyoung.Fms\FMS.WebClient"
+cd "c:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.WebClient"
 dotnet run
 ```
 
@@ -65,7 +65,7 @@ curl http://localhost:7009/api/v1/Health
 ### Step 4: Start Frontend
 
 ```powershell
-cd "c:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend"
+cd "c:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend"
 
 # Install dependencies (if not done already)
 npm install

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * File: GetUserIssuesDashboardQuery.cs
  * Purpose: Query to get comprehensive issue dashboard data for the current user
  * Dependencies: MediatR, GpsdataContext, AutoMapper
@@ -92,7 +92,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
     {
         public int VehicleId { get; set; }
         public string VehicleName { get; set; } = string.Empty;
-        public string HyoungNo { get; set; } = string.Empty;
+        public string VehicleCode { get; set; } = string.Empty;
         public int TotalCount { get; set; }
         public int OpenCount { get; set; }
         public int ClosedCount { get; set; }
@@ -357,13 +357,13 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 {
                     i.VehicleId,
                     VehicleName = i.Vehicle?.NumberPlate ?? "Unknown",
-                    HyoungNo = i.Vehicle?.HyoungNo ?? ""
+                    VehicleCode = i.Vehicle?.VehicleCode ?? ""
                 })
                 .Select(g => new IssuesByVehicleDto
                 {
                     VehicleId = g.Key.VehicleId,
                     VehicleName = g.Key.VehicleName,
-                    HyoungNo = g.Key.HyoungNo,
+                    VehicleCode = g.Key.VehicleCode,
                     TotalCount = g.Count(),
                     OpenCount = g.Count(i => !closedStatusIds.Contains(i.Status ?? 0)),
                     ClosedCount = g.Count(i => closedStatusIds.Contains(i.Status ?? 0))
@@ -418,7 +418,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 PriorityName = i.PriorityNavigation?.Name ?? string.Empty,
                 VehicleId = i.VehicleId,
                 VehicleNumber = i.Vehicle?.NumberPlate ?? string.Empty,
-                VehicleHyoungNo = i.Vehicle?.HyoungNo ?? string.Empty,
+                VehicleCode = i.Vehicle?.VehicleCode ?? string.Empty,
                 OpenbyId = i.Openby ?? string.Empty,
                 AssignToId = i.AssignTo ?? string.Empty,
                 DeviceType = i.DeviceType

@@ -18,9 +18,7 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // Auto-increment ID
                 builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
                     .ValueGeneratedOnAdd();
-
 
                 // Command type and device ID
                 builder.Property(e => e.CommandType)
@@ -29,29 +27,23 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.Property(e => e.PtsDeviceId)
                     .HasMaxLength(100)
-                    .IsRequired()
-                    .HasColumnName("PtsDeviceId");
+                    .IsRequired();
 
                 // Command data JSON
                 builder.Property(e => e.CommandDataJson)
-                    .HasColumnType("longtext")
                     .IsRequired();
 
                 // Timestamps
                 builder.Property(e => e.AssignedAt)
-                    .HasColumnType("datetime")
                     .IsRequired();
 
                 builder.Property(e => e.CompletedAt)
-                    .HasColumnType("datetime")
                     .IsRequired(false);
 
                 builder.Property(e => e.DeliveredAt)
-                    .HasColumnType("datetime")
                     .IsRequired(false);
 
                 builder.Property(e => e.ExpiryAt)
-                    .HasColumnType("datetime")
                     .IsRequired(false);
 
                 // Status and response
@@ -61,16 +53,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue("Pending");
 
                 builder.Property(e => e.ResponseJson)
-                    .HasColumnType("longtext")
                     .IsRequired(false);
 
                 builder.Property(e => e.ResponseCode)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 // Priority and source
                 builder.Property(e => e.Priority)
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
                 builder.Property(e => e.Source)
@@ -95,7 +84,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasConstraintName("FK_device_commands_ptsdevice");
 
             }
-
 
             catch (Exception ex)
             {

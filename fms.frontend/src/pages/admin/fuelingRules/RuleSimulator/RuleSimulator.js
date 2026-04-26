@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { SelectBox } from "devextreme-react/select-box";
 import { DateBox } from "devextreme-react/date-box";
@@ -131,7 +131,7 @@ const RuleSimulator = () => {
 
           results.push({
             vehicleId: vehicle.vehicleId || vehicle.id,
-            hyoungNo: vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
+            vehicleCode: vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
             vehicleTypeName: vehicle.vehicleType?.vehicleTypeName ||
               vehicleTypes.find(vt => vt.vehicleTypeId === vehicle.vehicleTypeId)?.vehicleTypeName ||
               "Unknown",
@@ -147,7 +147,7 @@ const RuleSimulator = () => {
         } catch (err) {
           results.push({
             vehicleId: vehicle.vehicleId || vehicle.id,
-            hyoungNo: vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
+            vehicleCode: vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
             vehicleTypeName: "Unknown",
             siteName: "N/A",
             isAllowed: false,
@@ -342,7 +342,7 @@ const RuleSimulator = () => {
             <SelectBox
               dataSource={filteredVehicles}
               displayExpr={(item) =>
-                item?.hyoungNo || item?.numberPlate || `Vehicle ${item?.vehicleId}`
+                item?.vehicleCode || item?.numberPlate || `Vehicle ${item?.vehicleId}`
               }
               valueExpr="vehicleId"
               value={selectedVehicleId}
@@ -429,7 +429,7 @@ const RuleSimulator = () => {
                         : "No Rules Configured"}
                   </div>
                   <div className="tw-text-sm tw-text-gray-600">
-                    {simulationResults.vehicle?.hyoungNo || "Selected Vehicle"}
+                    {simulationResults.vehicle?.vehicleCode || "Selected Vehicle"}
                   </div>
                 </div>
               </div>
@@ -581,7 +581,7 @@ const RuleSimulator = () => {
             <Paging enabled={true} pageSize={20} />
 
             <Column
-              dataField="hyoungNo"
+              dataField="vehicleCode"
               caption="Vehicle"
               width={120}
             />

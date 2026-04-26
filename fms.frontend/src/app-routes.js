@@ -10,7 +10,6 @@
 
 import { HomePage } from "./pages";
 import ConsumptionBasedonRefills from "./pages/reports/consumption/consumptionBasedonRefills";
-import FuelReportImporter from "./pages/FuelReportImporter/FuelReportImporter";
 import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
 import unauthorized from "./pages/unauthorized";
 import EmployeeMain from "./pages/employees/EmployeeMain";
@@ -22,7 +21,6 @@ import UserDetailsPage from "./pages/user/userDetailsPage";
 import UserActivitiesPage from "./pages/user/userActivitiesPage";
 import UserActivityDashboard from "./pages/user/userActivityDashboard";
 import AutomatedReconciliationSystem from "./pages/automatedReconciliation/AutomatedReconciliationSystem";
-import TaskManagement from "./pages/taskManagement";
 //Cursor - Mission Control enhanced versions
 import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliation/EnhancedAutomatedReconciliationSystem";
 // Import the new notification system pages
@@ -55,8 +53,6 @@ const resolvedComponents = (pageName) => {
     case "dashboard":
       return HomePage;
 
-    case "task management":
-      return TaskManagement;
     case "vehicles":
       return VehicleMain;
     case "tank stock":
@@ -88,7 +84,7 @@ const resolvedComponents = (pageName) => {
       return NotificationCenterPage;
 
     case "Fuel Report Importer":
-      return FuelReportImporter;
+      return null;
     case "manual refill":
       return VehicleManualRefill;
     case "employees":

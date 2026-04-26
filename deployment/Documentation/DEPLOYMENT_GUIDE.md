@@ -1,11 +1,11 @@
-# Complete Deployment & Development Guide for Hyoung FMS
+﻿# Complete Deployment & Development Guide for Tenacy FMS
 
 ## 🎯 Quick Start
 
 ### First Time Setup (Run Once):
 ```powershell
 # 1. Setup IIS (as Administrator)
-.\setup-iis-hyoungfms.ps1
+.\setup-iis-tenacyfms.ps1
 
 # 2. Test IIS is working
 .\control-iis.ps1 -Status
@@ -17,7 +17,7 @@
 ### Daily Development:
 ```powershell
 # 1. Open your dev workspace
-code C:\dev\Hyoung.FMS
+code C:\dev\Tenacy.FMS
 
 # 2. Make changes...
 
@@ -32,16 +32,16 @@ git push
 ## 📁 Directory Structure
 
 ```
-C:\dev\Hyoung.FMS\                          ← Development (WORK HERE!)
+C:\dev\Tenacy.FMS\                          ← Development (WORK HERE!)
 ├── FMS.WebClient\                          ← Backend (.NET)
 ├── fms.frontend\                           ← Frontend (React)
 ├── .github\workflows\deploy-to-iis.yml     ← CI/CD
-├── setup-iis-hyoungfms.ps1                 ← IIS Setup
+├── setup-iis-tenacyfms.ps1                 ← IIS Setup
 ├── deploy-manual.ps1                       ← Manual Deploy
 ├── control-iis.ps1                         ← IIS Control
 └── DEPLOYMENT_GUIDE.md                     ← This file
 
-C:\inetpub\wwwroot\hyoungFMS\               ← IIS Deployment (AUTO!)
+C:\inetpub\wwwroot\tenacyFMS\               ← IIS Deployment (AUTO!)
 ├── webAPI\                                 ← Backend deployed here
 │   └── web.config                          ← Never overwritten
 └── reactApp\                               ← Frontend deployed here
@@ -59,14 +59,14 @@ C:\actions-runner\_work\                    ← GitHub Actions (DON'T TOUCH!)
 Run as **Administrator**:
 
 ```powershell
-cd c:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS
-.\setup-iis-hyoungfms.ps1
+cd c:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS
+.\setup-iis-tenacyfms.ps1
 ```
 
 This creates:
-- ✅ IIS App Pools: `HyoungFMS.WebAPI` and `HyoungFMS.ReactApp`
+- ✅ IIS App Pools: `TenacyFMS.WebAPI` and `TenacyFMS.ReactApp`
 - ✅ IIS Websites on ports 5000 and 3000
-- ✅ Folders: `C:\inetpub\wwwroot\hyoungFMS\webAPI` and `reactApp`
+- ✅ Folders: `C:\inetpub\wwwroot\tenacyFMS\webAPI` and `reactApp`
 - ✅ web.config files with proper settings
 - ✅ Correct permissions
 
@@ -97,10 +97,10 @@ Visit:
 ### Step 4: Commit CI/CD Workflow
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Copy workflow from runner
-Copy-Item c:\actions-runner\_work\Hyoung.FMS\Hyoung.FMS\.github\workflows\deploy-to-iis.yml .\.github\workflows\
+Copy-Item c:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS\.github\workflows\deploy-to-iis.yml .\.github\workflows\
 
 # Commit and push
 git add .github\workflows\deploy-to-iis.yml
@@ -116,7 +116,7 @@ git push
 
 ```powershell
 # 1. Work in dev workspace
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 code .
 
 # 2. Make changes...
@@ -127,14 +127,14 @@ git commit -m "Updated tank delivery form"
 git push
 
 # 4. Monitor deployment
-# Go to: https://github.com/kagz100/Hyoung.FMS/actions
+# Go to: https://github.com/kagz100/Tenacy.FMS/actions
 # Wait ~3-5 minutes for automatic deployment
 ```
 
 ### Option 2: Manual Deployment (Emergency)
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 
 # Full deployment
 .\deploy-manual.ps1
@@ -179,24 +179,24 @@ cd C:\dev\Hyoung.FMS
 
 ```powershell
 # Backend logs
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 50
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 50
 
 # Watch logs in real-time
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Wait -Tail 20
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Wait -Tail 20
 
 # GitHub Actions logs
-# Visit: https://github.com/kagz100/Hyoung.FMS/actions
+# Visit: https://github.com/kagz100/Tenacy.FMS/actions
 ```
 
 ### Test Locally Before Deploying
 
 ```powershell
 # Backend
-cd C:\dev\Hyoung.FMS\FMS.WebClient
+cd C:\dev\Tenacy.FMS\FMS.WebClient
 dotnet run
 
 # Frontend
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 npm start
 # Visit: http://localhost:3000
 ```
@@ -220,13 +220,13 @@ Start-Sleep -Seconds 5
 
 ```powershell
 # Check logs
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 100
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 100
 
 # Restart backend
 .\control-iis.ps1 -Restart -BackendOnly
 
 # Check web.config exists
-Test-Path "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
+Test-Path "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
 ```
 
 ### Problem: Frontend Shows Old Version
@@ -235,7 +235,7 @@ Test-Path "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
 # Clear browser cache (Ctrl+Shift+Delete)
 
 # Force rebuild and redeploy
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 Remove-Item build -Recurse -Force
 cd ..
 .\deploy-manual.ps1 -FrontendOnly
@@ -253,7 +253,7 @@ cd C:\actions-runner
 .\svc.bat start
 
 # Check GitHub Actions settings
-# https://github.com/kagz100/Hyoung.FMS/settings/actions/runners
+# https://github.com/kagz100/Tenacy.FMS/settings/actions/runners
 ```
 
 ### Problem: web.config Getting Overwritten
@@ -262,8 +262,8 @@ The scripts should preserve web.config automatically. If not:
 
 ```powershell
 # Restore from backup
-Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup" `
-          "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" -Force
+Copy-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config.backup" `
+          "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" -Force
 ```
 
 ---
@@ -291,17 +291,17 @@ Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup" `
 ## 📝 Configuration Reference
 
 ### IIS App Pools
-- Backend: `HyoungFMS.WebAPI` (No Managed Code)
-- Frontend: `HyoungFMS.ReactApp` (No Managed Code)
+- Backend: `TenacyFMS.WebAPI` (No Managed Code)
+- Frontend: `TenacyFMS.ReactApp` (No Managed Code)
 
 ### IIS Sites
-- Backend: `HyoungFMS.WebAPI` (Port 5000)
-- Frontend: `HyoungFMS.ReactApp` (Port 3000)
+- Backend: `TenacyFMS.WebAPI` (Port 5000)
+- Frontend: `TenacyFMS.ReactApp` (Port 3000)
 
 ### Paths
-- Backend Deploy: `C:\inetpub\wwwroot\hyoungFMS\webAPI`
-- Frontend Deploy: `C:\inetpub\wwwroot\hyoungFMS\reactApp`
-- Backend Logs: `C:\inetpub\wwwroot\hyoungFMS\webAPI\logs`
+- Backend Deploy: `C:\inetpub\wwwroot\tenacyFMS\webAPI`
+- Frontend Deploy: `C:\inetpub\wwwroot\tenacyFMS\reactApp`
+- Backend Logs: `C:\inetpub\wwwroot\tenacyFMS\webAPI\logs`
 
 ### Projects
 - Backend: `FMS.WebClient\FMS.WebClient.csproj`
@@ -311,7 +311,7 @@ Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup" `
 
 ## ✅ Best Practices
 
-1. ✅ **Always work in** `C:\dev\Hyoung.FMS`
+1. ✅ **Always work in** `C:\dev\Tenacy.FMS`
 2. ✅ **Never edit files** in `C:\inetpub\wwwroot` directly
 3. ✅ **Use CI/CD** for normal deployments
 4. ✅ **Use manual deploy** only for emergencies
@@ -338,12 +338,12 @@ Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup" `
 .\deploy-manual.ps1 -FrontendOnly  # Frontend only
 
 # Logs
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 50
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 50
 
 # IIS Management
 iisreset                           # Reset IIS completely
 Get-Website                        # List all sites
-Get-WebAppPoolState -Name "HyoungFMS.WebAPI"  # Check app pool
+Get-WebAppPoolState -Name "TenacyFMS.WebAPI"  # Check app pool
 ```
 
 ---
@@ -356,7 +356,7 @@ Developer → Git Push → GitHub → Actions Runner → IIS Deployment
 C:\dev    GitHub.com   Webhook   Build/Deploy   C:\inetpub
 ```
 
-1. You make changes in `C:\dev\Hyoung.FMS`
+1. You make changes in `C:\dev\Tenacy.FMS`
 2. Push to GitHub repository
 3. GitHub triggers workflow on self-hosted runner
 4. Runner builds and deploys to IIS folders
@@ -368,8 +368,8 @@ C:\dev    GitHub.com   Webhook   Build/Deploy   C:\inetpub
 
 ### Check These First:
 1. IIS Status: `.\control-iis.ps1 -Status`
-2. Logs: `Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 50`
-3. GitHub Actions: https://github.com/kagz100/Hyoung.FMS/actions
+2. Logs: `Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 50`
+3. GitHub Actions: https://github.com/kagz100/Tenacy.FMS/actions
 
 ### Emergency Recovery:
 ```powershell

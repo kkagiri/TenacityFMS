@@ -37,7 +37,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                 select new ExtendedRefillDetailDTO {
                     Id = f.Id,
                     VehicleId = f.VehicleId,
-                    HyoungNO = v.HyoungNo ?? string.Empty,
+                    TenacyNO = v.VehicleCode ?? string.Empty,
                     ManualFuelrefillAmount = f.ManualFuelrefillAmount,
                     Date = f.Date,
                     PreviousMeterReading = f.PreviousMeterReading,

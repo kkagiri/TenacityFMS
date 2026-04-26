@@ -1,4 +1,4 @@
-# HyoungFMS Deployment Tool
+﻿# TenacyFMS Deployment Tool
 
 A comprehensive C# deployment application that integrates with GitHub Actions workflow for selective deployments of frontend and backend components.
 
@@ -26,7 +26,7 @@ A comprehensive C# deployment application that integrates with GitHub Actions wo
 2. Run the installation script as Administrator:
 
 ```powershell
-.\install.ps1 -InstallDir "C:\HyoungFMS\Deployment"
+.\install.ps1 -InstallDir "C:\TenacyFMS\Deployment"
 ```
 
 This will:
@@ -102,11 +102,11 @@ The application uses the following configuration files:
 ```json
 "DeploymentSettings": {
   "Environment": "production",
-  "ReactDeploymentPath": "C:\\inetpub\\wwwroot\\hyoungFMS\\reactApp",
-  "WebApiDeploymentPath": "C:\\inetpub\\wwwroot\\hyoungFMS\\webAPI",
+  "ReactDeploymentPath": "C:\\inetpub\\wwwroot\\tenacyFMS\\reactApp",
+  "WebApiDeploymentPath": "C:\\inetpub\\wwwroot\\tenacyFMS\\webAPI",
   "IisSiteName": "ReactApp",
-  "BackendSiteName": "apihyoungfms",
-  "IisAppPool": "apihyoungfms",
+  "BackendSiteName": "apitenacyfms",
+  "IisAppPool": "apitenacyfms",
   "HealthCheckUrl": "http://10.0.10.153:7009/api/health",
   "HealthCheckRetries": 5,
   "HealthCheckRetryDelay": 10
@@ -117,7 +117,7 @@ The application uses the following configuration files:
 
 ```json
 "BackupSettings": {
-  "BackupDirectory": "C:\\backups\\hyoungFMS",
+  "BackupDirectory": "C:\\backups\\tenacyFMS",
   "MaxBackupsToKeep": 5
 }
 ```
@@ -135,13 +135,13 @@ The application uses the following configuration files:
 
 ```json
 "EmailSettings": {
-  "SmtpServer": "mail.hyoung.co.ke",
+  "SmtpServer": "mail.example.com",
   "SmtpPort": 25,
   "UseSsl": false,
-  "Username": "hy.gps@hyoung.co.ke",
-  "Password": "Hyoung2030",
-  "From": "hy.gps@hyoung.co.ke",
-  "To": "kevin.kagiri@hyoung.co.ke"
+  "Username": "hy.gps@example.com",
+  "Password": "Tenacy2030",
+  "From": "hy.gps@example.com",
+  "To": "kevin.kagiri@example.com"
 }
 ```
 
@@ -162,17 +162,17 @@ To integrate with GitHub Actions, update your workflow YAML file to call the dep
 - name: Deploy frontend only
   if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed != 'True' }}
   run: |
-    C:\HyoungFMS\Deployment\deployment.cmd -f
+    C:\TenacyFMS\Deployment\deployment.cmd -f
 
 - name: Deploy backend only
   if: ${{ needs.detect-changes.outputs.backend-changed == 'True' && needs.detect-changes.outputs.frontend-changed != 'True' }}
   run: |
-    C:\HyoungFMS\Deployment\deployment.cmd -b
+    C:\TenacyFMS\Deployment\deployment.cmd -b
 
 - name: Deploy both
   if: ${{ needs.detect-changes.outputs.frontend-changed == 'True' && needs.detect-changes.outputs.backend-changed == 'True' }}
   run: |
-    C:\HyoungFMS\Deployment\deployment.cmd
+    C:\TenacyFMS\Deployment\deployment.cmd
 ```
 
 ## Troubleshooting
@@ -203,7 +203,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For support, please contact kevin.kagiri@hyoung.co.ke
+For support, please contact kevin.kagiri@example.com
 
 
 
@@ -237,12 +237,12 @@ The self-hosted runner should have these environment variables set at the system
 #### Required Variables
 ```powershell
 # Set these on the runner machine
-[Environment]::SetEnvironmentVariable("FMS_REACT_DEPLOYMENT_PATH", "C:\inetpub\wwwroot\hyoungFMS\reactApp", "Machine")
-[Environment]::SetEnvironmentVariable("FMS_WEBAPI_DEPLOYMENT_PATH", "C:\inetpub\wwwroot\hyoungFMS\webAPI", "Machine")
+[Environment]::SetEnvironmentVariable("FMS_REACT_DEPLOYMENT_PATH", "C:\inetpub\wwwroot\tenacyFMS\reactApp", "Machine")
+[Environment]::SetEnvironmentVariable("FMS_WEBAPI_DEPLOYMENT_PATH", "C:\inetpub\wwwroot\tenacyFMS\webAPI", "Machine")
 [Environment]::SetEnvironmentVariable("FMS_IIS_SITE_NAME", "ReactApp", "Machine")
-[Environment]::SetEnvironmentVariable("FMS_BACKEND_SITE_NAME", "apihyoungfms", "Machine")
-[Environment]::SetEnvironmentVariable("FMS_IIS_APP_POOL", "apihyoungfms", "Machine")
-[Environment]::SetEnvironmentVariable("FMS_BACKUP_DIRECTORY", "C:\backups\hyoungFMS", "Machine")
+[Environment]::SetEnvironmentVariable("FMS_BACKEND_SITE_NAME", "apitenacyfms", "Machine")
+[Environment]::SetEnvironmentVariable("FMS_IIS_APP_POOL", "apitenacyfms", "Machine")
+[Environment]::SetEnvironmentVariable("FMS_BACKUP_DIRECTORY", "C:\backups\tenacyFMS", "Machine")
 ```
 
 ### 3. Development PC Setup
@@ -344,7 +344,7 @@ The deployment system uses a template-based approach for configuration:
 
 1. **Check deployment logs**:
    ```powershell
-   Get-ChildItem -Path "C:\HyoungFMS\Deployment\logs" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+   Get-ChildItem -Path "C:\TenacyFMS\Deployment\logs" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
    ```
 
 2. **Verify environment variables**:
@@ -434,22 +434,22 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 # Environment-specific variables
 $envVars = @{
     "production" = @{
-        "FMS_REACT_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\hyoungFMS\reactApp"
-        "FMS_WEBAPI_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\hyoungFMS\webAPI"
+        "FMS_REACT_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\tenacyFMS\reactApp"
+        "FMS_WEBAPI_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\tenacyFMS\webAPI"
         "FMS_IIS_SITE_NAME" = "ReactApp"
-        "FMS_BACKEND_SITE_NAME" = "apihyoungfms"
-        "FMS_IIS_APP_POOL" = "apihyoungfms"
-        "FMS_BACKUP_DIRECTORY" = "C:\backups\hyoungFMS"
+        "FMS_BACKEND_SITE_NAME" = "apitenacyfms"
+        "FMS_IIS_APP_POOL" = "apitenacyfms"
+        "FMS_BACKUP_DIRECTORY" = "C:\backups\tenacyFMS"
         "FMS_FRONTEND_SOURCE_PATH" = "fms.frontend\build"
         "FMS_BACKEND_SOURCE_PATH" = "FMS.WebClient\bin\Release\net8.0\publish"
     }
     "development" = @{
-        "FMS_REACT_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\hyoungFMS\reactApp-dev"
-        "FMS_WEBAPI_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\hyoungFMS\webAPI-dev"
+        "FMS_REACT_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\tenacyFMS\reactApp-dev"
+        "FMS_WEBAPI_DEPLOYMENT_PATH" = "C:\inetpub\wwwroot\tenacyFMS\webAPI-dev"
         "FMS_IIS_SITE_NAME" = "ReactApp-Dev"
-        "FMS_BACKEND_SITE_NAME" = "apihyoungfms-dev"
-        "FMS_IIS_APP_POOL" = "apihyoungfms-dev"
-        "FMS_BACKUP_DIRECTORY" = "C:\backups\hyoungFMS\dev"
+        "FMS_BACKEND_SITE_NAME" = "apitenacyfms-dev"
+        "FMS_IIS_APP_POOL" = "apitenacyfms-dev"
+        "FMS_BACKUP_DIRECTORY" = "C:\backups\tenacyFMS\dev"
         "FMS_FRONTEND_SOURCE_PATH" = "fms.frontend\build"
         "FMS_BACKEND_SOURCE_PATH" = "FMS.WebClient\bin\Release\net8.0\publish"
     }
@@ -475,7 +475,7 @@ $dirs = @(
     $vars["FMS_REACT_DEPLOYMENT_PATH"]
     $vars["FMS_WEBAPI_DEPLOYMENT_PATH"]
     $vars["FMS_BACKUP_DIRECTORY"]
-    "C:\HyoungFMS\Deployment\logs"
+    "C:\TenacyFMS\Deployment\logs"
 )
 
 foreach ($dir in $dirs) {
@@ -488,7 +488,7 @@ foreach ($dir in $dirs) {
 # Install deployment tool
 Write-Host "Installing deployment tool..." -ForegroundColor Yellow
 if (Test-Path "install.ps1") {
-    .\install.ps1 -InstallDir "C:\HyoungFMS\Deployment" -Force
+    .\install.ps1 -InstallDir "C:\TenacyFMS\Deployment" -Force
 } else {
     Write-Warning "install.ps1 not found. Please run this script from the FMS.Deployment directory."
 }

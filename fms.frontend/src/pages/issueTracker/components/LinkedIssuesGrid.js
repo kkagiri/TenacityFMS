@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: LinkedIssuesGrid.js
  * Purpose: DataGrid component showing issues with the same template/category
  * Dependencies: React, DevExtreme DataGrid, issueTrackerService
@@ -225,8 +225,8 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
                 {matchBy === 'template' && currentIssue?.templateName && (
                     <span> using template: <span className="tw-font-medium">{currentIssue.templateName}</span></span>
                 )}
-                {matchBy === 'vehicle' && currentIssue?.vehicleHyoungNo && (
-                    <span> for vehicle: <span className="tw-font-medium">{currentIssue.vehicleHyoungNo}</span></span>
+                {matchBy === 'vehicle' && currentIssue?.vehicleCode && (
+                    <span> for vehicle: <span className="tw-font-medium">{currentIssue.vehicleCode}</span></span>
                 )}
             </p>
             <DataGrid

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueCompletionPopup.js
  * Purpose: Workflow-driven issue completion side panel with staged action selection,
  *          inline detail capture, and review summary.
@@ -237,7 +237,7 @@ const IssueCompletionPopup = ({
 
     const vehicleDataSource = useMemo(() => vehicles.map((vehicle) => ({
         id: vehicle.vehicleId ?? vehicle.id,
-        displayName: vehicle.hyoungNo || vehicle.numberPlate || `Vehicle #${vehicle.vehicleId ?? vehicle.id}`
+        displayName: vehicle.vehicleCode || vehicle.numberPlate || `Vehicle #${vehicle.vehicleId ?? vehicle.id}`
     })), [vehicles]);
 
     const showWidePanel = useMemo(() => selectedActions.some((action) => (

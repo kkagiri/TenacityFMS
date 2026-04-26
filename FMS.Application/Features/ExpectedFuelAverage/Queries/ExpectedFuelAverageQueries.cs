@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -524,7 +524,7 @@ public class GetVehicleExpectedAverageAssignmentsQueryHandler
         {
             Id = a.Id,
             VehicleId = a.VehicleId,
-            VehicleHyoungNo = vehicle.HyoungNo,
+            VehicleCode = vehicle.VehicleCode,
             VehicleNumberPlate = vehicle.NumberPlate,
             ExpectedFuelAverageTemplateId = a.ExpectedFuelAverageTemplateId,
             TemplateName = a.ExpectedFuelAverageTemplate.Name,
@@ -564,7 +564,7 @@ public class GetVehicleExpectedAverageAssignmentsQueryHandler
         var summary = new VehicleExpectedAverageSummaryDTO
         {
             VehicleId = vehicle.VehicleId,
-            VehicleHyoungNo = vehicle.HyoungNo,
+            VehicleCode = vehicle.VehicleCode,
             VehicleTypeName = vehicle.VehicleType?.Name,
             IsKmPerLiter = vehicle.AverageKmL,
             DefaultAssignment = assignmentDtos.FirstOrDefault(a => a.IsDefault),
@@ -616,7 +616,7 @@ public class GetAllVehicleExpectedAveragesQueryHandler
             query = query.Where(v => !v.ExpectedAverageAssignments.Any(a => a.IsActive));
 
         var vehicles = await query
-            .OrderBy(v => v.HyoungNo)
+            .OrderBy(v => v.VehicleCode)
             .ToListAsync(cancellationToken);
 
         var summaries = vehicles.Select(v =>
@@ -628,7 +628,7 @@ public class GetAllVehicleExpectedAveragesQueryHandler
                 {
                     Id = a.Id,
                     VehicleId = a.VehicleId,
-                    VehicleHyoungNo = v.HyoungNo,
+                    VehicleCode = v.VehicleCode,
                     VehicleNumberPlate = v.NumberPlate,
                     ExpectedFuelAverageTemplateId = a.ExpectedFuelAverageTemplateId,
                     TemplateName = a.ExpectedFuelAverageTemplate?.Name,
@@ -650,7 +650,7 @@ public class GetAllVehicleExpectedAveragesQueryHandler
             return new VehicleExpectedAverageSummaryDTO
             {
                 VehicleId = v.VehicleId,
-                VehicleHyoungNo = v.HyoungNo,
+                VehicleCode = v.VehicleCode,
                 VehicleTypeName = v.VehicleType?.Name,
                 IsKmPerLiter = v.AverageKmL,
                 DefaultAssignment = activeAssignments.FirstOrDefault(a => a.IsDefault),

@@ -1,4 +1,4 @@
-# Complete Authentication & Authorization Implementation Summary
+﻿# Complete Authentication & Authorization Implementation Summary
 
 ## 📋 **Table of Contents**
 1. [Executive Summary](#executive-summary)
@@ -14,7 +14,7 @@
 
 ## 🎯 **Executive Summary**
 
-Successfully implemented **industry-standard JWT authentication** with **refresh tokens** and **policy-based authorization** for the Hyoung FMS application.
+Successfully implemented **industry-standard JWT authentication** with **refresh tokens** and **policy-based authorization** for the Tenacy FMS application.
 
 **Implementation Status:**
 - ✅ **Phase 1 Complete:** Fixed "empty user header" bug
@@ -150,7 +150,7 @@ Run EF Core migration to create RefreshTokens table:
 
 ```bash
 # Navigate to solution directory
-cd /home/user/Hyoung.FMS
+cd /home/user/Tenacy.FMS
 
 # Create migration
 dotnet ef migrations add AddRefreshTokensTable \\

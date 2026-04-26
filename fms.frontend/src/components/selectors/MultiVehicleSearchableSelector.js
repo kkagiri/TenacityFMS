@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: MultiVehicleSearchableSelector.js
  * Purpose: Provide portal-based multi-vehicle search and selection for forms that need reliable remote lookups.
  * Dependencies: React, ReactDOM, vehicleSearchActions, axiosInstance
@@ -39,8 +39,8 @@ const toVehicleDisplay = (vehicle) => {
     if (!vehicle) return "";
 
     const code =
-        vehicle.hyoungNo ||
-        vehicle.HyoungNo ||
+        vehicle.vehicleCode ||
+        vehicle.VehicleCode ||
         vehicle.numberPlate ||
         vehicle.NumberPlate ||
         `#${vehicle.vehicleId || vehicle.VehicleId}`;
@@ -60,7 +60,7 @@ const normalizeVehicleOption = (payload) => {
 
     return {
         vehicleId,
-        hyoungNo: vehicle.hyoungNo ?? vehicle.HyoungNo ?? "",
+        vehicleCode: vehicle.vehicleCode ?? vehicle.VehicleCode ?? "",
         numberPlate: vehicle.numberPlate ?? vehicle.NumberPlate ?? "",
         vehicleName: vehicle.vehicleName ?? vehicle.VehicleName ?? "",
         siteName: vehicle.siteName ?? vehicle.SiteName ?? "",
@@ -532,7 +532,7 @@ const MultiVehicleSearchableSelector = ({
                                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                                         <div style={{ flex: 1 }}>
                                                             <div className="searchable-selector__result-title">
-                                                                <span style={{ fontWeight: 600, color: "#337ab7" }}>{vehicle.hyoungNo}</span>
+                                                                <span style={{ fontWeight: 600, color: "#337ab7" }}>{vehicle.vehicleCode}</span>
                                                                 <span style={{ color: "#666" }}>{vehicle.vehicleName || vehicle.numberPlate}</span>
                                                             </div>
                                                         </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DataSourceManager.VehicleTrips.cs
  * Purpose: Provides dashboard data sources for persisted vehicle-trip operations, site occupancy, and cycle metrics.
  * Dependencies: GpsdataContext, VehicleTripGroup, Vehicle, Site, DataSourceMetadata
@@ -253,7 +253,7 @@ namespace FMS.Application.Services.Dashboard
                     .Where(vehicle => vehicleIds.Contains(vehicle.VehicleId))
                     .ToDictionaryAsync(
                         vehicle => vehicle.VehicleId,
-                        vehicle => BuildVehicleDisplayName(vehicle.HyoungNo, vehicle.NumberPlate, vehicle.VehicleId));
+                        vehicle => BuildVehicleDisplayName(vehicle.VehicleCode, vehicle.NumberPlate, vehicle.VehicleId));
 
             var currentLookup = currentCounts.ToDictionary(item => item.VehicleId, item => item.TripCount);
             var baselineLookup = baselineCounts.ToDictionary(item => item.VehicleId, item => item.TripCount);
@@ -342,7 +342,7 @@ namespace FMS.Application.Services.Dashboard
                     .Where(vehicle => vehicleIds.Contains(vehicle.VehicleId))
                     .ToDictionaryAsync(
                         vehicle => vehicle.VehicleId,
-                        vehicle => BuildVehicleDisplayName(vehicle.HyoungNo, vehicle.NumberPlate, vehicle.VehicleId));
+                        vehicle => BuildVehicleDisplayName(vehicle.VehicleCode, vehicle.NumberPlate, vehicle.VehicleId));
 
             var rows = currentCycles
                 .Select(item => new
@@ -433,19 +433,19 @@ namespace FMS.Application.Services.Dashboard
 
         private static string BuildVehicleDisplayName(Vehicle vehicle)
         {
-            return BuildVehicleDisplayName(vehicle.HyoungNo, vehicle.NumberPlate, vehicle.VehicleId);
+            return BuildVehicleDisplayName(vehicle.VehicleCode, vehicle.NumberPlate, vehicle.VehicleId);
         }
 
-        private static string BuildVehicleDisplayName(string? hyoungNo, string? numberPlate, int vehicleId)
+        private static string BuildVehicleDisplayName(string? vehicleCode, string? numberPlate, int vehicleId)
         {
-            if (!string.IsNullOrWhiteSpace(hyoungNo) && !string.IsNullOrWhiteSpace(numberPlate))
+            if (!string.IsNullOrWhiteSpace(vehicleCode) && !string.IsNullOrWhiteSpace(numberPlate))
             {
-                return $"{hyoungNo} ({numberPlate})";
+                return $"{vehicleCode} ({numberPlate})";
             }
 
-            if (!string.IsNullOrWhiteSpace(hyoungNo))
+            if (!string.IsNullOrWhiteSpace(vehicleCode))
             {
-                return hyoungNo;
+                return vehicleCode;
             }
 
             if (!string.IsNullOrWhiteSpace(numberPlate))

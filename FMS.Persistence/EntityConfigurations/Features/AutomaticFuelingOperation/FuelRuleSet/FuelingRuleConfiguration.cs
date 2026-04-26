@@ -24,25 +24,25 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.HasIndex(e => e.FuelingRuleSetId, "FK_FuelingRule_FuelingRuleSet_idx");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.RuleName).HasMaxLength(100);
-                builder.Property(e => e.IsActive).HasColumnType("tinyint(1)");
-                builder.Property(e => e.CreatedAt).HasColumnType("datetime");
-                builder.Property(e => e.UpdatedAt).HasColumnType("datetime");
+                builder.Property(e => e.IsActive);
+                builder.Property(e => e.CreatedAt);
+                builder.Property(e => e.UpdatedAt);
                 builder.Property(e => e.Discriminator).HasMaxLength(50);
-                builder.Property(e => e.FuelingRuleSetId).HasColumnType("int(11)");
-                builder.Property(e => e.VehicleId).HasColumnType("int(11)");
-                builder.Property(e => e.SiteId).HasColumnType("int(11)");
+                builder.Property(e => e.FuelingRuleSetId);
+                builder.Property(e => e.VehicleId);
+                builder.Property(e => e.SiteId);
 
                 // DailyMonthlyLimitRule properties (all on base class for TPH)
-                builder.Property(e => e.DailyLimitLiter).HasColumnName("DailyLimitLiter").HasColumnType("int(11)");
-                builder.Property(e => e.MonthlyLimitLiter).HasColumnName("MonthlyLimitLiter").HasColumnType("int(11)");
-                builder.Property(e => e.FuelingLimitPerTransaction).HasColumnName("FuelingLimitPerTransaction").HasColumnType("int(11)");
+                builder.Property(e => e.DailyLimitLiter);
+                builder.Property(e => e.MonthlyLimitLiter);
+                builder.Property(e => e.FuelingLimitPerTransaction);
 
                 // NoOfRefillRule properties (all on base class for TPH)
-                builder.Property(e => e.MaxRefillsPerDay).HasColumnName("MaxRefillsPerDay").HasColumnType("int(11)");
-                builder.Property(e => e.MaxRefillsPerWeek).HasColumnName("MaxRefillsPerWeek").HasColumnType("int(11)");
-                builder.Property(e => e.MaxRefillsPerMonth).HasColumnName("MaxRefillsPerMonth").HasColumnType("int(11)");
+                builder.Property(e => e.MaxRefillsPerDay);
+                builder.Property(e => e.MaxRefillsPerWeek);
+                builder.Property(e => e.MaxRefillsPerMonth);
 
                 builder.HasOne(d => d.FuelingRuleSet)
                     .WithMany(p => p.Rules)
@@ -90,12 +90,8 @@ public class TimeWindowRuleConfiguration : IEntityTypeConfiguration<TimeWindowRu
 {
     public void Configure(EntityTypeBuilder<TimeWindowRule> builder)
     {
-        builder.Property(e => e.StartTime)
-            .HasColumnName("StartTime")
-            .HasColumnType("time");
+        builder.Property(e => e.StartTime);
 
-        builder.Property(e => e.EndTime)
-            .HasColumnName("EndTime")
-            .HasColumnType("time");
+        builder.Property(e => e.EndTime);
     }
 }

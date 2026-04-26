@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetVehicleConsumptionGpsQueryFiltered.cs
  * Purpose: Retrieves GPS-tracked consumption results from the vehicleconsumption table with database-level filters.
  * Dependencies: GpsdataContext, GpsConsumptionDTO, MediatR, EF Core
@@ -124,7 +124,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         {
                             Id = vehicle.VehicleId,
                             VehicleId = vehicle.VehicleId,
-                            HyoungNo = vehicle.HyoungNo ?? string.Empty,
+                            VehicleCode = vehicle.VehicleCode ?? string.Empty,
                             VehicleType = vehicle.VehicleType?.Name ?? "Unknown",
                             WorkingSiteId = site?.Id ?? 0,
                             WorkingSiteName = site?.Name ?? "Unknown",

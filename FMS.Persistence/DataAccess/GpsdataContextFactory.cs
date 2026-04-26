@@ -1,7 +1,6 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 
 namespace FMS.Persistence.DataAccess;
 
@@ -13,14 +12,12 @@ public class GpsdataContextFactory : IDesignTimeDbContextFactory<GpsdataContext>
         var optionsBuilder = new DbContextOptionsBuilder<GpsdataContext>();
 
         // Prefer environment variable if provided; otherwise use a safe local default.
-        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__FMSConnection");
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__FMSConnection")
+            ?? "Host=localhost;Port=5432;Database=tenacyfms;Username=postgres;Password=postgres";
 
-
-        // Specify a server version explicitly to avoid requiring a live connection during design time.
-        var serverVersion = new MySqlServerVersion(new Version(5, 5, 6));
-
-        optionsBuilder.UseMySql(connectionString, serverVersion);
+        optionsBuilder.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();
 
         return new GpsdataContext(optionsBuilder.Options);
     }
 }
+

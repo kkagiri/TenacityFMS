@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterAnalyticsHtmlTemplate.cs
  * Purpose:       JsReport HTML template for Warning Letter Analytics report with Chart.js dashboards.
  * Dependencies:  Chart.js 4.4.1 CDN, Handlebars
@@ -163,13 +163,13 @@ internal static class WarningLetterAnalyticsHtmlTemplate
             <div class=""label"">Top Speed Employee</div>
             <div class=""value"" style=""font-size:14px;"">{{analytics.topSpeedEmployee.employeeName}}</div>
             <div class=""sub"">{{analytics.topSpeedEmployee.warningCount}} speed warnings</div>
-            <div class=""meta"">Vehicle: {{analytics.topSpeedEmployee.vehicleHyoungNo}}</div>
+            <div class=""meta"">Vehicle: {{analytics.topSpeedEmployee.vehicleCode}}</div>
         </div>
         <div class=""summary-card"">
             <div class=""label"">Top Fuel Employee</div>
             <div class=""value"" style=""font-size:14px;"">{{analytics.topFuelEmployee.employeeName}}</div>
             <div class=""sub"">{{analytics.topFuelEmployee.warningCount}} fuel warnings</div>
-            <div class=""meta"">Vehicle: {{analytics.topFuelEmployee.vehicleHyoungNo}}</div>
+            <div class=""meta"">Vehicle: {{analytics.topFuelEmployee.vehicleCode}}</div>
         </div>
     </div>
     {{#if analytics.workflowStages}}
@@ -306,7 +306,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                         {{#each analytics.speedEmployeeRanking}}
                         <tr>
                             <td>{{employeeName}}</td>
-                            <td>{{vehicleHyoungNo}}</td>
+                            <td>{{vehicleCode}}</td>
                             <td>{{warningType}}</td>
                             <td class=""text-center"">{{warningCount}}</td>
                         </tr>
@@ -335,7 +335,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                         {{#each analytics.fuelEmployeeRanking}}
                         <tr>
                             <td>{{employeeName}}</td>
-                            <td>{{vehicleHyoungNo}}</td>
+                            <td>{{vehicleCode}}</td>
                             <td>{{warningType}}</td>
                             <td class=""text-center"">{{warningCount}}</td>
                             <td class=""text-right"">{{totalExcessFuelLitresFormatted}}</td>
@@ -374,7 +374,7 @@ internal static class WarningLetterAnalyticsHtmlTemplate
                 <td>{{rowNumber}}</td>
                 <td>{{letterDateFormatted}}</td>
                 <td>{{employeeName}}</td>
-                <td>{{vehicleHyoungNo}}</td>
+                <td>{{vehicleCode}}</td>
                 <td>{{siteName}}</td>
                 <td>{{letterTypeName}}</td>
                 <td><span class=""stage-badge"" style=""background:{{workflowStageTint}}; border-color:{{workflowStageBorderColor}}; color:{{workflowStageColor}};"">{{workflowStageName}}</span></td>

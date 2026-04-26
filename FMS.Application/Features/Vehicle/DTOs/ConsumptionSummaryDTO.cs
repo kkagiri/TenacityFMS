@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.Vehicle.DTOs
@@ -26,7 +26,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
     public class ConsumptionByVehicleDTO
     {
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public string VehicleType { get; set; }
         public string VehicleModel { get; set; }
         public string Manufacturer { get; set; }
@@ -116,7 +116,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
     public class VehicleComparisonDTO
     {
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public string VehicleType { get; set; }
         public string VehicleModel { get; set; }
         public string Manufacturer { get; set; }
@@ -151,7 +151,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
     public class VehicleConsumptionDetailDTO
     {
         public int VehicleId { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public string VehicleType { get; set; }
         public string VehicleModel { get; set; }
         public string Manufacturer { get; set; }

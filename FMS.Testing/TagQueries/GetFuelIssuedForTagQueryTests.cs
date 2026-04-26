@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -26,13 +26,13 @@ namespace FMS.Testing.TagQueries {
             _vehicles = new List<Vehicle> {
                 new Vehicle {
                 VehicleId = 1,
-                HyoungNo = "HY001",
+                VehicleCode = "HY001",
                 NumberPlate = "ABC123",
                 AverageKmL = true
                 },
                 new Vehicle {
                 VehicleId = 2,
-                HyoungNo = "HY002",
+                VehicleCode = "HY002",
                 NumberPlate = "XYZ789",
                 AverageKmL = true
                 }

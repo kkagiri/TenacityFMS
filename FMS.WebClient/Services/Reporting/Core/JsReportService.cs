@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: JsReportService.cs
  * Purpose: Core report rendering engine — PDF, Excel, HTML, and inline PDF.
  *          Uses jsreport ONLY as a Handlebars template engine (Recipe.Html).
@@ -848,7 +848,7 @@ namespace FMS.WebClient.Services.Reporting
                 ws.Cell(row, 2).Value = GetStr(candidate, "metricDate");
                 ws.Cell(row, 3).Value = GetStr(candidate, "letterTypeName");
                 ws.Cell(row, 4).Value = GetStr(candidate, "employeeName");
-                ws.Cell(row, 5).Value = GetStr(candidate, "vehicleHyoungNo");
+                ws.Cell(row, 5).Value = GetStr(candidate, "vehicleCode");
                 ws.Cell(row, 6).Value = GetStr(candidate, "vehicleTypeName");
                 ws.Cell(row, 7).Value = GetStr(candidate, "siteName");
                 ws.Cell(row, 8).Value = GetStr(candidate, "expectedFormatted");
@@ -887,7 +887,7 @@ namespace FMS.WebClient.Services.Reporting
                 ws.Cell(row, 1).Value = GetStr(record, "rowNumber");
                 ws.Cell(row, 2).Value = GetStr(record, "letterDateFormatted");
                 ws.Cell(row, 3).Value = GetStr(record, "employeeName");
-                ws.Cell(row, 4).Value = GetStr(record, "vehicleHyoungNo");
+                ws.Cell(row, 4).Value = GetStr(record, "vehicleCode");
                 ws.Cell(row, 5).Value = GetStr(record, "vehicleTypeName");
                 ws.Cell(row, 6).Value = GetStr(record, "siteName");
                 ws.Cell(row, 7).Value = GetStr(record, "letterTypeName");
@@ -969,7 +969,7 @@ namespace FMS.WebClient.Services.Reporting
 
         private string BuildPdfHeaderTemplate()
         {
-            const string leftBranding = @"<span style=""color:#9CA3AF; font-size:8px; font-weight:600; white-space:nowrap;"">Hyoung FMS</span>";
+            const string leftBranding = @"<span style=""color:#9CA3AF; font-size:8px; font-weight:600; white-space:nowrap;"">Tenacy FMS</span>";
 
             return $@"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
                     {leftBranding}
@@ -1092,7 +1092,7 @@ namespace FMS.WebClient.Services.Reporting
                         DisplayHeaderFooter = true,
                         HeaderTemplate = BuildPdfHeaderTemplate(),
                         FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
-                    <span>Hyoung FMS &mdash; Fleet Management &amp; Fueling Operations</span>
+                    <span>Tenacy FMS &mdash; Fleet Management &amp; Fueling Operations</span>
                     <span>Page <span class=""pageNumber""></span> of <span class=""totalPages""></span></span>
                 </div>",
                         MarginOptions = new MarginOptions
@@ -1581,7 +1581,6 @@ namespace FMS.WebClient.Services.Reporting
                 "issue-tracker-report" => JsReportHtmlTemplates.IssueTracker(),
                 "consumption-by-refills-report" => JsReportHtmlTemplates.ConsumptionByRefills(),
                 "transaction-history-summary-report" => JsReportHtmlTemplates.TransactionHistorySummary(),
-                "vehicle-document-compliance-report" => JsReportHtmlTemplates.VehicleDocumentCompliance(),
                 "live-trip-operations-report" => LiveTripOperationsHtmlTemplate.Get(),
                 _ => string.Empty
             };

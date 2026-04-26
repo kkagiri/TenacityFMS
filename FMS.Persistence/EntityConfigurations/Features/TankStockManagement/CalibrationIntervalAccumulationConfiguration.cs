@@ -22,48 +22,32 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("calibrationintervalaccumulations");
 
             builder.Property(e => e.Id)
-                .HasColumnName("Id")
-                .HasColumnType("bigint")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.TankId)
-                .HasColumnName("TankId")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.IntervalStartMm)
-                .HasColumnName("IntervalStartMm")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.IntervalEndMm)
-                .HasColumnName("IntervalEndMm")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.ObservationCount)
-                .HasColumnName("ObservationCount")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.MeanVolumePerMm)
-                .HasColumnName("MeanVolumePerMm")
                 .HasColumnType("decimal(18,6)")
                 .IsRequired();
 
             builder.Property(e => e.StdDevVolumePerMm)
-                .HasColumnName("StdDevVolumePerMm")
                 .HasColumnType("decimal(18,6)")
                 .IsRequired();
 
             builder.Property(e => e.LastUpdatedUtc)
-                .HasColumnName("LastUpdatedUtc")
-                .HasColumnType("datetime")
                 .IsRequired();
 
             builder.Property(e => e.SeededFromSnapshotId)
-                .HasColumnName("SeededFromSnapshotId")
-                .HasColumnType("bigint")
                 .IsRequired(false);
 
             builder.HasIndex(e => new { e.TankId, e.IntervalStartMm, e.IntervalEndMm })

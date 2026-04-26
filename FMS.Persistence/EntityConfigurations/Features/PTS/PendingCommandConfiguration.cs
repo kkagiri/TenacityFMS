@@ -1,4 +1,4 @@
-// using Microsoft.EntityFrameworkCore;
+﻿// using Microsoft.EntityFrameworkCore;
 // using Microsoft.EntityFrameworkCore.Metadata.Builders;
 // using FMS.Domain.Entities;
 
@@ -23,11 +23,11 @@
 
 //                 builder.HasIndex(e => e.PTSDeviceId, "FK_PendingCommand_Ptsdevice_idx");
 
-//                 builder.Property(e => e.Id).HasColumnType("int(11)");
+//                 builder.Property(e => e.Id);
 //                 builder.Property(e => e.PTSDeviceId).HasMaxLength(50).IsRequired();
 //                 builder.Property(e => e.CommandType).HasMaxLength(50).IsRequired();
-//                 builder.Property(e => e.CommandDataJson).HasColumnType("text").IsRequired();
-//                 builder.Property(e => e.CreatedAt).HasColumnType("datetime");
+//                 builder.Property(e => e.CommandDataJson).IsRequired();
+//                 builder.Property(e => e.CreatedAt);
 
 //                 // builder.HasOne(d => d.Ptsdevice)
 //                 //     .WithMany(p => p.PendingCommands)
@@ -35,7 +35,6 @@
 //                 //     .OnDelete(DeleteBehavior.ClientSetNull)
 //                 //     .HasConstraintName("FK_PendingCommand_Ptsdevice");
 //             }
-
 
 //             catch (Exception ex)
 //             {

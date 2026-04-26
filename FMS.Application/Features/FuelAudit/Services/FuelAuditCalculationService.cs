@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -48,7 +48,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                 // Get all GPS-enabled vehicles (IsActive == 1)
                 var vehicles = await _context.Vehicles
                     .Where(v => v.IsActive == 1)
-                    .Select(v => new { v.VehicleId, v.HyoungNo })
+                    .Select(v => new { v.VehicleId, v.VehicleCode })
                     .ToListAsync(cancellationToken);
 
                 _logger.LogInformation("Found {Count} active vehicles", vehicles.Count);
@@ -65,7 +65,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                             cancellationToken);
 
                         _logger.LogDebug("Fetched GPS data for vehicle {VehicleId} ({Name})",
-                            vehicle.VehicleId, vehicle.HyoungNo);
+                            vehicle.VehicleId, vehicle.VehicleCode);
                     }
                     catch (Exception ex)
                     {
@@ -271,7 +271,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                     {
                         AuditId = audit.Id,
                         VehicleId = vehicle.VehicleId,
-                        VehicleName = vehicle.HyoungNo,
+                        VehicleName = vehicle.VehicleCode,
                         NumberPlate = vehicle.NumberPlate,
                         VehicleType = "GPS",
                         TankCapacity = vehicle.FuelTankCapacity,
@@ -553,7 +553,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                         Category = "Vehicle",
                         ReferenceId = vp.VehicleId,
                         ReferenceType = "Vehicle",
-                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
+                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.VehicleCode,
                         Title = "Low Fuel Efficiency",
                         Description = $"Vehicle has low fuel efficiency: {vp.FuelEfficiency:N2} km/L",
                         ActualValue = vp.FuelEfficiency,
@@ -576,7 +576,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                         Category = "Quality",
                         ReferenceId = vp.VehicleId,
                         ReferenceType = "Vehicle",
-                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
+                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.VehicleCode,
                         Title = "Missing GPS Data",
                         Description = $"Vehicle has no GPS fuel data for this period",
                         Status = "Open",
@@ -595,7 +595,7 @@ namespace FMS.Application.Features.FuelAudit.Services
                         Category = "Vehicle",
                         ReferenceId = vp.VehicleId,
                         ReferenceType = "Vehicle",
-                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
+                        ReferenceName = vp.VehicleName ?? vp.Vehicle?.VehicleCode,
                         Title = "Vehicle Fuel Variance",
                         Description = $"Vehicle has fuel variance of {vp.Variance:N2}L ({vp.VariancePercent:N2}%)",
                         ActualValue = vp.Variance,

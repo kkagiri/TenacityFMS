@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -17,9 +17,7 @@ namespace FMS.Persistence.EntityConfigurations {
             // Properties
             builder.Property(e => e.TriggerSource)
                 .IsRequired()
-                .HasMaxLength(50)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(50);
 
             builder.Property(e => e.GroupId)
                 .IsRequired();
@@ -33,36 +31,26 @@ namespace FMS.Persistence.EntityConfigurations {
 
             builder.Property(e => e.AllowedDeliveryMethods)
                 .HasMaxLength(100)
-                .IsRequired(false)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .IsRequired(false);
 
             builder.Property(e => e.MinimumSeverity)
                 .HasMaxLength(20)
-                .IsRequired(false)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .IsRequired(false);
 
             builder.Property(e => e.CreatedAt)
                 .IsRequired()
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             builder.Property(e => e.CreatedBy)
                 .IsRequired()
-                .HasMaxLength(100)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(100);
 
             builder.Property(e => e.UpdatedAt)
-                .IsRequired(false)
-                .HasColumnType("timestamp");
+                .IsRequired(false);
 
             builder.Property(e => e.UpdatedBy)
                 .HasMaxLength(100)
-                .IsRequired(false)
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .IsRequired(false);
 
             // Foreign key relationships
             builder.HasOne(e => e.Group)
@@ -101,3 +89,5 @@ namespace FMS.Persistence.EntityConfigurations {
         }
     }
 }
+
+

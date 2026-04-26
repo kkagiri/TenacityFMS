@@ -1,4 +1,4 @@
-# Fueling Rules Cascade Hierarchy Implementation
+﻿# Fueling Rules Cascade Hierarchy Implementation
 
 ## Table of Contents
 
@@ -456,7 +456,7 @@ if (pumpAuthorize.VehicleId.HasValue)
   "data": {
     "vehicle": {
       "vehicleId": 123,
-      "hyoungNo": "HYG-001",
+      "vehicleCode": "HYG-001",
       "vehicleTypeName": "Truck",
       "workingSiteName": "Main Depot"
     },

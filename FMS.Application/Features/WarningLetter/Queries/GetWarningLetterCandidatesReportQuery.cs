@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          GetWarningLetterCandidatesReportQuery.cs
  * Purpose:       CQRS query returning warning letter candidates report data for employees without warning letters.
  * Dependencies:  MediatR, GpsdataContext, ISystemConfigurationService, FMSResponse, WarningLetterCandidatesReportDataDto
@@ -157,7 +157,7 @@ public class GetWarningLetterCandidatesReportQueryHandler : IRequestHandler<GetW
                     MetricDate = candidate.Date.ToString("yyyy-MM-dd"),
                     Period = $"{candidate.Date:dd MMM yyyy}",
                     SiteName = candidate.Site?.Name ?? string.Empty,
-                    VehicleHyoungNo = candidate.Vehicle?.HyoungNo ?? string.Empty,
+                    VehicleCode = candidate.Vehicle?.VehicleCode ?? string.Empty,
                     NumberPlate = candidate.Vehicle?.NumberPlate ?? string.Empty,
                     VehicleTypeName = candidate.Vehicle?.VehicleType?.Name ?? "Unknown",
                     EmployeeName = employeeName,
@@ -181,7 +181,7 @@ public class GetWarningLetterCandidatesReportQueryHandler : IRequestHandler<GetW
             ExcessiveSpeedCount = records.Count(r => r.LetterType == WarningLetterType.ExcessiveSpeed),
             ExcessiveIdlingCount = records.Count(r => r.LetterType == WarningLetterType.ExcessiveIdling),
             UniqueSites = records.Select(r => r.SiteName).Distinct().Count(),
-            UniqueVehicles = records.Select(r => r.VehicleHyoungNo).Distinct().Count(),
+            UniqueVehicles = records.Select(r => r.VehicleCode).Distinct().Count(),
             UniqueEmployees = records.Select(r => r.EmployeeName).Where(n => n != "Unassigned").Distinct().Count(),
         };
 

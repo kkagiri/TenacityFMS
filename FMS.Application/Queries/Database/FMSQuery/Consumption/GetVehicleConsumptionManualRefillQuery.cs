@@ -58,7 +58,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                             return new ManualDispenseConsumptionDTO {
                                 Id = v.VehicleId,
                                     VehicleId = v.VehicleId,
-                                    HyoungNo = v.HyoungNo ?? string.Empty,
+                                    VehicleCode = v.VehicleCode ?? string.Empty,
                                     Passenger = v.Passenger,
                                     VehicleType = v.VehicleType?.Name ?? "Unknown",
                                     WorkingSiteId = v.WorkingSiteId ?? 0,

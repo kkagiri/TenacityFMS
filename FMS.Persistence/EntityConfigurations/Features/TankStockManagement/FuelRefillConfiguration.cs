@@ -26,7 +26,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 // Column configurations
                 builder.Property (e => e.Id).HasColumnType ("int(11)");
                 builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
-                builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10, 2).HasColumnName ("ManualFuelrefilAmount");
+                builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10, 2);
                 builder.Property (e => e.Date).HasColumnType ("datetime");
                 builder.Property (e => e.PreviousMeterReading).HasPrecision (10, 2);
                 builder.Property (e => e.CurrentMeterReading).HasPrecision (10, 2);
@@ -47,31 +47,25 @@ namespace FMS.Persistence.EntityConfigurations {
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
                     .HasColumnType ("tinyint(1)")
-                    .HasColumnName ("is_deleted")
                     .HasDefaultValue (false);
 
                 builder.Property (e => e.DeletedAt)
-                    .HasColumnType ("datetime")
-                    .HasColumnName ("deleted_at");
+                    .HasColumnType ("datetime");
 
                 builder.Property (e => e.DeletedBy)
-                    .HasMaxLength (450)
-                    .HasColumnName ("deleted_by");
+                    .HasMaxLength (450);
 
                 // Correction tracking properties
                 builder.Property (e => e.IsCorrection)
                     .HasColumnType ("tinyint(1)")
-                    .HasColumnName ("is_correction")
                     .IsRequired()
                     .HasDefaultValue (false);
 
                 builder.Property (e => e.CorrectsRecordId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("corrects_record_id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.CorrectionReason)
-                    .HasMaxLength (200)
-                    .HasColumnName ("correction_reason");
+                    .HasMaxLength (200);
 
                 // Global query filter to exclude soft deleted records
                 builder.HasQueryFilter (fr => !fr.IsDeleted);

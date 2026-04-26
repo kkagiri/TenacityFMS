@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueTicketListPage.js
  * Purpose: Issue ticket list page with filtering, export, and row-level actions
  * Dependencies: React, react-router-dom, DevExtreme DataGrid, issueTrackerService
@@ -188,7 +188,7 @@ const IssueTicketListPage = () => {
 
     const vehicleName =
       issue.vehicleName ||
-      issue.vehicleHyoungNo ||
+      issue.vehicleCode ||
       issue.vehicleNumber ||
       issue.vehicleNo ||
       '';

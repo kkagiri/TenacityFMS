@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueTrackerReportRowDto.cs
  * Purpose: Row model for Issue Tracker report output.
  * Dependencies: None
@@ -18,7 +18,7 @@ namespace FMS.Application.Features.IssueTracker.DTOs
         public string SiteName { get; set; } = string.Empty;
         public int VehicleId { get; set; }
         public string VehicleNumber { get; set; } = string.Empty;
-        public string VehicleHyoungNo { get; set; } = string.Empty;
+        public string VehicleCode { get; set; } = string.Empty;
         public int IssueCategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public int? Status { get; set; }

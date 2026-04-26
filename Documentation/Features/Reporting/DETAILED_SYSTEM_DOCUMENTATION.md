@@ -1,4 +1,4 @@
-# FMS Reporting System — Detailed System Documentation
+﻿# FMS Reporting System — Detailed System Documentation
 
 > **Version:** 2.0 | **Last Updated:** 2026-03-11
 > **Primary Engine:** JsReport (Handlebars + PuppeteerSharp) | **Legacy Engine:** DevExtreme Reporting (REPX)
@@ -256,7 +256,7 @@ File-based template storage with writable path resolution and default seeding.
 | 1 | `C:\FMSData\reports\templates\` | Shared FMS data root (preferred) |
 | 2 | `C:\Logs\FMS.Webclient\ReportTemplates\` | Legacy location |
 | 3 | `%TEMP%\FMS_ReportTemplates\` | User temp folder (always writable) |
-| 4 | `%ProgramData%\Hyoung\FMS\ReportTemplates\` | System-wide |
+| 4 | `%ProgramData%\Tenacy\FMS\ReportTemplates\` | System-wide |
 | 5 | `{ContentRoot}\App_Data\ReportTemplates\` | App data fallback |
 
 #### Default Template Seeding
@@ -288,7 +288,7 @@ Automatically injects company branding into every rendered report.
 | Priority | Path |
 |----------|------|
 | 1 | `C:\FMSData\reports\branding\letterhead-logo.png` |
-| 2 | `%ProgramData%\Hyoung\FMS\reports\branding\letterhead-logo.png` |
+| 2 | `%ProgramData%\Tenacy\FMS\reports\branding\letterhead-logo.png` |
 | 3 | `%TEMP%\FMS_Reports\branding\letterhead-logo.png` |
 
 Supported formats: PNG, JPG, SVG, GIF, WebP.

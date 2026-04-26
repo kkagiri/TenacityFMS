@@ -9,7 +9,7 @@
  * - VehicleConsumptionEmbeddedPreview(): Compact consumption history preview
  * - VehicleMaintenanceEmbeddedPreview(): Compact maintenance history preview
  * - VehicleFuelEmbeddedPreview(): Compact fuel history preview
- * - VehicleDocumentsEmbeddedPreview(): Compact document preview
+ * - VehicleFuelEmbeddedPreview(): Compact fuel preview
  * - VehicleTransfersEmbeddedPreview(): Compact transfer history preview
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -26,14 +26,6 @@ const VEHICLE_DETAILS_TAB_INDEX = {
     documents: 5,
     transfers: 7,
     trip: 8,
-};
-
-const DOCUMENT_TYPE_LABELS = {
-    1: 'Insurance',
-    2: 'Registration',
-    3: 'Inspection',
-    4: 'Road Tax',
-    5: 'Other',
 };
 
 const createDefaultDateRange = () => {
@@ -389,61 +381,6 @@ export const VehicleFuelEmbeddedPreview = ({ navigate, vehicleId, appliedRange }
             rows={rows}
             stats={stats}
             title="Fuel history"
-        />
-    );
-};
-
-export const VehicleDocumentsEmbeddedPreview = ({ navigate, vehicleId, appliedRange }) => {
-
-    const loadData = useCallback(async ({ vehicleId: targetVehicleId, dateFrom: start, dateTo: end }) => {
-        const response = await axiosInstance.get(`/vehicledocuments/vehicle/${targetVehicleId}`);
-
-        return sortByDateDesc(
-            unwrapArrayResponse(response)
-                .map((item, index) => ({
-                    ...item,
-                    rowKey: `document-${item.vehicleDocumentId || index}`,
-                    issueDateValue: item.issueDate || null,
-                    expiryDateValue: item.expiryDate || null,
-                    effectiveDate: item.expiryDate || item.issueDate || null,
-                    documentTypeLabel: DOCUMENT_TYPE_LABELS[item.documentType] || item.documentType || 'Document',
-                }))
-                .filter((item) => inRange(item.effectiveDate, start, end)),
-            (item) => item.effectiveDate,
-        );
-    }, []);
-
-    const { loading, rows } = usePreviewLoader({ appliedRange, loadData, vehicleId });
-
-    const stats = useMemo(() => {
-        const today = new Date();
-        const expired = rows.filter((item) => item.expiryDateValue && new Date(item.expiryDateValue) < today).length;
-        const active = rows.length - expired;
-
-        return [
-            { label: 'Documents', value: String(rows.length), hint: 'Matched date range' },
-            { label: 'Active', value: String(active), hint: 'Not yet expired' },
-            { label: 'Expired', value: String(expired), hint: 'Require attention' },
-        ];
-    }, [rows]);
-
-    const columns = useMemo(() => ([
-        { dataField: 'documentTypeLabel', caption: 'Type', minWidth: 130 },
-        { dataField: 'documentNo', caption: 'Document No', minWidth: 130 },
-        { dataField: 'issueDateValue', caption: 'Issued', minWidth: 110, customizeText: ({ value }) => formatDate(value) },
-        { dataField: 'expiryDateValue', caption: 'Expiry', minWidth: 110, customizeText: ({ value }) => formatDate(value) },
-        { dataField: 'issuingAuthority', caption: 'Authority', minWidth: 160 },
-    ]), []);
-
-    return (
-        <EmbeddedPreview
-            actions={buildPreviewActions({ navigate, supportsAdd: true, supportsOpenPage: true, tabKey: 'documents', vehicleId })}
-            columns={columns}
-            emptyText="No documents found for the selected period."
-            loading={loading}
-            rows={rows}
-            stats={stats}
-            title="Documents"
         />
     );
 };

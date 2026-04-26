@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterDto.cs
  * Purpose: Represents a detailed warning letter payload for API responses.
  * Dependencies: WarningLetterStatus, WarningLetterType
@@ -21,7 +21,7 @@ public class WarningLetterDto
     public string? EmployeeEmail { get; set; }
     public string? Position { get; set; }
     public int VehicleId { get; set; }
-    public string VehicleHyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
     public int SiteId { get; set; }
     public string SiteName { get; set; } = string.Empty;

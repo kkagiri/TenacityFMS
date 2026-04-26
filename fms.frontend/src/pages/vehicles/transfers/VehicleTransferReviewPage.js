@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          VehicleTransferReviewPage.js
  * Purpose:       Standalone review page for vehicle transfers reached via email approval link.
  *                URL pattern: /vehicles/transfers/:id/review
@@ -139,7 +139,7 @@ const VehicleTransferReviewPage = () => {
           Review Transfer #{transfer.deliveryNoteNumber || transfer.transferId}
         </h2>
         <span className="transfer-review-page__subtitle">
-          {transfer.vehicleHyoungNo} — {transfer.fromSiteName} → {transfer.toSiteName}
+          {transfer.vehicleCode} — {transfer.fromSiteName} → {transfer.toSiteName}
         </span>
       </div>
 

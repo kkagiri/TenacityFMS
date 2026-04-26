@@ -1,7 +1,7 @@
-Create a new C# .NET Core Console Application
+﻿Create a new C# .NET Core Console Application
 
 Open Visual Studio or use the dotnet new CLI command
-Name the project HyoungFMS.Deployment
+Name the project TenacyFMS.Deployment
 Target .NET 8.0
 
 

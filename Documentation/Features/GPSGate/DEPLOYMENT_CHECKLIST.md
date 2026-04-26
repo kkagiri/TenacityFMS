@@ -1,4 +1,4 @@
-# GPSGate Integration - Final Setup Checklist
+﻿# GPSGate Integration - Final Setup Checklist
 
 ## ⚙️ Pre-Deployment Checklist
 
@@ -46,7 +46,7 @@
 ### 5. Build & Compile
 - [ ] Build solution
   ```bash
-  dotnet build Hyoung.Fms.sln
+  dotnet build Tenacy.Fms.sln
   ```
 - [ ] Check for compilation errors
 - [ ] Resolve any missing references

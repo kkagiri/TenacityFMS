@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import Button from 'devextreme-react/button';
@@ -124,7 +124,7 @@ const VehicleConsumptionDetails = () => {
                         <div>
                             <h1 className="tw-text-xl tw-font-bold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
                                 <i className="fa-light fa-truck tw-text-purple-600"></i>
-                                {detail.hyoungNo || 'Vehicle'}
+                                {detail.vehicleCode || 'Vehicle'}
                             </h1>
                             <p className="tw-text-sm tw-text-gray-500">
                                 {detail.manufacturer} {detail.vehicleModel} | {detail.vehicleType}

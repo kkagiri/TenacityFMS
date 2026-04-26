@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          VehicleTransferDetails.js
  * Purpose:       M365-styled detail view for a single vehicle transfer (inside SlidePanel)
  * Dependencies:  axiosInstance, m365-shared.scss tokens
@@ -421,7 +421,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh, isApprovalReview
               <div className="m365-info-grid m365-info-grid--4col">
                 <div className="m365-info-cell">
                   <span className="m365-info-cell__label">Vehicle No</span>
-                  <span className="m365-info-cell__value">{transfer.vehicleHyoungNo || "—"}</span>
+                  <span className="m365-info-cell__value">{transfer.vehicleCode || "—"}</span>
                 </div>
                 <div className="m365-info-cell">
                   <span className="m365-info-cell__label">Reg. No</span>

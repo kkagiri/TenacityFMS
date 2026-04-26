@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.Features.FuelRule;
-using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 
 namespace FMS.Domain.Entities;
 
@@ -31,7 +30,7 @@ public partial class Vehicle
     /// <summary>
     /// THis is company Regirstrato NO for vehicle `
     /// </summary>
-    public string HyoungNo { get; set; } = null!;
+    public string VehicleCode { get; set; } = null!;
 
     public int VehicleId { get; set; }
 
@@ -98,7 +97,6 @@ public partial class Vehicle
     /// </summary>
     [Obsolete("Use VehicleProviderMapping.ExternalDeviceId for GPS device tracking. This field will be removed in a future version.")]
     public sbyte? GpsgategeneratedId { get; set; }
-    public virtual ICollection<VehicleDocument> VehicleDocuments { get; private set; } = new List<VehicleDocument>();
 
     public int? DefaultExptdAvgid { get; set; }
 

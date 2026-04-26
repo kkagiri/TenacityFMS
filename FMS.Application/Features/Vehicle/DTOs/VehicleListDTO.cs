@@ -10,7 +10,7 @@ namespace FMS.Application.Models.Vehicle
     {
         public int VehicleId { get; set; }
 
-        public string HyoungNo { get; set; } = null!;
+        public string VehicleCode { get; set; } = null!;
 
         public int VehicleTypeId { get; set; }
 

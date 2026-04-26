@@ -273,39 +273,32 @@ namespace FMS.PTS.WindowsService
                         "Connection string 'FMSConnection' is missing in PTSService:ConnectionStrings section of appsettings");
                 }
 
-                // Add ConvertZeroDateTime to connection string if not present
-                if (!connectionString.Contains("ConvertZeroDateTime", StringComparison.OrdinalIgnoreCase))
-                {
-                    connectionString += ";ConvertZeroDateTime=true";
-                    Log.Information("Added ConvertZeroDateTime=true to connection string to handle invalid MySQL datetime values");
-                }
-
                 Log.Information("Configuring database connection for server: {Server}, database: {Database}",
                     GetServerFromConnectionString(connectionString),
                     GetDatabaseFromConnectionString(connectionString));
 
                 services.AddDbContext<GpsdataContext>(options =>
-                    options.UseMySql(
+                    options.UseNpgsql(
                         connectionString,
-                        new MySqlServerVersion(new Version(5, 5, 61)),
-                        mySqlOptions => mySqlOptions
+                        npgOptions => npgOptions
                         .EnableRetryOnFailure(
                             maxRetryCount: 3,
                             maxRetryDelay: TimeSpan.FromSeconds(5),
-                            errorNumbersToAdd: null)
-                    ),
+                            errorCodesToAdd: null)
+                    )
+                    .UseSnakeCaseNamingConvention(),
                     contextLifetime: ServiceLifetime.Scoped);
 
                 services.AddDbContextFactory<GpsdataContext>(options =>
-                    options.UseMySql(
+                    options.UseNpgsql(
                         connectionString,
-                        new MySqlServerVersion(new Version(5, 5, 61)),
-                        mySqlOptions => mySqlOptions
+                        npgOptions => npgOptions
                         .EnableRetryOnFailure(
                             maxRetryCount: 3,
                             maxRetryDelay: TimeSpan.FromSeconds(5),
-                            errorNumbersToAdd: null)
-                    ),
+                            errorCodesToAdd: null)
+                    )
+                    .UseSnakeCaseNamingConvention(),
                     lifetime: ServiceLifetime.Scoped);
 
                 services.AddIdentity<User, Role>()

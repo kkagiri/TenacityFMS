@@ -1,4 +1,4 @@
-import axiosInstance from "../../api/axiosInstance";
+﻿import axiosInstance from "../../api/axiosInstance";
 
 const normalizeSearchTerm = (value) => typeof value === "string" ? value.trim() : value;
 const resolveSuccess = (result) => Boolean(result?.success ?? result?.Success ?? result?.isSuccess ?? result?.IsSuccess);
@@ -222,35 +222,35 @@ export const searchVehiclesByPlate = (plateNumber) => async (dispatch) => {
   }
 };
 
-// Search vehicles by Hyoung number
-export const searchVehiclesByHyoungNo = (hyoungNo) => async (dispatch) => {
-  const normalizedHyoungNo = normalizeSearchTerm(hyoungNo);
+// Search vehicles by Tenacy number
+export const searchVehiclesByVehicleCode = (vehicleCode) => async (dispatch) => {
+  const normalizedVehicleCode = normalizeSearchTerm(vehicleCode);
 
   try {
     dispatch({ type: SEARCH_VEHICLES_REQUEST });
 
-    const response = await axiosInstance.get('/vehicle/search-by-hyoung', {
-      params: { hyoungNo: normalizedHyoungNo },
+    const response = await axiosInstance.get('/vehicle/search-by-code', {
+      params: { vehicleCode: normalizedVehicleCode },
     });
 
     dispatch({
       type: SEARCH_VEHICLES_SUCCESS,
       payload: {
         results: response.data.data || [],
-        searchTerm: normalizedHyoungNo,
+        searchTerm: normalizedVehicleCode,
         totalCount: response.data.data?.length || 0
       },
     });
 
     return { success: true, data: response.data.data || [] };
   } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || 'Hyoung number search failed';
+    const errorMessage = error.response?.data?.message || error.message || 'Tenacy number search failed';
 
     dispatch({
       type: SEARCH_VEHICLES_FAILURE,
       payload: {
         error: errorMessage,
-        searchTerm: normalizedHyoungNo
+        searchTerm: normalizedVehicleCode
       },
     });
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: vehicleTrackingHelpers.js
  * Purpose: Centralizes vehicle tracking constants, normalization helpers, formatting, and map marker builders
  * Dependencies: browser localStorage, Google Maps runtime APIs
@@ -149,7 +149,7 @@ export const getVehicleHeading = (vehicle = {}) => {
 export const getVehicleCode = (vehicle = {}) => {
   const sourceVehicle = ensureVehicle(vehicle);
 
-  return sourceVehicle.hyoungNo
+  return sourceVehicle.vehicleCode
     || sourceVehicle.numberPlate
     || sourceVehicle.plateNumber
     || sourceVehicle.name
@@ -322,7 +322,7 @@ export const normalizeVehicle = (vehicle = {}) => {
 
 export const getVehicleMarkerLabel = (vehicle = {}) => {
   const sourceVehicle = ensureVehicle(vehicle);
-  const rawLabel = sourceVehicle.hyoungNo
+  const rawLabel = sourceVehicle.vehicleCode
     || sourceVehicle.numberPlate
     || sourceVehicle.plateNumber
     || sourceVehicle.name

@@ -25,50 +25,50 @@ namespace FMS.Persistence.EntityConfigurations {
                 .HasMaxLength (500);
 
             // DefaultPriority - VARCHAR(20) NOT NULL DEFAULT 'Medium'
-            builder.Property (nc => nc.DefaultPriority).HasColumnName ("default_priority")
+            builder.Property (nc => nc.DefaultPriority)
                 .IsRequired ()
                 .HasMaxLength (20)
                 .HasDefaultValue ("Medium");
 
             // IsActive - TINYINT(1) NOT NULL DEFAULT '1'
-            builder.Property (nc => nc.IsActive).HasColumnName ("is_active")
+            builder.Property (nc => nc.IsActive)
                 .IsRequired ()
                 .HasDefaultValue (true);
 
             // DisplayOrder - INT(11) NOT NULL DEFAULT '0'
-            builder.Property (nc => nc.DisplayOrder).HasColumnName ("display_order")
+            builder.Property (nc => nc.DisplayOrder)
                 .IsRequired ()
                 .HasDefaultValue (0);
 
             // IconClass - VARCHAR(50) NULL
-            builder.Property (nc => nc.IconClass).HasColumnName ("icon_class")
+            builder.Property (nc => nc.IconClass)
                 .HasMaxLength (50);
 
             // DefaultRequireAcknowledgment - TINYINT(1) NOT NULL DEFAULT '0'
-            builder.Property (nc => nc.DefaultRequireAcknowledgment).HasColumnName ("default_require_acknowledgment")
+            builder.Property (nc => nc.DefaultRequireAcknowledgment)
                 .IsRequired ()
                 .HasDefaultValue (false);
 
             // DefaultDeliveryMethods - VARCHAR(100) NOT NULL DEFAULT 'System'
-            builder.Property (nc => nc.DefaultDeliveryMethods).HasColumnName ("default_delivery_methods")
+            builder.Property (nc => nc.DefaultDeliveryMethods)
                 .IsRequired ()
                 .HasMaxLength (100)
                 .HasDefaultValue ("System");
 
             // CreatedAt - DATETIME NOT NULL
-            builder.Property (nc => nc.CreatedAt).HasColumnName ("created_at")
+            builder.Property (nc => nc.CreatedAt)
                 .IsRequired ();
 
             // UpdatedAt - DATETIME NULL
-            builder.Property (nc => nc.UpdatedAt).HasColumnName ("updated_at");
+            builder.Property (nc => nc.UpdatedAt);
 
             // CreatedBy - VARCHAR(100) NOT NULL
-            builder.Property (nc => nc.CreatedBy).HasColumnName ("created_by")
+            builder.Property (nc => nc.CreatedBy)
                 .IsRequired ()
                 .HasMaxLength (100);
 
             // UpdatedBy - VARCHAR(100) NULL
-            builder.Property (nc => nc.UpdatedBy).HasColumnName ("updated_by")
+            builder.Property (nc => nc.UpdatedBy)
                 .HasMaxLength (100);
 
             // Indexes

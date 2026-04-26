@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -173,8 +173,8 @@ public class GetTemporaryBypassStatusQueryHandler : IRequestHandler<GetTemporary
             {
                 Id = b.Id,
                 VehicleId = b.VehicleId ?? 0,
-                VehicleName = b.Vehicle?.HyoungNo, // Vehicle entity uses HyoungNo as name
-                VehicleHyoungNo = b.Vehicle?.HyoungNo,
+                VehicleName = b.Vehicle?.VehicleCode, // Vehicle entity uses VehicleCode as name
+                VehicleCode = b.Vehicle?.VehicleCode,
                 IsActive = true,
                 ExpiresAt = b.ExpiresAt,
                 Reason = b.Reason,

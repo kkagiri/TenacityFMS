@@ -1,4 +1,4 @@
-# 🚨 URGENT FIX: Logging & jsReport Permissions Issue - RESOLVED
+﻿# 🚨 URGENT FIX: Logging & jsReport Permissions Issue - RESOLVED
 
 **Date**: February 9, 2026
 **Issue**: `Access denied` to jsreport directory causing 500 errors
@@ -16,7 +16,7 @@
 
 ### Technical Details
 
-- **Error**: `Access to the path 'C:\inetpub\wwwroot\hyoungFMS\webAPI\jsreport' is denied`
+- **Error**: `Access to the path 'C:\inetpub\wwwroot\tenacyFMS\webAPI\jsreport' is denied`
 - **Cause**: JsReportService (singleton) tried to create directories on first request
 - **Location**: Deployment directory is read-only for IIS app pools
 
@@ -54,7 +54,7 @@
 Open PowerShell **as Administrator** and run:
 
 ```powershell
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 .\scripts\environment\setup-logging-directories.ps1
 ```
 
@@ -70,7 +70,7 @@ This creates:
 
 ```powershell
 # Build the solution
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 dotnet build FMS.WebClient/FMS.WebClient.csproj -c Release
 
 # Publish
@@ -84,7 +84,7 @@ dotnet publish FMS.WebClient/FMS.WebClient.csproj -c Release -o C:\publish\FMS.W
 iisreset /stop
 
 # Copy files
-Copy-Item -Path "C:\publish\FMS.Webclient\*" -Destination "C:\inetpub\wwwroot\hyoungFMS\webAPI\" -Recurse -Force
+Copy-Item -Path "C:\publish\FMS.Webclient\*" -Destination "C:\inetpub\wwwroot\tenacyFMS\webAPI\" -Recurse -Force
 
 # Start IIS
 iisreset /start
@@ -128,16 +128,16 @@ After deployment, verify:
    icacls "C:\Logs\FMS.Webclient"
    ```
 
-   Should show `IIS_IUSRS:(OI)(CI)F` and `HyoungFMS.WebAPI:(OI)(CI)F`
+   Should show `IIS_IUSRS:(OI)(CI)F` and `TenacyFMS.WebAPI:(OI)(CI)F`
 
 2. **Check app pool identity**:
    - Open IIS Manager
-   - Application Pools → HyoungFMS.WebAPI → Advanced Settings
+   - Application Pools → TenacyFMS.WebAPI → Advanced Settings
    - Identity should be: ApplicationPoolIdentity
 
 3. **Check Serilog self-log**:
    ```powershell
-   Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\serilog-selflog.txt"
+   Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\serilog-selflog.txt"
    ```
 
 ### If jsReport still fails:
@@ -146,7 +146,7 @@ The new code automatically falls back to:
 
 1. `C:\Logs\FMS.Webclient\ReportTemplates\`
 2. `%TEMP%\FMS_ReportTemplates\`
-3. `%ProgramData%\Hyoung\FMS\ReportTemplates\`
+3. `%ProgramData%\Tenacy\FMS\ReportTemplates\`
 4. `App_Data\ReportTemplates\` (may fail)
 
 Check startup log to see which location was selected.
@@ -246,4 +246,4 @@ You'll know it's working when:
 
 - Startup log: `C:\Logs\FMS.Webclient\startup\webclient-startup-*.log`
 - Error log: `C:\Logs\FMS.Webclient\errors\error-*.log`
-- Serilog self-log: `C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\serilog-selflog.txt`
+- Serilog self-log: `C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\serilog-selflog.txt`

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -84,7 +84,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleLocationDTO>.Success(new VehicleLocationDTO
                     {
                         VehicleId = vehicleId,
-                        VehicleName = vehicle.HyoungNo ?? string.Empty,
+                        VehicleName = vehicle.VehicleCode ?? string.Empty,
                         NumberPlate = vehicle.NumberPlate,
                         HasGPSInstalled = false,
                         IsOnline = false,
@@ -212,7 +212,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 var locationDto = new VehicleLocationDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     Latitude = (decimal)position.Latitude,
                     Longitude = (decimal)position.Longitude,
@@ -389,7 +389,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             return new VehicleLocationDTO
             {
                 VehicleId = vehicle.VehicleId,
-                VehicleName = vehicle.HyoungNo ?? string.Empty,
+                VehicleName = vehicle.VehicleCode ?? string.Empty,
                 NumberPlate = vehicle.NumberPlate,
                 HasGPSInstalled = vehicle.HasGPSInstalled == 1,
                 DeviceId = ParseExternalDeviceId(providerMapping?.ExternalDeviceId),
@@ -511,7 +511,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         var location = new VehicleLocationDTO
                         {
                             VehicleId = vehicle.VehicleId,
-                            VehicleName = vehicle.HyoungNo ?? string.Empty,
+                            VehicleName = vehicle.VehicleCode ?? string.Empty,
                             NumberPlate = vehicle.NumberPlate,
                             HasGPSInstalled = vehicle.HasGPSInstalled == 1,
                             DeviceId = ParseExternalDeviceId(mapping?.ExternalDeviceId),
@@ -853,7 +853,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 return new VehicleLocationDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = cached.Vehicle?.HyoungNo ?? string.Empty,
+                    VehicleName = cached.Vehicle?.VehicleCode ?? string.Empty,
                     NumberPlate = cached.Vehicle?.NumberPlate,
                     Latitude = cached.Latitude,
                     Longitude = cached.Longitude,

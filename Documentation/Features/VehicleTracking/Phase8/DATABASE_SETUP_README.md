@@ -1,4 +1,4 @@
-# 🗄️ Database Setup - Ready to Execute!
+﻿# 🗄️ Database Setup - Ready to Execute!
 
 ## ✅ What's Ready
 
@@ -7,7 +7,7 @@ I've created the complete database setup SQL script for you:
 **File Location**:
 
 ```
-C:\Users\admin\Documents\GitHub\Hyoung.FMS\Documentation\Features\VehicleTracking\Phase8\EXECUTE_Database_Setup.sql
+C:\Users\admin\Documents\GitHub\Tenacy.FMS\Documentation\Features\VehicleTracking\Phase8\EXECUTE_Database_Setup.sql
 ```
 
 ## 📋 Before You Execute
@@ -45,7 +45,7 @@ JSON_OBJECT(
 
 ```powershell
 # Navigate to the SQL file directory
-cd "C:\Users\admin\Documents\GitHub\Hyoung.FMS\Documentation\Features\VehicleTracking\Phase8"
+cd "C:\Users\admin\Documents\GitHub\Tenacy.FMS\Documentation\Features\VehicleTracking\Phase8"
 
 # Execute the script
 mysql -h localhost -u your_username -p your_database_name
@@ -148,7 +148,7 @@ After database setup:
 mysql -u your_user -p -e "SELECT provider_name, is_enabled FROM provider_configurations WHERE provider_name='GPSGate';"
 
 # 4. Build frontend
-cd C:\Users\admin\Documents\GitHub\Hyoung.FMS\fms.frontend
+cd C:\Users\admin\Documents\GitHub\Tenacy.FMS\fms.frontend
 npm run build:prod
 
 # 5. Start backend (in Visual Studio)

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: CreateWarningLetterCommand.cs
  * Purpose: Creates draft warning letters after validating related employee, vehicle, and site data.
  * Dependencies: MediatR, GpsdataContext, FMSResponse, WarningLetter DTOs/entities
@@ -294,7 +294,7 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
             EmployeeEmail = employee.Email,
             Position = employee.Position,
             VehicleId = entity.VehicleId,
-            VehicleHyoungNo = vehicle.HyoungNo,
+            VehicleCode = vehicle.VehicleCode,
             NumberPlate = vehicle.NumberPlate,
             SiteId = entity.SiteId,
             SiteName = site.Name,

@@ -23,135 +23,83 @@ public class VehicleTripStateConfiguration : EntityTypeConfiguration<VehicleTrip
         builder.HasIndex(e => e.CurrentState, "idx_vehicle_trip_state_current_state");
         builder.HasIndex(e => e.UpdatedAtUtc, "idx_vehicle_trip_state_updated_at");
 
-        builder.Property(e => e.VehicleTripStateId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripStateId");
+        builder.Property(e => e.VehicleTripStateId);
 
-        builder.Property(e => e.VehicleId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleId");
+        builder.Property(e => e.VehicleId);
 
-        builder.Property(e => e.StateDate)
-            .HasColumnType("date")
-            .HasColumnName("StateDate");
+        builder.Property(e => e.StateDate);
 
         builder.Property(e => e.MovementProfile)
-            .HasColumnType("tinyint(4)")
-            .HasColumnName("MovementProfile")
             .HasDefaultValue(VehicleMovementProfile.Geofence)
             .HasConversion<int>();
 
         builder.Property(e => e.CurrentState)
             .HasMaxLength(30)
-            .HasDefaultValue("AT_SITE")
-            .HasColumnName("CurrentState");
+            .HasDefaultValue("AT_SITE");
 
-        builder.Property(e => e.CurrentSiteId)
-            .HasColumnType("int(11)")
-            .HasColumnName("CurrentSiteId");
+        builder.Property(e => e.CurrentSiteId);
 
-        builder.Property(e => e.CurrentGeofenceId)
-            .HasColumnType("int(11)")
-            .HasColumnName("CurrentGeofenceId");
+        builder.Property(e => e.CurrentGeofenceId);
 
         builder.Property(e => e.CurrentSiteName)
-            .HasMaxLength(100)
-            .HasColumnName("CurrentSiteName");
+            .HasMaxLength(100);
 
-        builder.Property(e => e.CurrentClusterIndex)
-            .HasColumnType("int(11)")
-            .HasColumnName("CurrentClusterIndex");
+        builder.Property(e => e.CurrentClusterIndex);
 
-        builder.Property(e => e.OriginSiteId)
-            .HasColumnType("int(11)")
-            .HasColumnName("OriginSiteId");
+        builder.Property(e => e.OriginSiteId);
 
-        builder.Property(e => e.OriginGeofenceId)
-            .HasColumnType("int(11)")
-            .HasColumnName("OriginGeofenceId");
+        builder.Property(e => e.OriginGeofenceId);
 
         builder.Property(e => e.OriginSiteName)
-            .HasMaxLength(100)
-            .HasColumnName("OriginSiteName");
+            .HasMaxLength(100);
 
         builder.Property(e => e.OriginLatitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("OriginLatitude");
+            .HasColumnType("decimal(11,8)");
 
         builder.Property(e => e.OriginLongitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("OriginLongitude");
+            .HasColumnType("decimal(11,8)");
 
-        builder.Property(e => e.TripStartTimeUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("TripStartTimeUtc");
+        builder.Property(e => e.TripStartTimeUtc);
 
-        builder.Property(e => e.TripStartTrackInfoId)
-            .HasColumnType("int(11)")
-            .HasColumnName("TripStartTrackInfoId");
+        builder.Property(e => e.TripStartTrackInfoId);
 
         builder.Property(e => e.FuelAtDeparture)
-            .HasColumnType("decimal(10,2)")
-            .HasColumnName("FuelAtDeparture");
+            .HasColumnType("decimal(10,2)");
 
         builder.Property(e => e.ConsecutiveOutOfSitePoints)
-            .HasColumnType("int(11)")
-            .HasDefaultValue(0)
-            .HasColumnName("ConsecutiveOutOfSitePoints");
+            .HasDefaultValue(0);
 
         builder.Property(e => e.ConsecutiveAtSitePoints)
-            .HasColumnType("int(11)")
-            .HasDefaultValue(0)
-            .HasColumnName("ConsecutiveAtSitePoints");
+            .HasDefaultValue(0);
 
         builder.Property(e => e.AccumulatedDistanceKm)
             .HasColumnType("decimal(10,2)")
-            .HasDefaultValue(0m)
-            .HasColumnName("AccumulatedDistanceKm");
+            .HasDefaultValue(0m);
 
         builder.Property(e => e.MaxSpeedKph)
-            .HasColumnType("decimal(10,2)")
-            .HasColumnName("MaxSpeedKph");
+            .HasColumnType("decimal(10,2)");
 
-        builder.Property(e => e.LastProcessedPointTimeUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("LastProcessedPointTimeUtc");
+        builder.Property(e => e.LastProcessedPointTimeUtc);
 
-        builder.Property(e => e.LastGpsTimestampUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("LastGpsTimestampUtc");
+        builder.Property(e => e.LastGpsTimestampUtc);
 
         builder.Property(e => e.LastLatitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("LastLatitude");
+            .HasColumnType("decimal(11,8)");
 
         builder.Property(e => e.LastLongitude)
-            .HasColumnType("decimal(11,8)")
-            .HasColumnName("LastLongitude");
+            .HasColumnType("decimal(11,8)");
 
-        builder.Property(e => e.InProgressTripGroupId)
-            .HasColumnType("int(11)")
-            .HasColumnName("InProgressTripGroupId");
+        builder.Property(e => e.InProgressTripGroupId);
 
-        builder.Property(e => e.InProgressTripId)
-            .HasColumnType("int(11)")
-            .HasColumnName("InProgressTripId");
+        builder.Property(e => e.InProgressTripId);
 
-        builder.Property(e => e.RecentPointsJson)
-            .HasColumnType("longtext")
-            .HasColumnName("RecentPointsJson");
+        builder.Property(e => e.RecentPointsJson);
 
-        builder.Property(e => e.KnownClustersJson)
-            .HasColumnType("longtext")
-            .HasColumnName("KnownClustersJson");
+        builder.Property(e => e.KnownClustersJson);
 
-        builder.Property(e => e.CreatedAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("CreatedAtUtc");
+        builder.Property(e => e.CreatedAtUtc);
 
-        builder.Property(e => e.UpdatedAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("UpdatedAtUtc");
+        builder.Property(e => e.UpdatedAtUtc);
 
         builder.HasOne(e => e.Vehicle)
             .WithMany()

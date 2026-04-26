@@ -1,4 +1,4 @@
-//Cursor - Mobile Scan Step Component
+﻿//Cursor - Mobile Scan Step Component
 // Allows vehicle selection via lookup, scanning, or manual entry
 // Now integrated with useDeviceData hook for real-time RFID tag detection from upload status
 import React, { useState, useEffect, useCallback, useRef } from "react";
@@ -174,7 +174,7 @@ const ScanStep = ({
           // Build vehicle info from tag details
           const vehicleFromTag = {
             vehicleId: tagDetails.vehicleId,
-            hyoungNo: tagDetails.hyoungNo || "",
+            vehicleCode: tagDetails.vehicleCode || "",
             vehicleName: tagDetails.vehicleName || "",
             numberPlate: tagDetails.numberPlate || "",
             tankCapacity: tagDetails.tankCapacity || 0,
@@ -305,7 +305,7 @@ const ScanStep = ({
       .filter(
         (v) =>
           (v.numberPlate || "").toLowerCase().includes(query) ||
-          (v.hyoungNo || "").toLowerCase().includes(query) ||
+          (v.vehicleCode || "").toLowerCase().includes(query) ||
           (v.make || "").toLowerCase().includes(query) ||
           (v.model || "").toLowerCase().includes(query)
       )
@@ -501,7 +501,7 @@ const ScanStep = ({
       </View>
       <View style={styles.vehicleDetails}>
         <Text style={styles.vehiclePlate}>
-          {item.numberPlate || item.hyoungNo}
+          {item.numberPlate || item.vehicleCode}
         </Text>
         <Text style={styles.vehicleInfo}>
           {[item.make, item.model].filter(Boolean).join(" ") ||

@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using AutoMapper;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Domain.Entities;
@@ -21,7 +21,7 @@ namespace FMS.Application.MappingProfile
 
             CreateMap<Vehicle, SimpleVehicleDto>()
                 .ForMember(dest => dest.VehicleId, opt => opt.MapFrom(src => src.VehicleId))
-                .ForMember(dest => dest.HyoungNo, opt => opt.MapFrom(src => src.HyoungNo))
+                .ForMember(dest => dest.VehicleCode, opt => opt.MapFrom(src => src.VehicleCode))
                 .ReverseMap();
 
             CreateMap<Vehiclemodel, VehicleModelDto>()

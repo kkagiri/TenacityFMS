@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: StepScope.js
  * Purpose: Step 3 of Event Expression form — Scope selection.
  *          Dynamically shows scope filters based on the selected event type's
@@ -27,7 +27,7 @@ const getVehicleDisplay = (vehicle) => {
         return '';
     }
 
-    const vehicleNo = vehicle.hyoungNo || vehicle.HyoungNo || vehicle.numberPlate || vehicle.NumberPlate || `Vehicle ${getVehicleId(vehicle)}`;
+    const vehicleNo = vehicle.vehicleCode || vehicle.VehicleCode || vehicle.numberPlate || vehicle.NumberPlate || `Vehicle ${getVehicleId(vehicle)}`;
     const regNo = vehicle.numberPlate || vehicle.NumberPlate;
     return regNo && regNo !== vehicleNo ? `${vehicleNo} • ${regNo}` : vehicleNo;
 };
@@ -181,7 +181,7 @@ const StepScope = ({ formData, onFieldChange, onSiteChange, onVehicleChange, onV
                             placeholder={formData.siteIds?.length > 0 ? 'All vehicles in selected site(s)' : 'All vehicles'}
                             showClearButton={true}
                             searchEnabled={true}
-                            searchExpr={['hyoungNo', 'HyoungNo', 'numberPlate', 'NumberPlate']}
+                            searchExpr={['vehicleCode', 'VehicleCode', 'numberPlate', 'NumberPlate']}
                             width="100%"
                         />
                         <p className="tw-text-xs tw-text-gray-400 tw-mt-1">

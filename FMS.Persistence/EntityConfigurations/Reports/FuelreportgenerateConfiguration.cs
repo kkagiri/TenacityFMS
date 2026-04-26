@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 
@@ -18,13 +18,11 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.CreatedBy, "fuelregenrate_user_idx1");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)");
+                    .ValueGeneratedNever();
                 builder.Property(e => e.ApprovedBy).HasMaxLength(100);
                 builder.Property(e => e.CreatedBy).HasMaxLength(100);
                 builder.Property(e => e.ModfifiedBy).HasMaxLength(100);
             }
-
 
             catch (Exception ex)
             {
@@ -35,3 +33,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

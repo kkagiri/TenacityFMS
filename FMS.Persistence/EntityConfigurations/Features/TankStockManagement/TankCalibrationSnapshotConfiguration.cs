@@ -16,61 +16,43 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("tankcalibrationsnapshots");
 
             builder.Property(e => e.Id)
-                .HasColumnName("Id")
-                .HasColumnType("bigint")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.TankId)
-                .HasColumnName("TankId")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.TankName)
-                .HasColumnName("TankName")
                 .HasMaxLength(255)
                 .IsRequired();
 
             builder.Property(e => e.PtsDeviceId)
-                .HasColumnName("PtsDeviceId")
                 .HasMaxLength(100)
                 .IsRequired();
 
             builder.Property(e => e.ProbeNumber)
-                .HasColumnName("ProbeNumber")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.ChartType)
-                .HasColumnName("ChartType")
                 .HasMaxLength(32)
                 .IsRequired();
 
             builder.Property(e => e.Source)
-                .HasColumnName("Source")
                 .HasMaxLength(64)
                 .IsRequired();
 
             builder.Property(e => e.TotalRecords)
-                .HasColumnName("TotalRecords")
-                .HasColumnType("int(11)")
                 .IsRequired();
 
             builder.Property(e => e.RecordedAtUtc)
-                .HasColumnName("RecordedAtUtc")
-                .HasColumnType("datetime")
                 .IsRequired();
 
             builder.Property(e => e.RecordedBy)
-                .HasColumnName("RecordedBy")
                 .HasMaxLength(255);
 
             builder.Property(e => e.Notes)
-                .HasColumnName("Notes")
                 .HasMaxLength(500);
 
             builder.Property(e => e.RecordsJson)
-                .HasColumnName("RecordsJson")
-                .HasColumnType("longtext")
                 .IsRequired();
 
             // Composite index for efficient lookups by tank + chart type + date
@@ -79,3 +61,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

@@ -1,4 +1,4 @@
-# GPS Device Mapping - Quick Testing Guide
+﻿# GPS Device Mapping - Quick Testing Guide
 
 ## Prerequisites
 
@@ -143,7 +143,7 @@
 SELECT
     vpm.id,
     vpm.vehicle_id,
-    v.hyoung_no,
+    v.vehicle_code,
     vpm.external_device_id,
     vpm.device_imei,
     vpm.device_name,

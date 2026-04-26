@@ -23,72 +23,46 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("fueling_rule_set_assignments");
 
                 // Primary Key
-                builder.Property(e => e.Id)
-                    .HasColumnName("id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.Id);
 
                 // Foreign key to RuleSet
                 builder.Property(e => e.FuelingRuleSetId)
-                    .HasColumnName("fueling_rule_set_id")
-                    .HasColumnType("int(11)")
                     .IsRequired();
 
                 // Target type enum stored as string
                 builder.Property(e => e.TargetType)
-                    .HasColumnName("target_type")
                     .HasConversion<string>()
                     .HasMaxLength(20)
                     .IsRequired();
 
                 // Target IDs (nullable - only one should be set based on TargetType)
-                builder.Property(e => e.SiteId)
-                    .HasColumnName("site_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.SiteId);
 
-                builder.Property(e => e.VehicleTypeId)
-                    .HasColumnName("vehicle_type_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.VehicleTypeId);
 
-                builder.Property(e => e.VehicleId)
-                    .HasColumnName("vehicle_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.VehicleId);
 
-                builder.Property(e => e.TagId)
-                    .HasColumnName("tag_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.TagId);
 
                 // Priority for conflict resolution
                 builder.Property(e => e.Priority)
-                    .HasColumnName("priority")
-                    .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
                 // Active flag
                 builder.Property(e => e.IsActive)
-                    .HasColumnName("is_active")
-                    .HasColumnType("tinyint(1)")
                     .HasDefaultValue(true);
 
                 // Audit fields
                 builder.Property(e => e.CreatedAt)
-                    .HasColumnName("created_at")
-                    .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                builder.Property(e => e.CreatedByUserId)
-                    .HasColumnName("created_by_user_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.CreatedByUserId);
 
-                builder.Property(e => e.UpdatedAt)
-                    .HasColumnName("updated_at")
-                    .HasColumnType("datetime");
+                builder.Property(e => e.UpdatedAt);
 
-                builder.Property(e => e.UpdatedByUserId)
-                    .HasColumnName("updated_by_user_id")
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.UpdatedByUserId);
 
                 builder.Property(e => e.Description)
-                    .HasColumnName("description")
                     .HasMaxLength(500);
 
                 // Indexes
@@ -138,3 +112,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

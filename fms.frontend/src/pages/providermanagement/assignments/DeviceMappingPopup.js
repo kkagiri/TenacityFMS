@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+﻿import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Popup } from "devextreme-react/popup";
 import { DataGrid } from "devextreme-react";
@@ -169,7 +169,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providers: externalProviders, o
       const response = await dispatch(mapDeviceToVehicle(mappingData));
 
       if (response.success) {
-        notify(`Successfully mapped device ${selectedDevice.name} to vehicle ${selectedVehicle.hyoungNo}`, "success", 3000);
+        notify(`Successfully mapped device ${selectedDevice.name} to vehicle ${selectedVehicle.vehicleCode}`, "success", 3000);
 
         // Reload devices to update mapping status
         await loadDevices();
@@ -222,7 +222,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providers: externalProviders, o
       const response = await dispatch(mapDeviceToVehicle(mappingData));
       if (response.success) {
         notify(
-          `Mapped ${selectedDevice.name} to ${vehicle.hyoungNo}`,
+          `Mapped ${selectedDevice.name} to ${vehicle.vehicleCode}`,
           "success",
           2000
         );
@@ -447,7 +447,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providers: externalProviders, o
                 <Paging enabled={false} />
 
                 <Column dataField="vehicleId" caption="ID" width={60} />
-                <Column dataField="hyoungNo" caption="Vehicle Name" width={150} />
+                <Column dataField="vehicleCode" caption="Vehicle Name" width={150} />
                 <Column dataField="numberPlate" caption="Number Plate" width={120} />
               </DataGrid>
             </div>
@@ -495,7 +495,7 @@ const DeviceMappingPopup = ({ visible, onHiding, providers: externalProviders, o
                   <span className="tw-font-semibold">Ready to map:</span> {selectedDevice.name} (IMEI: {selectedDevice.imei})
                 </div>
                 <div className="tw-text-sm tw-text-blue-800">
-                  <span className="tw-font-semibold">To vehicle:</span> {selectedVehicle.hyoungNo} ({selectedVehicle.numberPlate})
+                  <span className="tw-font-semibold">To vehicle:</span> {selectedVehicle.vehicleCode} ({selectedVehicle.numberPlate})
                 </div>
               </div>
             </div>

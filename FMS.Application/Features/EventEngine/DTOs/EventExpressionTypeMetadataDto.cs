@@ -380,27 +380,6 @@ namespace FMS.Application.Features.EventEngine.DTOs
                     DefaultSeverity = "Medium",
                     DefaultCooldownMinutes = 30
                 },
-                new()
-                {
-                    AlertTypeKey = VehicleDocumentComplianceEvent.EventTypeName,
-                    EventType = VehicleDocumentComplianceEvent.EventTypeName,
-                    DisplayName = "Vehicle Document Compliance",
-                    Description = "Triggers when a vehicle document is due soon or has expired, with document download context available in the message.",
-                    Category = "GPS & Vehicle",
-                    CategoryIcon = "fa-light fa-id-card",
-                    AvailableConditions = new List<ConditionFieldDto>
-                    {
-                        new("subTypeFilter", "Status", "select", false, null,
-                            new[] { "VehicleDocumentExpiringSoon", "VehicleDocumentExpired" }),
-                        new("complianceCategoryFilter", "Compliance Category", "select", false, null,
-                            new[] { "InsuranceCertificate", "VehicleRegistration", "NtsaInspectionCertificate", "KenhaRoadPermit", "KenhaPermitExemption", "SpeedGovernorCertificate", "DrivingLicense", "Other" }),
-                        new("documentTypeFilter", "Document Type", "select", false, null,
-                            new[] { "Insurance", "Registration", "Inspection", "RoadPermit", "Other" })
-                    },
-                    AvailableScopeFilters = new[] { "SiteId", "VehicleId", "VehicleTypeId" },
-                    DefaultSeverity = "Medium",
-                    DefaultCooldownMinutes = 1440
-                },
 
                 // ═══════════════════════════════════════════════════
                 // Group: System

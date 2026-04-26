@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+﻿import React, { useState, useCallback } from "react";
 import { Button } from "devextreme-react/button";
 import { TextBox } from "devextreme-react/text-box";
 import { NumberBox } from "devextreme-react/number-box";
@@ -552,7 +552,7 @@ const FuelingProcessRenderer = {
               displayExpr={(item) => {
                 return item
                   ? `${
-                      item.hyoungNo || item.numberPlate || "Unknown Vehicle"
+                      item.vehicleCode || item.numberPlate || "Unknown Vehicle"
                     } (${item.numberPlate || "No Plate"})`
                   : "";
               }}
@@ -790,7 +790,7 @@ const FuelingProcessRenderer = {
                 <h4 className="tw-text-lg tw-font-semibold tw-m-0">
                   {vehicleReg ||
                     vehicles.find((v) => v.vehicleId === selectedVehicleId)
-                      ?.hyoungNo ||
+                      ?.vehicleCode ||
                     "Vehicle Selected"}
                 </h4>
               </div>

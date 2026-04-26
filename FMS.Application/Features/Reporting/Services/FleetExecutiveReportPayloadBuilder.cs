@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: FleetExecutiveReportPayloadBuilder.cs
  * Purpose: Builds monthly and weekly fleet executive PDF report payloads from persisted fleet and tank data.
  * Dependencies: GpsdataContext, EF Core, Newtonsoft.Json.Linq
@@ -84,7 +84,7 @@ namespace FMS.Application.Features.Reporting.Services
                 .Include(vehicle => vehicle.VehicleType)
                 .Select(vehicle => new VehicleSnapshot(
                     vehicle.VehicleId,
-                    vehicle.HyoungNo,
+                    vehicle.VehicleCode,
                     vehicle.VehicleTypeId,
                     NormalizeLabel(vehicle.VehicleType != null ? vehicle.VehicleType.Name : null),
                     vehicle.WorkingSiteId,
@@ -193,7 +193,7 @@ namespace FMS.Application.Features.Reporting.Services
             {
                 implementationStatus = "live-data-v1",
                 reportTitle = string.IsNullOrWhiteSpace(reportTitle) ? "Monthly Fleet Report" : reportTitle,
-                reportSubtitle = "Hyoung & Co (EA) Ltd — Fleet Management System",
+                reportSubtitle = "Tenacy & Co (EA) Ltd — Fleet Management System",
                 generatedAt = now.ToString("dd MMM yyyy, hh:mm tt", CultureInfo.InvariantCulture),
                 generatedBy = "System",
                 reportId = $"MFR-{data.MonthAnchor:yyyy-MM}",
@@ -307,7 +307,7 @@ namespace FMS.Application.Features.Reporting.Services
             {
                 implementationStatus = "live-data-v1",
                 reportTitle = string.IsNullOrWhiteSpace(reportTitle) ? "Weekly Fleet Report" : reportTitle,
-                reportSubtitle = "Hyoung & Co (EA) Ltd — Fleet Management System",
+                reportSubtitle = "Tenacy & Co (EA) Ltd — Fleet Management System",
                 generatedAt = now.ToString("dd MMM yyyy, hh:mm tt", CultureInfo.InvariantCulture),
                 generatedBy = "System",
                 reportId = $"WFR-{data.MonthAnchor:yyyy-MM}",
@@ -1858,8 +1858,8 @@ namespace FMS.Application.Features.Reporting.Services
 
         private static string ResolveVehicleName(IReadOnlyDictionary<int, VehicleSnapshot> vehicleLookup, int vehicleId)
         {
-            return vehicleLookup.TryGetValue(vehicleId, out var vehicle) && !string.IsNullOrWhiteSpace(vehicle.HyoungNo)
-                ? vehicle.HyoungNo
+            return vehicleLookup.TryGetValue(vehicleId, out var vehicle) && !string.IsNullOrWhiteSpace(vehicle.VehicleCode)
+                ? vehicle.VehicleCode
                 : $"VEHICLE {vehicleId}";
         }
 
@@ -2369,7 +2369,7 @@ namespace FMS.Application.Features.Reporting.Services
         }
 
         private sealed record SiteLookup(int SiteId, string SiteName);
-        private sealed record VehicleSnapshot(int VehicleId, string HyoungNo, int? VehicleTypeId, string VehicleType, int? SiteId, string SiteName, bool IsKmL, decimal ExpectedAverage);
+        private sealed record VehicleSnapshot(int VehicleId, string VehicleCode, int? VehicleTypeId, string VehicleType, int? SiteId, string SiteName, bool IsKmL, decimal ExpectedAverage);
         private sealed record ConsumptionRow(int VehicleId, int SiteId, DateTime Date, decimal TotalFuel, decimal TotalDistance, decimal EngineHours, decimal FuelLost, bool IsKmL);
         private sealed record TankMovementRow(int Id, int TankId, DateTime Timestamp, VolumeChangeReasonEnum ChangeReason, decimal VolumeChange, decimal NewVolume);
         private sealed record StockControlRow(string SiteName, decimal OpeningStock, decimal Delivered, decimal Issued, decimal TransfersIn, decimal TransfersOut, decimal Adjustments, decimal ExpectedClosing, decimal ActualClosing, decimal Variance, decimal VariancePercent);

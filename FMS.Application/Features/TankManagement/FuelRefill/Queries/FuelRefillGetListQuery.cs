@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: FuelRefillGetListQuery.cs
  * Purpose: Returns filtered and paged fuel refill rows for API/report consumers.
  * Dependencies: AutoMapper, EF Core, MediatR, FuelRefilDTO
@@ -66,7 +66,7 @@ public class FuelRefillGetListQueryHandler : IRequestHandler<FuelRefillGetListQu
             }
 
             var fuelRefils = await query
-                .Include(f => f.Vehicle) // Include Vehicle to access HyoungNo and AverageKmL
+                .Include(f => f.Vehicle) // Include Vehicle to access VehicleCode and AverageKmL
                 .Include(f => f.Site)    // Include Site to access site display name
                 .OrderByDescending (x => x.Date)
                 .Skip (request.Skip)

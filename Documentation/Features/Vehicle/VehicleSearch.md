@@ -1,4 +1,4 @@
-# Vehicle Search Feature Documentation
+﻿# Vehicle Search Feature Documentation
 
 ## Overview
 This document describes the implementation of the vehicle search functionality in the FMS (Fleet Management System) application. The search feature provides both real-time autocomplete suggestions and advanced filtering capabilities.
@@ -32,7 +32,7 @@ This document describes the implementation of the vehicle search functionality i
 
 #### Search Fields:
 The search term matches against:
-- HyoungNo (Company registration number)
+- VehicleCode (Company registration number)
 - NumberPlate (License plate)
 - VehicleModel.Name (Vehicle model name)
 - VehicleManufacturer.Name (Manufacturer name)
@@ -141,7 +141,7 @@ Cache is automatically invalidated when:
 ## Performance Considerations
 
 ### Database Optimizations:
-- Indexed search fields (HyoungNo, NumberPlate, VehicleId)
+- Indexed search fields (VehicleCode, NumberPlate, VehicleId)
 - Efficient joins with Include() statements
 - Pagination to limit result sets
 

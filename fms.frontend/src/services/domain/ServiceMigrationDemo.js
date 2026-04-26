@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ServiceMigrationDemo - Demonstration of Vehicle and User Services
  *
  * This component demonstrates the new enterprise service architecture
@@ -105,7 +105,7 @@ const ServiceMigrationDemo = () => {
     try {
       setLoading(true);
       const response = await vehicleService.createVehicle({
-        hyoungNo: `H${Date.now()}`,
+        vehicleCode: `H${Date.now()}`,
         numberPlate: `ABC-${Math.floor(Math.random() * 1000)}`,
         vehicleTypeId: 1,
         status: 'Active'
@@ -374,7 +374,7 @@ const ServiceMigrationDemo = () => {
                       onClick={() => vehicle.vehicleId && fetchVehicleDetails(vehicle.vehicleId)}
                     >
                       <div className="tw-text-sm tw-font-medium">
-                        {vehicle.hyoungNo || 'N/A'} - {vehicle.numberPlate || 'N/A'}
+                        {vehicle.vehicleCode || 'N/A'} - {vehicle.numberPlate || 'N/A'}
                       </div>
                       <div className="tw-text-xs tw-text-gray-600">
                         {vehicle.vehicleTypeName || 'Unknown Type'}
@@ -394,7 +394,7 @@ const ServiceMigrationDemo = () => {
               {selectedVehicle ? (
                 <div className="tw-space-y-2">
                   <div><strong>ID:</strong> {selectedVehicle.vehicleId}</div>
-                  <div><strong>Hyoung No:</strong> {selectedVehicle.hyoungNo}</div>
+                  <div><strong>Tenacy No:</strong> {selectedVehicle.vehicleCode}</div>
                   <div><strong>Number Plate:</strong> {selectedVehicle.numberPlate}</div>
                   <div><strong>Type:</strong> {selectedVehicle.vehicleTypeName}</div>
                   <div><strong>Status:</strong> {selectedVehicle.status}</div>

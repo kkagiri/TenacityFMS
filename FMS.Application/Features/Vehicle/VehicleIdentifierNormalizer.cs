@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleIdentifierNormalizer.cs
  * Purpose: Normalizes vehicle identifiers before persistence and duplicate checks.
  * Dependencies: VehicleDTO
@@ -6,7 +6,7 @@
  *
  * Key Functions:
  * - NormalizeVehicleDto(): Applies canonical formatting to write-path DTO fields.
- * - NormalizeHyoungNo(): Removes whitespace and uppercases HyoungNo values.
+ * - NormalizeVehicleCode(): Removes whitespace and uppercases VehicleCode values.
  * - NormalizeNumberPlate(): Collapses whitespace and uppercases number plate values.
  */
 using System;
@@ -24,11 +24,11 @@ internal static class VehicleIdentifierNormalizer
             throw new ArgumentNullException(nameof(vehicleDto));
         }
 
-        vehicleDto.HyoungNo = NormalizeHyoungNo(vehicleDto.HyoungNo);
+        vehicleDto.VehicleCode = NormalizeVehicleCode(vehicleDto.VehicleCode);
         vehicleDto.NumberPlate = NormalizeNumberPlate(vehicleDto.NumberPlate);
     }
 
-    public static string NormalizeHyoungNo(string? value)
+    public static string NormalizeVehicleCode(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

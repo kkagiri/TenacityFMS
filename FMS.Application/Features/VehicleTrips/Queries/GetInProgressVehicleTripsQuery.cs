@@ -83,8 +83,8 @@ public class GetInProgressVehicleTripsQueryHandler : IRequestHandler<GetInProgre
                         ?? group.Trips.OrderByDescending(trip => trip.SequenceNo).FirstOrDefault();
 
                     var vehicleLabel = !string.IsNullOrWhiteSpace(group.Vehicle.NumberPlate)
-                        ? $"{group.Vehicle.HyoungNo} / {group.Vehicle.NumberPlate}"
-                        : group.Vehicle.HyoungNo;
+                        ? $"{group.Vehicle.VehicleCode} / {group.Vehicle.NumberPlate}"
+                        : group.Vehicle.VehicleCode;
 
                     return new VehicleTripInProgressDTO
                     {

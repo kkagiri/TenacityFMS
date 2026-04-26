@@ -10,8 +10,7 @@ namespace FMS.Persistence.EntityConfigurations {
 
             builder.Property (e => e.Id)
                 .ValueGeneratedOnAdd ()
-                .HasColumnType ("int(11)")
-                .HasColumnName ("id");
+                .HasColumnType ("int(11)");
 
             builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
             builder.Property (e => e.Username).HasMaxLength (100);

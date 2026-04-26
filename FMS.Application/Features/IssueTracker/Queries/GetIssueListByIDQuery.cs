@@ -1,4 +1,4 @@
-/*
+﻿/*
  * File: GetIssueListByIDQuery.cs
  * Purpose: Fetches issue detail by ID including category tags and assignment metadata.
  * Dependencies: MediatR, GpsdataContext, EF Core
@@ -78,7 +78,7 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                     // Vehicle information
                     VehicleId = issue.VehicleId,
                     VehicleNumber = issue.Vehicle != null ? issue.Vehicle.NumberPlate : "",
-                    VehicleHyoungNo = issue.Vehicle != null ? issue.Vehicle.HyoungNo : "",
+                    VehicleCode = issue.Vehicle != null ? issue.Vehicle.VehicleCode : "",
                     VehicleStatusValue = issue.Vehicle != null ? (int)issue.Vehicle.VehicleStatusValue : 0,
 
                     // User information - using names instead of IDs

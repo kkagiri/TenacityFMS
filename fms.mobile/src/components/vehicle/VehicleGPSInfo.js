@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VehicleGPSInfo.js
  * Purpose: Display GPS information for a vehicle with link to open in maps
  */
@@ -61,7 +61,7 @@ const VehicleGPSInfo = ({ vehicle }) => {
 
     const lat = gpsData.latitude;
     const lng = gpsData.longitude;
-    const label = `${vehicle.hyoungNo} - ${vehicle.vehicleName}`;
+    const label = `${vehicle.vehicleCode} - ${vehicle.vehicleName}`;
 
     const scheme = Platform.select({
       ios: "maps:",

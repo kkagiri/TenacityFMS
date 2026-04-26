@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -403,7 +403,7 @@ const SettingsScreen = ({ navigation }) => {
       <View style={styles.appInfo}>
         <Text style={styles.appVersion}>{APP_VERSION.displayName}</Text>
         <Text style={styles.appBuild}>Build {APP_VERSION.versionCode}</Text>
-        <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
+        <Text style={styles.copyright}>© 2026 Tenacy FMS</Text>
       </View>
 
       {/* Site Selection Modal */}

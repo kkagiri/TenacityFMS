@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Features.Notifications;
+﻿using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -19,9 +19,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("notification_recipient")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("notification_recipient");
 
                 // Indexes
                 builder.HasIndex(e => e.NotificationId, "IX_NotificationRecipient_NotificationId");
@@ -32,7 +30,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.IsRead, "IX_NotificationRecipient_IsRead");
 
                 // Properties
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.NotificationId).IsRequired();
                 builder.Property(e => e.UserId).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.DeliveryMethod).HasMaxLength(20).IsRequired();
@@ -68,3 +66,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

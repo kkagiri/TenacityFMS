@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -119,7 +119,7 @@ const LoginScreen = ({ navigation }) => {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image
-              source={require("../../assets/images/hyoung-logo.png")}
+              source={require("../../assets/images/tenacy-logo.png")}
               style={styles.logo}
               resizeMode="contain"
             />
@@ -250,7 +250,7 @@ const LoginScreen = ({ navigation }) => {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2024 Hyoung FMS. All rights reserved.
+            © 2024 Tenacy FMS. All rights reserved.
           </Text>
         </View>
       </ScrollView>

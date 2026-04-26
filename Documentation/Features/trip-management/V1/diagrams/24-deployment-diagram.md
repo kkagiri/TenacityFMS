@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 File: 24-deployment-diagram.md
 Purpose: Deployment/infrastructure diagram showing how all services
          and components are deployed.
@@ -25,11 +25,11 @@ graph TD
     end
 
     subgraph IIS["IIS Web Server (Windows Server)"]
-        subgraph BackendPool["App Pool: HyoungFMS.WebAPI"]
+        subgraph BackendPool["App Pool: TenacyFMS.WebAPI"]
             WebAPI["FMS.WebClient<br/><small>ASP.NET Core 8.0</small><br/><small>Port 7009</small><br/><br/>Controllers/<br/>SignalR Hubs/<br/>MediatR Pipeline"]
         end
 
-        subgraph FrontendPool["App Pool: HyoungFMS.ReactApp"]
+        subgraph FrontendPool["App Pool: TenacyFMS.ReactApp"]
             ReactApp["fms.frontend<br/><small>React 18 SPA</small><br/><small>Port 80</small><br/><br/>Static build files<br/>served by IIS"]
         end
     end
@@ -107,8 +107,8 @@ graph TD
 
 | Component | Host | Port | Technology |
 |---|---|---|---|
-| **FMS.WebClient** (API) | IIS App Pool `HyoungFMS.WebAPI` | 7009 | ASP.NET Core 8.0, Kestrel behind IIS |
-| **fms.frontend** (SPA) | IIS App Pool `HyoungFMS.ReactApp` | 80 | Static React build files |
+| **FMS.WebClient** (API) | IIS App Pool `TenacyFMS.WebAPI` | 7009 | ASP.NET Core 8.0, Kestrel behind IIS |
+| **fms.frontend** (SPA) | IIS App Pool `TenacyFMS.ReactApp` | 80 | Static React build files |
 | **MySQL** | Database server | 3306 | MySQL with Pomelo EF Core provider |
 | **Redis** | Docker container | 6379 | StackExchange.Redis (cache + SignalR backplane) |
 | **RabbitMQ** | Message broker server | 5672 (AMQP) | GPS point ingestion from GPSGate |
@@ -118,8 +118,8 @@ graph TD
 
 | Component | Deployment Method |
 |---|---|
-| **Backend** | `dotnet publish` → copy to `C:\inetpub\wwwroot\hyoungFMS\webAPI` |
-| **Frontend** | `npm run build` → copy to `C:\inetpub\wwwroot\hyoungFMS\reactApp` |
+| **Backend** | `dotnet publish` → copy to `C:\inetpub\wwwroot\tenacyFMS\webAPI` |
+| **Frontend** | `npm run build` → copy to `C:\inetpub\wwwroot\tenacyFMS\reactApp` |
 | **CI/CD** | GitHub Actions (`.github/workflows/deploy-to-iis.yml`) |
 | **Redis** | Docker: `scripts/redis/start-redis.bat` |
 

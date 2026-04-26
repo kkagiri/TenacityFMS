@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VehicleService - Complete Vehicle Management Service
  *
  * Migrated from vehicleActions.js to use BaseService architecture:
@@ -78,8 +78,8 @@ export class VehicleService extends BaseService {
   async createVehicle(vehicleData) {
     try {
       // Validate required fields
-      if (!vehicleData.hyoungNo) {
-        return this.createValidationErrorResponse('Vehicle Hyoung number is required');
+      if (!vehicleData.vehicleCode) {
+        return this.createValidationErrorResponse('Vehicle Tenacy number is required');
       }
 
       if (!vehicleData.numberPlate) {

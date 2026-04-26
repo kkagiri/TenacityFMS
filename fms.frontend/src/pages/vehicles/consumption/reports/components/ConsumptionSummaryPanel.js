@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
 
 const ConsumptionSummaryPanel = ({ summaryData, loading, onVehicleClick }) => {
@@ -205,7 +205,7 @@ const ConsumptionSummaryPanel = ({ summaryData, loading, onVehicleClick }) => {
                                                 onVehicleClick(vehicle.vehicleId);
                                             }}
                                         >
-                                            <span className="tw-text-gray-700">{vehicle.hyoungNo}</span>
+                                            <span className="tw-text-gray-700">{vehicle.vehicleCode}</span>
                                             <span className="tw-text-gray-500 tw-text-xs">
                                                 {formatNumber(vehicle.totalFuelConsumed)} L
                                             </span>

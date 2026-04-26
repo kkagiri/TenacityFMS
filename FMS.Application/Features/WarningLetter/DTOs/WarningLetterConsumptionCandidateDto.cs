@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterConsumptionCandidateDto.cs
  * Purpose: Represents a suggested vehicle-consumption record that can seed a warning letter draft.
  * Dependencies: WarningLetterType
@@ -19,7 +19,7 @@ public class WarningLetterConsumptionCandidateDto
     public int SiteId { get; set; }
     public string SiteName { get; set; } = string.Empty;
     public int VehicleId { get; set; }
-    public string VehicleHyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
     public int? EmployeeId { get; set; }
     public string EmployeeName { get; set; } = string.Empty;

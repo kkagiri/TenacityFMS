@@ -1222,13 +1222,13 @@ const IssueTrackerDetailPage = () => {
                 <div className="idc__prop-label">Vehicle</div>
                 <div className="idc__prop-value">
                   <div className="idc__prop-inner">
-                    <span>{issue.vehicleHyoungNo || issue.vehicleNumber || 'Not linked'}</span>
+                    <span>{issue.vehicleCode || issue.vehicleNumber || 'Not linked'}</span>
                     {issue.vehicleId && (
                       <button
                         type="button"
                         className="idc__history-link"
                         onClick={() => navigate('/issue-tracker/tickets', {
-                          state: { applyFilters: { vehicleId: issue.vehicleId }, filterLabel: `Vehicle: ${issue.vehicleHyoungNo || issue.vehicleNumber}` }
+                          state: { applyFilters: { vehicleId: issue.vehicleId }, filterLabel: `Vehicle: ${issue.vehicleCode || issue.vehicleNumber}` }
                         })}
                       >
                         <i className="fa-light fa-rotate-left"></i>
@@ -1577,7 +1577,7 @@ const IssueTrackerDetailPage = () => {
           dueDate: issue.dueDate,
           createdAt: issue.openDate,
           templateName: issue.templateName,
-          vehicleHyoungNumber: issue.vehicleHyoungNo || issue.vehicleNumber
+          vehicleCode: issue.vehicleCode || issue.vehicleNumber
         }}
       />
       <IssueCompletionPopup

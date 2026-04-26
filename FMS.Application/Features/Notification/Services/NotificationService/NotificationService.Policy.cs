@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: NotificationService.Policy.cs
  * Purpose: Notification policy CRUD, statistics, alert records, test notifications,
  *          and shared helper/utility methods (category display names, recipient address
@@ -154,7 +154,7 @@ namespace FMS.Application.Features.Notification.Services
                                 <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:680px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;"">
                                     <tr>
                                         <td style=""padding:16px 22px;background:#0f172a;color:#ffffff;"">
-                                            <div style=""font-size:18px;font-weight:700;line-height:1.2;"">Hyoung FMS</div>
+                                            <div style=""font-size:18px;font-weight:700;line-height:1.2;"">Tenacy FMS</div>
                                             <div style=""font-size:12px;opacity:0.85;margin-top:2px;"">Fleet Management Notification</div>
                                         </td>
                                     </tr>
@@ -183,7 +183,7 @@ namespace FMS.Application.Features.Notification.Services
                                     </tr>
                                     <tr>
                                         <td style=""padding:14px 22px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;"">
-                                            This is an automated message from Hyoung FMS. Please do not reply directly to this email.
+                                            This is an automated message from Tenacy FMS. Please do not reply directly to this email.
                                         </td>
                                     </tr>
                                 </table>
@@ -384,7 +384,7 @@ namespace FMS.Application.Features.Notification.Services
                         Status = n.Status,
                         SiteName = n.Site != null ? n.Site.Name : null,
                         TankName = n.Tank != null ? $"Tank {n.Tank.Name}" : null,
-                        VehicleName = n.Vehicle != null ? n.Vehicle.HyoungNo : null,
+                        VehicleName = n.Vehicle != null ? n.Vehicle.VehicleCode : null,
                         PtsDeviceName = n.PtsDevice != null ? n.PtsDevice.Ptsid : null, //Cursor: Add PTS device name
                         IsRead = n.Recipients.Any(r => r.UserId == request.UserId) &&
                             n.Recipients.First(r => r.UserId == request.UserId).IsRead

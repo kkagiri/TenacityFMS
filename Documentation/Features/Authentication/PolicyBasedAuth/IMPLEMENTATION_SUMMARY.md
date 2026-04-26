@@ -1,7 +1,7 @@
-# JWT Authentication & Refresh Token Implementation Summary
+﻿# JWT Authentication & Refresh Token Implementation Summary
 
 ## Overview
-This document summarizes the complete implementation of industry-standard JWT authentication with refresh tokens for the Hyoung FMS application.
+This document summarizes the complete implementation of industry-standard JWT authentication with refresh tokens for the Tenacy FMS application.
 
 ---
 

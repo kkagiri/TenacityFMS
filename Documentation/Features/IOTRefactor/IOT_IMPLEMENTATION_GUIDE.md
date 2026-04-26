@@ -1,4 +1,4 @@
-# IoT System Implementation Guide
+﻿# IoT System Implementation Guide
 ## Following ISO/IEC 30141:2018 IoT Reference Architecture
 
 ---
@@ -58,7 +58,7 @@ Our implementation maps to ISO layers as follows:
 ## 🏗️ Project Architecture
 
 ```
-Hyoung.Fms Solution
+Tenacy.Fms Solution
 ├── FMS.IoT.Contracts      ← Defines "what" (interfaces & models)
 ├── FMS.IoT.Gateway        ← Handles "device communication"
 ├── FMS.IoT.ProcessingEngine ← Handles "data processing"

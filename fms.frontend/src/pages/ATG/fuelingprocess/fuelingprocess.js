@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect } from "react";
+﻿import React, { useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Button } from "devextreme-react/button";
@@ -363,7 +363,7 @@ const FuelingProcess = () => {
             onConfigureRules={(vehicleData) => {
               setVehicleForRules({
                 vehicleId: vehicleData?.vehicleId,
-                regNumber: vehicleData?.numberPlate || vehicleData?.hyoungNo || "Unknown",
+                regNumber: vehicleData?.numberPlate || vehicleData?.vehicleCode || "Unknown",
                 isCompanyVehicle: vehicleData?.isCompanyVehicle || false,
               });
               setShowFuelingRulePopup(true);

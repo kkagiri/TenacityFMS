@@ -1,4 +1,4 @@
-# Team Re-Sync Instructions
+﻿# Team Re-Sync Instructions
 ## After Git History Cleanup
 
 **Date**: [INSERT DATE]
@@ -9,7 +9,7 @@
 
 ## 🚨 URGENT: Action Required
 
-The Hyoung.FMS git repository history has been cleaned to remove exposed security credentials. **You MUST re-clone the repository**. Do NOT try to pull or rebase - it will not work!
+The Tenacy.FMS git repository history has been cleaned to remove exposed security credentials. **You MUST re-clone the repository**. Do NOT try to pull or rebase - it will not work!
 
 ---
 
@@ -27,7 +27,7 @@ The Hyoung.FMS git repository history has been cleaned to remove exposed securit
 **Check for uncommitted changes:**
 
 ```bash
-cd Hyoung.FMS
+cd Tenacy.FMS
 git status
 ```
 
@@ -51,8 +51,8 @@ git commit -m "Temp: Save work before repo cleanup"
 **Option C: Copy files manually (safest)**
 ```bash
 # Copy changed files to a safe location
-mkdir ~/hyoung-backup-$(date +%Y%m%d)
-cp -r . ~/hyoung-backup-$(date +%Y%m%d)/
+mkdir ~/tenacy-backup-$(date +%Y%m%d)
+cp -r . ~/tenacy-backup-$(date +%Y%m%d)/
 ```
 
 ✅ **Verify**: Your work is saved securely
@@ -65,28 +65,28 @@ cp -r . ~/hyoung-backup-$(date +%Y%m%d)/
 
 ```bash
 cd ..
-pwd  # Should show directory ABOVE Hyoung.FMS
+pwd  # Should show directory ABOVE Tenacy.FMS
 ```
 
 **Option A: Delete completely (if you saved work)**
 ```bash
-rm -rf Hyoung.FMS
+rm -rf Tenacy.FMS
 ```
 
 **Option B: Archive (safer - recommended)**
 ```bash
-mv Hyoung.FMS Hyoung.FMS.OLD-$(date +%Y%m%d)
+mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
 ```
 
-✅ **Verify**: `ls` should NOT show Hyoung.FMS directory
+✅ **Verify**: `ls` should NOT show Tenacy.FMS directory
 
 ---
 
 ### Step 3: Clone Fresh Repository (3 minutes)
 
 ```bash
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
+cd Tenacy.FMS
 ```
 
 **Verify the cleanup worked:**
@@ -96,7 +96,7 @@ cd Hyoung.FMS
 git log --all -S "Niwewenamimi1000"
 
 # This should show NO results
-git log --all -S "Hyoung2030"
+git log --all -S "Tenacy2030"
 
 # This should show ONLY new commits
 git log --all --full-history -- '**/setup-environment.ps1'
@@ -186,13 +186,13 @@ EOF
 
 **Linux/Mac/Git Bash:**
 ```bash
-cd /path/to/Hyoung.FMS
+cd /path/to/Tenacy.FMS
 ./scripts/setup-git-hooks.sh
 ```
 
 **Windows PowerShell:**
 ```powershell
-cd C:\path\to\Hyoung.FMS
+cd C:\path\to\Tenacy.FMS
 .\scripts\setup-git-hooks.ps1
 ```
 
@@ -219,10 +219,10 @@ git stash apply stash@{0}
 
 ```bash
 # If old repo still exists
-cd ../Hyoung.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
 git show temp-backup-YYYYMMDD > ../my-changes.patch
 
-cd ../Hyoung.FMS
+cd ../Tenacy.FMS
 git apply ../my-changes.patch
 
 # Or manually copy files you need
@@ -232,7 +232,7 @@ git apply ../my-changes.patch
 
 ```bash
 # Copy back the files you changed
-cp ~/hyoung-backup-*/path/to/changed/file .
+cp ~/tenacy-backup-*/path/to/changed/file .
 ```
 
 ✅ **Verify**: Your changes are back
@@ -401,13 +401,13 @@ sudo ufw allow 3306  # Linux
 **Solution**:
 ```bash
 cd ..
-rm -rf Hyoung.FMS
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
+rm -rf Tenacy.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
 ```
 
 **Verify cleanup**:
 ```bash
-cd Hyoung.FMS
+cd Tenacy.FMS
 git log --all -S "Niwewenamimi1000"
 # Should show NO results
 ```

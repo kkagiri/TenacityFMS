@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ScheduledReportDeliveryService.cs
  * Purpose: Generates and formats scheduled report output (HTML/PDF/Excel) for notification email delivery.
  * Dependencies: IMediator, GpsdataContext, INotificationReportRenderer, TankVolumeHistory queries
@@ -578,7 +578,7 @@ namespace FMS.Application.Features.Notification.Services
   <tr><td style='background:#0078d4;padding:16px 24px;'>
     <table width='100%' cellpadding='0' cellspacing='0' border='0'>
     <tr>
-      <td style='font-size:16px;font-weight:600;color:#ffffff;'>Hyoung Fleet Management</td>
+      <td style='font-size:16px;font-weight:600;color:#ffffff;'>Tenacy Fleet Management</td>
       <td align='right' style='font-size:11px;color:#ffffff;'>Report Delivery</td>
     </tr>
     </table>
@@ -627,7 +627,7 @@ namespace FMS.Application.Features.Notification.Services
   <!-- Footer -->
   <tr><td style='padding:16px 24px;border-top:1px solid #edebe9;background:#faf9f8;'>
     <p style='margin:0;font-size:11px;color:#a19f9d;'>
-      This is an automated message from Hyoung FMS Report Engine. Please do not reply to this email.
+      This is an automated message from Tenacy FMS Report Engine. Please do not reply to this email.
     </p>
   </td></tr>
 

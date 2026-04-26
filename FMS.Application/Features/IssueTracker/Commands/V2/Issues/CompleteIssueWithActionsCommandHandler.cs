@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: CompleteIssueWithActionsCommandHandler.cs
  * Purpose: Handles structured issue completion — creates completion records, marks issue complete, notifies opener
  * Dependencies: MediatR, GpsdataContext, INotificationService, IIssueActivityService, IConfiguration
@@ -309,7 +309,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                     {
                         vehicleName = await _context.Vehicles
                             .Where(v => v.VehicleId == issue.VehicleId)
-                            .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
+                            .Select(v => v.VehicleCode ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
                             .FirstOrDefaultAsync(cancellationToken);
                     }
 
@@ -698,7 +698,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.V2.Issues
                   <tr>
                     <td style=""padding:16px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;"">
                       <p style=""margin:0;font-size:12px;color:#6b7280;"">
-                        This is an automated notification from <strong>Hyoung FMS</strong>.
+                        This is an automated notification from <strong>Tenacy FMS</strong>.
                       </p>
                     </td>
                   </tr>

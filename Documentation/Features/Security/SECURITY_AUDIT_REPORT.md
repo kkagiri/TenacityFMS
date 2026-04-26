@@ -1,5 +1,5 @@
-# Security Vulnerability Audit Report
-## Hyoung.FMS Repository
+﻿# Security Vulnerability Audit Report
+## Tenacy.FMS Repository
 
 **Audit Date**: 2025-11-05
 **Auditor**: Claude Code
@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-This security audit has identified **CRITICAL** vulnerabilities in the Hyoung.FMS repository that expose sensitive credentials, database passwords, API keys, and infrastructure details. Multiple secrets are committed to version control and are publicly accessible through the git history.
+This security audit has identified **CRITICAL** vulnerabilities in the Tenacy.FMS repository that expose sensitive credentials, database passwords, API keys, and infrastructure details. Multiple secrets are committed to version control and are publicly accessible through the git history.
 
 ### Risk Assessment
 - **Severity**: CRITICAL
@@ -33,7 +33,7 @@ This security audit has identified **CRITICAL** vulnerabilities in the Hyoung.FM
 server=10.0.10.150;port=3306;database=gpsdata;user=root;password=Niwewenamimi1000
 
 # ATG Database Credentials
-server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Hyoung2030
+server=10.0.11.239;port=3306;database=azs;user=kkagiri;password=Tenacy2030
 
 # GPSGate User Credentials
 Username: kkagiri
@@ -63,10 +63,10 @@ Password: Niwewe1000
 **Exposed Credentials**:
 ```json
 "EmailSettings": {
-  "SmtpServer": "mail.hyoung.co.ke",
+  "SmtpServer": "mail.example.com",
   "SmtpPort": 25,
-  "Username": "hy.gps@hyoung.co.ke",
-  "Password": "Hyoung2030"
+  "Username": "hy.gps@example.com",
+  "Password": "Tenacy2030"
 }
 ```
 
@@ -164,8 +164,8 @@ REACT_APP_PUBLIC_FMS_API_URL=http://197.254.33.227/api
 - Internal IP addresses: 10.0.10.150, 10.0.10.153, 10.0.11.90, 10.0.11.239
 - Public IP: 197.254.33.227
 - Network architecture and service locations
-- IIS deployment paths: `C:\inetpub\wwwroot\hyoungFMS\`
-- CI/CD runner paths: `C:\actions-runner\_work\Hyoung.FMS\`
+- IIS deployment paths: `C:\inetpub\wwwroot\tenacyFMS\`
+- CI/CD runner paths: `C:\actions-runner\_work\Tenacy.FMS\`
 - Log file locations: `C:\Logs\FMS.Webclient\`
 
 **Impact**:
@@ -266,8 +266,8 @@ FLUSH PRIVILEGES;
 ```
 
 **Email Password**:
-- Log into mail.hyoung.co.ke
-- Change password for hy.gps@hyoung.co.ke
+- Log into mail.example.com
+- Change password for hy.gps@example.com
 - Enable 2FA if available
 
 **GPSGate API Key**:
@@ -328,18 +328,18 @@ Replace hardcoded values with environment variable references:
 **Using BFG Repo-Cleaner** (Recommended):
 ```bash
 # Backup repository first
-git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
+git clone --mirror https://github.com/your-org/Tenacy.FMS.git
 
 # Install BFG
 # Download from: https://rtyley.github.io/bfg-repo-cleaner/
 
 # Remove sensitive files
-java -jar bfg.jar --delete-files "*.env" Hyoung.FMS.git
-java -jar bfg.jar --delete-folders "scripts" Hyoung.FMS.git
-java -jar bfg.jar --delete-files "appsettings.json" Hyoung.FMS.git
+java -jar bfg.jar --delete-files "*.env" Tenacy.FMS.git
+java -jar bfg.jar --delete-folders "scripts" Tenacy.FMS.git
+java -jar bfg.jar --delete-files "appsettings.json" Tenacy.FMS.git
 
 # Cleanup
-cd Hyoung.FMS.git
+cd Tenacy.FMS.git
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 
@@ -359,7 +359,7 @@ cd git-secrets
 make install
 
 # Configure for repository
-cd /home/user/Hyoung.FMS
+cd /home/user/Tenacy.FMS
 git secrets --install
 git secrets --register-aws
 
@@ -406,7 +406,7 @@ logs/
 
 **Updated workflow** (`.github/workflows/deploy-to-iis.yml`):
 ```yaml
-name: Deploy Hyoung FMS to IIS
+name: Deploy Tenacy FMS to IIS
 
 on:
   push:
@@ -427,7 +427,7 @@ jobs:
       - name: Run Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'Hyoung.FMS'
+          project: 'Tenacy.FMS'
           path: '.'
           format: 'HTML'
 
@@ -458,7 +458,7 @@ jobs:
 
 ## Reporting Security Vulnerabilities
 
-Please report security vulnerabilities to: security@hyoung.co.ke
+Please report security vulnerabilities to: security@example.com
 
 ## Security Requirements
 
@@ -545,8 +545,8 @@ The current state of the repository presents **CRITICAL security risks** that re
 ## Contact and Support
 
 For questions regarding this audit:
-- **Security Team**: security@hyoung.co.ke
-- **Development Lead**: kevin.kagiri@hyoung.co.ke
+- **Security Team**: security@example.com
+- **Development Lead**: kevin.kagiri@example.com
 
 For immediate security incidents:
 - **Emergency Hotline**: [To be configured]

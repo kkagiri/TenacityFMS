@@ -1,4 +1,4 @@
-# SignalR WebSocket Testing Guide
+﻿# SignalR WebSocket Testing Guide
 
 **Date**: October 31, 2025
 **Test Page**: `SIGNALR_WEBSOCKET_TEST.html`
@@ -12,7 +12,7 @@
 1. **Open the test page**:
 
    ```powershell
-   cd c:\dev\Hyoung.FMS\Documentation\Frontend
+   cd c:\dev\Tenacy.FMS\Documentation\Frontend
    .\open-signalr-test.ps1
    ```
 

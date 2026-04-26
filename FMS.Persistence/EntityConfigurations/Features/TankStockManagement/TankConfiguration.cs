@@ -26,28 +26,23 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.LinkedVehicleId, "IX_Tank_LinkedVehicleId");
                 builder.HasIndex(e => e.TankType, "IX_Tank_TankType");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.CurrentStock).HasPrecision(10);
                 builder.Property(e => e.DiscrepancyThreshold).HasPrecision(10, 2);
 
                 builder.Property(e => e.Name).HasMaxLength(45);
                 builder.Property(e => e.PtsId)
-                    .HasColumnType("varchar(100)")
-                    .HasColumnName("ptsID");
+                    .HasMaxLength(100);
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
+                builder.Property(e => e.SiteId);
                 builder.Property(e => e.TankHeight).HasPrecision(10);
                 builder.Property(e => e.TankLength).HasPrecision(10);
                 builder.Property(e => e.TankVolume).HasPrecision(10);
                 builder.Property(e => e.UseBookKeeping)
-                    .HasDefaultValueSql("'0'")
-                    .HasColumnType("tinyint(4)");
+                    .HasDefaultValueSql("'0'");
 
                 //Cursor: Add FuelGradeId and FuelGradeName configuration
                 builder.Property(e => e.FuelGradeId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 builder.Property(e => e.FuelGradeName)
@@ -97,11 +92,9 @@ namespace FMS.Persistence.EntityConfigurations
                     .IsRequired(false);
 
                 builder.Property(e => e.LinkedVehicleId)
-                    .HasColumnType("int(11)")
                     .IsRequired(false);
 
                 builder.Property(e => e.LocationValidationRadius)
-                    .HasColumnType("int")
                     .HasDefaultValue(100)
                     .IsRequired(false);
 

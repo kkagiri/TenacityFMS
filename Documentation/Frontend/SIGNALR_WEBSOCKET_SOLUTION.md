@@ -1,4 +1,4 @@
-# SignalR WebSocket Connection Solution
+﻿# SignalR WebSocket Connection Solution
 
 ## Problem Summary
 
@@ -170,9 +170,9 @@ transport: HttpTransportType.LongPolling;
 
 ## Server Configuration
 
-### IIS Site: hyoungFMS
+### IIS Site: tenacyFMS
 
-- **Physical Path:** `c:\inetpub\wwwroot\hyoungFMS\reactApp\`
+- **Physical Path:** `c:\inetpub\wwwroot\tenacyFMS\reactApp\`
 - **Binding:** Port 80 (HTTP)
 - **Features Required:**
   - IIS-WebSockets ✅
@@ -205,7 +205,7 @@ Get-WebGlobalModule | Where-Object { $_.Name -like "*WebSocket*" }
 **Check 2: Restart Application Pool**
 
 ```powershell
-Restart-WebAppPool -Name "hyoungFMS"
+Restart-WebAppPool -Name "tenacyFMS"
 ```
 
 **Check 3: Check Backend Logs**

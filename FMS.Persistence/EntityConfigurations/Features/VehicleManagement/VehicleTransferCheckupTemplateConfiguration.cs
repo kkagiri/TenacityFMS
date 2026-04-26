@@ -25,51 +25,38 @@ public class VehicleTransferCheckupTemplateConfiguration : IEntityTypeConfigurat
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Id)
-            .HasColumnName("id")
             .ValueGeneratedOnAdd();
 
-        builder.Property(e => e.SerialNo)
-            .HasColumnName("serial_no");
+        builder.Property(e => e.SerialNo);
 
         builder.Property(e => e.Description)
-            .HasColumnName("description")
             .HasMaxLength(500)
             .IsRequired();
 
         builder.Property(e => e.CheckType)
-            .HasColumnName("check_type")
             .HasMaxLength(100);
 
-        builder.Property(e => e.VehicleTypeId)
-            .HasColumnName("vehicle_type_id");
+        builder.Property(e => e.VehicleTypeId);
 
-        builder.Property(e => e.VehicleModelId)
-            .HasColumnName("vehicle_model_id");
+        builder.Property(e => e.VehicleModelId);
 
-        builder.Property(e => e.HasGps)
-            .HasColumnName("has_gps");
+        builder.Property(e => e.HasGps);
 
         builder.Property(e => e.SortOrder)
-            .HasColumnName("sort_order")
             .HasDefaultValue(0);
 
         builder.Property(e => e.IsActive)
-            .HasColumnName("is_active")
             .HasDefaultValue(true);
 
         builder.Property(e => e.CreatedBy)
-            .HasColumnName("created_by")
             .HasMaxLength(255);
 
         builder.Property(e => e.ModifiedBy)
-            .HasColumnName("modified_by")
             .HasMaxLength(255);
 
-        builder.Property(e => e.DateCreated)
-            .HasColumnName("date_created");
+        builder.Property(e => e.DateCreated);
 
-        builder.Property(e => e.DateModified)
-            .HasColumnName("date_modified");
+        builder.Property(e => e.DateModified);
 
         builder.HasOne(e => e.VehicleType)
             .WithMany()

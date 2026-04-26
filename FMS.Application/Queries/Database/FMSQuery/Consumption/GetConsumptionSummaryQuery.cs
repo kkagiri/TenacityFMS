@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -128,7 +128,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                         siteSummary.Vehicles.Add(new ConsumptionByVehicleDTO
                         {
                             VehicleId = vehicle.VehicleId,
-                            HyoungNo = vehicle.HyoungNo ?? string.Empty,
+                            VehicleCode = vehicle.VehicleCode ?? string.Empty,
                             VehicleType = vehicle.VehicleType?.Name ?? "Unknown",
                             VehicleModel = vehicle.VehicleModel?.Name ?? "Unknown",
                             Manufacturer = vehicle.VehicleManufacturer?.Name ?? "Unknown",
@@ -221,7 +221,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     .Select(v => new VehicleComparisonDTO
                     {
                         VehicleId = v.VehicleId,
-                        HyoungNo = v.HyoungNo,
+                        VehicleCode = v.VehicleCode,
                         VehicleType = v.VehicleType,
                         VehicleModel = v.VehicleModel,
                         Manufacturer = v.Manufacturer,

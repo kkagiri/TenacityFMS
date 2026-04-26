@@ -30,9 +30,6 @@ import VehicleGeofenceManagementPage from "./geofenceManagement/VehicleGeofenceM
 // Maintenance
 import MaintenanceAlertsPage from "./maintenance/MaintenanceAlertsPage";
 
-// Documents
-import VehicleDocumentsList from "./documents/VehicleDocumentsList";
-
 // Transfers
 import VehicleTransferListPage from "./transfers/VehicleTransferListPage";
 import VehicleTransferCreatePage from "./transfers/VehicleTransferCreatePage";
@@ -64,11 +61,6 @@ const VehicleMain = () => {
         <Route path="consumption" element={<VehicleConsumptionPage />} />
         <Route path="consumption-comparison" element={<VehicleConsumptionComparisonPage />} />
         <Route path="maintenance" element={<MaintenanceAlertsPage />} />
-        <Route path="documents" element={<VehicleDocumentsList />} />
-        <Route
-          path="maintenance/documents"
-          element={<VehicleDocumentsList />}
-        />
         <Route path="transfers" element={<VehicleTransferListPage />} />
         <Route path="transfers/new" element={<VehicleTransferCreatePage />} />
         <Route path="transfers/edit/:id" element={<VehicleTransferEditPage />} />

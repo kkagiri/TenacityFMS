@@ -168,29 +168,12 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard
         }
 
         /// <summary>
-        /// Get count of vehicles with maintenance due (expired or expiring documents)
+        /// Get count of vehicles with maintenance due (placeholder — VehicleDocuments removed).
         /// </summary>
         private async Task<int> GetMaintenanceDueCountAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                var today = DateTime.Today;
-                var warningThreshold = today.AddDays(30); // 30 days warning for upcoming
-
-                // Check VehicleDocuments for expired or soon-to-expire items
-                var vehiclesWithDueMaintenance = await _context.VehicleDocuments
-                    .Where(d => d.ExpiryDate <= warningThreshold && d.Status != DocumentStatus.Expired)
-                    .Select(d => d.VehicleId)
-                    .Distinct()
-                    .CountAsync(cancellationToken);
-
-                return vehiclesWithDueMaintenance;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not calculate maintenance due count");
-                return 0;
-            }
+            await Task.CompletedTask;
+            return 0;
         }
 
         /// <summary>

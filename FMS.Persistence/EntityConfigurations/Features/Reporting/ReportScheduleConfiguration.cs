@@ -13,98 +13,72 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasKey(e => e.ReportScheduleId);
 
             builder.Property(e => e.ReportScheduleId)
-                .HasColumnName("ReportScheduleId")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.ScheduleName)
                 .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnName("ScheduleName");
+                .HasMaxLength(200);
 
             builder.Property(e => e.Description)
-                .HasMaxLength(1000)
-                .HasColumnName("Description");
+                .HasMaxLength(1000);
 
             builder.Property(e => e.ReportSourceId)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("ReportSourceId");
+                .HasMaxLength(100);
 
-            builder.Property(e => e.Filters)
-                .HasColumnName("Filters")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.Filters);
 
             builder.Property(e => e.OutputFormat)
                 .IsRequired()
                 .HasMaxLength(20)
-                .HasColumnName("OutputFormat")
                 .HasDefaultValue("pdf");
 
             builder.Property(e => e.Frequency)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasColumnName("Frequency")
                 .HasDefaultValue("once");
 
             builder.Property(e => e.RepeatCount)
-                .HasColumnName("RepeatCount")
                 .HasDefaultValue(1);
 
             builder.Property(e => e.ExecutedCount)
-                .HasColumnName("ExecutedCount")
                 .HasDefaultValue(0);
 
-            builder.Property(e => e.Recipients)
-                .HasColumnName("Recipients")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.Recipients);
 
-            builder.Property(e => e.ScheduleConfig)
-                .HasColumnName("ScheduleConfig")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.ScheduleConfig);
 
             builder.Property(e => e.ScheduledAt)
-                .IsRequired()
-                .HasColumnName("ScheduledAt");
+                .IsRequired();
 
-            builder.Property(e => e.LastExecutedAt)
-                .HasColumnName("LastExecutedAt");
+            builder.Property(e => e.LastExecutedAt);
 
-            builder.Property(e => e.NextExecutionAt)
-                .HasColumnName("NextExecutionAt");
+            builder.Property(e => e.NextExecutionAt);
 
             builder.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(20)
-                .HasColumnName("Status")
                 .HasDefaultValue("active");
 
-            builder.Property(e => e.ErrorMessage)
-                .HasColumnName("ErrorMessage")
-                .HasColumnType("TEXT");
+            builder.Property(e => e.ErrorMessage);
 
             builder.Property(e => e.CreatedBy)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("CreatedBy");
+                .HasMaxLength(100);
 
             builder.Property(e => e.CreatedAt)
                 .IsRequired()
-                .HasColumnName("CreatedAt")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.ModifiedAt)
-                .HasColumnName("ModifiedAt");
+            builder.Property(e => e.ModifiedAt);
 
             builder.Property(e => e.ModifiedBy)
-                .HasMaxLength(100)
-                .HasColumnName("ModifiedBy");
+                .HasMaxLength(100);
 
-            builder.Property(e => e.CancelledAt)
-                .HasColumnName("CancelledAt");
+            builder.Property(e => e.CancelledAt);
 
             builder.Property(e => e.CancelledBy)
-                .HasMaxLength(100)
-                .HasColumnName("CancelledBy");
+                .HasMaxLength(100);
 
             // Indexes
             builder.HasIndex(e => e.Status)
@@ -121,3 +95,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

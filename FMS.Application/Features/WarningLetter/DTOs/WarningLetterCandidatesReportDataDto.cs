@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterCandidatesReportDataDto.cs
  * Purpose:       DTO for the Warning Letter Candidates (Not Generated) report response.
  * Dependencies:  WarningLetterType
@@ -29,7 +29,7 @@ public class WarningLetterCandidateReportRecordDto
     public string MetricDate { get; set; } = string.Empty;
     public string Period { get; set; } = string.Empty;
     public string SiteName { get; set; } = string.Empty;
-    public string VehicleHyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string NumberPlate { get; set; } = string.Empty;
     public string VehicleTypeName { get; set; } = string.Empty;
     public string EmployeeName { get; set; } = string.Empty;

@@ -27,92 +27,72 @@ namespace FMS.Persistence.EntityConfigurations {
 
                 // Column configurations
                 builder.Property (e => e.Id)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.TankId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("tank_id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.SiteId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("site_id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.AdjustmentDate)
-                    .HasColumnType ("datetime")
-                    .HasColumnName ("adjustment_date");
+                    .HasColumnType ("datetime");
 
                 builder.Property (e => e.PreviousVolume)
-                    .HasPrecision (10, 2)
-                    .HasColumnName ("previous_volume");
+                    .HasPrecision (10, 2);
 
                 builder.Property (e => e.NewVolume)
-                    .HasPrecision (10, 2)
-                    .HasColumnName ("new_volume");
+                    .HasPrecision (10, 2);
 
                 builder.Property (e => e.VolumeChange)
-                    .HasPrecision (10, 2)
-                    .HasColumnName ("volume_change");
+                    .HasPrecision (10, 2);
 
                 builder.Property (e => e.AdjustmentType)
                     .HasColumnType ("tinyint(4)")
-                    .HasColumnName ("adjustment_type")
                     .HasComment ("0=Increase, 1=Decrease, 2=Correction");
 
                 builder.Property (e => e.ReasonCode)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("reason_code");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.Reason)
                     .HasMaxLength (200)
-                    .HasColumnName ("reason")
                     .IsRequired ();
 
                 builder.Property (e => e.Notes)
-                    .HasMaxLength (500)
-                    .HasColumnName ("notes");
+                    .HasMaxLength (500);
 
                 builder.Property (e => e.CreatedBy)
                     .HasMaxLength (100)
-                    .HasColumnName ("created_by")
                     .IsRequired ();
 
                 builder.Property (e => e.CreatedOn)
                     .HasColumnType ("datetime")
-                    .HasColumnName ("created_on")
                     .HasDefaultValueSql ("CURRENT_TIMESTAMP");
 
                 builder.Property (e => e.ApprovedBy)
-                    .HasMaxLength (100)
-                    .HasColumnName ("approved_by");
+                    .HasMaxLength (100);
 
                 builder.Property (e => e.ApprovedOn)
-                    .HasColumnType ("datetime")
-                    .HasColumnName ("approved_on");
+                    .HasColumnType ("datetime");
 
                 builder.Property (e => e.Status)
                     .HasColumnType ("tinyint(4)")
-                    .HasColumnName ("status")
                     .HasDefaultValue (1)
                     .HasComment ("0=Pending, 1=Approved, 2=Rejected");
 
                 builder.Property (e => e.TankVolumeHistoryId)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("tank_volume_history_id");
+                    .HasColumnType ("int(11)");
 
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
                     .HasColumnType ("tinyint(1)")
-                    .HasColumnName ("is_deleted")
                     .HasDefaultValue (false);
 
                 builder.Property (e => e.DeletedAt)
-                    .HasColumnType ("datetime")
-                    .HasColumnName ("deleted_at");
+                    .HasColumnType ("datetime");
 
                 builder.Property (e => e.DeletedBy)
-                    .HasMaxLength (450)
-                    .HasColumnName ("deleted_by");
+                    .HasMaxLength (450);
 
                 // Global query filter to exclude soft deleted records
                 builder.HasQueryFilter (sa => !sa.IsDeleted);

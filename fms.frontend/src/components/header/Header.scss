@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: Header.scss
  * Purpose: Controls the global application header sizing, toolbar spacing, and icon hit areas
  * Dependencies: Header.js, DevExtreme toolbar, ThemeSelector, NotificationCenter, UserPanel
@@ -7,7 +7,7 @@
  * Key Sections:
  * - .header-component: shell height and elevation
  * - .dx-toolbar.header-toolbar: shared toolbar rhythm
- * - .header-brand: Hyoung logo and title block
+ * - .header-brand: Tenacy logo and title block
  */
 
 @use "./../../variables.scss" as *;

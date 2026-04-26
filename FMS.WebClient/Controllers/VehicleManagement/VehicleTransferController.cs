@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTransferController.cs
  * Purpose: Manages vehicle transfer workflows, reports, lifecycle actions, and notification-triggering endpoints.
  * Dependencies: MediatR, transfer commands/queries, jsReport, email service, JWT claims.
@@ -428,7 +428,7 @@ public class VehicleTransferController : ControllerBase
     {
         try
         {
-            var subject = $"Vehicle Transfer: {transfer.VehicleHyoungNo} from {transfer.FromSiteName} to {transfer.ToSiteName}";
+            var subject = $"Vehicle Transfer: {transfer.VehicleCode} from {transfer.FromSiteName} to {transfer.ToSiteName}";
             var body = BuildTransferEmailBody(transfer);
 
             var success = await _emailService.SendEmailAsync(recipients, subject, body, isHtml: true);
@@ -467,7 +467,7 @@ public class VehicleTransferController : ControllerBase
         // Machine/Service Details
         sb.AppendLine("<h3>Machine/Service Details</h3>");
         sb.AppendLine("<table style='border-collapse: collapse; width: 100%;'>");
-        sb.AppendLine($"<tr><td style='padding: 5px; font-weight: bold;'>Vehicle/Hyoung No:</td><td style='padding: 5px;'>{transfer.VehicleHyoungNo}</td></tr>");
+        sb.AppendLine($"<tr><td style='padding: 5px; font-weight: bold;'>Vehicle/Tenacy No:</td><td style='padding: 5px;'>{transfer.VehicleCode}</td></tr>");
         sb.AppendLine($"<tr><td style='padding: 5px; font-weight: bold;'>Make/Model:</td><td style='padding: 5px;'>{transfer.MakeModel}</td></tr>");
         sb.AppendLine($"<tr><td style='padding: 5px; font-weight: bold;'>Job Number:</td><td style='padding: 5px;'>{transfer.JobNumber}</td></tr>");
         sb.AppendLine($"<tr><td style='padding: 5px; font-weight: bold;'>Current Reading:</td><td style='padding: 5px;'>{transfer.CurrentReading} {transfer.ReadingUnit}</td></tr>");
@@ -534,7 +534,7 @@ public class VehicleTransferController : ControllerBase
             transfer.ToSiteName,
             transfer.DriverName,
             transfer.DriverPhone,
-            transfer.VehicleHyoungNo,
+            transfer.VehicleCode,
             transfer.MakeModel,
             transfer.JobNumber,
             transfer.CurrentReading,
@@ -620,7 +620,7 @@ public class VehicleTransferController : ControllerBase
                 <td class='lh-brand'>
                     <div class='brand-wrap'>
                         {{#if LogoDataUri}}<div class='brand-logo'><img src='{{LogoDataUri}}' alt='H Young logo' /></div>{{/if}}
-                        <div class='company-name'>HYOUNG</div>
+                        <div class='company-name'>TENACY</div>
                         <div class='company-side'>
                             <div class='company-side-top'>&amp; Co</div>
                             <div class='company-side-bottom'>(EA) Ltd.</div>
@@ -658,7 +658,7 @@ public class VehicleTransferController : ControllerBase
     <div class='section'>
         <div class='section-title'>Machine/Service Details</div>
         <table class='info-table'>
-            <tr><td><strong>Hyoung No:</strong></td><td>{{VehicleHyoungNo}}</td><td><strong>Make/Model:</strong></td><td>{{MakeModel}}</td></tr>
+            <tr><td><strong>Tenacy No:</strong></td><td>{{VehicleCode}}</td><td><strong>Make/Model:</strong></td><td>{{MakeModel}}</td></tr>
             <tr><td><strong>Job Number:</strong></td><td>{{JobNumber}}</td><td><strong>Battery No:</strong></td><td>{{BatteryNumber}}</td></tr>
             <tr><td><strong>Current Reading:</strong></td><td>{{CurrentReading}} {{ReadingUnit}}</td><td><strong>Next Service:</strong></td><td>{{NextServiceReading}} {{ReadingUnit}}</td></tr>
             <tr><td><strong>Fuel in Tank:</strong></td><td>{{FuelInTank}} Ltr</td><td><strong>Seal Number:</strong></td><td>{{SealNumber}}</td></tr>

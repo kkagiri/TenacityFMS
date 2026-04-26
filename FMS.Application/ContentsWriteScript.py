@@ -1,4 +1,4 @@
-"""
+﻿"""
 # Script to reorganize FMS.Application project structure
 # This will update directory structure based on our refactoring plan
 
@@ -115,8 +115,8 @@ def read_and_write_contents(folder_path, output_file):
                 except Exception as e:
                     print(f"Error reading file {file_path}: {e}")
 
-folder_path = "c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Application";
-output_file = "c:/Users/kkagiri/source/repos/Hyoung.Fms/FMS.Application/fmsapplicationcontext.txt";
+folder_path = "c:/Users/kkagiri/source/repos/Tenacy.Fms/FMS.Application";
+output_file = "c:/Users/kkagiri/source/repos/Tenacy.Fms/FMS.Application/fmsapplicationcontext.txt";
 
 read_and_write_contents(folder_path, output_file)
 

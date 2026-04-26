@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ManualRefillScreen.js
  * Purpose: Capture mobile manual refill entries and warn when the selected timestamp would affect later tank volume history.
  * Dependencies: React Native, Redux Toolkit, CustomDateTimePicker, useFutureRecordsValidation
@@ -145,7 +145,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
       // Normalize the results to handle both PascalCase and camelCase
       const normalizedResults = (results || []).map((v) => ({
         id: v.VehicleId || v.vehicleId,
-        hyoungNo: v.HyoungNo || v.hyoungNo || "",
+        vehicleCode: v.VehicleCode || v.vehicleCode || "",
         name: v.VehicleName || v.vehicleName || v.Name || v.name || "",
         plateNumber: v.NumberPlate || v.numberPlate || v.PlateNumber || v.plateNumber || "",
         siteName: v.SiteName || v.siteName || v.WorkingSiteName || v.workingSiteName || "",
@@ -317,7 +317,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
           <View style={styles.selectedInfo}>
             <Icon name={icon} size={20} color={themeColor} />
             <View style={styles.selectedText}>
-              <Text style={styles.selectedName}>{value.name || value.fullName || value.hyoungNo}</Text>
+              <Text style={styles.selectedName}>{value.name || value.fullName || value.vehicleCode}</Text>
               {value.plateNumber && (
                 <Text style={styles.selectedSubtext}>{value.plateNumber}</Text>
               )}
@@ -578,7 +578,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
                 style={styles.searchInput}
                 value={vehicleSearch}
                 onChangeText={setVehicleSearch}
-                placeholder="Search by hyoung number, plate..."
+                placeholder="Search by vehicle code, plate..."
                 placeholderTextColor="#9ca3af"
                 autoFocus
               />
@@ -590,7 +590,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
             {searchedVehicles.length > 0 ? (
               <FlatList
                 data={searchedVehicles}
-                keyExtractor={(item) => String(item.id || item.hyoungNo || Math.random())}
+                keyExtractor={(item) => String(item.id || item.vehicleCode || Math.random())}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.listItem}
@@ -601,7 +601,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
                     </View>
                     <View style={styles.listItemInfo}>
                       <Text style={styles.listItemName}>
-                        {item.hyoungNo || item.name}
+                        {item.vehicleCode || item.name}
                       </Text>
                       <Text style={styles.listItemDetails}>
                         {item.plateNumber || "No plate"} • {item.vehicleTypeName || ""}

@@ -26,13 +26,11 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.ModifiedBy, "vehicleconsumption_user_idx");
                 builder.HasIndex(e => e.ReportId, "vehilceconsumption_fuelreport_idx");
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.AvgSpeed).HasPrecision(10, 2);
                 builder.Property(e => e.Comments).HasMaxLength(100);
-                builder.Property(e => e.EmployeeName).HasColumnType("varchar(100)");
+                builder.Property(e => e.EmployeeName).HasMaxLength(100);
                 builder.Property(e => e.EngHours).HasPrecision(10, 2);
                 builder.Property(e => e.ExcessWorkingHrsCost).HasPrecision(10, 2);
                 builder.Property(e => e.ExpectedConsumption).HasPrecision(10, 2);
@@ -43,23 +41,17 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.FuelEfficiency).HasPrecision(10, 2);
                 builder.Property(e => e.FuelLost).HasPrecision(10, 2);
                 builder.Property(e => e.IsKmperLiter)
-                    .HasDefaultValueSql("b'0'")
-                    .HasColumnType("bit(1)");
-                builder.Property(e => e.IsModified).HasColumnType("tinyint(4)");
+                    .HasDefaultValueSql("b'0'");
+                builder.Property(e => e.IsModified);
                 builder.Property(e => e.IsNightShift)
-                    .HasDefaultValueSql("b'0'")
-                    .HasColumnType("bit(1)");
+                    .HasDefaultValueSql("b'0'");
                 builder.Property(e => e.MaxSpeed).HasPrecision(10, 2);
-                builder.Property(e => e.ModifiedBy).HasColumnType("int(11)");
-                builder.Property(e => e.ReportId).HasColumnType("varchar(100)");
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
+                builder.Property(e => e.ModifiedBy);
+                builder.Property(e => e.ReportId).HasMaxLength(100);
+                builder.Property(e => e.SiteId);
                 builder.Property(e => e.TotalDistance).HasPrecision(10, 2);
                 builder.Property(e => e.TotalFuel).HasPrecision(10, 2);
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleID");
+                builder.Property(e => e.VehicleId);
 
                 // Relationships
 

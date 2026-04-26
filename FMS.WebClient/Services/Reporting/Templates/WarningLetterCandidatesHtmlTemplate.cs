@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterCandidatesHtmlTemplate.cs
  * Purpose:       JsReport HTML template for Warning Letter Candidates (Not Generated) report.
  * Dependencies:  Handlebars
@@ -175,7 +175,7 @@ internal static class WarningLetterCandidatesHtmlTemplate
                 <td>{{metricDate}}</td>
                 <td>{{letterTypeName}}</td>
                 <td>{{employeeName}}</td>
-                <td>{{vehicleHyoungNo}}</td>
+                <td>{{vehicleCode}}</td>
                 <td>{{vehicleTypeName}}</td>
                 <td>{{siteName}}</td>
                 <td class=""text-right"">{{expectedFormatted}}</td>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, {
     Paging,
@@ -557,7 +557,7 @@ export default function FuelRefill() {
                                     dateSerializationFormat: 'yyyy-MM-ddTHH:mm:ss'
                                 }}>
                                 </FItem>
-                                <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
+                                <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'vehicleCode' }}>
                                     <RequiredRule />
                                 </FItem>
                                 {/* Employee selection - shows ALL employees regardless of site selection */}
@@ -690,7 +690,7 @@ export default function FuelRefill() {
                         <Lookup
                             dataSource={vehicles}
                             valueExpr="vehicleId"
-                            displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
+                            displayExpr="vehicleCode" // Adjust the field name based on your vehicle data
                         />
 
                     </Column>

@@ -1,4 +1,4 @@
-name: Deploy Hyoung FMS to IIS
+name: Deploy Tenacy FMS to IIS
 
 on:
   push:
@@ -85,8 +85,8 @@ jobs:
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
-          $backendPath = "C:\inetpub\wwwroot\hyoungFMS\webAPI"
-          $backendPool = "HyoungFMS.WebAPI"
+          $backendPath = "C:\inetpub\wwwroot\TenacyFMS\webAPI"
+          $backendPool = "TenacyFMS.WebAPI"
           $backendProject = "FMS.WebClient\FMS.WebClient.csproj"
           $tempPath = "$backendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
           $oldPath = "$backendPath`_old"
@@ -176,8 +176,8 @@ jobs:
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
-          $frontendPath = "C:\inetpub\wwwroot\hyoungFMS\reactApp"
-          $frontendPool = "HyoungFMS.ReactApp"
+          $frontendPath = "C:\inetpub\wwwroot\TenacyFMS\reactApp"
+          $frontendPool = "TenacyFMS.ReactApp"
           $buildPath = "fms.frontend\build"
           $tempPath = "$frontendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
           $oldPath = "$frontendPath`_old"
@@ -273,11 +273,11 @@ jobs:
           $frontendStatus = "N/A"
 
           try {
-            $backendStatus = (Get-WebAppPoolState -Name "HyoungFMS.WebAPI" -ErrorAction SilentlyContinue).Value
+            $backendStatus = (Get-WebAppPoolState -Name "TenacyFMS.WebAPI" -ErrorAction SilentlyContinue).Value
           } catch { }
 
           try {
-            $frontendStatus = (Get-WebAppPoolState -Name "HyoungFMS.ReactApp" -ErrorAction SilentlyContinue).Value
+            $frontendStatus = (Get-WebAppPoolState -Name "TenacyFMS.ReactApp" -ErrorAction SilentlyContinue).Value
           } catch { }
 
           Write-Host "App Pool Status:" -ForegroundColor Cyan

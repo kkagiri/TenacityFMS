@@ -15,14 +15,10 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("issuestatus");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("id");
+                    .ValueGeneratedNever();
                 builder.Property(e => e.Status)
-                    .HasMaxLength(45)
-                    .HasColumnName("status");
+                    .HasMaxLength(45);
             }
-
 
             catch (Exception ex)
             {

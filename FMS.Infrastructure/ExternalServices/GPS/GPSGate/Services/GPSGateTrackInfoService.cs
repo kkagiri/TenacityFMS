@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -208,7 +208,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 var history = new VehicleTrackHistoryDTO
                 {
                     VehicleId = vehicleId,
-                    VehicleName = vehicle.HyoungNo ?? string.Empty,
+                    VehicleName = vehicle.VehicleCode ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate ?? string.Empty,
                     FromDate = from,
                     ToDate = to,

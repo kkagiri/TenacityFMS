@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -312,7 +312,7 @@ namespace FMS.Application.Features.FuelAudit.Commands
                     Id = vp.Id,
                     AuditId = vp.AuditId,
                     VehicleId = vp.VehicleId,
-                    VehicleName = vp.VehicleName ?? vp.Vehicle?.HyoungNo,
+                    VehicleName = vp.VehicleName ?? vp.Vehicle?.VehicleCode,
                     PlateNumber = vp.NumberPlate ?? vp.Vehicle?.NumberPlate,
                     OpeningStock = vp.OpeningStock,
                     ClosingStock = vp.ClosingStock,

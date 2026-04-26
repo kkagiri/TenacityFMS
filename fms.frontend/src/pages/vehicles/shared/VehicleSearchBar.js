@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { quickSearchVehicles, searchVehicles } from '../../../redux/actions/vehicleSearchActions';
@@ -236,12 +236,12 @@ const VehicleSearchBar = ({ placeholder = "Search by vehicles, site, passenger..
                   <span className="vehicle-icon" aria-hidden="true">🚛</span>
                   <span className="vehicle-name">
                     {highlightText(
-                      vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
+                      vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`,
                       searchTerm
                     )}
                   </span>
                 </div>
-                {vehicle.numberPlate && vehicle.hyoungNo !== vehicle.numberPlate && (
+                {vehicle.numberPlate && vehicle.vehicleCode !== vehicle.numberPlate && (
                   <div className="vehicle-secondary">
                     <span className="tw-text-gray-600 tw-text-xs">
                       Plate: {highlightText(vehicle.numberPlate, searchTerm)}

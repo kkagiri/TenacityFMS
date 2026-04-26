@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -215,7 +215,7 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
                 .Select(v => new
                 {
                     v.VehicleId,
-                    v.HyoungNo
+                    v.VehicleCode
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -224,7 +224,7 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
                 return FMSResponse<TagTransferResult>.Failed($"Vehicle with ID {vehicleId} not found");
             }
 
-            result.VehicleHyoungNo = vehicle.HyoungNo;
+            result.VehicleCode = vehicle.VehicleCode;
 
             // Get the GPSGate user ID from provider mappings
             var providerMapping = await _context.VehicleProviderMappings
@@ -292,7 +292,7 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
             result.FromTagId = fromSite?.GpsGateTagId;
             result.FromTagName = fromSite?.GpsGateTagName;
 
-            // Get GPSGate user ID - from provider mapping or lookup by HyoungNo
+            // Get GPSGate user ID - from provider mapping or lookup by VehicleCode
             int gpsGateUserId;
             if (gpsGateUserIdFromMapping.HasValue && gpsGateUserIdFromMapping.Value > 0)
             {
@@ -300,11 +300,11 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
             }
             else
             {
-                var userIdResult = await GetGpsGateUserIdByHyoungNoAsync(vehicle.HyoungNo, cancellationToken);
+                var userIdResult = await GetGpsGateUserIdByVehicleCodeAsync(vehicle.VehicleCode, cancellationToken);
                 if (!userIdResult.IsSuccess)
                 {
                     return FMSResponse<TagTransferResult>.Failed(
-                        $"Could not find GPSGate user ID for vehicle '{vehicle.HyoungNo}': {userIdResult.Message}");
+                        $"Could not find GPSGate user ID for vehicle '{vehicle.VehicleCode}': {userIdResult.Message}");
                 }
                 gpsGateUserId = userIdResult.Data;
             }
@@ -312,8 +312,8 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
             result.GpsGateUserId = gpsGateUserId;
 
             _logger.LogInformation(
-                "Moving vehicle '{HyoungNo}' (GPSGate User: {UserId}) from site '{FromSite}' (Tag: {FromTag}) to site '{ToSite}' (Tag: {ToTag})",
-                vehicle.HyoungNo,
+                "Moving vehicle '{VehicleCode}' (GPSGate User: {UserId}) from site '{FromSite}' (Tag: {FromTag}) to site '{ToSite}' (Tag: {ToTag})",
+                vehicle.VehicleCode,
                 gpsGateUserId,
                 fromSite?.SiteName ?? "Unknown",
                 fromSite?.GpsGateTagId,
@@ -337,13 +337,13 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
     }
 
     /// <inheritdoc />
-    public async Task<FMSResponse<int>> GetGpsGateUserIdByHyoungNoAsync(string hyoungNo, CancellationToken cancellationToken = default)
+    public async Task<FMSResponse<int>> GetGpsGateUserIdByVehicleCodeAsync(string vehicleCode, CancellationToken cancellationToken = default)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(hyoungNo))
+            if (string.IsNullOrWhiteSpace(vehicleCode))
             {
-                return FMSResponse<int>.Failed("HyoungNo cannot be empty");
+                return FMSResponse<int>.Failed("VehicleCode cannot be empty");
             }
 
             // First try to get from local database (VehicleProviderMappings)
@@ -351,15 +351,15 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
                 .Join(_context.Vehicles,
                     pm => pm.VehicleId,
                     v => v.VehicleId,
-                    (pm, v) => new { pm.ExternalDeviceId, v.HyoungNo })
-                .Where(x => x.HyoungNo == hyoungNo && x.ExternalDeviceId != null)
+                    (pm, v) => new { pm.ExternalDeviceId, v.VehicleCode })
+                .Where(x => x.VehicleCode == vehicleCode && x.ExternalDeviceId != null)
                 .Select(x => x.ExternalDeviceId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (!string.IsNullOrEmpty(providerMapping) && int.TryParse(providerMapping, out var mappedUserId))
             {
                 return FMSResponse<int>.Success(mappedUserId,
-                    $"Found GPSGate user ID {mappedUserId} for vehicle {hyoungNo}");
+                    $"Found GPSGate user ID {mappedUserId} for vehicle {vehicleCode}");
             }
 
             // If not in database, search GPSGate by looking through tags
@@ -379,24 +379,24 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
                 }
 
                 var matchingUser = usersResult.Data.FirstOrDefault(u =>
-                    u.Name?.Equals(hyoungNo, StringComparison.OrdinalIgnoreCase) == true ||
-                    u.Username?.Equals(hyoungNo, StringComparison.OrdinalIgnoreCase) == true);
+                    u.Name?.Equals(vehicleCode, StringComparison.OrdinalIgnoreCase) == true ||
+                    u.Username?.Equals(vehicleCode, StringComparison.OrdinalIgnoreCase) == true);
 
                 if (matchingUser != null)
                 {
                     _logger.LogInformation(
-                        "Found GPSGate user ID {UserId} for vehicle {HyoungNo} in tag {TagName}",
-                        matchingUser.Id, hyoungNo, tag.Name);
+                        "Found GPSGate user ID {UserId} for vehicle {VehicleCode} in tag {TagName}",
+                        matchingUser.Id, vehicleCode, tag.Name);
                     return FMSResponse<int>.Success(matchingUser.Id,
-                        $"Found GPSGate user ID {matchingUser.Id} for vehicle {hyoungNo}");
+                        $"Found GPSGate user ID {matchingUser.Id} for vehicle {vehicleCode}");
                 }
             }
 
-            return FMSResponse<int>.Failed($"Could not find GPSGate user for vehicle '{hyoungNo}'");
+            return FMSResponse<int>.Failed($"Could not find GPSGate user for vehicle '{vehicleCode}'");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error finding GPSGate user ID for vehicle {HyoungNo}", hyoungNo);
+            _logger.LogError(ex, "Error finding GPSGate user ID for vehicle {VehicleCode}", vehicleCode);
             return FMSResponse<int>.Failed($"Error finding GPSGate user: {ex.Message}");
         }
     }

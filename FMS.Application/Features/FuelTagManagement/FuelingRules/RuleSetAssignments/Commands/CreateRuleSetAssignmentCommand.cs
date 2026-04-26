@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -221,7 +221,7 @@ public class CreateRuleSetAssignmentCommandHandler
                 break;
             case AssignmentTargetType.Vehicle:
                 var v = await _context.Vehicles.FindAsync(new object[] { assignment.VehicleId!.Value }, cancellationToken);
-                response.VehicleHyoungNo = v?.HyoungNo;
+                response.VehicleCode = v?.VehicleCode;
                 break;
             case AssignmentTargetType.Tag:
                 var tag = await _context.FuelTags.FindAsync(new object[] { assignment.TagId!.Value }, cancellationToken);

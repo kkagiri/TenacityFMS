@@ -14,9 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => e.Id)
                     .HasName("PRIMARY");
 
-                builder.ToTable("expectedaverage")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("expectedaverage");
 
                 builder.HasIndex(e => e.ExpectedAverageClassificationId, "Expected_classification_idx");
                 builder.HasIndex(e => e.VehicleId, "Expected_vehicle_idx");
@@ -24,24 +22,16 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => new { e.VehicleId, e.SiteId, e.ExpectedAverageClassificationId }, "UniqueRecord")
                     .IsUnique();
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
-                builder.Property(e => e.ExpectedAverageClassificationId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ExpectedAverageClassificationID");
+                builder.Property(e => e.ExpectedAverageClassificationId);
 
                 builder.Property(e => e.ExpectedAverageValue)
                     .HasPrecision(5, 2);
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
+                builder.Property(e => e.SiteId);
 
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleID");
+                builder.Property(e => e.VehicleId);
 
                 builder.HasOne(d => d.ExpectedAverageClassification)
                     .WithMany(p => p.Expectedaverages)
@@ -70,3 +60,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

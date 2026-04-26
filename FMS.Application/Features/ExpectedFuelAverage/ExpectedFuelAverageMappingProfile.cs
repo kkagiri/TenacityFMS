@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FMS.Application.Features.ExpectedFuelAverage.DTOs;
 using FMS.Domain.Entities;
 
@@ -55,7 +55,7 @@ public class ExpectedFuelAverageMappingProfile : Profile
 
         // VehicleExpectedAverageAssignment mappings
         CreateMap<VehicleExpectedAverageAssignment, VehicleExpectedAverageAssignmentDTO>()
-            .ForMember(dest => dest.VehicleHyoungNo, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.HyoungNo : null))
+            .ForMember(dest => dest.VehicleCode, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.VehicleCode : null))
             .ForMember(dest => dest.VehicleNumberPlate, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.NumberPlate : null))
             .ForMember(dest => dest.TemplateName, opt => opt.MapFrom(src => src.ExpectedFuelAverageTemplate != null ? src.ExpectedFuelAverageTemplate.Name : null))
             .ForMember(dest => dest.Template, opt => opt.MapFrom(src => src.ExpectedFuelAverageTemplate));

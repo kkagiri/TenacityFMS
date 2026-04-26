@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File:          WarningLetterReportDataDto.cs
  * Purpose:       DTO for the Warning Letter Analytics report response.
  * Dependencies:  WarningLetterType, WarningLetterWorkflowStage
@@ -29,7 +29,7 @@ public class WarningLetterReportRecordDto
     public int EmployeeId { get; set; }
     public string EmployeeName { get; set; } = string.Empty;
     public int VehicleId { get; set; }
-    public string VehicleHyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string NumberPlate { get; set; } = string.Empty;
     public int? VehicleTypeId { get; set; }
     public string VehicleTypeName { get; set; } = string.Empty;

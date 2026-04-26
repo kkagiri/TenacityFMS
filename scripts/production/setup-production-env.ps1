@@ -1,6 +1,6 @@
-# ===============================================================================
+﻿# ===============================================================================
 # Production Environment Variables Setup Script
-# Hyoung.FMS - Secure Configuration
+# Tenacy.FMS - Secure Configuration
 # ===============================================================================
 #
 # IMPORTANT: This script sets machine-level environment variables
@@ -27,7 +27,7 @@ function Write-Info { param($Message) Write-Host "ℹ $Message" -ForegroundColor
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host " Hyoung.FMS - Production Environment Setup" -ForegroundColor Cyan
+Write-Host " Tenacy.FMS - Production Environment Setup" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -63,12 +63,12 @@ $Config = @{
     RedisConnection = "10.0.10.154:6379"
 
     # Email Settings (REPLACE WITH NEW PASSWORD!)
-    EmailSmtpServer = "mail.hyoung.co.ke"
+    EmailSmtpServer = "mail.example.com"
     EmailSmtpPort = "25"
     EmailUseSsl = "false"
-    EmailUsername = "hy.gps@hyoung.co.ke"
+    EmailUsername = "hy.gps@example.com"
     EmailPassword = "REPLACE_WITH_NEW_EMAIL_PASSWORD"
-    EmailFromAddress = "hy.gps@hyoung.co.ke"
+    EmailFromAddress = "hy.gps@example.com"
     EmailFromDisplayName = "FMS Notifications"
 
     # GPSGate Settings (REPLACE WITH NEW API KEY!)
@@ -82,12 +82,12 @@ $Config = @{
 
     # JWT Settings (GENERATE NEW SECRET KEY - 32+ CHARACTERS!)
     JwtSecretKey = "REPLACE_WITH_NEW_JWT_SECRET_32_CHARS_MIN"
-    JwtIssuer = "Hyoung EA & Co"
+    JwtIssuer = "Tenacy FMS"
     JwtAudience = "FMSUsers"
     JwtExpireDays = "7"
 
     # Application Settings
-    SecretKey = "Hyoung2030"
+    SecretKey = "Tenacy2030"
     ApplicationId = "12"
     UploadStatusResponseDelay = "5000"
     FuelConsumptionReportID = "208"

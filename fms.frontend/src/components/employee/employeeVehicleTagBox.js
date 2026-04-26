@@ -1,4 +1,4 @@
-import React, { useMemo,useCallback,useEffect } from 'react';
+﻿import React, { useMemo,useCallback,useEffect } from 'react';
 import TagBox from 'devextreme-react/tag-box';
 import { useSelector } from 'react-redux';
 
@@ -24,7 +24,7 @@ const EmployeevehicleTagbox = (props) => {
             dataSource={vehicles}
             value={vehicleValues}
             valueExpr="vehicleId"
-            displayExpr="hyoungNo"
+            displayExpr="vehicleCode"
             showSelectionControls={true}
             maxDisplayedTags={5}
             applyValueMode="useButtons"
@@ -32,7 +32,7 @@ const EmployeevehicleTagbox = (props) => {
             onValueChanged={handleValueChanged}
             acceptCustomValue={false}
             showClearButton={true}
-            searchExpr={["hyoungNo", "vehicleId"]}  
+            searchExpr={["vehicleCode", "vehicleId"]}  
            
             />
         );

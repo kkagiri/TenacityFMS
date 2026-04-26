@@ -13,7 +13,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public int Id { get; set; }
         public int VehicleId { get; set; }
         public decimal? TotalFuel { get; set; }
-        public string HyoungNo { get; set; }
+        public string VehicleCode { get; set; }
         public String VehicleType { get; set; }
         public string VehicleModel { get; set; }
         public string VehicleManufacturer { get; set; }

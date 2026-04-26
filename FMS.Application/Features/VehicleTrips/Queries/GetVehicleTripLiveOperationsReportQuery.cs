@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetVehicleTripLiveOperationsReportQuery.cs
  * Purpose: Builds a live fleet trip operations snapshot for reporting.
  * Dependencies: MediatR, FMSResponse, GpsdataContext, live trip operations DTOs.
@@ -109,7 +109,7 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
                         VehicleTripGroupId = group.VehicleTripGroupId,
                         VehicleTripId = currentTrip?.VehicleTripId ?? 0,
                         VehicleId = group.VehicleId,
-                        VehicleLabel = BuildVehicleLabel(group.Vehicle.HyoungNo, group.Vehicle.NumberPlate),
+                        VehicleLabel = BuildVehicleLabel(group.Vehicle.VehicleCode, group.Vehicle.NumberPlate),
                         NumberPlate = group.Vehicle.NumberPlate,
                         StartedAtUtc = group.StartTimeUtc,
                         LastUpdatedAtUtc = ResolveLastUpdatedUtc(group, currentTrip),
@@ -137,7 +137,7 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
                         VehicleTripGroupId = group.VehicleTripGroupId,
                         VehicleTripId = currentTrip?.VehicleTripId ?? 0,
                         VehicleId = group.VehicleId,
-                        VehicleLabel = BuildVehicleLabel(group.Vehicle.HyoungNo, group.Vehicle.NumberPlate),
+                        VehicleLabel = BuildVehicleLabel(group.Vehicle.VehicleCode, group.Vehicle.NumberPlate),
                         NumberPlate = group.Vehicle.NumberPlate,
                         TripDate = group.TripDate,
                         StartedAtUtc = group.StartTimeUtc,
@@ -166,7 +166,7 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
                 .GroupBy(group => new
                 {
                     group.VehicleId,
-                    VehicleLabel = BuildVehicleLabel(group.Vehicle.HyoungNo, group.Vehicle.NumberPlate),
+                    VehicleLabel = BuildVehicleLabel(group.Vehicle.VehicleCode, group.Vehicle.NumberPlate),
                     group.Vehicle.NumberPlate,
                 })
                 .Select(group => new VehicleTripLiveVehicleCountDTO
@@ -190,7 +190,7 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
                 .GroupBy(group => new
                 {
                     group.VehicleId,
-                    VehicleLabel = BuildVehicleLabel(group.Vehicle.HyoungNo, group.Vehicle.NumberPlate),
+                    VehicleLabel = BuildVehicleLabel(group.Vehicle.VehicleCode, group.Vehicle.NumberPlate),
                     group.Vehicle.NumberPlate,
                 })
                 .Select(group =>
@@ -230,7 +230,7 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
                         VehicleTripGroupId = group.VehicleTripGroupId,
                         VehicleTripId = currentTrip?.VehicleTripId ?? 0,
                         VehicleId = group.VehicleId,
-                        VehicleLabel = BuildVehicleLabel(group.Vehicle.HyoungNo, group.Vehicle.NumberPlate),
+                        VehicleLabel = BuildVehicleLabel(group.Vehicle.VehicleCode, group.Vehicle.NumberPlate),
                         NumberPlate = group.Vehicle.NumberPlate,
                         LocationDisplayName = ResolveDestinationDisplayName(group, currentTrip),
                         StartedAtUtc = group.StartTimeUtc,
@@ -332,10 +332,10 @@ public class GetVehicleTripLiveOperationsReportQueryHandler : IRequestHandler<Ge
         return "Unknown";
     }
 
-    private static string BuildVehicleLabel(string? hyoungNo, string? numberPlate)
+    private static string BuildVehicleLabel(string? vehicleCode, string? numberPlate)
     {
         return !string.IsNullOrWhiteSpace(numberPlate)
-            ? $"{hyoungNo} / {numberPlate}"
-            : hyoungNo ?? string.Empty;
+            ? $"{vehicleCode} / {numberPlate}"
+            : vehicleCode ?? string.Empty;
     }
 }

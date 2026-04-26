@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -186,7 +186,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         return new VehicleRefillSummaryDTO
                         {
                             VehicleId = g.Key,
-                            VehicleNo = vehicle?.HyoungNo ?? vehicle?.NumberPlate ?? $"Vehicle {g.Key}",
+                            VehicleNo = vehicle?.VehicleCode ?? vehicle?.NumberPlate ?? $"Vehicle {g.Key}",
                             DriverId = driver?.Id,
                             DriverName = driver?.FullName ?? "Unassigned",
                             VehicleTypeId = vehicle?.VehicleTypeId,
@@ -218,7 +218,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                             {
                                 RefillId = r.Id,
                                 VehicleId = r.VehicleId,
-                                VehicleNo = r.Vehicle?.HyoungNo ?? r.Vehicle?.NumberPlate ?? $"Vehicle {r.VehicleId}",
+                                VehicleNo = r.Vehicle?.VehicleCode ?? r.Vehicle?.NumberPlate ?? $"Vehicle {r.VehicleId}",
                                 TankId = r.TankId,
                                 TankName = r.Tank?.Name ?? $"Tank {r.TankId}",
                                 DriverId = r.DriverId,

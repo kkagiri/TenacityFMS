@@ -16,73 +16,53 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
             builder.HasKey(t => t.Id);
 
             builder.Property(t => t.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd();
 
             builder.Property(t => t.Category)
-                .HasColumnName("category")
                 .HasMaxLength(30)
                 .IsRequired();
 
             builder.Property(t => t.ThresholdType)
-                .HasColumnName("threshold_type")
                 .HasMaxLength(30)
                 .IsRequired();
 
             builder.Property(t => t.Name)
-                .HasColumnName("name")
                 .HasMaxLength(100)
                 .IsRequired();
 
-            builder.Property(t => t.Description)
-                .HasColumnName("description")
-                .HasColumnType("text");
+            builder.Property(t => t.Description);
 
             builder.Property(t => t.ThresholdValue)
-                .HasColumnName("threshold_value")
                 .HasColumnType("decimal(10,2)")
                 .IsRequired();
 
             builder.Property(t => t.Unit)
-                .HasColumnName("unit")
                 .HasMaxLength(20)
                 .IsRequired();
 
             builder.Property(t => t.Severity)
-                .HasColumnName("severity")
                 .HasMaxLength(20)
                 .IsRequired()
                 .HasDefaultValue("Medium");
 
             builder.Property(t => t.IsActive)
-                .HasColumnName("is_active")
-                .HasColumnType("bit(1)")
                 .HasDefaultValue(true);
 
             builder.Property(t => t.AutoApply)
-                .HasColumnName("auto_apply")
-                .HasColumnType("bit(1)")
                 .HasDefaultValue(true);
 
             builder.Property(t => t.VehicleTypeFilter)
-                .HasColumnName("vehicle_type_filter")
                 .HasMaxLength(20);
 
             // Audit Trail
             builder.Property(t => t.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(t => t.CreatedBy)
-                .HasColumnName("created_by");
+            builder.Property(t => t.CreatedBy);
 
-            builder.Property(t => t.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasColumnType("datetime");
+            builder.Property(t => t.UpdatedAt);
 
-            builder.Property(t => t.UpdatedBy)
-                .HasColumnName("updated_by");
+            builder.Property(t => t.UpdatedBy);
 
             // Indexes
             builder.HasIndex(t => t.Category);
@@ -90,3 +70,4 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
         }
     }
 }
+

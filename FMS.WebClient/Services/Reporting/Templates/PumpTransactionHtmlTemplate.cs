@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: PumpTransactionHtmlTemplate.cs
  * Purpose: Dedicated Handlebars/HTML template for the Pump Transaction report.
  * Dependencies: None
@@ -21,7 +21,7 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <meta charset=""UTF-8"">
-    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <title>{{reportTitle}} - Tenacy FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet""></link>
     <style>
         :root {
@@ -214,7 +214,7 @@ namespace FMS.WebClient.Services.Reporting
     {{/unless}}
 
     <div class=""report-footer"">
-        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Tenacy Fleet Management</strong></span></div>
         <div>Generated: {{generatedAt}} &nbsp;|&nbsp; Report ID: {{reportId}}</div>
     </div>
 </div>

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -39,7 +39,7 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
             }
 
             var searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
-            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeHyoungNo(searchTerm);
+            var compactSearchTerm = VehicleIdentifierNormalizer.NormalizeVehicleCode(searchTerm);
             var normalizedPlateSearchTerm = VehicleIdentifierNormalizer.NormalizeNumberPlate(searchTerm) ?? string.Empty;
             _logger.LogInformation ("DEBUG: Searching for vehicles with term: '{SearchTerm}'", searchTerm);
 
@@ -47,7 +47,7 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
             var allVehicles = await _context.Vehicles
                 .Select (v => new {
                     v.VehicleId,
-                        v.HyoungNo,
+                        v.VehicleCode,
                         v.NumberPlate,
                         v.IsActive,
                         VehicleModelName = v.VehicleModel != null ? v.VehicleModel.Name : null,
@@ -61,15 +61,15 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
             // Now test the search query without any complex includes
             var simpleResults = await _context.Vehicles
                 .Where (v =>
-                    v.HyoungNo.Contains (searchTerm) ||
-                    v.HyoungNo.Replace (" ", string.Empty).Replace ("\r", string.Empty).Replace ("\n", string.Empty).Contains (compactSearchTerm) ||
+                    v.VehicleCode.Contains (searchTerm) ||
+                    v.VehicleCode.Replace (" ", string.Empty).Replace ("\r", string.Empty).Replace ("\n", string.Empty).Contains (compactSearchTerm) ||
                     (v.NumberPlate != null && (
                         v.NumberPlate.Contains (normalizedPlateSearchTerm) ||
                         v.NumberPlate.Replace (" ", string.Empty).Replace ("\r", string.Empty).Replace ("\n", string.Empty).Contains (compactSearchTerm)))
                 )
                 .Select (v => new {
                     v.VehicleId,
-                        v.HyoungNo,
+                        v.VehicleCode,
                         v.NumberPlate,
                         v.IsActive
                 })
@@ -80,7 +80,7 @@ public class DebugSearchVehicleQueryHandler : IRequestHandler<DebugSearchVehicle
             // Try to create DTOs manually for the simple results
             var manualDtos = simpleResults.Take (request.Limit ?? 10).Select (v => new VehicleDTO {
                 VehicleId = v.VehicleId,
-                    HyoungNo = v.HyoungNo,
+                    VehicleCode = v.VehicleCode,
                     NumberPlate = v.NumberPlate
                 // Add other basic properties as needed
             }).ToList ();

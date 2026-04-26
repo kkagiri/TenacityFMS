@@ -22,18 +22,15 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("asset");
 
                 builder.Property(e => e.AssetId)
-                    .HasMaxLength(255)
-                    .HasColumnName("AssetID");
+                    .HasMaxLength(255);
 
                 builder.Property(e => e.AssetName).HasMaxLength(45);
 
-                builder.Property(e => e.IsActive).HasColumnType("tinyint(4)");
+                builder.Property(e => e.IsActive);
 
                 builder.Property(e => e.SiteId)
-                    .HasMaxLength(255)
-                    .HasColumnName("SiteID");
+                    .HasMaxLength(255);
             }
-
 
             catch (Exception ex)
             {
@@ -44,3 +41,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

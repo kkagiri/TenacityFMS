@@ -1,8 +1,8 @@
-# Dashboard Module Documentation
+﻿# Dashboard Module Documentation
 
 ## 1. Purpose
 
-This document explains the current dashboard module architecture in Hyoung FMS, including:
+This document explains the current dashboard module architecture in Tenacy FMS, including:
 
 - day-to-day usage flow
 - backend and frontend structure

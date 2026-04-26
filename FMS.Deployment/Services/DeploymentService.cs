@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using HyoungFMS.Deployment.Interfaces;
-using HyoungFMS.Deployment.Models;
+using TenacyFMS.Deployment.Interfaces;
+using TenacyFMS.Deployment.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace HyoungFMS.Deployment.Services
+namespace TenacyFMS.Deployment.Services
 {
     /// <summary>
     /// Implementation of the Deployment Service interface

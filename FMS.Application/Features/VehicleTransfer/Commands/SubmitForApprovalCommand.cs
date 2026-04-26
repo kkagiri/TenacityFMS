@@ -150,7 +150,7 @@ public class SubmitForApprovalCommandHandler : IRequestHandler<SubmitForApproval
   <table style='border-collapse: collapse;'>
     <tr><td style='padding:4px 8px;'><strong>Transfer ID:</strong></td><td style='padding:4px 8px;'>{transfer.TransferId}</td></tr>
     <tr><td style='padding:4px 8px;'><strong>Delivery Note:</strong></td><td style='padding:4px 8px;'>{transfer.DeliveryNoteNumber}</td></tr>
-    <tr><td style='padding:4px 8px;'><strong>Vehicle:</strong></td><td style='padding:4px 8px;'>{transfer.Vehicle?.HyoungNo}</td></tr>
+    <tr><td style='padding:4px 8px;'><strong>Vehicle:</strong></td><td style='padding:4px 8px;'>{transfer.Vehicle?.VehicleCode}</td></tr>
     <tr><td style='padding:4px 8px;'><strong>From Site:</strong></td><td style='padding:4px 8px;'>{transfer.FromSite?.Name}</td></tr>
     <tr><td style='padding:4px 8px;'><strong>To Site:</strong></td><td style='padding:4px 8px;'>{transfer.ToSite?.Name}</td></tr>
     <tr><td style='padding:4px 8px;'><strong>Date:</strong></td><td style='padding:4px 8px;'>{transfer.TransferDate:yyyy-MM-dd HH:mm}</td></tr>

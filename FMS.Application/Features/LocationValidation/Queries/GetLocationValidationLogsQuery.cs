@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -104,8 +104,8 @@ public class GetLocationValidationLogsQueryHandler
 
             var vehicles = await _context.Vehicles
                 .Where(v => vehicleIds.Contains(v.VehicleId))
-                .Select(v => new { v.VehicleId, v.HyoungNo })
-                .ToDictionaryAsync(v => v.VehicleId, v => v.HyoungNo, cancellationToken);
+                .Select(v => new { v.VehicleId, v.VehicleCode })
+                .ToDictionaryAsync(v => v.VehicleId, v => v.VehicleCode, cancellationToken);
 
             var users = await _context.Users
                 .Where(u => userIds.Contains(u.Id))
@@ -218,7 +218,7 @@ public class GetLocationValidationLogByIdQueryHandler
             {
                 vehicleName = await _context.Vehicles
                     .Where(v => v.VehicleId == log.VehicleId.Value)
-                    .Select(v => v.HyoungNo)
+                    .Select(v => v.VehicleCode)
                     .FirstOrDefaultAsync(cancellationToken);
             }
 

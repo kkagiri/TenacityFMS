@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TransactionMonitoringModal.js
  *
  * Enhanced real-time transaction monitoring component for mobile
@@ -1258,7 +1258,7 @@ const TransactionMonitoringModal = ({
                   <Text style={styles.detailValue}>
                     {fuelingContext?.vehicleName ||
                       vehicleInfo?.plateNo ||
-                      vehicleInfo?.hyoungNo}
+                      vehicleInfo?.vehicleCode}
                   </Text>
                 </View>
               </View>

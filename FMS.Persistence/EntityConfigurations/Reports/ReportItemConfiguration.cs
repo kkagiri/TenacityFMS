@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities.Reports;
 
@@ -21,20 +21,19 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("reportitems");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.DisplayName).HasMaxLength(100);
                 builder.Property(e => e.Description).HasMaxLength(500);
                 builder.Property(e => e.Category).HasMaxLength(100).HasDefaultValue("DevExtreme Reports");
                 builder.Property(e => e.Icon).HasMaxLength(100).HasDefaultValue("fa-light fa-file-chart-column");
-                builder.Property(e => e.ReportType).HasColumnType("int(11)").HasDefaultValue(4);
-                builder.Property(e => e.LayoutData).HasColumnType("longblob");
-                builder.Property(e => e.CreatedAt).HasColumnType("datetime");
-                builder.Property(e => e.UpdatedAt).HasColumnType("datetime");
+                builder.Property(e => e.ReportType).HasDefaultValue((FMS.Domain.Entities.Reports.ReportType)4);
+                builder.Property(e => e.LayoutData);
+                builder.Property(e => e.CreatedAt);
+                builder.Property(e => e.UpdatedAt);
                 builder.Property(e => e.CreatedBy).HasMaxLength(50);
                 builder.Property(e => e.UpdatedBy).HasMaxLength(50);
             }
-
 
             catch (Exception ex)
             {

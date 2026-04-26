@@ -1,4 +1,4 @@
-# SignalR Connection Fix - Production Issue
+﻿# SignalR Connection Fix - Production Issue
 
 ## Problem Summary
 
@@ -78,7 +78,7 @@ REACT_APP_SIGNALR_URL=http://10.0.10.153:7009
 ### 1. Rebuild Frontend
 
 ```powershell
-cd c:\dev\Hyoung.FMS\fms.frontend
+cd c:\dev\Tenacy.FMS\fms.frontend
 npm run build
 ```
 

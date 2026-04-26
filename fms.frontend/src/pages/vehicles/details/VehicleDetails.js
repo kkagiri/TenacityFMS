@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleDetails.js
  * Purpose: Vehicle details screen with tabbed information, history, and admin-managed settings.
  * Dependencies: Redux actions, DevExtreme UI components, permissions via JWT.
@@ -313,7 +313,7 @@ const VehicleDetails = () => {
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete vehicle ${vehicle.hyoungNo} - ${vehicle.numberPlate}? This action cannot be undone.`
+      `Are you sure you want to delete vehicle ${vehicle.vehicleCode} - ${vehicle.numberPlate}? This action cannot be undone.`
     );
     if (!confirmed) return;
 
@@ -705,7 +705,7 @@ const VehicleDetails = () => {
           <div className="vehicle-details__title-block">
             <h2 className="vehicle-details__title">
               <i className="fa-light fa-truck vehicle-details__title-icon"></i>
-              {vehicle.hyoungNo} &middot; {vehicle.numberPlate}
+              {vehicle.vehicleCode} &middot; {vehicle.numberPlate}
             </h2>
             <div className="vehicle-details__subtitle">
               {[vehicleManufacturerDisplay, vehicleModelDisplay].filter(Boolean).join(" ") || "—"}
@@ -788,7 +788,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowTagPopup(false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Assign RFID Tag to ${vehicle.hyoungNo}`}
+        title={`Assign RFID Tag to ${vehicle.vehicleCode}`}
         width="90%"
         height="auto"
         maxWidth={600}
@@ -816,7 +816,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowSitePopup(false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Change Working Site for ${vehicle.hyoungNo}`}
+        title={`Change Working Site for ${vehicle.vehicleCode}`}
         width="90%"
         height="auto"
         maxWidth={600}
@@ -882,7 +882,7 @@ const VehicleDetails = () => {
         onHiding={() => setShowExpectedAvgPopup(false)}
         dragEnabled={false}
         showTitle={true}
-        title={`Set Expected Average for ${vehicle.hyoungNo}`}
+        title={`Set Expected Average for ${vehicle.vehicleCode}`}
         width="90%"
         height="auto"
         maxWidth={800}

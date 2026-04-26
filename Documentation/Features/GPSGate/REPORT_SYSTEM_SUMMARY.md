@@ -1,4 +1,4 @@
-# Report Processing System - Implementation Summary
+﻿# Report Processing System - Implementation Summary
 
 ## What Was Built
 
@@ -230,7 +230,7 @@ services.AddSingleton<IReportProcessorFactory, ReportProcessorFactory>();
 
 2. **Build Solution**
 ```bash
-dotnet build Hyoung.Fms.sln
+dotnet build Tenacy.Fms.sln
 ```
 
 3. **Run Tests**

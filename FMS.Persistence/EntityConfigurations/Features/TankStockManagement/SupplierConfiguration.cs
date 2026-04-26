@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 using System;
@@ -22,7 +22,7 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("supplier");
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Contacts).HasMaxLength(45);
                 builder.Property(e => e.Name).HasMaxLength(45);
             }
@@ -35,3 +35,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

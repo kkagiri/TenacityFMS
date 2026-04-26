@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: UpdateVehicleTransferStatusCommand.cs
  * Purpose: Updates transfer lifecycle status with transition validation and side effects.
  * Dependencies: EF Core, optional GPS tag transfer service
@@ -142,8 +142,8 @@ public class UpdateVehicleTransferStatusCommandHandler : IRequestHandler<UpdateV
             vehicle.DateModified = DateTime.UtcNow;
 
             _logger.LogInformation(
-                "Updated vehicle {VehicleId} ({HyoungNo}) working site from {FromSiteId} to {ToSiteId} for transfer {TransferId}",
-                vehicle.VehicleId, vehicle.HyoungNo, previousSiteId, transfer.ToSiteId, transfer.TransferId);
+                "Updated vehicle {VehicleId} ({VehicleCode}) working site from {FromSiteId} to {ToSiteId} for transfer {TransferId}",
+                vehicle.VehicleId, vehicle.VehicleCode, previousSiteId, transfer.ToSiteId, transfer.TransferId);
         }
         catch (Exception ex)
         {

@@ -16,7 +16,6 @@ export const vehicleRoutes = {
   consumptionComparison: '/vehicles/consumption-comparison',
   tracking: '/vehicles/tracking',
   reports: '/vehicles/reports',
-  documents: '/vehicles/documents',
   transfers: '/vehicles/transfers',
   settings: '/vehicles/settings',
   addVehicle: '/vehicles/fleet#vehicleaction'
@@ -127,13 +126,6 @@ export const navigationGroups = {
           description: 'Compare GPS and manual refill consumption patterns'
         }
       ]
-    },
-    {
-      id: 'documents',
-      title: 'Documents',
-      icon: 'fa-light fa-file-lines',
-      path: vehicleRoutes.documents,
-      permissionAny: ['_Read_VehicleDocuments', '_Read_Vehicle'],
     },
     {
       id: 'transfers',

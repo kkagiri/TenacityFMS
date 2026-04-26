@@ -1,4 +1,4 @@
-using FMS.Application.Common;
+﻿using FMS.Application.Common;
 using FMS.Application.CommonInterface;
 using FMS.Application.Dtos;
 using FMS.Application.ModelsDTOs.GPSGate;
@@ -45,7 +45,7 @@ namespace FMS.Application.Queries.VehicleMaintenance
                     .Select(v => new
                     {
                         v.VehicleId,
-                        v.HyoungNo,
+                        v.VehicleCode,
                         v.NumberPlate,
                         CurrentOdometer = (decimal?)null, // TODO: Add CurrentOdometer to Vehicle entity
                         LastOdometerUpdate = (DateTime?)null // TODO: Add LastOdometerUpdate to Vehicle entity
@@ -77,7 +77,7 @@ namespace FMS.Application.Queries.VehicleMaintenance
                     var comparison = new VehicleOdometerComparisonDTO
                     {
                         VehicleId = vehicle.VehicleId,
-                        HyoungNo = vehicle.HyoungNo,
+                        VehicleCode = vehicle.VehicleCode,
                         NumberPlate = vehicle.NumberPlate,
                         DatabaseOdometer = (double?)vehicle.CurrentOdometer,
                         DatabaseLastUpdated = vehicle.LastOdometerUpdate,
@@ -164,7 +164,7 @@ namespace FMS.Application.Queries.VehicleMaintenance
                 // Order by discrepancy (highest first), then by vehicle name
                 comparisons = comparisons
                     .OrderByDescending(c => c.Discrepancy ?? 0)
-                    .ThenBy(c => c.HyoungNo)
+                    .ThenBy(c => c.VehicleCode)
                     .ToList();
 
                 _logger.LogInformation(

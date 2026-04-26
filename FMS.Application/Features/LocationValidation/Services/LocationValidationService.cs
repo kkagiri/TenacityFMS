@@ -1,4 +1,4 @@
-using FMS.Application.Features.LocationValidation.DTOs;
+﻿using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Configuration;
 using FMS.Application.Services.Configuration;
@@ -766,7 +766,7 @@ public partial class LocationValidationService : ILocationValidationService
             // Create notification for stale device
             if (locationValidation.RequiresNotification)
             {
-                await CreateStaleDeviceNotificationAsync(vehicleId, vehicle.HyoungNo ?? vehicleId.ToString(),
+                await CreateStaleDeviceNotificationAsync(vehicleId, vehicle.VehicleCode ?? vehicleId.ToString(),
                     locationValidation.DeviceActivityTime, cancellationToken);
             }
 

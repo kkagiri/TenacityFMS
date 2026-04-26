@@ -8,7 +8,7 @@ namespace FMS.Application.Features.FMS.FuelRefil {
     public class ExtendedRefillDetailDTO {
         public int Id { get; set; }
         public int VehicleId { get; set; }
-        public string HyoungNO { get; set; } // Add this to store the vehicle number (HyoungNo)
+        public string TenacyNO { get; set; } // Add this to store the vehicle number (VehicleCode)
         public decimal? ManualFuelrefillAmount { get; set; }
         public DateTime? Date { get; set; }
         public decimal? PreviousMeterReading { get; set; }

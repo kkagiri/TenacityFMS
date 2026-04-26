@@ -200,7 +200,7 @@ Key references:
 Common normalized fields used:
 
 - `vehicleId`
-- `hyoungNo`
+- `vehicleCode`
 - `vehicleName`
 - `numberPlate`
 - `tankCapacity` / `fuelTankCapacity`

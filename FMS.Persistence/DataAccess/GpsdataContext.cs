@@ -18,7 +18,6 @@ using FMS.Domain.Entities.Auth;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Domain.Entities.Features.AutomaticReconciliation;
 using FMS.Domain.Entities.Features.ErrorManagement;
-using FMS.Domain.Entities.Features.FuelImport;
 using FMS.Domain.Entities.Features.FuelRule;
 using FMS.Domain.Entities.Features.FuelRule.Rules;
 using FMS.Domain.Entities.Features.FuelRuleSet;
@@ -26,7 +25,6 @@ using FMS.Domain.Entities.Features.Notifications;
 using FMS.Domain.Entities.Features.Reporting;
 using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Domain.Entities.Features.UserManagement;
-using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Domain.Entities.GPSGate;
 using FMS.Domain.Entities.FuelAudit;
@@ -39,7 +37,6 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using FMS.Persistence.EntityConfigurations.GPSGate;
-using TaskEntity = FMS.Domain.Entities.TaskEntity;
 
 namespace FMS.Persistence.DataAccess;
 
@@ -138,10 +135,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
     // TODO: Entity not yet created - uncomment when AutomatedFuelingConfiguration entity is added
     // public virtual DbSet<AutomatedFuelingConfiguration> AutomatedFuelingConfigurations { get; set; }
-
-    public virtual DbSet<FuelReportImportHistory> FuelReportImportHistories { get; set; }
-
-    public virtual DbSet<FuelImportFileTracker> FuelImportFileTrackers { get; set; }
 
     public virtual DbSet<Intankdelivery> Intankdeliveries { get; set; }
 
@@ -250,12 +243,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
     //Cursor - PTS Alert Processing (AlertRecords already defined above)
 
-    // Task Management System
-    public virtual DbSet<TaskEntity> Tasks { get; set; }
     public virtual DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
-    public virtual DbSet<VehicleDocument> VehicleDocuments { get; set; }
-    public virtual DbSet<VehicleComplianceRequirement> VehicleComplianceRequirements { get; set; }
-    public virtual DbSet<VehicleDocumentUserPreference> VehicleDocumentUserPreferences { get; set; }
 
     // Vehicle Transfer System
     public virtual DbSet<FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer> VehicleTransfers { get; set; }
@@ -268,9 +256,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<FMS.Domain.Entities.GPSGate.GPSGateReport> GPSGateReports { get; set; }
     public virtual DbSet<FMS.Domain.Entities.GPSGate.GPSGateReportDefinition> GPSGateReportDefinitions { get; set; }
 
-    // Fuel Data Comparison
+    // GPSGate fuel-refill entries (consumed by FuelAudit)
     public virtual DbSet<GpsGateReportEntry> GpsGateReportEntries { get; set; }
-    public virtual DbSet<FuelComparisonSettings> FuelComparisonSettings { get; set; }
 
     // Fuel Audit
     public virtual DbSet<FuelAuditGPSReading> FuelAuditGPSReadings { get; set; }
@@ -387,10 +374,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new FuelRefillConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring FuelRefillConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new FuelreportgenerateConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring FuelreportgenerateConfiguration: {ex.Message}"); }
-
-        try { modelBuilder.ApplyConfiguration(new FuelReportImportHistoryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring FuelReportImportHistoryConfiguration: {ex.Message}"); }
-
-        try { modelBuilder.ApplyConfiguration(new FuelImportFileTrackerConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring FuelImportFileTrackerConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new IntankdeliveryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring IntankdeliveryConfiguration: {ex.Message}"); }
 
@@ -575,13 +558,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         // //Cursor - PTS Alert Processing Configuration
         try { modelBuilder.ApplyConfiguration(new PTSAlertRecordConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring PTSAlertRecordConfiguration: {ex.Message}"); }
 
-        // // Task Management Configuration
-        try { modelBuilder.ApplyConfiguration(new TaskConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring TaskConfiguration: {ex.Message}"); }
-
         try { modelBuilder.ApplyConfiguration(new EmployeeDocumentConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring EmployeeDocumentConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleDocumentConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleComplianceRequirementConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleComplianceRequirementConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleDocumentUserPreferenceConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentUserPreferenceConfiguration: {ex.Message}"); }
 
         // Vehicle Transfer Configurations
         try { modelBuilder.ApplyConfiguration(new VehicleTransferConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTransferConfiguration: {ex.Message}"); }
@@ -596,9 +573,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new VehicleProviderMappingEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleProviderMappingEntityConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleLastKnownLocationConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleLastKnownLocationConfiguration: {ex.Message}"); }
 
-        // Fuel Data Comparison Configurations
+        // GPSGate fuel-refill entries (consumed by FuelAudit)
         try { modelBuilder.ApplyConfiguration(new GpsGateReportEntryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring GpsGateReportEntryConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new FuelComparisonSettingsConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring FuelComparisonSettingsConfiguration: {ex.Message}"); }
 
         // Reporting System Configurations
         try { modelBuilder.ApplyConfiguration(new ReportDefinitionConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ReportDefinitionConfiguration: {ex.Message}"); }
@@ -606,6 +582,9 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new ReportTemplateConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ReportTemplateConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new ReportExecutionHistoryConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ReportExecutionHistoryConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new ReportScheduleConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ReportScheduleConfiguration: {ex.Message}"); }
+
+        // MultiTenancy
+        try { modelBuilder.ApplyConfiguration(new FMS.Persistence.EntityConfigurations.Features.MultiTenancy.TenantConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring TenantConfiguration: {ex.Message}"); }
 
         // Only finalize the model once, after all configurations are applied
         try

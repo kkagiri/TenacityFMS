@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: FuelRefilDTO.cs
  * Purpose: Transport fuel refill data between API and application layers.
  * Dependencies: System
@@ -15,7 +15,7 @@ namespace FMS.Application.Features.FMS.FuelRefil {
     public class FuelRefilDTO {
         public int Id { get; set; }
         public int VehicleId { get; set; }
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
 
         public decimal? ManualFuelrefillAmount { get; set; }
 

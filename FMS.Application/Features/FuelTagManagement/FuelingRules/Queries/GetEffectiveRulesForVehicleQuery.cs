@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -172,7 +172,7 @@ public class EffectiveRulesDTO
 public class VehicleInfoDTO
 {
     public int VehicleId { get; set; }
-    public string? HyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public string? NumberPlate { get; set; }
     public int? VehicleTypeId { get; set; }
     public string? VehicleTypeName { get; set; }
@@ -258,7 +258,7 @@ public class GetEffectiveRulesForVehicleQueryHandler
                 Vehicle = new VehicleInfoDTO
                 {
                     VehicleId = vehicle.VehicleId,
-                    HyoungNo = vehicle.HyoungNo,
+                    VehicleCode = vehicle.VehicleCode,
                     NumberPlate = vehicle.NumberPlate,
                     VehicleTypeId = vehicle.VehicleTypeId,
                     VehicleTypeName = vehicle.VehicleType?.Name,

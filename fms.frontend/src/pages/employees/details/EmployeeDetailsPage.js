@@ -228,7 +228,7 @@ const EmployeeDetailsPage = () => {
   const vehicleMap = useMemo(() => {
     const map = new Map();
     vehicles.forEach((vehicle) => {
-      map.set(vehicle.vehicleId, vehicle.hyoungNo || vehicle.numberPlate);
+      map.set(vehicle.vehicleId, vehicle.vehicleCode || vehicle.numberPlate);
     });
     return map;
   }, [vehicles]);

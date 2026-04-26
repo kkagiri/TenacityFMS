@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: WarningLetterListPage.js
  * Purpose: Displays the warning letter register with filters and draft/workflow shortcuts.
  * Dependencies: React, DataGrid, react-router-dom, warningLetterService, usePermissions
@@ -552,7 +552,7 @@ const WarningLetterListPage = () => {
                             <VehicleSearchableSelector
                                 value={filters.vehicleId ? Number(filters.vehicleId) : null}
                                 onValueChanged={({ value }) => setFilterValue("vehicleId", value ? String(value) : "")}
-                                placeholder="Search vehicle by Hyoung No, plate, or name"
+                                placeholder="Search vehicle by Tenacy No, plate, or name"
                                 width="100%"
                             />
                         </div>
@@ -652,7 +652,7 @@ const WarningLetterListPage = () => {
                     <Column dataField="periodStart" caption="Violation Date" cellRender={renderDate} width={120} />
                     <Column dataField="letterType" caption="Type" cellRender={renderLetterType} minWidth={140} />
                     <Column dataField="employeeName" caption="Employee" minWidth={180} />
-                    <Column dataField="vehicleHyoungNo" caption="Vehicle" minWidth={120} />
+                    <Column dataField="vehicleCode" caption="Vehicle" minWidth={120} />
                     <Column dataField="siteName" caption="Site" minWidth={160} />
                     <Column caption="Created By" minWidth={180} cellRender={renderCreatedBy} />
                     <Column dataField="signatureRequestRecipient" caption="Site Representative" minWidth={180} />

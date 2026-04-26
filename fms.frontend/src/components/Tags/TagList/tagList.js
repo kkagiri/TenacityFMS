@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import {
   DataGrid,
   Column,
@@ -22,7 +22,7 @@ const TagList = ({ tags, onTagSelect, onEditTag }) => {
     if (!vehicleId) return "None";
     const vehicle = vehicles.find((v) => v.vehicleId === vehicleId);
     return vehicle
-      ? `${vehicle.numberPlate || "No plate"} (${vehicle.hyoungNo || "No ID"})`
+      ? `${vehicle.numberPlate || "No plate"} (${vehicle.vehicleCode || "No ID"})`
       : "None";
   };
 

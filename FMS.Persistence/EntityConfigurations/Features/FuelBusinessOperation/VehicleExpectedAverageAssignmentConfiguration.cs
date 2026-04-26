@@ -12,9 +12,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("vehicleexpectedaverageassignments")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("vehicleexpectedaverageassignments");
 
                 // Indexes
                 builder.HasIndex(e => e.VehicleId, "IX_VEAA_Vehicle");
@@ -23,57 +21,38 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => new { e.VehicleId, e.IsDefault }, "IX_VEAA_Vehicle_Default");
 
                 // Properties
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .IsRequired()
-                    .HasColumnName("VehicleID");
+                    .IsRequired();
 
                 builder.Property(e => e.ExpectedFuelAverageTemplateId)
-                    .HasColumnType("int(11)")
-                    .IsRequired()
-                    .HasColumnName("ExpectedFuelAverageTemplateID");
+                    .IsRequired();
 
                 builder.Property(e => e.IsDefault)
-                    .HasColumnType("tinyint(1)")
-                    .HasDefaultValue(false)
-                    .HasColumnName("IsDefault");
+                    .HasDefaultValue(false);
 
                 builder.Property(e => e.OverrideExpectedValue)
-                    .HasPrecision(10, 4)
-                    .HasColumnName("OverrideExpectedValue");
+                    .HasPrecision(10, 4);
 
                 builder.Property(e => e.OverrideTolerancePercent)
-                    .HasPrecision(5, 2)
-                    .HasColumnName("OverrideTolerancePercent");
+                    .HasPrecision(5, 2);
 
                 builder.Property(e => e.Notes)
-                    .HasMaxLength(500)
-                    .HasColumnName("Notes");
+                    .HasMaxLength(500);
 
                 builder.Property(e => e.IsActive)
-                    .HasColumnType("tinyint(1)")
-                    .HasDefaultValue(true)
-                    .HasColumnName("IsActive");
+                    .HasDefaultValue(true);
 
-                builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("CreatedAt");
+                builder.Property(e => e.CreatedAt);
 
                 builder.Property(e => e.CreatedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("CreatedBy");
+                    .HasMaxLength(100);
 
-                builder.Property(e => e.ModifiedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("ModifiedAt");
+                builder.Property(e => e.ModifiedAt);
 
                 builder.Property(e => e.ModifiedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("ModifiedBy");
+                    .HasMaxLength(100);
 
                 // Relationships
                 builder.HasOne(d => d.Vehicle)
@@ -96,3 +75,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

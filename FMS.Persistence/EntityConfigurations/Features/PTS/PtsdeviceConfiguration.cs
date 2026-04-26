@@ -24,35 +24,30 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.Site, "PTSDevice_site_idx");
 
                 builder.Property(e => e.Ptsid)
-                    .HasMaxLength(100)
-                    .HasColumnName("PTSId");
+                    .HasMaxLength(100);
 
                 builder.Property(e => e.PtsName)
-                    .HasMaxLength(200)
-                    .HasColumnName("PTSName");
+                    .HasMaxLength(200);
 
-                builder.Property(e => e.AllowedForDirectCommands).HasColumnType("tinyint(4)");
+                builder.Property(e => e.AllowedForDirectCommands);
                 builder.Property(e => e.AuthenticationType).HasMaxLength(45);
                 builder.Property(e => e.Ipaddress)
-                    .HasMaxLength(100)
-                    .HasColumnName("IPAddress");
-                builder.Property(e => e.IsActive).HasColumnType("tinyint(4)");
-                builder.Property(e => e.IsAuthenticated).HasColumnType("tinyint(4)");
+                    .HasMaxLength(100);
+                builder.Property(e => e.IsActive);
+                builder.Property(e => e.IsAuthenticated);
                 builder.Property(e => e.Login).HasMaxLength(145);
                 builder.Property(e => e.PhoneNumber)
-                    .HasMaxLength(50)
-                    .HasColumnName("PhoneNumber");
+                    .HasMaxLength(50);
                 builder.Property(e => e.Password).HasMaxLength(1045);
-                builder.Property(e => e.PortNumber).HasColumnType("int(11)");
+                builder.Property(e => e.PortNumber);
                 builder.Property(e => e.ProtocolSecurityType).HasMaxLength(145);
-                builder.Property(e => e.Site).HasColumnType("int(11)");
-                builder.Property(e => e.WebSocketCapable).HasColumnType("tinyint(4)");
+                builder.Property(e => e.Site);
+                builder.Property(e => e.WebSocketCapable);
                 builder.Property(e => e.ConnectionStatus).HasMaxLength(20);
-                builder.Property(e => e.LastActivity).HasColumnType("datetime");
+                builder.Property(e => e.LastActivity);
 
                 // Auto-assign user master tag setting
                 builder.Property(e => e.AutoAssignUserMasterTag)
-                    .HasColumnType("tinyint(4)")
                     .HasDefaultValue((sbyte)0);
 
                 // =====================================================
@@ -60,38 +55,30 @@ namespace FMS.Persistence.EntityConfigurations
                 // =====================================================
 
                 builder.Property(e => e.EnableLocationValidation)
-                    .HasColumnType("tinyint(4)")
                     .HasDefaultValue((sbyte)0);
 
                 builder.Property(e => e.RequireVehicleProximity)
-                    .HasColumnType("tinyint(4)")
                     .HasDefaultValue((sbyte)0);
 
                 builder.Property(e => e.RequireMobileAppProximity)
-                    .HasColumnType("tinyint(4)")
                     .HasDefaultValue((sbyte)0);
 
                 builder.Property(e => e.VehicleProximityRadius)
-                    .HasColumnType("int")
                     .HasDefaultValue(100)
                     .IsRequired(false);
 
                 builder.Property(e => e.MobileAppProximityRadius)
-                    .HasColumnType("int")
                     .HasDefaultValue(50)
                     .IsRequired(false);
 
                 builder.Property(e => e.BypassOnGPSFailure)
-                    .HasColumnType("tinyint(4)")
                     .HasDefaultValue((sbyte)1);
 
                 builder.Property(e => e.MinimumGPSAccuracy)
-                    .HasColumnType("int")
                     .HasDefaultValue(20)
                     .IsRequired(false);
 
                 builder.Property(e => e.ProximityGracePeriodMeters)
-                    .HasColumnType("int")
                     .HasDefaultValue(10)
                     .IsRequired(false);
 
@@ -100,7 +87,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.Site)
                     .HasConstraintName("PTSDevice_site");
             }
-
 
             catch (Exception ex)
             {
@@ -111,3 +97,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

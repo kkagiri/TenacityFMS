@@ -1,4 +1,4 @@
-import axiosInstance from "./../../api/axiosInstance";
+﻿import axiosInstance from "./../../api/axiosInstance";
 
 // Action Types
 export const FETCH_CONSUMPTION_REQUEST = "FETCH_CONSUMPTION_REQUEST";
@@ -84,8 +84,8 @@ export const fetchConsumptionByDateRangeFiltered =
       if (filters.vehicleType) {
         params.append("vehicleType", filters.vehicleType);
       }
-      if (filters.hyoungNo) {
-        params.append("hyoungNo", filters.hyoungNo);
+      if (filters.vehicleCode) {
+        params.append("vehicleCode", filters.vehicleCode);
       }
       if (filters.vehicleNumber) {
         params.append("vehicleNumber", filters.vehicleNumber);

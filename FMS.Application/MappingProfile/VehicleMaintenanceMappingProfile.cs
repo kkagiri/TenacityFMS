@@ -1,4 +1,4 @@
-using AutoMapper;
+﻿using AutoMapper;
 using FMS.Application.Features.VehicleMaintenance.DTOs;
 using FMS.Domain.Entities.Features.VehicleManagement;
 
@@ -13,7 +13,7 @@ public class VehicleMaintenanceMappingProfile : Profile
     {
         // VehicleMaintenance mappings
         CreateMap<VehicleMaintenance, VehicleMaintenanceDTO>()
-            .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.HyoungNo : null))
+            .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.VehicleCode : null))
             .ForMember(dest => dest.NumberPlate, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.NumberPlate : null))
             .ForMember(dest => dest.MaintenanceScheduleName, opt => opt.MapFrom(src => src.MaintenanceSchedule != null ? src.MaintenanceSchedule.MaintenanceType : null))
             .ForMember(dest => dest.Issues, opt => opt.MapFrom(src => src.Issues))
@@ -25,7 +25,7 @@ public class VehicleMaintenanceMappingProfile : Profile
         // MaintenanceSchedule mappings
         CreateMap<MaintenanceSchedule, MaintenanceScheduleDTO>()
             .ForMember(dest => dest.VehicleTypeName, opt => opt.MapFrom(src => src.VehicleType != null ? src.VehicleType.Name : null))
-            .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.HyoungNo : null))
+            .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.Vehicle != null ? src.Vehicle.VehicleCode : null))
             .ReverseMap()
             .ForMember(dest => dest.Vehicle, opt => opt.Ignore())
             .ForMember(dest => dest.VehicleType, opt => opt.Ignore())

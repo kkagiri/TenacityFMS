@@ -1,13 +1,11 @@
-using FMS.Domain.Entities.Features.Notifications;
+﻿using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FMS.Persistence.EntityConfigurations {
     public class NotificationGroupMemberConfiguration : IEntityTypeConfiguration<NotificationGroupMember> {
         public void Configure (EntityTypeBuilder<NotificationGroupMember> builder) {
-            builder.ToTable ("notification_group_member")
-                .HasCharSet ("utf8mb4")
-                .UseCollation ("utf8mb4_general_ci");
+            builder.ToTable ("notification_group_member");
 
             builder.HasKey (e => e.Id).HasName ("PRIMARY");
 

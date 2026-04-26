@@ -2,16 +2,16 @@
 using System.IO;
 using System.Threading.Tasks;
 using CommandLine;
-using HyoungFMS.Deployment.Interfaces;
-using HyoungFMS.Deployment.Models;
-using HyoungFMS.Deployment.Services;
+using TenacyFMS.Deployment.Interfaces;
+using TenacyFMS.Deployment.Models;
+using TenacyFMS.Deployment.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
-namespace HyoungFMS.Deployment
+namespace TenacyFMS.Deployment
 {
     class Program
     {

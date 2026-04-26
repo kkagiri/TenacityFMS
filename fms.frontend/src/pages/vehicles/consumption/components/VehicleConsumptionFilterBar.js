@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionFilterBar.js
  * Purpose: Renders the shared filter bar for vehicle consumption pages using native M365-style controls.
  * Dependencies: React
@@ -88,7 +88,7 @@ const VehicleConsumptionFilterBar = ({
                         <option value="">All vehicles</option>
                         {vehicles.map((vehicle) => (
                             <option key={vehicle.vehicleId} value={vehicle.vehicleId}>
-                                {(vehicle.hyoungNo || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`).trim()}
+                                {(vehicle.vehicleCode || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId}`).trim()}
                                 {vehicle.numberPlate ? ` • ${vehicle.numberPlate}` : ""}
                             </option>
                         ))}

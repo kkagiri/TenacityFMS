@@ -23,74 +23,45 @@ public class VehicleTripOverrideConfiguration : EntityTypeConfiguration<VehicleT
         builder.HasIndex(e => e.ResultVehicleTripGroupId, "idx_vehicle_trip_override_result_group");
         builder.HasIndex(e => e.VehicleTripId, "idx_vehicle_trip_override_trip");
 
-        builder.Property(e => e.VehicleTripOverrideId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripOverrideId");
+        builder.Property(e => e.VehicleTripOverrideId);
 
-        builder.Property(e => e.VehicleId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleId");
+        builder.Property(e => e.VehicleId);
 
-        builder.Property(e => e.VehicleTripGroupId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripGroupId");
+        builder.Property(e => e.VehicleTripGroupId);
 
-        builder.Property(e => e.VehicleTripId)
-            .HasColumnType("int(11)")
-            .HasColumnName("VehicleTripId");
+        builder.Property(e => e.VehicleTripId);
 
-        builder.Property(e => e.SecondaryVehicleTripId)
-            .HasColumnType("int(11)")
-            .HasColumnName("SecondaryVehicleTripId");
+        builder.Property(e => e.SecondaryVehicleTripId);
 
-        builder.Property(e => e.ResultVehicleTripGroupId)
-            .HasColumnType("int(11)")
-            .HasColumnName("ResultVehicleTripGroupId");
+        builder.Property(e => e.ResultVehicleTripGroupId);
 
         builder.Property(e => e.ActionType)
-            .HasMaxLength(50)
-            .HasColumnName("ActionType");
+            .HasMaxLength(50);
 
         builder.Property(e => e.Reason)
-            .HasMaxLength(1000)
-            .HasColumnName("Reason");
+            .HasMaxLength(1000);
 
         builder.Property(e => e.RequestedByUserId)
-            .HasMaxLength(100)
-            .HasColumnName("RequestedByUserId");
+            .HasMaxLength(100);
 
         builder.Property(e => e.RequestedByName)
-            .HasMaxLength(255)
-            .HasColumnName("RequestedByName");
+            .HasMaxLength(255);
 
         builder.Property(e => e.RequestIpAddress)
-            .HasMaxLength(45)
-            .HasColumnName("RequestIpAddress");
+            .HasMaxLength(45);
 
-        builder.Property(e => e.RequestedAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("RequestedAtUtc");
+        builder.Property(e => e.RequestedAtUtc);
 
         builder.Property(e => e.RequiredSupervisorApproval)
-            .HasColumnType("bit(1)")
-            .HasDefaultValue(false)
-            .HasColumnName("RequiredSupervisorApproval");
+            .HasDefaultValue(false);
 
-        builder.Property(e => e.SupervisorApprovalJson)
-            .HasColumnType("longtext")
-            .HasColumnName("SupervisorApprovalJson");
+        builder.Property(e => e.SupervisorApprovalJson);
 
-        builder.Property(e => e.OriginalValuesJson)
-            .HasColumnType("longtext")
-            .HasColumnName("OriginalValuesJson");
+        builder.Property(e => e.OriginalValuesJson);
 
-        builder.Property(e => e.NewValuesJson)
-            .HasColumnType("longtext")
-            .HasColumnName("NewValuesJson");
+        builder.Property(e => e.NewValuesJson);
 
-        builder.Property(e => e.CreatedAtUtc)
-            .HasColumnType("datetime")
-            .HasColumnName("CreatedAtUtc");
+        builder.Property(e => e.CreatedAtUtc);
 
         builder.HasOne(e => e.Vehicle)
             .WithMany()

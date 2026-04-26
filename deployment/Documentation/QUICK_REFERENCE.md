@@ -1,10 +1,10 @@
-# 🚀 Hyoung FMS - Quick Reference Card
+﻿# 🚀 Tenacy FMS - Quick Reference Card
 
 ## 📍 Locations
 ```
-Development:  C:\dev\Hyoung.FMS           ← Work here!
-Backend IIS:  C:\inetpub\wwwroot\hyoungFMS\webAPI
-Frontend IIS: C:\inetpub\wwwroot\hyoungFMS\reactApp
+Development:  C:\dev\Tenacy.FMS           ← Work here!
+Backend IIS:  C:\inetpub\wwwroot\tenacyFMS\webAPI
+Frontend IIS: C:\inetpub\wwwroot\tenacyFMS\reactApp
 ```
 
 ## 🌐 URLs
@@ -17,12 +17,12 @@ Frontend: http://localhost:3000
 
 ### First Time Setup (Administrator)
 ```powershell
-.\setup-iis-hyoungfms.ps1
+.\setup-iis-tenacyfms.ps1
 ```
 
 ### Daily Work
 ```powershell
-code C:\dev\Hyoung.FMS        # Open workspace
+code C:\dev\Tenacy.FMS        # Open workspace
 git add . && git commit -m "msg" && git push    # Deploy
 ```
 
@@ -44,7 +44,7 @@ git add . && git commit -m "msg" && git push    # Deploy
 
 ### View Logs
 ```powershell
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 50
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 50
 ```
 
 ## 🔧 Troubleshooting
@@ -63,7 +63,7 @@ Start-Sleep -Seconds 5
 
 ### Check Backend Errors
 ```powershell
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\logs\stdout*.log" -Tail 100
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\logs\stdout*.log" -Tail 100
 ```
 
 ### Full Reset
@@ -74,14 +74,14 @@ iisreset
 
 ## ✅ Development Workflow
 
-1. **Work in dev**: `cd C:\dev\Hyoung.FMS`
+1. **Work in dev**: `cd C:\dev\Tenacy.FMS`
 2. **Make changes**: Edit in VS Code
 3. **Commit & push**: Auto-deploys via CI/CD
-4. **Monitor**: https://github.com/kagz100/Hyoung.FMS/actions
+4. **Monitor**: https://github.com/kagz100/Tenacy.FMS/actions
 
 ## 🎯 Remember
 
-- ✅ Always work in `C:\dev\Hyoung.FMS`
+- ✅ Always work in `C:\dev\Tenacy.FMS`
 - ❌ Never edit `C:\inetpub\wwwroot` directly
 - ✅ Push to GitHub = Auto deploy
 - ✅ Manual deploy for emergencies only

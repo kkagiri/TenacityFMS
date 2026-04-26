@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetAdminNotificationHistoryQuery.cs
  * Purpose: Query and handler to retrieve admin notification history with filtering and pagination.
  * Dependencies: MediatR, GpsdataContext, FMS.Application DTOs
@@ -115,7 +115,7 @@ namespace FMS.Application.Features.Notification.Queries
                     ErrorMessage = n.ErrorMessage,
                     SiteName = n.Site != null ? n.Site.Name : null,
                     TankName = n.Tank != null ? n.Tank.Name : null,
-                    VehicleName = n.Vehicle != null ? n.Vehicle.HyoungNo : null,
+                    VehicleName = n.Vehicle != null ? n.Vehicle.VehicleCode : null,
                     PtsDeviceName = n.PtsDevice != null ? n.PtsDevice.Ptsid : null,
                     PolicyName = n.NotificationPolicy != null ? n.NotificationPolicy.Name : null,
                     CategoryName = n.NotificationCategory != null ? n.NotificationCategory.Name : null,

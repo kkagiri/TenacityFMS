@@ -17,101 +17,73 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
             builder.HasKey(r => r.Id);
 
             builder.Property(r => r.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd();
 
             // Relationships
-            builder.Property(r => r.AuditId)
-                .HasColumnName("audit_id");
+            builder.Property(r => r.AuditId);
 
             builder.Property(r => r.VehicleId)
-                .HasColumnName("vehicle_id")
                 .IsRequired();
 
             // Request Context
             builder.Property(r => r.ReadingDate)
-                .HasColumnName("reading_date")
-                .HasColumnType("date")
                 .IsRequired();
 
             builder.Property(r => r.ReadingType)
-                .HasColumnName("reading_type")
                 .HasMaxLength(20)
                 .IsRequired();
 
             // Fuel Data
             builder.Property(r => r.FuelLevel)
-                .HasColumnName("fuel_level")
                 .HasColumnType("decimal(10,2)");
 
             builder.Property(r => r.FuelLevelUnit)
-                .HasColumnName("fuel_level_unit")
                 .HasMaxLength(20)
                 .HasDefaultValue("Liters");
 
             // Timestamp
-            builder.Property(r => r.ReadingTimestamp)
-                .HasColumnName("reading_timestamp")
-                .HasColumnType("datetime");
+            builder.Property(r => r.ReadingTimestamp);
 
-            builder.Property(r => r.ActualDataDate)
-                .HasColumnName("actual_data_date")
-                .HasColumnType("date");
+            builder.Property(r => r.ActualDataDate);
 
             // Data Quality
             builder.Property(r => r.DataQuality)
-                .HasColumnName("data_quality")
                 .HasMaxLength(30)
                 .IsRequired()
                 .HasDefaultValue("Exact");
 
             builder.Property(r => r.DataQualityReason)
-                .HasColumnName("data_quality_reason")
                 .HasMaxLength(255);
 
-            builder.Property(r => r.DaysFromRequestedDate)
-                .HasColumnName("days_from_requested_date");
+            builder.Property(r => r.DaysFromRequestedDate);
 
             // Vehicle Status at Reading
             builder.Property(r => r.WasOnline)
-                .HasColumnName("was_online")
                 .HasDefaultValue(false);
 
             builder.Property(r => r.Latitude)
-                .HasColumnName("latitude")
                 .HasColumnType("decimal(10,7)");
 
             builder.Property(r => r.Longitude)
-                .HasColumnName("longitude")
                 .HasColumnType("decimal(10,7)");
 
-            builder.Property(r => r.IgnitionStatus)
-                .HasColumnName("ignition_status");
+            builder.Property(r => r.IgnitionStatus);
 
             // Source Tracking
             builder.Property(r => r.GPSDeviceId)
-                .HasColumnName("gps_device_id")
                 .HasMaxLength(50);
 
-            builder.Property(r => r.TrackInfoId)
-                .HasColumnName("track_info_id");
+            builder.Property(r => r.TrackInfoId);
 
-            builder.Property(r => r.RawData)
-                .HasColumnName("raw_data")
-                .HasColumnType("longtext");
+            builder.Property(r => r.RawData);
 
             // Audit Trail
             builder.Property(r => r.CreatedAt)
-                .HasColumnName("created_at")
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(r => r.UpdatedAt)
-                .HasColumnName("updated_at")
-                .HasColumnType("datetime");
+            builder.Property(r => r.UpdatedAt);
 
-            builder.Property(r => r.CreatedBy)
-                .HasColumnName("created_by");
+            builder.Property(r => r.CreatedBy);
 
             // Indexes
             builder.HasIndex(r => r.AuditId)
@@ -147,3 +119,4 @@ namespace FMS.Persistence.EntityConfigurations.FuelAudit
         }
     }
 }
+

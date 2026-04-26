@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: FrontEndHUB.cs
  * Purpose: Broadcasts business-facing realtime events and tracks active frontend hub connections.
  * Dependencies: IMediator, ConnectionMonitor, SignalR Hub, ILogger
@@ -7,14 +7,12 @@
  * Key Functions:
  * - OnConnectedAsync(): Registers active business hub connections for admin metrics.
  * - OnDisconnectedAsync(): Removes business hub connections from admin metrics.
- * - BroadcastFuelImportProgress(): Sends fuel import progress updates to connected clients.
  */
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FMS.Application.Command.DatabaseCommand.ConsumtionCmd.Import;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
@@ -73,71 +71,6 @@ namespace FMS.Application.Communication.SignalR
             await base.OnDisconnectedAsync(exception);
         }
 
-
-
-        // New method to broadcast fuel import progress updates
-        public async Task BroadcastFuelImportProgress(ImportProgressInfo progressInfo)
-        {
-            try
-            {
-                await Clients.All.SendAsync("FuelImportProgress", progressInfo);
-                _logger.LogDebug("Fuel import progress update: {Status} - {Processed}/{Total} records ({Percentage}%)",
-                    progressInfo.Status,
-                    progressInfo.ProcessedRecords,
-                    progressInfo.TotalRecords,
-                    progressInfo.ProgressPercentage);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error broadcasting fuel import progress");
-            }
-        }
-
-        // Method to broadcast fuel import job started (async import)
-        public async Task BroadcastFuelImportJobStarted(object jobInfo)
-        {
-            try
-            {
-                await Clients.All.SendAsync("FuelImportJobStarted", jobInfo);
-                _logger.LogInformation("Fuel import job started: {JobId}",
-                    jobInfo.GetType().GetProperty("JobId")?.GetValue(jobInfo));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error broadcasting fuel import job started");
-            }
-        }
-
-        // Method to broadcast fuel import completion (async import)
-        public async Task BroadcastFuelImportCompleted(object result)
-        {
-            try
-            {
-                await Clients.All.SendAsync("FuelImportCompleted", result);
-                _logger.LogInformation("Fuel import completed: {JobId}",
-                    result.GetType().GetProperty("JobId")?.GetValue(result));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error broadcasting fuel import completion");
-            }
-        }
-
-        // Method to broadcast fuel import error (async import)
-        public async Task BroadcastFuelImportError(object error)
-        {
-            try
-            {
-                await Clients.All.SendAsync("FuelImportError", error);
-                _logger.LogError("Fuel import error: {JobId} - {Message}",
-                    error.GetType().GetProperty("JobId")?.GetValue(error),
-                    error.GetType().GetProperty("Message")?.GetValue(error));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error broadcasting fuel import error");
-            }
-        }
 
         // Method to broadcast tank volume history updates
         public async Task BroadcastTankVolumeHistoryUpdate(object tankVolumeData)

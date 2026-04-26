@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.VehicleMaintenance.DTOs;
@@ -43,7 +43,7 @@ public class OdometerSyncDTO
     public int VehicleId { get; set; }
 
     /// <summary>Vehicle registration number</summary>
-    public string? HyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
 
     /// <summary>Vehicle license plate</summary>
     public string? NumberPlate { get; set; }
@@ -181,7 +181,7 @@ public class OdometerSyncDTO
 public class OdometerSyncResultDTO
 {
     public int VehicleId { get; set; }
-    public string? HyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public bool Success { get; set; }
     public string? Message { get; set; }
     public OdometerSource? SourceUsed { get; set; }

@@ -19,18 +19,12 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.Issue, "Assigned_issue_idx");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                    .ValueGeneratedNever();
                 builder.Property(e => e.AssignedFrom)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
                 builder.Property(e => e.AssignedTo)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
-                builder.Property(e => e.Issue).HasColumnType("int(11)");
+                    .HasMaxLength(100);
+                builder.Property(e => e.Issue);
 
                 builder.HasOne(d => d.AssignedFromNavigation)
                     .WithMany(p => p.IssueassignmenttrackerAssignedFromNavigations)
@@ -55,7 +49,6 @@ namespace FMS.Persistence.EntityConfigurations
                     (e.AssignedToNavigation == null || e.AssignedToNavigation.IsDeleted != true));
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");
@@ -65,3 +58,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

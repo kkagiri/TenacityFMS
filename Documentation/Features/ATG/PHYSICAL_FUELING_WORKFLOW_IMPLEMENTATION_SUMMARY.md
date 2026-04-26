@@ -1,4 +1,4 @@
-# Physical Fueling Workflow - Complete Implementation Summary
+﻿# Physical Fueling Workflow - Complete Implementation Summary
 
 **Date**: 2025-01-26
 **Status**: ✅ **COMPLETE - Ready for Testing**
@@ -129,7 +129,7 @@ var isNozzleUp = idleStatus.NozzlesUp[pumpIndex] > 0;
 ```javascript
 // Button disabled if nozzle down
 <Button
-    disabled={!nozzleState.isNozzleUp || fuelingDetails.vehicle?.hyoungNo === ""}
+    disabled={!nozzleState.isNozzleUp || fuelingDetails.vehicle?.vehicleCode === ""}
     onClick={handleFinalConfirmation}
 >
     Confirm & Authorize

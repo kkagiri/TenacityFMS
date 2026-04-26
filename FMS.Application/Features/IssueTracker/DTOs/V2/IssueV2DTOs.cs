@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace FMS.Application.Features.IssueTracker.DTOs.V2;
 
@@ -36,7 +36,7 @@ public class IssueV2ResponseDTO
     public string SiteName { get; set; } = string.Empty;
     public int VehicleId { get; set; }
     public string VehicleNumber { get; set; } = string.Empty;
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
 
     // Users
     public string OpenbyId { get; set; } = string.Empty;

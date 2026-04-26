@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.EventEngine.Engine;
@@ -104,7 +104,7 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
 
             result.VehicleHasGps = true;
             var vehicle = providerMapping.Vehicle;
-            var vehicleIdentifier = vehicle?.HyoungNo ?? vehicleId.ToString();
+            var vehicleIdentifier = vehicle?.VehicleCode ?? vehicleId.ToString();
 
             // Step 2: Get vehicle's last known location to check if GPS is offline
             DateTime? lastSeenUtc = null;

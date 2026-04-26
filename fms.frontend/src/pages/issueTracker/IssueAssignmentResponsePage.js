@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueAssignmentResponsePage.js
  * Purpose: Allow assigned worker to respond to an issue assignment:
  *   1. Mark as Ongoing (I'm working on it)
@@ -180,7 +180,7 @@ const IssueAssignmentResponsePage = () => {
             </div>
             <div>
               <span className="tw-block tw-text-gray-400">Vehicle</span>
-              <strong className="tw-text-gray-700">{issue.vehicleHyoungNo || issue.vehicleNumber || '—'}</strong>
+              <strong className="tw-text-gray-700">{issue.vehicleCode || issue.vehicleNumber || '—'}</strong>
             </div>
             <div>
               <span className="tw-block tw-text-gray-400">Vehicle Status</span>

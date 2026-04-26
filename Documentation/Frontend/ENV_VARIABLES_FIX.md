@@ -1,4 +1,4 @@
-# FMS Environment Variables Configuration
+﻿# FMS Environment Variables Configuration
 
 ## 🎯 Overview
 
@@ -141,7 +141,7 @@ REACT_APP_ENABLE_NOTIFICATIONS=true
 ```
 
 **Build**: `npm run build`
-**Deploy**: To production IIS server (`c:\inetpub\wwwroot\hyoungFMS\reactApp\`)
+**Deploy**: To production IIS server (`c:\inetpub\wwwroot\tenacyFMS\reactApp\`)
 
 ---
 
@@ -199,7 +199,7 @@ grep "x-api-url" fms.frontend/build/index.html
 
 ```powershell
 # On production server
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 
 # Should show: content="http://197.254.33.227/api"
 ```
@@ -442,7 +442,7 @@ Your current issue: SignalR fails externally because app uses internal IP
 #### 1. Update .env.production
 
 ```bash
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 notepad .env.production
 ```
 
@@ -482,10 +482,10 @@ Select-String -Path "build\index.html" -Pattern "x-api-url"
 
 ```powershell
 # Backup current
-Copy-Item -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_$(Get-Date -Format 'yyyyMMddHHmmss')" -Recurse
+Copy-Item -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_$(Get-Date -Format 'yyyyMMddHHmmss')" -Recurse
 
 # Deploy new build
-Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 
 # Restart IIS
 iisreset /noforce
@@ -513,7 +513,7 @@ cat fms.frontend/.env.production
 grep "x-api-url" fms.frontend/build/index.html
 
 # Check deployed version
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 
 # Clean build
 cd fms.frontend && rm -rf build/ && npm run build

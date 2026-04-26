@@ -16,37 +16,28 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
             builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
-                .HasColumnName("id")
                 .ValueGeneratedOnAdd();
 
             builder.Property(e => e.VehicleId)
-                .HasColumnName("vehicle_id")
                 .IsRequired();
 
             builder.Property(e => e.ProviderConfigId)
-                .HasColumnName("provider_config_id")
                 .IsRequired();
 
             builder.Property(e => e.ExternalDeviceId)
-                .HasColumnName("external_device_id")
                 .HasMaxLength(191); // MySQL 5.5/utf8mb4 index-safe length (<= 767 bytes)
 
             builder.Property(e => e.IsActive)
-                .HasColumnName("is_active")
                 .HasDefaultValue(true);
 
-            builder.Property(e => e.CreatedAt)
-                .HasColumnName("created_at"); // No DEFAULT CURRENT_TIMESTAMP
+            builder.Property(e => e.CreatedAt); // No DEFAULT CURRENT_TIMESTAMP
 
-            builder.Property(e => e.UpdatedAt)
-                .HasColumnName("updated_at"); // No ON UPDATE CURRENT_TIMESTAMP
+            builder.Property(e => e.UpdatedAt); // No ON UPDATE CURRENT_TIMESTAMP
 
             builder.Property(e => e.CreatedBy)
-                .HasColumnName("created_by")
                 .HasMaxLength(100);
 
             builder.Property(e => e.UpdatedBy)
-                .HasColumnName("updated_by")
                 .HasMaxLength(100);
 
             // Relationships

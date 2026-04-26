@@ -13,13 +13,9 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("issuetemplateworkflowstage");
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnType("int(11)")
-                .HasColumnName("ID");
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.WorkflowId)
-                .HasColumnType("int(11)")
-                .HasColumnName("WorkflowID");
+            builder.Property(e => e.WorkflowId);
 
             builder.Property(e => e.Name)
                 .HasMaxLength(100)
@@ -32,18 +28,14 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasMaxLength(20);
 
             builder.Property(e => e.SortOrder)
-                .HasColumnType("int(11)")
                 .HasDefaultValue(0);
 
             builder.Property(e => e.IsActive)
-                .HasColumnType("tinyint(1)")
                 .HasDefaultValue(true);
 
-            builder.Property(e => e.CreatedAt)
-                .HasColumnType("datetime");
+            builder.Property(e => e.CreatedAt);
 
-            builder.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime");
+            builder.Property(e => e.UpdatedAt);
 
             builder.HasIndex(e => new { e.WorkflowId, e.SortOrder })
                 .HasDatabaseName("IX_issuetemplateworkflowstage_workflow_sortorder");

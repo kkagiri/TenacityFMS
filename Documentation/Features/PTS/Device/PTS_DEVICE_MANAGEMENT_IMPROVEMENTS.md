@@ -1,4 +1,4 @@
-# PTS Device Management - Updates and Enhancements
+﻿# PTS Device Management - Updates and Enhancements
 
 **Date:** November 11, 2025
 **Author:** AI Assistant
@@ -388,7 +388,7 @@ export default React.memo(MyComponent, customComparisonFunction);
 
 1. **Backend:**
    ```bash
-   dotnet build Hyoung.Fms.sln
+   dotnet build Tenacy.Fms.sln
    dotnet ef database update
    ```
 

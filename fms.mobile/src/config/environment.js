@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Environment Configuration
  * Loads environment variables from .env file using react-native-config
  */
@@ -102,7 +102,7 @@ export const DEBUG_CONFIG = {
  */
 export const APP_CONFIG = {
   // App name
-  APP_NAME: "Hyoung FMS",
+  APP_NAME: "Tenacy FMS",
 
   // App version
   VERSION: "1.0.0",

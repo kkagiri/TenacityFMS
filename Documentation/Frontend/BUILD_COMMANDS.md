@@ -1,4 +1,4 @@
-# FMS Frontend Build Commands
+﻿# FMS Frontend Build Commands
 
 ## 🎯 Quick Reference
 
@@ -152,10 +152,10 @@ cat build/index.html | grep "x-api-url"
 Stop-IISCommittedConfig
 
 # Copy files
-Copy-Item -Path "fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 
 # Ensure web.config is in place
-Copy-Item -Path "fms.frontend\public\web.config" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config" -Force
+Copy-Item -Path "fms.frontend\public\web.config" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config" -Force
 
 # Start IIS site
 Start-IISCommittedConfig
@@ -166,7 +166,7 @@ Start-IISCommittedConfig
 ```powershell
 # Save as deploy-production.ps1
 $buildPath = "fms.frontend\build"
-$deployPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp"
+$deployPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp"
 
 Write-Host "Building application..." -ForegroundColor Yellow
 Set-Location fms.frontend
@@ -176,7 +176,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "Build successful. Deploying..." -ForegroundColor Green
 
     # Backup current deployment
-    $backupPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    $backupPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
     Copy-Item -Path $deployPath -Destination $backupPath -Recurse
     Write-Host "Backup created at: $backupPath" -ForegroundColor Cyan
 
@@ -409,7 +409,7 @@ if ($indexContent -match 'x-api-url.*content="([^"]+)"') {
 }
 
 # Step 3: Backup
-$deployPath = "c:\inetpub\wwwroot\hyoungFMS\reactApp"
+$deployPath = "c:\inetpub\wwwroot\tenacyFMS\reactApp"
 if (-not $SkipBackup) {
     Write-Host "[3/5] Creating backup..." -ForegroundColor Yellow
     $backupPath = "${deployPath}_backup_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
@@ -480,4 +480,4 @@ Write-Host "Verify SignalR connection in browser console" -ForegroundColor Yello
 ---
 
 **Last Updated**: 2025-10-31
-**For**: Hyoung FMS Production Deployment
+**For**: Tenacy FMS Production Deployment

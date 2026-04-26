@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleDetailsScreen.js
  * Purpose: Combined vehicle tracking + details screen.
  *   - Landing: Dashboard (summary cards) + Search
@@ -92,10 +92,10 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
 
   const normalizeVehicleData = (v) => ({
     vehicleId: v.VehicleId || v.vehicleId || v.Id || v.id,
-    hyoungNo: v.HyoungNo || v.hyoungNo || "",
+    vehicleCode: v.VehicleCode || v.vehicleCode || "",
     vehicleName: v.VehicleName || v.vehicleName || v.Name || v.name || "",
     numberPlate:
-      v.NumberPlate || v.numberPlate || v.HyoungNo || v.hyoungNo || "",
+      v.NumberPlate || v.numberPlate || v.VehicleCode || v.vehicleCode || "",
     siteName:
       v.SiteName || v.siteName || v.WorkingSiteName || v.workingSiteName || "",
     workingSiteId: v.WorkingSiteId || v.workingSiteId || null,
@@ -314,7 +314,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {selectedVehicle.hyoungNo}
+            {selectedVehicle.vehicleCode}
           </Text>
           <Text style={styles.headerSubtitle}>
             {selectedVehicle.vehicleName}

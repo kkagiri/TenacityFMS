@@ -1,4 +1,4 @@
-# Frontend Build & Deploy Process
+﻿# Frontend Build & Deploy Process
 
 ## Overview
 
@@ -11,7 +11,7 @@ This document explains how the `web.config` is automatically included in your fr
 The `web.config` is stored in the source code at:
 
 ```
-c:\dev\Hyoung.FMS\fms.frontend\public\web.config
+c:\dev\Tenacy.FMS\fms.frontend\public\web.config
 ```
 
 ### 2. Build Process
@@ -60,11 +60,11 @@ Use the deployment script:
 
 ```powershell
 # 1. Build
-cd c:\dev\Hyoung.FMS\fms.frontend
+cd c:\dev\Tenacy.FMS\fms.frontend
 npm run build
 
 # 2. Deploy
-Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 ```
 
 ## web.config Features
@@ -109,13 +109,13 @@ The `web.config` includes:
 1. **Edit source file**:
 
    ```powershell
-   notepad c:\dev\Hyoung.FMS\fms.frontend\public\web.config
+   notepad c:\dev\Tenacy.FMS\fms.frontend\public\web.config
    ```
 
 2. **Rebuild**:
 
    ```powershell
-   cd c:\dev\Hyoung.FMS\fms.frontend
+   cd c:\dev\Tenacy.FMS\fms.frontend
    npm run build
    ```
 
@@ -128,7 +128,7 @@ The `web.config` includes:
 
 After deployment, verify:
 
-- [ ] File exists: `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config`
+- [ ] File exists: `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`
 - [ ] API calls work: `http://10.0.10.153/api/Auth/user`
 - [ ] SignalR connects: Check browser console for port 7009
 - [ ] React routing works: Navigate to different pages
@@ -139,7 +139,7 @@ After deployment, verify:
 ### Build doesn't include web.config
 
 **Cause**: File missing from `public/` folder
-**Solution**: Ensure `c:\dev\Hyoung.FMS\fms.frontend\public\web.config` exists
+**Solution**: Ensure `c:\dev\Tenacy.FMS\fms.frontend\public\web.config` exists
 
 ### web.config changes not reflected
 
@@ -165,17 +165,17 @@ After deployment, verify:
 
 ## Related Files
 
-- **Source**: `c:\dev\Hyoung.FMS\fms.frontend\public\web.config`
-- **Build**: `c:\dev\Hyoung.FMS\fms.frontend\build\web.config`
-- **Deployed**: `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config`
-- **Environment**: `c:\dev\Hyoung.FMS\fms.frontend\.env`
-- **Deploy Script**: `c:\dev\Hyoung.FMS\scripts\deploy-frontend.ps1`
+- **Source**: `c:\dev\Tenacy.FMS\fms.frontend\public\web.config`
+- **Build**: `c:\dev\Tenacy.FMS\fms.frontend\build\web.config`
+- **Deployed**: `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`
+- **Environment**: `c:\dev\Tenacy.FMS\fms.frontend\.env`
+- **Deploy Script**: `c:\dev\Tenacy.FMS\scripts\deploy-frontend.ps1`
 
 ## Quick Commands
 
 ```powershell
 # Build only
-cd c:\dev\Hyoung.FMS\fms.frontend && npm run build
+cd c:\dev\Tenacy.FMS\fms.frontend && npm run build
 
 # Deploy only (use existing build)
 .\scripts\deploy-frontend.ps1 -SkipBuild

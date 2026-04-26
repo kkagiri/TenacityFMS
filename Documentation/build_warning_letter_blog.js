@@ -1,4 +1,4 @@
-const fs = require("fs");
+﻿const fs = require("fs");
 const path = require("path");
 
 const globalRoot = require("child_process").execSync("npm root -g").toString().trim();
@@ -491,7 +491,7 @@ const doc = new Document({
   }],
 });
 
-const outPath = path.resolve("C:/Users/kkagiri/Sources/Repo/Hyoung.FMS/Documentation/Warning_Letter_Release_Update.docx");
+const outPath = path.resolve("C:/Users/kkagiri/Sources/Repo/Tenacy.FMS/Documentation/Warning_Letter_Release_Update.docx");
 Packer.toBuffer(doc).then(buf => {
   fs.writeFileSync(outPath, buf);
   console.log("Wrote:", outPath, "size:", buf.length);

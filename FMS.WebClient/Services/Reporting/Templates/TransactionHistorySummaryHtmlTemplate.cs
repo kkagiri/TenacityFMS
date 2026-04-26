@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: TransactionHistorySummaryHtmlTemplate.cs
  * Purpose: Handlebars/HTML template for the Transaction History Summary report.
  *          Extracted from JsReportHtmlTemplates.cs for maintainability.
@@ -24,7 +24,7 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <meta charset=""UTF-8"">
-    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <title>{{reportTitle}} - Tenacy FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap"" rel=""stylesheet"">
     <script src=""https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js""></script>
     <style>
@@ -305,7 +305,7 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""company-bar-left"">
             {{#if logoBase64}}<img class=""company-logo"" src=""{{logoBase64}}"" alt=""Logo"">{{/if}}
             <div class=""company-bar-titles"">
-                <span class=""company-main-title"">Hyoung Fleet Management</span>
+                <span class=""company-main-title"">Tenacy Fleet Management</span>
                 <span class=""company-sub-title"">Fleet Management &amp; Fueling Operations</span>
             </div>
         </div>

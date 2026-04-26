@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities;
+using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;
@@ -23,15 +23,10 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.HasIndex(e => e.UserId).HasDatabaseName("UserID_idx");
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteId");
+                builder.Property(e => e.SiteId);
 
                 builder.Property(e => e.UserId)
-                    .HasMaxLength(100)
-                    .HasColumnName("UserId")
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
                 builder.HasOne(d => d.User)
                     .WithMany(p => p.UserSites)
@@ -54,3 +49,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

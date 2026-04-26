@@ -1,4 +1,4 @@
-package com.Hyoung;
+﻿package com.Tenacy;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;

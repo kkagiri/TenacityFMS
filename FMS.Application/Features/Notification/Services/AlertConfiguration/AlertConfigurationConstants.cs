@@ -72,7 +72,6 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
         public const string DeviceStatus = "DeviceStatus";
         public const string PumpAlarm = "PumpAlarm";
         public const string VehicleGps = "VehicleGps";
-        public const string VehicleDocumentCompliance = "VehicleDocumentCompliance";
         public const string IssueTracker = "IssueTracker";
         public const string SystemEvent = "System";
         public const string EventLifecycle = "EventLifecycle";
@@ -151,7 +150,7 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
                     new[] { PTSDeviceOffline, PTSProbeAlarmCooldown, PTSSystemLevelCooldown }),
 
                 new(GroupGPSVehicle, "fa-light fa-car", "GPS tracking, vehicle maintenance, and odometer alerts",
-                    new[] { GPSTagOffline, VehicleMaintenanceDue, OdometerSync, VehicleDocumentCompliance, VehicleGps }),
+                    new[] { GPSTagOffline, VehicleMaintenanceDue, OdometerSync, VehicleGps }),
 
                 new(GroupSystem, "fa-light fa-gear", "Escalation rules and system-wide calculation parameters",
                     new[] { EscalationAutoEscalate, BusinessImpactCalc, SystemEvent, EventLifecycle }),
@@ -548,16 +547,6 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
                     Key = VehicleGps,
                     DisplayName = "Vehicle GPS Alert",
                     Description = "Event expression: triggers when a vehicle GPS tracker changes status or violates limits",
-                    Group = GroupGPSVehicle,
-                    DefaultEnabled = true,
-                    Parameters = new List<AlertParameterDefinition>()
-                },
-
-                [VehicleDocumentCompliance] = new AlertTypeDefinition
-                {
-                    Key = VehicleDocumentCompliance,
-                    DisplayName = "Vehicle Document Compliance",
-                    Description = "Event expression: triggers when a vehicle document is expiring soon or has expired",
                     Group = GroupGPSVehicle,
                     DefaultEnabled = true,
                     Parameters = new List<AlertParameterDefinition>()

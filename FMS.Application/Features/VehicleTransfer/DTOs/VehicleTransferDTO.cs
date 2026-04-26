@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTransferDTO.cs
  * Purpose: Data contracts for vehicle transfer aggregate and child inspection details.
  * Dependencies: None
@@ -16,7 +16,7 @@ public class VehicleTransferDTO
 {
     public int TransferId { get; set; }
     public int VehicleId { get; set; }
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public string? VehicleNumberPlate { get; set; }
     public string? DeliveryNoteNumber { get; set; }
     public int FromSiteId { get; set; }

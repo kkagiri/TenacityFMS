@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ConsumptionByRefillsHtmlTemplate.cs
  * Purpose: Dedicated Handlebars/HTML template for the Consumption by Refills report.
  * Dependencies: None
@@ -22,7 +22,7 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <meta charset=""UTF-8"">
-    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <title>{{reportTitle}} - Tenacy FMS System</title>
     <style>
         @page { size: A4 landscape; margin: 8mm; }
 
@@ -288,7 +288,7 @@ namespace FMS.WebClient.Services.Reporting
     {{/unless}}
 
     <div class=""report-footer"">
-        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Tenacy Fleet Management</strong></span></div>
         <div>Report ID: {{reportId}}</div>
     </div>
 </div>

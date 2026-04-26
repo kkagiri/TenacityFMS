@@ -1,4 +1,4 @@
-// using System;
+﻿// using System;
 // using System.Threading;
 // using System.Threading.Tasks;
 // using AutoMapper;
@@ -29,8 +29,8 @@
 //         public async Task Handle_ValidId_ReturnsVehicleDTO () {
 //             // Arrange
 //             int vehicleId = 43;
-//             var vehicle = new Vehicle { VehicleId = vehicleId, HyoungNo = "TEST123" };
-//             var vehicleDTO = new VehicleDTO { VehicleId = vehicleId, HyoungNo = "TEST123" };
+//             var vehicle = new Vehicle { VehicleId = vehicleId, VehicleCode = "TEST123" };
+//             var vehicleDTO = new VehicleDTO { VehicleId = vehicleId, VehicleCode = "TEST123" };
 
 //             var mockSet = new Mock<DbSet<Vehicle>> ();
 //             mockSet.Setup (m => m.FindAsync (vehicleId)).ReturnsAsync (vehicle);
@@ -50,7 +50,7 @@
 //             // Assert
 //             Assert.NotNull (result);
 //             Assert.Equal (vehicleId, result.VehicleId);
-//             Assert.Equal ("TEST123", result.HyoungNo);
+//             Assert.Equal ("TEST123", result.VehicleCode);
 //             _mockMapper.Verify (m => m.Map<Vehicle, VehicleDTO> (It.Is<Vehicle> (v => v.VehicleId == vehicleId)), Times.Once);
 //         }
 

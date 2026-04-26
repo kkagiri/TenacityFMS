@@ -1,15 +1,15 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Principal;
 using System.Threading.Tasks;
-using HyoungFMS.Deployment.Interfaces;
+using TenacyFMS.Deployment.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Web.Administration;
 
-namespace HyoungFMS.Deployment.Services
+namespace TenacyFMS.Deployment.Services
 {
     /// <summary>
     /// Implementation of the IIS Manager interface

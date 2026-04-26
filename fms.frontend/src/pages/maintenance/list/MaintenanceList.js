@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: MaintenanceList.js
  * Purpose: Displays and manages vehicle maintenance records with CRUD and import support
  * Dependencies: react, react-redux, devextreme-react, xlsx, maintenanceActions
@@ -174,7 +174,7 @@ const MaintenanceList = () => {
     // Expected headers: Vehicle Number, Maintenance Type, Scheduled Date, Priority, Status, Description, Notes
     const headers = rows[0]?.map(h => h?.toString().toLowerCase().trim()) || [];
 
-    const vehicleColIndex = headers.findIndex(h => h?.includes('vehicle') || h?.includes('hyoung'));
+    const vehicleColIndex = headers.findIndex(h => h?.includes('vehicle') || h?.includes('vehicle code'));
     const typeColIndex = headers.findIndex(h => h?.includes('type') || h?.includes('maintenance'));
     const dateColIndex = headers.findIndex(h => h?.includes('date') || h?.includes('scheduled'));
     const priorityColIndex = headers.findIndex(h => h?.includes('priority'));
@@ -183,7 +183,7 @@ const MaintenanceList = () => {
     const notesColIndex = headers.findIndex(h => h?.includes('note'));
 
     if (vehicleColIndex === -1) {
-      errors.push({ row: 1, message: 'Missing required column: Vehicle Number/Hyoung No' });
+      errors.push({ row: 1, message: 'Missing required column: Vehicle Number/Tenacy No' });
       return { validRecords, errors };
     }
 
@@ -612,7 +612,7 @@ const MaintenanceList = () => {
                     <h4 className="tw-font-semibold tw-text-blue-800 tw-mb-2">Import Instructions</h4>
                     <ul className="tw-text-blue-700 tw-text-sm tw-space-y-1">
                       <li>• Upload an Excel (.xlsx, .xls) or CSV file</li>
-                      <li>• Required column: <strong>Vehicle Number</strong> (Hyoung No)</li>
+                      <li>• Required column: <strong>Vehicle Number</strong> (Tenacy No)</li>
                       <li>• Optional columns: Maintenance Type, Scheduled Date, Priority (1-5), Status, Description, Notes</li>
                       <li>• First row should contain column headers</li>
                     </ul>

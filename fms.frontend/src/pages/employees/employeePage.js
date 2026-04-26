@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: employeePage.js
  * Purpose: Employee list page with Microsoft-style grid and side-panel CRUD workflow.
  * Dependencies: redux employee/site/permission actions, DevExtreme DataGrid and toolbar components.
@@ -343,7 +343,7 @@ const EmployeePage = () => {
       if (vehicleId === undefined || vehicleId === null) return;
       result.set(
         String(vehicleId),
-        vehicle?.hyoungNo || vehicle?.HyoungNo || vehicle?.numberPlate || vehicle?.vehicleName || vehicle?.name || null
+        vehicle?.vehicleCode || vehicle?.VehicleCode || vehicle?.numberPlate || vehicle?.vehicleName || vehicle?.name || null
       );
     });
     return result;
@@ -354,9 +354,9 @@ const EmployeePage = () => {
       if (typeof value === "object" && value !== null) {
         const vehicleId = value.vehicleId ?? value.id;
         return (
-          value.hyoungNo ||
-          value.HyoungNo ||
-          value.vehicleHyoungNo ||
+          value.vehicleCode ||
+          value.VehicleCode ||
+          value.vehicleCode ||
           value.numberPlate ||
           value.vehicleName ||
           value.name ||

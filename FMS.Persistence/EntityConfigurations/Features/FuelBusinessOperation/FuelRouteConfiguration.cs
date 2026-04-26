@@ -12,73 +12,51 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("fuelroutes")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("fuelroutes");
 
                 builder.HasIndex(e => e.SiteId, "FK_FuelRoute_Site_idx");
                 builder.HasIndex(e => new { e.FromLocation, e.ToLocation }, "IX_FuelRoute_Locations");
                 builder.HasIndex(e => e.Name, "IX_FuelRoute_Name");
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.Name)
                     .HasMaxLength(100)
-                    .IsRequired()
-                    .HasColumnName("Name");
+                    .IsRequired();
 
                 builder.Property(e => e.Description)
-                    .HasMaxLength(500)
-                    .HasColumnName("Description");
+                    .HasMaxLength(500);
 
                 builder.Property(e => e.FromLocation)
                     .HasMaxLength(200)
-                    .IsRequired()
-                    .HasColumnName("FromLocation");
+                    .IsRequired();
 
                 builder.Property(e => e.ToLocation)
                     .HasMaxLength(200)
-                    .IsRequired()
-                    .HasColumnName("ToLocation");
+                    .IsRequired();
 
                 builder.Property(e => e.DistanceKm)
-                    .HasPrecision(10, 2)
-                    .HasColumnName("DistanceKm");
+                    .HasPrecision(10, 2);
 
-                builder.Property(e => e.ElevationChange)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ElevationChange");
+                builder.Property(e => e.ElevationChange);
 
                 builder.Property(e => e.RouteType)
-                    .HasMaxLength(50)
-                    .HasColumnName("RouteType");
+                    .HasMaxLength(50);
 
-                builder.Property(e => e.SiteId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("SiteID");
+                builder.Property(e => e.SiteId);
 
                 builder.Property(e => e.IsActive)
-                    .HasColumnType("tinyint(1)")
-                    .HasDefaultValue(true)
-                    .HasColumnName("IsActive");
+                    .HasDefaultValue(true);
 
-                builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("CreatedAt");
+                builder.Property(e => e.CreatedAt);
 
                 builder.Property(e => e.CreatedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("CreatedBy");
+                    .HasMaxLength(100);
 
-                builder.Property(e => e.ModifiedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("ModifiedAt");
+                builder.Property(e => e.ModifiedAt);
 
                 builder.Property(e => e.ModifiedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("ModifiedBy");
+                    .HasMaxLength(100);
 
                 // Relationships
                 builder.HasOne(d => d.Site)
@@ -95,3 +73,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

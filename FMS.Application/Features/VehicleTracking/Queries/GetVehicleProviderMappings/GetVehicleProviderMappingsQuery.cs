@@ -56,7 +56,7 @@ namespace FMS.Application.Features.VehicleTracking.Queries.GetVehicleProviderMap
                 var result = mappings.Select(m => new VehicleProviderMappingDTO
                 {
                     VehicleId = m.VehicleId,
-                    VehicleName = m.Vehicle?.HyoungNo,
+                    VehicleName = m.Vehicle?.VehicleCode,
                     NumberPlate = m.Vehicle?.NumberPlate,
                     VehicleType = m.Vehicle?.VehicleType?.Name,
                     ProviderId = m.ProviderConfigId,

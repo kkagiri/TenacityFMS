@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.VehicleMaintenance.DTOs;
@@ -9,7 +9,7 @@ namespace FMS.Application.Features.VehicleMaintenance.DTOs;
 public class MaintenanceImportDTO
 {
     /// <summary>
-    /// Vehicle number (Hyoung No) - Required
+    /// Vehicle number (Tenacy No) - Required
     /// </summary>
     public string VehicleNumber { get; set; } = null!;
 

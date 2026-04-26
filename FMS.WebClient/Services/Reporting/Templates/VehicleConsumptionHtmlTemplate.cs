@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleConsumptionHtmlTemplate.cs
  * Purpose: Dedicated Handlebars/HTML template for the vehicle consumption report.
  * Dependencies: Vehicle consumption report payload from the reporting engine.
@@ -218,7 +218,7 @@ namespace FMS.WebClient.Services.Reporting
     <div class=""empty-state""><p>No vehicle consumption data found for the selected criteria.</p></div>
     {{/unless}}{{/unless}}{{/unless}}
     <div class=""report-footer"">
-        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Tenacy Fleet Management</strong></span></div>
         <div>Report ID: {{reportId}}</div>
     </div>
 </div>

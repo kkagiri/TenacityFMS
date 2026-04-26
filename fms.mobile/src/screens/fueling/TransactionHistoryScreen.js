@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: TransactionHistoryScreen.js
  * Purpose: Displays pump transaction history with filters, summaries, and audit details
  * Dependencies: react, react-native, react-redux, @react-native-community/datetimepicker, @react-native-picker/picker
@@ -1423,7 +1423,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
                         onPress={() => {
                           const id = v.vehicleId || v.id;
                           const name =
-                            (v.hyoungNo || v.vehicleName || v.name || "") +
+                            (v.vehicleCode || v.vehicleName || v.name || "") +
                             (v.numberPlate ? ` (${v.numberPlate})` : v.plate ? ` (${v.plate})` : "");
                           setClientFilters((prev) => ({
                             ...prev,
@@ -1436,7 +1436,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
                       >
                         <Icon name="truck" size={12} color="#6b7280" />
                         <Text style={styles.vehicleSearchItemText}>
-                          {v.hyoungNo || v.vehicleName || v.name || "Unknown"}
+                          {v.vehicleCode || v.vehicleName || v.name || "Unknown"}
                           {v.numberPlate
                             ? ` (${v.numberPlate})`
                             : v.plate

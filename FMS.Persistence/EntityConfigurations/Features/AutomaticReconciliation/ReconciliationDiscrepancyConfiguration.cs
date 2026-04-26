@@ -1,4 +1,4 @@
-//Cursor - Entity Framework Configuration for ReconciliationDiscrepancy
+﻿//Cursor - Entity Framework Configuration for ReconciliationDiscrepancy
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
@@ -30,23 +30,23 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.IsResolved, "IX_ReconciliationDiscrepancy_IsResolved");
 
                 // Properties
-                builder.Property(e => e.Id).HasColumnType("int(11)");
-                builder.Property(e => e.PolicyExecutionId).HasColumnType("int(11)");
-                builder.Property(e => e.TankId).HasColumnType("int(11)").IsRequired();
-                builder.Property(e => e.DetectedAt).HasColumnType("datetime").IsRequired();
+                builder.Property(e => e.Id);
+                builder.Property(e => e.PolicyExecutionId);
+                builder.Property(e => e.TankId).IsRequired();
+                builder.Property(e => e.DetectedAt).IsRequired();
                 builder.Property(e => e.CurrentStock).HasPrecision(10, 2).IsRequired();
                 builder.Property(e => e.ExpectedStock).HasPrecision(10, 2).IsRequired();
                 builder.Property(e => e.AbsoluteVariance).HasPrecision(10, 2).IsRequired();
                 builder.Property(e => e.PercentageVariance).HasPrecision(5, 2).IsRequired();
-                builder.Property(e => e.DiscrepancyType).HasColumnType("int(11)").IsRequired()
+                builder.Property(e => e.DiscrepancyType).IsRequired()
                     .HasDefaultValue(FMS.Domain.Entities.enums.DiscrepancyType.ClosingStockReconciliation);
                 builder.HasIndex(e => e.DiscrepancyType, "IX_ReconciliationDiscrepancy_DiscrepancyType");
-                builder.Property(e => e.Severity).HasColumnType("int(11)").IsRequired();
+                builder.Property(e => e.Severity).IsRequired();
                 builder.Property(e => e.IsResolved).HasDefaultValue(false);
-                builder.Property(e => e.ResolvedAt).HasColumnType("datetime");
+                builder.Property(e => e.ResolvedAt);
                 builder.Property(e => e.ResolutionMethod).HasMaxLength(100);
                 builder.Property(e => e.AnalysisNotes).HasMaxLength(500);
-                builder.Property(e => e.TrendAnalysis).HasColumnType("text");
+                builder.Property(e => e.TrendAnalysis);
                 builder.Property(e => e.BusinessImpactScore).HasPrecision(5, 2);
 
                 // Relationships

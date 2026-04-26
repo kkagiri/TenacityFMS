@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: vehicleTransferFormUtils.js
  * Purpose: Shared mapping and validation helpers for the vehicle transfer wizard.
  * Dependencies: None
@@ -128,10 +128,10 @@ export const buildVehicleMakeModel = (vehicle) =>
 
 export const getVehicleDisplayNumber = (vehicle) =>
   readString(
-    vehicle?.hyoungNo,
-    vehicle?.HyoungNo,
-    vehicle?.vehicleHyoungNo,
-    vehicle?.VehicleHyoungNo
+    vehicle?.vehicleCode,
+    vehicle?.VehicleCode,
+    vehicle?.vehicleCode,
+    vehicle?.VehicleCode
   );
 
 export const getVehicleRegistrationNumber = (vehicle) =>

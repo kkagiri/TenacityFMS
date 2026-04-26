@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: LocationRulesSettings.js
  * Purpose: Manage location validation settings, bypass controls, and related geofence rules.
  * Dependencies: redux, devextreme-react, geofenceService, M365SidePanel
@@ -798,10 +798,10 @@ const LocationRulesSettings = ({ showTopInfo = true, onActionStateChange = null 
                     {bypassStatus.vehicleBypasses.map((bypass) => (
                       <div key={bypass.id} className="loc-bypass-item">
                         <div>
-                          <span className="loc-bypass-item__name">{bypass.vehicleName || bypass.vehicleHyoungNo || `Vehicle #${bypass.vehicleId}`}</span>
+                          <span className="loc-bypass-item__name">{bypass.vehicleName || bypass.vehicleCode || `Vehicle #${bypass.vehicleId}`}</span>
                           <span className="loc-bypass-item__meta">Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}</span>
                         </div>
-                        <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.vehicleName || bypass.vehicleHyoungNo)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
+                        <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.vehicleName || bypass.vehicleCode)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
                           <i className="fa-light fa-times"></i>
                         </button>
                       </div>
@@ -861,7 +861,7 @@ const LocationRulesSettings = ({ showTopInfo = true, onActionStateChange = null 
                         <TagBox
                           dataSource={vehicles}
                           value={selectedVehicleIds}
-                          displayExpr="hyoungNo"
+                          displayExpr="vehicleCode"
                           valueExpr="vehicleId"
                           onValueChanged={(e) => setSelectedVehicleIds(e.value || [])}
                           disabled={!hasAdminPermission || bypassLoading}

@@ -21,8 +21,8 @@
 
 //                 builder.ToTable("configurations");
 
-//                 builder.Property(e => e.Id).HasColumnType("int(11)");
-//                 builder.Property(e => e.Configuration1).HasColumnName("Configuration");
+//                 builder.Property(e => e.Id);
+//                 builder.Property(e => e.Configuration1);
 //                 builder.Property(e => e.ConfigurationId).HasMaxLength(8);
 
 //             }

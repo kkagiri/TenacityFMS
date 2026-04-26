@@ -15,43 +15,31 @@ public class ErrorLogConfiguration : IEntityTypeConfiguration<ErrorLog>
         builder.HasKey(el => el.Id);
 
         builder.Property(el => el.Id)
-            .HasColumnName("Id")
             .HasColumnType("CHAR(36)")
             .IsRequired();
 
         builder.Property(el => el.CreatedAt)
-            .HasColumnName("created_at")
-            .HasColumnType("DATETIME")
             .IsRequired();
 
         builder.Property(el => el.Message)
-            .HasColumnName("message")
-            .HasColumnType("TEXT")
             .IsRequired();
 
         builder.Property(el => el.Stack)
-            .HasColumnName("stack")
-            .HasColumnType("TEXT")
             .IsRequired(false);
 
         builder.Property(el => el.ComponentStack)
-            .HasColumnName("component_stack")
-            .HasColumnType("TEXT")
             .IsRequired(false);
 
         builder.Property(el => el.UserAgent)
-            .HasColumnName("UserAgent")
-            .HasColumnType("VARCHAR(500)")
+            .HasMaxLength(500)
             .IsRequired(false);
 
         builder.Property(el => el.Url)
-            .HasColumnName("url")
-            .HasColumnType("VARCHAR(1000)")
+            .HasMaxLength(1000)
             .IsRequired(false);
 
         builder.Property(el => el.UserId)
-            .HasColumnName("user_id")
-            .HasColumnType("VARCHAR(100)")
+            .HasMaxLength(100)
 
             .IsRequired(false);
 

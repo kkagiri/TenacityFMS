@@ -23,8 +23,7 @@ namespace FMS.Persistence.EntityConfigurations {
 
                 builder.Property (e => e.Id)
                     .ValueGeneratedNever ()
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.FuelRuleSetId).HasColumnType ("int(11)");
 

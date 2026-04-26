@@ -1,4 +1,4 @@
-# Frontend Documentation - SignalR External Connection Fix
+﻿# Frontend Documentation - SignalR External Connection Fix
 
 ## 📚 Document Index
 
@@ -35,7 +35,7 @@ If you want to understand what's wrong:
 
 1. Read: **SIGNALR_EXTERNAL_CONNECTION_FIX.md** (Root causes section)
 2. Review: `fms.frontend/src/signalR/ptsSignalRService.js` (lines 138-168)
-3. Check: Deployed `c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html`
+3. Check: Deployed `c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html`
 
 ### For Build Configuration
 
@@ -92,7 +92,7 @@ If you need to rebuild the application:
 ### Step 1: Run Diagnostics (5 min)
 
 ```powershell
-cd C:\dev\Hyoung.FMS\Documentation\Frontend
+cd C:\dev\Tenacy.FMS\Documentation\Frontend
 .\SIGNALR_DIAGNOSTICS.ps1
 ```
 
@@ -104,7 +104,7 @@ This will tell you:
 
 ### Step 2: Fix Configuration (2 min)
 
-Edit `C:\dev\Hyoung.FMS\fms.frontend\.env.production`:
+Edit `C:\dev\Tenacy.FMS\fms.frontend\.env.production`:
 
 ```bash
 REACT_APP_FMS_API_URL=http://197.254.33.227/api
@@ -116,7 +116,7 @@ NODE_ENV=production
 ### Step 3: Rebuild (5 min)
 
 ```powershell
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 Remove-Item -Recurse -Force build\
 npm run build
 ```
@@ -133,13 +133,13 @@ Select-String -Path "build\index.html" -Pattern "x-api-url"
 ```powershell
 # Backup
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-Copy-Item -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp" `
-          -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_$timestamp" `
+Copy-Item -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp" `
+          -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_$timestamp" `
           -Recurse
 
 # Deploy
 Copy-Item -Path "fms.frontend\build\*" `
-          -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" `
+          -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" `
           -Recurse -Force
 
 # Restart IIS
@@ -306,7 +306,7 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 ### IIS Configuration
 
-**File**: `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config`
+**File**: `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`
 
 **Required Settings**:
 
@@ -359,8 +359,8 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 ### Deployment Files
 
-- `c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html` - Deployed frontend
-- `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config` - IIS configuration
+- `c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html` - Deployed frontend
+- `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config` - IIS configuration
 
 ---
 
@@ -428,10 +428,10 @@ If you're still experiencing issues after following all documentation:
 .\SIGNALR_DIAGNOSTICS.ps1
 
 # Check .env.production
-cat C:\dev\Hyoung.FMS\fms.frontend\.env.production
+cat C:\dev\Tenacy.FMS\fms.frontend\.env.production
 
 # Rebuild frontend
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 Remove-Item build\ -Recurse -Force
 npm run build
 
@@ -439,7 +439,7 @@ npm run build
 Select-String -Path "build\index.html" -Pattern "x-api-url"
 
 # Deploy to IIS
-Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 
 # Restart IIS
 iisreset /noforce
@@ -458,5 +458,5 @@ Get-Content "c:\inetpub\logs\LogFiles\W3SVC1\*.log" -Tail 50 | Select-String "pt
 
 **Last Updated**: 2025-10-31
 **Production Server**: 197.254.33.227
-**Application**: Hyoung FMS
+**Application**: Tenacy FMS
 **Issue**: SignalR WebSocket External Connection Failure

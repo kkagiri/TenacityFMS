@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -303,7 +303,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                     var result = new CrossSiteVehicleFuelDataDTO
                     {
                         VehicleId = vehicleId,
-                        VehicleName = vehicle?.HyoungNo ?? $"Vehicle {vehicleId}",
+                        VehicleName = vehicle?.VehicleCode ?? $"Vehicle {vehicleId}",
                         NumberPlate = vehicle?.NumberPlate,
                         DataSource = "GPS_SOAP"
                     };

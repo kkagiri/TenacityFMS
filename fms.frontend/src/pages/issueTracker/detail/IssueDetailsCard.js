@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: IssueDetailsCard.js
  * Purpose: Fluent Design details card (.idc) — description, edit form, property grid, banners
  * Dependencies: React, issueDetailUtils
@@ -165,13 +165,13 @@ const IssueDetailsCard = ({
               <div className="idc__prop-label">Vehicle</div>
               <div className="idc__prop-value">
                 <div className="idc__prop-inner">
-                  <span>{issue.vehicleHyoungNo || issue.vehicleNumber || 'Not linked'}</span>
+                  <span>{issue.vehicleCode || issue.vehicleNumber || 'Not linked'}</span>
                   {issue.vehicleId && (
                     <button
                       type="button"
                       className="idc__history-link"
                       onClick={() => navigate('/issue-tracker/tickets', {
-                        state: { applyFilters: { vehicleId: issue.vehicleId }, filterLabel: `Vehicle: ${issue.vehicleHyoungNo || issue.vehicleNumber}` }
+                        state: { applyFilters: { vehicleId: issue.vehicleId }, filterLabel: `Vehicle: ${issue.vehicleCode || issue.vehicleNumber}` }
                       })}
                     >
                       <i className="fa-light fa-rotate-left"></i>

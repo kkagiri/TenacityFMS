@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleSearchableSelector.js
  * Purpose: Provide vehicle autocomplete selection with a portal-based dropdown that works inside dialogs and forms.
  * Dependencies: React, ReactDOM, vehicleSearchActions, axiosInstance
@@ -100,7 +100,7 @@ const VehicleSearchableSelector = ({
 
   const handleVehicleSelect = useCallback((vehicle) => {
     setSelectedVehicle(vehicle);
-    setSearchTerm(vehicle.hyoungNo + (vehicle.vehicleName ? ' - ' + vehicle.vehicleName : ''));
+    setSearchTerm(vehicle.vehicleCode + (vehicle.vehicleName ? ' - ' + vehicle.vehicleName : ''));
     setShowDropdown(false);
 
     if (onValueChanged) {
@@ -138,7 +138,7 @@ const VehicleSearchableSelector = ({
 
     // Clear selection if user is typing and input doesn't match selected vehicle
     if (selectedVehicle) {
-      const expectedValue = selectedVehicle.hyoungNo + (selectedVehicle.vehicleName ? ' - ' + selectedVehicle.vehicleName : '');
+      const expectedValue = selectedVehicle.vehicleCode + (selectedVehicle.vehicleName ? ' - ' + selectedVehicle.vehicleName : '');
       if (inputValue !== expectedValue) {
         setSelectedVehicle(null);
         if (onValueChanged) {
@@ -220,7 +220,7 @@ const VehicleSearchableSelector = ({
 
         if (item && item.vehicleId) {
           setSelectedVehicle(item);
-          setSearchTerm(item.hyoungNo + (item.vehicleName ? ' - ' + item.vehicleName : ''));
+          setSearchTerm(item.vehicleCode + (item.vehicleName ? ' - ' + item.vehicleName : ''));
         }
       } catch (err) {
         console.warn('Unable to prefetch selected vehicle:', err);
@@ -358,7 +358,7 @@ const VehicleSearchableSelector = ({
                               lineHeight: '1.3'
                             }}>
                               <span style={{ fontWeight: '600', color: '#337ab7' }}>
-                                {vehicle.hyoungNo}
+                                {vehicle.vehicleCode}
                               </span>
                               <span style={{ color: '#666' }}>
                                 {vehicle.vehicleName || vehicle.numberPlate}

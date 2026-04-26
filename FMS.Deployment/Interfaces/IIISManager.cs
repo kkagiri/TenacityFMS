@@ -1,6 +1,6 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
-namespace HyoungFMS.Deployment.Interfaces
+namespace TenacyFMS.Deployment.Interfaces
 {
     /// <summary>
     /// Interface for managing IIS components

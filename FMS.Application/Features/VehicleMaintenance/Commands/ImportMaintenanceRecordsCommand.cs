@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ImportMaintenanceRecordsCommand.cs
  * Purpose: Imports maintenance records and persists them with vehicle matching.
  * Dependencies: GpsdataContext, MediatR, EF Core, FMSResponse
@@ -56,17 +56,17 @@ public class ImportMaintenanceRecordsCommandHandler
         {
             _logger.LogInformation("Starting import of {Count} maintenance records", request.ImportRecords.Count);
 
-            // Get all vehicles for matching by HyoungNo
+            // Get all vehicles for matching by VehicleCode
             var vehicleNumbers = request.ImportRecords
                 .Select(r => r.VehicleNumber.Trim().ToLower())
                 .Distinct()
                 .ToList();
 
             var vehicles = await _context.Vehicles
-                .Where(v => vehicleNumbers.Contains(v.HyoungNo.ToLower()) ||
+                .Where(v => vehicleNumbers.Contains(v.VehicleCode.ToLower()) ||
                            vehicleNumbers.Contains(v.NumberPlate.ToLower()))
                 .ToDictionaryAsync(
-                    v => v.HyoungNo.ToLower(),
+                    v => v.VehicleCode.ToLower(),
                     v => v,
                     cancellationToken);
 
@@ -84,7 +84,7 @@ public class ImportMaintenanceRecordsCommandHandler
             {
                 try
                 {
-                    // Find vehicle by HyoungNo or NumberPlate
+                    // Find vehicle by VehicleCode or NumberPlate
                     var vehicleKey = importRecord.VehicleNumber.Trim().ToLower();
                     DomainVehicle? vehicle = null;
 

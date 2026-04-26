@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using FMS.Application.Features.VehicleMaintenance.DTOs;
 using MediatR;
 
@@ -15,7 +15,7 @@ namespace FMS.Application.Features.VehicleMaintenance.Events;
 public class VehicleOdometerUpdatedEvent : INotification
 {
     public int VehicleId { get; set; }
-    public string? HyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public decimal OldReading { get; set; }
     public decimal NewReading { get; set; }
     public OdometerSource Source { get; set; }

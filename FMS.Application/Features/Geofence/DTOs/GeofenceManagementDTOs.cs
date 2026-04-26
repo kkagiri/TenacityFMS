@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.Geofence.DTOs;
@@ -197,7 +197,7 @@ public class UpdateRuleSetGeofenceConfigRequestDTO
 public class FixedLocationVehicleDTO
 {
     public int VehicleId { get; set; }
-    public string HyoungNo { get; set; } = string.Empty;
+    public string VehicleCode { get; set; } = string.Empty;
     public string? NumberPlate { get; set; }
     public bool IsFixedLocation { get; set; }
     public decimal? FixedLatitude { get; set; }
@@ -324,7 +324,7 @@ public class VehicleBypassDTO
     public int Id { get; set; }
     public int VehicleId { get; set; }
     public string? VehicleName { get; set; }
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
     public bool IsActive { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public string? Reason { get; set; }

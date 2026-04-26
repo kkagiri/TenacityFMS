@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useEffect,
   useState,
   useMemo,
@@ -246,7 +246,7 @@ const MapGPSDevices = () => {
         const response = await dispatch(mapDeviceToVehicle(mappingData));
         if (response.success) {
           notify(
-            `Mapped ${selectedDevice.name} to ${vehicle.hyoungNo}`,
+            `Mapped ${selectedDevice.name} to ${vehicle.vehicleCode}`,
             "success",
             2000
           );
@@ -314,7 +314,7 @@ const MapGPSDevices = () => {
             <!-- Vehicle Section -->
             <div class="tw-flex-1 tw-bg-blue-50 tw-p-3 tw-rounded">
               <p class="tw-font-semibold tw-text-sm tw-text-gray-700">Vehicle</p>
-              <p class="tw-font-medium tw-text-gray-900">${vehicle.hyoungNo}</p>
+              <p class="tw-font-medium tw-text-gray-900">${vehicle.vehicleCode}</p>
               <p class="tw-text-xs tw-text-gray-600 tw-mt-1">Plate: ${vehicle.numberPlate}</p>
             </div>
           </div>
@@ -397,7 +397,7 @@ const MapGPSDevices = () => {
           <!-- Vehicle Section -->
           <div class="tw-flex-1 tw-bg-blue-50 tw-p-3 tw-rounded">
             <p class="tw-font-semibold tw-text-sm tw-text-gray-700">Vehicle</p>
-            <p class="tw-font-medium tw-text-gray-900">${selectedVehicle.hyoungNo}</p>
+            <p class="tw-font-medium tw-text-gray-900">${selectedVehicle.vehicleCode}</p>
             <p class="tw-text-xs tw-text-gray-600 tw-mt-1">Plate: ${selectedVehicle.numberPlate}</p>
           </div>
         </div>
@@ -899,7 +899,7 @@ const MapGPSDevices = () => {
               />
 
               <Column dataField="vehicleId" caption="ID" width={60} />
-              <Column dataField="hyoungNo" caption="Vehicle Name" width={150} />
+              <Column dataField="vehicleCode" caption="Vehicle Name" width={150} />
               <Column
                 dataField="numberPlate"
                 caption="Number Plate"
@@ -925,7 +925,7 @@ const MapGPSDevices = () => {
                   </div>
                   <div className="tw-text-sm tw-text-blue-800">
                     <span className="tw-font-semibold">Vehicle:</span>{" "}
-                    {selectedVehicle.hyoungNo} ({selectedVehicle.numberPlate})
+                    {selectedVehicle.vehicleCode} ({selectedVehicle.numberPlate})
                   </div>
                 </div>
               </div>

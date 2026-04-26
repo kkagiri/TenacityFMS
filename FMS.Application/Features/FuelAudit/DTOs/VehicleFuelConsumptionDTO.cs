@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace FMS.Application.Features.FuelAudit.DTOs
 {
@@ -11,7 +11,7 @@ namespace FMS.Application.Features.FuelAudit.DTOs
         public int VehicleId { get; set; }
         public string VehicleName { get; set; } = string.Empty;
         public string? NumberPlate { get; set; }
-        public string? HyoungNo { get; set; }
+        public string? VehicleCode { get; set; }
 
         // Period
         public DateTime StartDate { get; set; }

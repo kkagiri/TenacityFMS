@@ -1,4 +1,4 @@
-using FMS.Application.CommonInterface;
+﻿using FMS.Application.CommonInterface;
 using FMS.Application.Features.VehicleMaintenance.DTOs;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -131,20 +131,20 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                         {
                             successCount++;
                             _logger.LogInformation(
-                                $"Synced vehicle {vehicle.HyoungNo}: {syncResult.OldValue:N2} → {syncResult.NewValue:N2} {vehicle.Unit} " +
+                                $"Synced vehicle {vehicle.VehicleCode}: {syncResult.OldValue:N2} → {syncResult.NewValue:N2} {vehicle.Unit} " +
                                 $"(source: {syncResult.SourceUsed})");
                         }
                         else
                         {
                             failCount++;
                             _logger.LogWarning(
-                                $"Failed to sync vehicle {vehicle.HyoungNo}: {syncResult?.Message ?? "Unknown error"}");
+                                $"Failed to sync vehicle {vehicle.VehicleCode}: {syncResult?.Message ?? "Unknown error"}");
                         }
                     }
                     catch (Exception ex)
                     {
                         failCount++;
-                        _logger.LogError(ex, $"Error syncing vehicle {vehicle.VehicleId} ({vehicle.HyoungNo})");
+                        _logger.LogError(ex, $"Error syncing vehicle {vehicle.VehicleId} ({vehicle.VehicleCode})");
                     }
                 }
 

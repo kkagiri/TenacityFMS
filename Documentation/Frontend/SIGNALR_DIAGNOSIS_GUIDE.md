@@ -1,4 +1,4 @@
-# SignalR Connection Diagnosis Guide
+﻿# SignalR Connection Diagnosis Guide
 
 ## Issue
 
@@ -11,7 +11,7 @@
 ### Step 1: Run PowerShell Diagnostic
 
 ```powershell
-cd c:\dev\Hyoung.FMS
+cd c:\dev\Tenacy.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 
@@ -235,12 +235,12 @@ If missing, device is not sending status or backend is not receiving it.
 After making SignalR service changes:
 
 ```powershell
-cd c:\dev\Hyoung.FMS\scripts
+cd c:\dev\Tenacy.FMS\scripts
 .\quick-rebuild.ps1
 
 # Deploy
-Copy-Item -Path "c:\dev\Hyoung.FMS\fms.frontend\build\*" `
-  -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" `
+Copy-Item -Path "c:\dev\Tenacy.FMS\fms.frontend\build\*" `
+  -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" `
   -Recurse -Force
 
 # Clear browser cache

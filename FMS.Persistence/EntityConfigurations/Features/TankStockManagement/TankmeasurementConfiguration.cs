@@ -17,18 +17,17 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.ToTable ("tankmeasurement");
 
                 builder.Property (e => e.Id)
-                    .HasColumnType ("int(11)")
-                    .HasColumnName ("id");
+                    .HasColumnType ("int(11)");
 
                 builder.Property (e => e.ConfigurationId).HasMaxLength (45);
                 builder.Property (e => e.FuelGradeId).HasColumnType ("int(11)");
                 builder.Property (e => e.PacketId).HasColumnType ("int(11)");
-                builder.Property (e => e.ProductTcvolume).HasColumnName ("ProductTCVolume");
-                builder.Property (e => e.Ptsid).HasColumnName ("PTSId");
+                builder.Property (e => e.ProductTcvolume);
+                builder.Property (e => e.Ptsid);
                 builder.Property (e => e.Status).HasMaxLength (45);
                 builder.Property (e => e.Tank).HasColumnType ("int(11)");
                 builder.Property (e => e.TankFillingPercentage).HasColumnType ("int(11)");
-                builder.Property (e => e.WaterHeight).HasColumnName ("waterHeight");
+                builder.Property (e => e.WaterHeight);
 
                 // Add new properties configuration
                 builder.Property (e => e.FuelGradeName)

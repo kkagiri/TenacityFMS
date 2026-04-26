@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -89,7 +89,7 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard {
                 .Take (10)
                 .Select (v => new VehicleUtilizationDTO {
                     VehicleId = v.VehicleId,
-                        VehicleNumber = v.HyoungNo,
+                        VehicleNumber = v.VehicleCode,
                         UtilizationRate = 75.0, // TODO: Calculate from actual usage
                         HoursOperated = 8.5, // TODO: Calculate from trip data
                         LastUsed = DateTime.UtcNow.AddHours (-2) // TODO: Get from actual trip data

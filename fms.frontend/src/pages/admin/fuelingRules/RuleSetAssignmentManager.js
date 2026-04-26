@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+﻿import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import DataGrid, {
   Column,
@@ -154,7 +154,7 @@ const RuleSetAssignmentManager = () => {
       case 4:
         return vehicles.map((v) => ({
           id: v.vehicleId || v.id,
-          name: v.hyoungNo || v.name || v.numberPlate,
+          name: v.vehicleCode || v.name || v.numberPlate,
         }));
       default:
         return [];

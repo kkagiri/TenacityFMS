@@ -1,13 +1,13 @@
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-info.js
+﻿//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\app-info.js
 
 const appInfo = {
-    title: 'Hyoung FMS'
+    title: 'Tenacy FMS'
 };
 export default appInfo;
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-navigation.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\app-navigation.js
 
 export const navigation = [
   {
@@ -37,7 +37,7 @@ export const navigation = [
   ];
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\app-routes.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\app-routes.js
 
 import { HomePage, Vehicles } from './pages';
 import { withNavigationWatcher } from './contexts/navigation';
@@ -74,7 +74,7 @@ export default routes.map(route => {
 });
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\App.js
 
 import 'devextreme/dist/css/dx.common.css';
 import './themes/generated/theme.base.css';
@@ -121,7 +121,7 @@ export default function Root() {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\App.test.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\App.test.js
 
 import './matchMediaMock';
 import { render, screen } from '@testing-library/react';
@@ -136,7 +136,7 @@ describe("App", () => {
   });
 })
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\Content.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\Content.js
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import appInfo from './app-info';
@@ -163,7 +163,7 @@ export default function Content() {
       <Footer>
         Copyright © 2011-{new Date().getFullYear()} {appInfo.title} Inc.
         <br />
-        All trademarks or registered trademarks are property of Hyoung EA Co. Ltd.
+        All trademarks or registered trademarks are property of Tenacy Co. Ltd.
       </Footer>
     </SideNavBarLayout>
   );
@@ -171,7 +171,7 @@ export default function Content() {
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\index.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\index.js
 
 import './polyfills';
 import React from 'react';
@@ -193,7 +193,7 @@ root.render(
 reportWebVitals();
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\matchMediaMock.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\matchMediaMock.js
 
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -210,13 +210,13 @@ Object.defineProperty(window, 'matchMedia', {
 });
 export {};
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\polyfills.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\polyfills.js
 
 import 'react-app-polyfill/ie11';
 import 'react-app-polyfill/stable';
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\reportWebVitals.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\reportWebVitals.js
 
 const reportWebVitals = onPerfEntry => {
   if (onPerfEntry && onPerfEntry instanceof Function) {
@@ -233,7 +233,7 @@ const reportWebVitals = onPerfEntry => {
 export default reportWebVitals;
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\setupTests.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\setupTests.js
 
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 // allows you to do things like:
@@ -242,7 +242,7 @@ export default reportWebVitals;
 import '@testing-library/jest-dom';
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\UnauthenticatedContent.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\UnauthenticatedContent.js
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { SingleCard } from './layouts';
@@ -292,7 +292,7 @@ export default function UnauthenticatedContent() {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\api\auth.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\api\auth.js
 
 import defaultUser from '../utils/default-user';
 
@@ -382,7 +382,7 @@ export async function resetPassword(email) {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\index.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\index.js
 
 export { default as Header } from './header/Header';
 export { default as Footer } from './footer/Footer';
@@ -398,7 +398,7 @@ export { VehicleConsumptionHistoryDetails } from './vehicleConsumptionHistoryDet
 export { default as VehicleConsumptionGridList } from './vehicleConsumptionGrid/vehicleConsumptionDataGrid';
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\change-password-form\ChangePasswordForm.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\change-password-form\ChangePasswordForm.js
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -488,7 +488,7 @@ const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', 
 const confirmedPasswordEditorOptions = { stylingMode: 'filled', placeholder: 'Confirm Password', mode: 'password' };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\create-account-form\CreateAccountForm.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\create-account-form\CreateAccountForm.js
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -599,7 +599,7 @@ const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', 
 const confirmedPasswordEditorOptions = { stylingMode: 'filled', placeholder: 'Confirm Password', mode: 'password' };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\footer\Footer.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\footer\Footer.js
 
 import React from 'react';
 import './Footer.scss';
@@ -609,7 +609,7 @@ export default function Footer({ ...rest }) {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\header\Header.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\header\Header.js
 
 import React from 'react';
 import Toolbar, { Item } from 'devextreme-react/toolbar';
@@ -659,7 +659,7 @@ export default function Header({ menuToggleEnabled, title, toggleMenu }) {
 )}
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\login-form\LoginForm.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\login-form\LoginForm.js
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -763,7 +763,7 @@ const passwordEditorOptions = { stylingMode: 'filled', placeholder: 'Password', 
 const rememberMeEditorOptions = { text: 'Remember me', elementAttr: { class: 'form-text' } };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\reset-password-form\ResetPasswordForm.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\reset-password-form\ResetPasswordForm.js
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from "react-router-dom";
@@ -845,7 +845,7 @@ const emailEditorOptions = { stylingMode: 'filled', placeholder: 'Email', mode: 
 const submitButtonAttributes = { class: 'submit-button' };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\side-navigation-menu\SideNavigationMenu.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\side-navigation-menu\SideNavigationMenu.js
 
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import TreeView from 'devextreme-react/tree-view';
@@ -935,7 +935,7 @@ export default function SideNavigationMenu(props) {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\user-panel\UserPanel.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\user-panel\UserPanel.js
 
 import React, { useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
@@ -997,7 +997,7 @@ export default function UserPanel({ menuMode }) {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionChartDetails\vehicleConsumptionChart.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\vehicleConsumptionChartDetails\vehicleConsumptionChart.js
 
 import React, { useEffect, useState } from "react";
 
@@ -1025,7 +1025,7 @@ export const VehicleConsumptionChartDetail = ({ vehicleID, startDate }) => {
 
 //export default VehicleConsumptionChartDetail;
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionFormDetails\vehicleConsumptionForm.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\vehicleConsumptionFormDetails\vehicleConsumptionForm.js
 
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -1163,7 +1163,7 @@ export const VehicleConsumptionFormDetails = ({editData}) => {
 
        //   ...emp,
 
-     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.hyoungNo).join(", ")}`,
+     //     displayString: `${emp.fullName}: ${emp.vehicles && emp.vehicles.slice(0, 2).map((v) => v.vehicleCode).join(", ")}`,
 
       //  }));
 
@@ -1567,7 +1567,7 @@ return (
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionGrid\vehicleConsumptionDataGrid.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\vehicleConsumptionGrid\vehicleConsumptionDataGrid.js
 
 import React, { useEffect, useState, useCallback } from 'react';
 
@@ -1755,7 +1755,7 @@ return(
 
           <Column dataField="vehicleId" visible={false} caption="Vehicle ID" />
 
-          <Column dataField="hyoungNo" allowEditing={false}   fixed={true} caption="Hyoung No" />
+          <Column dataField="vehicleCode" allowEditing={false}   fixed={true} caption="Tenacy No" />
 
           <Column dataField='defaultEmployees'  caption="Employee Details" width={200}allowSorting={false} >
 
@@ -1836,7 +1836,7 @@ export default VehicleConsumptionGridList;
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionHistoryDetails\vehicleConsumptionHistoryDetails.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\vehicleConsumptionHistoryDetails\vehicleConsumptionHistoryDetails.js
 
 import React, { useCallback, useEffect,useState } from "react";
 
@@ -1850,7 +1850,7 @@ export const VehicleConsumptionHistoryDetails = (vehicleID,startDate) => {
 
 }
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\components\vehicleConsumptionMapDetails\vehicleConsumptionMap.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\components\vehicleConsumptionMapDetails\vehicleConsumptionMap.js
 
 import react from 'react';
 
@@ -1868,7 +1868,7 @@ export const VehicleConsumptionMapDetails = (vehicleID,startDate) => {
 
 }
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\auth.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\contexts\auth.js
 
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { getUser, signIn as sendSignInRequest } from '../api/auth';
@@ -1914,7 +1914,7 @@ const useAuth = () => useContext(AuthContext);
 export { AuthProvider, useAuth }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\contexts\navigation.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\contexts\navigation.js
 
 import React, { useState, createContext, useContext, useEffect } from 'react';
 
@@ -1953,7 +1953,7 @@ export {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\index.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\dataservice\index.js
 
 import axios  from "axios";
 
@@ -2312,7 +2312,7 @@ export const getEmployeeBySite = async (siteID) => {
 
   };
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\dataservice\sampleconsumptiondata.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\dataservice\sampleconsumptiondata.js
 
 const sampleData= [{"id":485828,
 
@@ -2320,7 +2320,7 @@ const sampleData= [{"id":485828,
 
                  "totalFuel":21,
 
-              "hyoungNo":"TP113","vehicleType":"TP",
+              "vehicleCode":"TP113","vehicleType":"TP",
 
               "vehicleModel":"ZZ3257N3247B",
 
@@ -2358,7 +2358,7 @@ const sampleData= [{"id":485828,
 
               "isNightShift":false,"comments":"Demo data","isModified":false},
 
-              {"id":485876,"vehicleId":52,"totalFuel":15,"hyoungNo":"TP119","vehicleType":"TP",
+              {"id":485876,"vehicleId":52,"totalFuel":15,"vehicleCode":"TP119","vehicleType":"TP",
 
               "vehicleModel":"ZZ3257N3247B","vehicleManufacturer":"SINOTRUK HOWO","expectedAveraged":0,"defaultEmployees":28489,
 
@@ -2378,14 +2378,14 @@ export default sampleData;
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\index.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\layouts\index.js
 
 export { default as SideNavOuterToolbar } from './side-nav-outer-toolbar/side-nav-outer-toolbar';
 export { default as SideNavInnerToolbar } from './side-nav-inner-toolbar/side-nav-inner-toolbar';
 export { default as SingleCard } from './single-card/single-card';
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-inner-toolbar\side-nav-inner-toolbar.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\layouts\side-nav-inner-toolbar\side-nav-inner-toolbar.js
 
 import Button from 'devextreme-react/button';
 import Drawer from 'devextreme-react/drawer';
@@ -2518,7 +2518,7 @@ const MenuStatus = {
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\side-nav-outer-toolbar\side-nav-outer-toolbar.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\layouts\side-nav-outer-toolbar\side-nav-outer-toolbar.js
 
 import Drawer from 'devextreme-react/drawer';
 import ScrollView from 'devextreme-react/scroll-view';
@@ -2637,7 +2637,7 @@ const MenuStatus = {
 };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\layouts\single-card\single-card.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\layouts\single-card\single-card.js
 
 import React from 'react';
 import ScrollView from 'devextreme-react/scroll-view';
@@ -2658,7 +2658,7 @@ export default function SingleCard({ title, description, children }) {
 )}
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\index.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\pages\index.js
 
 export { default as HomePage } from './home/home';
 export { default as ProfilePage } from './profile/profile';
@@ -2666,7 +2666,7 @@ export { default as TasksPage } from './tasks/tasks';
 export { default as Vehicles } from './vehicles/vehicles';
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\home\home.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\pages\home\home.js
 
 import React from 'react';
 import './home.scss';
@@ -2724,7 +2724,7 @@ export default function Home() {
 )}
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\profile\profile.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\pages\profile\profile.js
 
 import React, { useState } from 'react';
 import './profile.scss';
@@ -2784,7 +2784,7 @@ const colCountByScreen = {
 };
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\tasks\tasks.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\pages\tasks\tasks.js
 
 import React from 'react';
 import 'devextreme/data/odata/store';
@@ -2897,7 +2897,7 @@ const priorities = [
 ];
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\pages\vehicles\vehicles.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\pages\vehicles\vehicles.js
 
 import React, { useState, useEffect } from 'react';
 import './vehicles.scss';
@@ -3087,7 +3087,7 @@ const handleManufacturerChange = (selectedRowKeys) => {
                     />
 
                 <Column dataField="vehicleId" caption="Vehicle ID" allowEditing={false} visible={false} defaultSortOrder="asc" />
-                <Column dataField="hyoungNo" fixed={true} caption="Hyoung No" allowEditing={false} width={100} />
+                <Column dataField="vehicleCode" fixed={true} caption="Tenacy No" allowEditing={false} width={100} />
                 <Column dataField="defaultExpectedAverageId"width={200} caption="Default Expected AVG" alignment="center"
                 >
                     <Lookup
@@ -3178,7 +3178,7 @@ const handleManufacturerChange = (selectedRowKeys) => {
 )}
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionDetails\vehicleConsumptionDetails.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\report\vehicleConsumptionDetails\vehicleConsumptionDetails.js
 
 import React, { useCallback, useEffect,useState } from "react";
 
@@ -3390,7 +3390,7 @@ export default VehicleConsumptionDetails;
 
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\report\vehicleConsumptionList\vehicleConsumptionList.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\report\vehicleConsumptionList\vehicleConsumptionList.js
 
 import React, { useState, useEffect ,useRef} from 'react';
 
@@ -3544,7 +3544,7 @@ const apiUrl = process.env.REACT_APP_FMS_API_URL;
 
 export default VehicleConsumptionList;
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\consumptionDataGridRules.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\utils\consumptionDataGridRules.js
 
 const consumptionDataGridRules = [
 
@@ -3602,7 +3602,7 @@ const consumptionDataGridRules = [
 
   export default consumptionDataGridRules;
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\default-user.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\utils\default-user.js
 
 export default {
   email: 'Kevin.kagiri@gmail.com',
@@ -3610,7 +3610,7 @@ export default {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\media-query.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\utils\media-query.js
 
 import { useState, useCallback, useEffect } from 'react';
 
@@ -3678,7 +3678,7 @@ function getScreenSize() {
 }
 
 
-//File name:c:/Users/kkagiri/source/repos/Hyoung.Fms/fms.frontend/src\utils\patches.js
+//File name:c:/Users/kkagiri/source/repos/Tenacy.Fms/fms.frontend/src\utils\patches.js
 
 import { useState, useCallback } from 'react';
 import { useScreenSize } from './media-query';

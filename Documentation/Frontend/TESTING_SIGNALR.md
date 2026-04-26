@@ -1,4 +1,4 @@
-# Testing SignalR with Postman
+﻿# Testing SignalR with Postman
 
 ## What You Can Test with Postman
 
@@ -189,7 +189,7 @@ Repeat Step 2 for:
 Run this now to verify firewall and endpoints:
 
 ```powershell
-cd c:\dev\Hyoung.FMS
+cd c:\dev\Tenacy.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 
@@ -207,14 +207,14 @@ Now that firewall rules are created, you should:
 1. **Rebuild frontend** (to include transport fallback):
 
    ```powershell
-   cd c:\dev\Hyoung.FMS\scripts
+   cd c:\dev\Tenacy.FMS\scripts
    .\quick-rebuild.ps1
    ```
 
 2. **Deploy**:
 
    ```powershell
-   Copy-Item -Path "c:\dev\Hyoung.FMS\fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+   Copy-Item -Path "c:\dev\Tenacy.FMS\fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
    ```
 
 3. **Test in browser** (after clearing cache):

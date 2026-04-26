@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetTankVolumeHistoryFilteredQuery.cs
  * Purpose: Retrieves filtered tank volume history rows with optional vehicle/GPS enrichment.
  * Dependencies: EF Core, AutoMapper, MediatR, TankVolumeHistoryDTO
@@ -286,7 +286,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     {
                         fr.Id,
                         VehicleId = fr.VehicleId,
-                        VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : "N/A",
+                        VehicleName = fr.Vehicle != null ? fr.Vehicle.VehicleCode : "N/A",
                         VehicleType = fr.Vehicle != null && fr.Vehicle.VehicleType != null ? fr.Vehicle.VehicleType.Name : "N/A"
                     })
                     .ToListAsync(cancellationToken);
@@ -339,7 +339,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     {
                         pt.Id,
                         VehicleId = pt.VehicleId,
-                        VehicleName = pt.Vehicle != null ? pt.Vehicle.HyoungNo : null,
+                        VehicleName = pt.Vehicle != null ? pt.Vehicle.VehicleCode : null,
                         VehicleType = pt.Vehicle != null && pt.Vehicle.VehicleType != null ? pt.Vehicle.VehicleType.Name : null
                     })
                     .ToListAsync(cancellationToken);
@@ -390,7 +390,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         {
                             PumpTransactionId = fr.PumpTranscationId!.Value,
                             fr.VehicleId,
-                            VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : null,
+                            VehicleName = fr.Vehicle != null ? fr.Vehicle.VehicleCode : null,
                             VehicleType = fr.Vehicle != null && fr.Vehicle.VehicleType != null ? fr.Vehicle.VehicleType.Name : null
                         })
                         .ToListAsync(cancellationToken);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -206,8 +206,8 @@ public class VehicleExpectedAverageAssignmentDTO
     [JsonPropertyName("vehicleId")]
     public int VehicleId { get; set; }
 
-    [JsonPropertyName("vehicleHyoungNo")]
-    public string? VehicleHyoungNo { get; set; }
+    [JsonPropertyName("vehicleCode")]
+    public string? VehicleCode { get; set; }
 
     [JsonPropertyName("vehicleNumberPlate")]
     public string? VehicleNumberPlate { get; set; }
@@ -250,8 +250,8 @@ public class VehicleExpectedAverageSummaryDTO
     [JsonPropertyName("vehicleId")]
     public int VehicleId { get; set; }
 
-    [JsonPropertyName("vehicleHyoungNo")]
-    public string? VehicleHyoungNo { get; set; }
+    [JsonPropertyName("vehicleCode")]
+    public string? VehicleCode { get; set; }
 
     [JsonPropertyName("vehicleTypeName")]
     public string? VehicleTypeName { get; set; }

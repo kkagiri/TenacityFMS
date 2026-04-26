@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 
 export const RoleTicker = ({ role, roleColor, userName, masterTagName, stats }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -78,7 +78,7 @@ export const RoleTicker = ({ role, roleColor, userName, masterTagName, stats }) 
           break;
 
         default:
-          roleSpecificMessages = [`🌟 Welcome to Hyoung FMS`];
+          roleSpecificMessages = [`🌟 Welcome to Tenacy FMS`];
       }
 
       const allMessages = [...baseMessages, ...roleSpecificMessages];

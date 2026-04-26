@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -70,7 +70,7 @@ public class GetIssueListByVehiceIdQueryHandler : IRequestHandler<GetIssueListBy
                     // Vehicle information
                     VehicleId = issue.VehicleId,
                     VehicleNumber = issue.Vehicle != null ? issue.Vehicle.NumberPlate : "",
-                    VehicleHyoungNo = issue.Vehicle != null ? issue.Vehicle.HyoungNo : "",
+                    VehicleCode = issue.Vehicle != null ? issue.Vehicle.VehicleCode : "",
 
                     // User information - using names instead of IDs
                     OpenbyId = issue.Openby ?? "",

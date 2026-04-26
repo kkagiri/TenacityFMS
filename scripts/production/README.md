@@ -1,8 +1,8 @@
-# Production Environment Setup Scripts
+﻿# Production Environment Setup Scripts
 
 This directory contains scripts for securely setting up environment variables on the production server.
 
-## 🚀 Quick Start
+## ðŸš€ Quick Start
 
 ### Step 1: Generate Strong Passwords
 
@@ -15,7 +15,7 @@ cd scripts/production
 This will generate cryptographically secure passwords for:
 - MySQL FMS database (fms_app user)
 - MySQL ATG database (kkagiri user)
-- Email account (hy.gps@hyoung.co.ke)
+- Email account (hy.gps@example.com)
 - GPSGate API key
 - GPSGate user password
 - JWT secret key
@@ -54,14 +54,14 @@ FLUSH PRIVILEGES;
 
 #### Email Account
 
-1. Log into webmail or email admin: `mail.hyoung.co.ke`
-2. Change password for `hy.gps@hyoung.co.ke`
+1. Log into webmail or email admin: `mail.example.com`
+2. Change password for `hy.gps@example.com`
 3. Enable 2FA if available
 
 #### GPSGate
 
 1. Log into admin panel: `https://10.0.10.150/comGpsGate`
-2. **API Key**: Navigate to API settings → Regenerate key
+2. **API Key**: Navigate to API settings â†’ Regenerate key
 3. **User Password**: Change password for user `kkagiri`
 
 ---
@@ -83,10 +83,10 @@ notepad .\setup-production-env.ps1
 ```
 
 The script will:
-- ✓ Validate configuration (no placeholders left)
-- ✓ Set all environment variables at Machine level
-- ✓ Offer to restart IIS and services
-- ✓ Show next steps
+- âœ“ Validate configuration (no placeholders left)
+- âœ“ Set all environment variables at Machine level
+- âœ“ Offer to restart IIS and services
+- âœ“ Show next steps
 
 ---
 
@@ -98,11 +98,11 @@ The script will:
 ```
 
 This will check:
-- ✓ All required environment variables are set
-- ✓ Values have correct format
-- ✓ No placeholder values remain
-- ✓ Services are running
-- ✓ Network connectivity to databases
+- âœ“ All required environment variables are set
+- âœ“ Values have correct format
+- âœ“ No placeholder values remain
+- âœ“ Services are running
+- âœ“ Network connectivity to databases
 
 ---
 
@@ -119,7 +119,7 @@ This will check:
 
 ---
 
-## 📄 Script Reference
+## ðŸ“„ Script Reference
 
 ### generate-passwords.ps1
 
@@ -187,13 +187,13 @@ This will check:
 ```
 
 **Checks**:
-- ✓ All required variables are set
-- ✓ Variables have correct format
-- ✓ No placeholder values
-- ✓ Password strength (length)
-- ✓ Connection string format
-- ✓ Services are running
-- ✓ Network connectivity
+- âœ“ All required variables are set
+- âœ“ Variables have correct format
+- âœ“ No placeholder values
+- âœ“ Password strength (length)
+- âœ“ Connection string format
+- âœ“ Services are running
+- âœ“ Network connectivity
 
 **Exit Codes**:
 - `0`: All checks passed
@@ -201,37 +201,37 @@ This will check:
 
 ---
 
-## 🔒 Security Best Practices
+## ðŸ”’ Security Best Practices
 
 ### DO:
-- ✓ Run scripts as Administrator
-- ✓ Generate strong passwords (use generate-passwords.ps1)
-- ✓ Save passwords in password manager (1Password, LastPass, etc.)
-- ✓ Use dedicated database users (not root!)
-- ✓ Enable 2FA on email accounts
-- ✓ Rotate passwords quarterly
-- ✓ Test thoroughly after changes
-- ✓ Document changes made
-- ✓ Delete password files after setup
+- âœ“ Run scripts as Administrator
+- âœ“ Generate strong passwords (use generate-passwords.ps1)
+- âœ“ Save passwords in password manager (1Password, LastPass, etc.)
+- âœ“ Use dedicated database users (not root!)
+- âœ“ Enable 2FA on email accounts
+- âœ“ Rotate passwords quarterly
+- âœ“ Test thoroughly after changes
+- âœ“ Document changes made
+- âœ“ Delete password files after setup
 
 ### DON'T:
-- ✗ Use weak passwords
-- ✗ Use root for application database access
-- ✗ Commit passwords to git
-- ✗ Share passwords via email/chat
-- ✗ Leave password files on servers
-- ✗ Use same password for multiple systems
-- ✗ Skip testing after changes
+- âœ— Use weak passwords
+- âœ— Use root for application database access
+- âœ— Commit passwords to git
+- âœ— Share passwords via email/chat
+- âœ— Leave password files on servers
+- âœ— Use same password for multiple systems
+- âœ— Skip testing after changes
 
 ---
 
-## 🆘 Troubleshooting
+## ðŸ†˜ Troubleshooting
 
 ### Issue: "Not running as Administrator"
 
 **Solution**:
 ```powershell
-# Right-click PowerShell → Run as Administrator
+# Right-click PowerShell â†’ Run as Administrator
 # Or from elevated prompt:
 Start-Process powershell -Verb runAs
 ```
@@ -306,7 +306,7 @@ mysql -h 10.0.10.150 -u fms_app -p
 
 2. Test SMTP connectivity:
    ```powershell
-   Test-NetConnection -ComputerName mail.hyoung.co.ke -Port 25
+   Test-NetConnection -ComputerName mail.example.com -Port 25
    ```
 
 3. Check application logs for SMTP errors
@@ -315,7 +315,7 @@ mysql -h 10.0.10.150 -u fms_app -p
 
 ---
 
-## 📞 Support
+## ðŸ“ž Support
 
 ### Documentation
 - **Setup Guide**: `/SECURITY_SETUP_GUIDE.md` (repository root)
@@ -323,13 +323,13 @@ mysql -h 10.0.10.150 -u fms_app -p
 - **Action Checklist**: `/Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md`
 
 ### Contacts
-- **Security Issues**: security@hyoung.co.ke
-- **Development Lead**: kevin.kagiri@hyoung.co.ke
+- **Security Issues**: security@example.com
+- **Development Lead**: kevin.kagiri@example.com
 - **System Administrator**: [Add contact]
 
 ---
 
-## ✅ Checklist
+## âœ… Checklist
 
 Use this checklist to track progress:
 
@@ -368,7 +368,7 @@ Use this checklist to track progress:
 
 ---
 
-## 🔄 Maintenance
+## ðŸ”„ Maintenance
 
 ### Quarterly Tasks
 - [ ] Rotate all passwords

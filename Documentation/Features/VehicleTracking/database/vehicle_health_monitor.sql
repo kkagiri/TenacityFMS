@@ -1,4 +1,4 @@
--- ============================================================================
+﻿-- ============================================================================
 -- Vehicle Health Monitor - Database Schema
 -- Tracks vehicle online/offline status and health history
 -- MySQL 8.0+
@@ -58,7 +58,7 @@ COMMENT='Tracks vehicle health status and offline reasons over time';
 CREATE OR REPLACE VIEW `v_latest_vehicle_health` AS
 SELECT
     vh.*,
-    v.`Hyoung_No` AS `vehicle_name`,
+    v.`Tenacy_No` AS `vehicle_name`,
     v.`NumberPlate` AS `number_plate`,
     v.`VehicleNo` AS `vehicle_number`
 FROM (
@@ -82,7 +82,7 @@ CREATE OR REPLACE VIEW `v_offline_vehicles` AS
 SELECT
     vh.`id`,
     vh.`vehicle_id`,
-    v.`Hyoung_No` AS `vehicle_name`,
+    v.`Tenacy_No` AS `vehicle_name`,
     v.`NumberPlate` AS `number_plate`,
     vh.`last_offline_at`,
     vh.`offline_duration`,
@@ -114,7 +114,7 @@ CREATE OR REPLACE VIEW `v_longterm_offline_vehicles` AS
 SELECT
     vh.`id`,
     vh.`vehicle_id`,
-    v.`Hyoung_No` AS `vehicle_name`,
+    v.`Tenacy_No` AS `vehicle_name`,
     v.`NumberPlate` AS `number_plate`,
     vh.`last_offline_at`,
     vh.`offline_duration`,
@@ -144,7 +144,7 @@ CREATE OR REPLACE VIEW `v_vehicles_by_offline_reason` AS
 SELECT
     vh.`offline_reason`,
     COUNT(*) AS `vehicle_count`,
-    GROUP_CONCAT(v.`Hyoung_No` ORDER BY v.`Hyoung_No` SEPARATOR ', ') AS `vehicle_names`,
+    GROUP_CONCAT(v.`Tenacy_No` ORDER BY v.`Tenacy_No` SEPARATOR ', ') AS `vehicle_names`,
     AVG(TIMESTAMPDIFF(HOUR, vh.`last_offline_at`, NOW())) AS `avg_hours_offline`
 FROM `vehicle_health_monitor` vh
 INNER JOIN (
@@ -196,7 +196,7 @@ CREATE PROCEDURE `sp_get_vehicle_latest_health`(
 BEGIN
     SELECT
         vh.*,
-        v.`Hyoung_No` AS `vehicle_name`,
+        v.`Tenacy_No` AS `vehicle_name`,
         v.`NumberPlate` AS `number_plate`
     FROM `vehicle_health_monitor` vh
     LEFT JOIN `vehicles` v ON vh.`vehicle_id` = v.`VehicleId`
@@ -214,7 +214,7 @@ CREATE PROCEDURE `sp_get_vehicle_health_history`(
 BEGIN
     SELECT
         vh.*,
-        v.`Hyoung_No` AS `vehicle_name`,
+        v.`Tenacy_No` AS `vehicle_name`,
         v.`NumberPlate` AS `number_plate`
     FROM `vehicle_health_monitor` vh
     LEFT JOIN `vehicles` v ON vh.`vehicle_id` = v.`VehicleId`
@@ -231,7 +231,7 @@ CREATE PROCEDURE `sp_get_offline_vehicles_by_reason`(
 BEGIN
     SELECT
         vh.*,
-        v.`Hyoung_No` AS `vehicle_name`,
+        v.`Tenacy_No` AS `vehicle_name`,
         v.`NumberPlate` AS `number_plate`,
         TIMESTAMPDIFF(HOUR, vh.`last_offline_at`, NOW()) AS `hours_offline`
     FROM `vehicle_health_monitor` vh

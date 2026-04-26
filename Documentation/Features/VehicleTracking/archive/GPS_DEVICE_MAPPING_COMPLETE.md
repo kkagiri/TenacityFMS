@@ -1,4 +1,4 @@
-# GPS Device Mapping - Complete Implementation Summary
+﻿# GPS Device Mapping - Complete Implementation Summary
 
 ## Overview
 Complete implementation of GPS device mapping workflow allowing users to fetch GPS devices from tracking providers (GPSGate) and manually map them one-by-one to FMS vehicles. This replaces the legacy single-provider GPS fields with a flexible multi-provider architecture.
@@ -192,7 +192,7 @@ ON vehicle_provider_mappings(device_imei);
 SELECT
     vpm.id,
     vpm.vehicle_id,
-    v.hyoung_no,
+    v.vehicle_code,
     vpm.external_device_id,
     vpm.device_imei,
     vpm.device_name,
@@ -431,7 +431,7 @@ DESCRIBE vehicle_provider_mappings;
 ### 2. Backend Deployment
 ```bash
 # Build solution
-dotnet build Hyoung.Fms.sln
+dotnet build Tenacy.Fms.sln
 
 # Run tests (if any)
 dotnet test

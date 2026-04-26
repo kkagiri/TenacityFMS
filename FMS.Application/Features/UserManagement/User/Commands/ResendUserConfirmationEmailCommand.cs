@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ResendUserConfirmationEmailCommand.cs
  * Purpose: Resends an email confirmation link for an existing user account.
  * Dependencies: MediatR, Identity UserManager, IEmailService, IConfiguration
@@ -89,7 +89,7 @@ public class ResendUserConfirmationEmailCommandHandler : IRequestHandler<ResendU
 
             var sent = await _emailService.SendEmailAsync(
                 to: normalizedEmail,
-                subject: "Confirm your Hyoung FMS account",
+                subject: "Confirm your Tenacy FMS account",
                 body: emailBody,
                 isHtml: true,
                 cancellationToken: cancellationToken);
@@ -151,7 +151,7 @@ public class ResendUserConfirmationEmailCommandHandler : IRequestHandler<ResendU
         return $@"
 <div style=""font-family:Segoe UI, Arial, sans-serif; color:#201f1e; line-height:1.6;"">
     <p>Hello {safeName},</p>
-    <p>Your Hyoung FMS account is waiting for email confirmation before sign-in can complete.</p>
+    <p>Your Tenacy FMS account is waiting for email confirmation before sign-in can complete.</p>
     <p><a href=""{safeLink}"">Confirm your email address</a></p>
     {alternativeAccessNote}
     <p>If you did not expect this account, please contact your administrator.</p>

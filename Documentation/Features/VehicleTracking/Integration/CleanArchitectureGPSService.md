@@ -1,4 +1,4 @@
-# GPS Service Clean Architecture Implementation
+﻿# GPS Service Clean Architecture Implementation
 
 ## 📋 Overview
 
@@ -401,7 +401,7 @@ Response:
 1. **Namespace Not Found**
 
    - Ensure `FMS.Infrastructure` project reference is added
-   - Rebuild solution: `dotnet build Hyoung.Fms.sln`
+   - Rebuild solution: `dotnet build Tenacy.Fms.sln`
 
 2. **DI Registration Error**
 

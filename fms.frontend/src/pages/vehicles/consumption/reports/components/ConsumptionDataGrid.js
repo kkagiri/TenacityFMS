@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+﻿import React, { useCallback, useMemo } from 'react';
 import DataGrid, {
     Column,
     Paging,
@@ -170,7 +170,7 @@ const ConsumptionDataGrid = ({ summaryData, loading, onVehicleClick }) => {
 
                 {/* Vehicle Number */}
                 <Column
-                    dataField="hyoungNo"
+                    dataField="vehicleCode"
                     caption="Vehicle No."
                     width={140}
                     cellRender={renderVehicleCell}
@@ -264,7 +264,7 @@ const ConsumptionDataGrid = ({ summaryData, loading, onVehicleClick }) => {
                         valueFormat="#,##0.0"
                     />
                     <GroupItem
-                        column="hyoungNo"
+                        column="vehicleCode"
                         summaryType="count"
                         displayFormat="{0} vehicles"
                     />
@@ -281,7 +281,7 @@ const ConsumptionDataGrid = ({ summaryData, loading, onVehicleClick }) => {
                         valueFormat="#,##0.0"
                     />
                     <TotalItem
-                        column="hyoungNo"
+                        column="vehicleCode"
                         summaryType="count"
                         displayFormat="Total: {0} vehicles"
                     />

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetCompletionRecordsQueryHandler.cs
  * Purpose: Handles fetching structured completion records for an issue, with denormalized vehicle names
  * Dependencies: MediatR, GpsdataContext, IssueCompletionRecordDTO
@@ -65,7 +65,7 @@ namespace FMS.Application.Features.IssueTracker.Queries.V2.Issues
                         DevicePhoneNumber = r.DevicePhoneNumber,
                         SourceVehicleId = r.SourceVehicleId,
                         SourceVehicleName = r.SourceVehicle != null
-                            ? r.SourceVehicle.HyoungNo ?? r.SourceVehicle.NumberPlate
+                            ? r.SourceVehicle.VehicleCode ?? r.SourceVehicle.NumberPlate
                             : null,
                         CameraImei = r.CameraImei,
                         CameraPosition = r.CameraPosition,

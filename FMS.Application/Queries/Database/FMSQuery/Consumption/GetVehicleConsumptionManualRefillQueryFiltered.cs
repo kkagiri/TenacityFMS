@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetVehicleConsumptionManualRefillQueryFiltered.cs
  * Purpose: Retrieves manual-refill consumption results with database-level filters for reporting.
  * Dependencies: GpsdataContext, ManualDispenseConsumptionDTO, MediatR, EF Core
@@ -28,7 +28,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
         string? VehicleType = null,
         int? VehicleTypeId = null,
         List<int>? VehicleTypeIds = null,
-        string? HyoungNo = null,
+        string? VehicleCode = null,
         int? VehicleId = null,
         int? SiteId = null,
         List<int>? SiteIds = null,
@@ -92,12 +92,12 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     vehiclesQuery = vehiclesQuery.Where(v => v.VehicleId == request.VehicleId.Value);
                 }
 
-                // Apply Hyoung number filter
-                if (!string.IsNullOrEmpty(request.HyoungNo))
+                // Apply Tenacy number filter
+                if (!string.IsNullOrEmpty(request.VehicleCode))
                 {
                     vehiclesQuery = vehiclesQuery.Where(v =>
-                        v.HyoungNo != null &&
-                        EF.Functions.Like(v.HyoungNo.ToLower(), $"%{request.HyoungNo.ToLower()}%"));
+                        v.VehicleCode != null &&
+                        EF.Functions.Like(v.VehicleCode.ToLower(), $"%{request.VehicleCode.ToLower()}%"));
                 }
 
                 var siteIds = (request.SiteIds ?? new List<int>())
@@ -146,7 +146,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 if (vehicleTypeIds.Count > 0 ||
                     !string.IsNullOrEmpty(request.VehicleType) ||
                     (request.VehicleId.HasValue && request.VehicleId.Value > 0) ||
-                    !string.IsNullOrEmpty(request.HyoungNo) ||
+                    !string.IsNullOrEmpty(request.VehicleCode) ||
                     siteIds.Count > 0 ||
                     (request.SiteId.HasValue && request.SiteId > 0))
                 {
@@ -182,7 +182,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                     {
                         Id = vehicle.VehicleId,
                         VehicleId = vehicle.VehicleId,
-                        HyoungNo = vehicle.HyoungNo ?? string.Empty,
+                        VehicleCode = vehicle.VehicleCode ?? string.Empty,
                         DriverName = ResolveAssignedDriverName(vehicle),
                         Passenger = vehicle.Passenger ?? string.Empty,
                         VehicleType = vehicle.VehicleType?.Name ?? "Unknown",
@@ -201,9 +201,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
 
                 _logger.LogInformation(
                     "Filtered consumption query completed. Date range: {StartDate} to {EndDate}, " +
-                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, VehicleCode={VehicleCode}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, SiteIds={SiteIds}, DriverId={DriverId}, AverageKmL={AverageKmL}. Results: {ResultCount}",
-                    request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, string.Join(",", vehicleTypeIds), request.HyoungNo, request.VehicleId,
+                    request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, string.Join(",", vehicleTypeIds), request.VehicleCode, request.VehicleId,
                     request.SiteId, string.Join(",", siteIds), request.DriverId, request.AverageKmL, result.Count);
 
                 return result;
@@ -212,9 +212,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
             {
                 _logger.LogError(ex,
                     "Error fetching filtered vehicle consumption data. " +
-                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, VehicleTypeIds={VehicleTypeIds}, VehicleCode={VehicleCode}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, SiteIds={SiteIds}, DriverId={DriverId}, AverageKmL={AverageKmL}",
-                    request.VehicleType, request.VehicleTypeId, string.Join(",", request.VehicleTypeIds ?? new List<int>()), request.HyoungNo, request.VehicleId, request.SiteId,
+                    request.VehicleType, request.VehicleTypeId, string.Join(",", request.VehicleTypeIds ?? new List<int>()), request.VehicleCode, request.VehicleId, request.SiteId,
                     string.Join(",", request.SiteIds ?? new List<int>()), request.DriverId, request.AverageKmL);
                 throw;
             }

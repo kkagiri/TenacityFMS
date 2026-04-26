@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -346,7 +346,7 @@ namespace FMS.Infrastructure.Services
             {
                 Id = entity.Id,
                 VehicleId = entity.VehicleId,
-                VehicleName = vehicle.HyoungNo ?? string.Empty,
+                VehicleName = vehicle.VehicleCode ?? string.Empty,
                 NumberPlate = vehicle.NumberPlate ?? string.Empty,
                 IsOnline = entity.IsOnline,
                 LastOnlineAt = entity.LastOnlineAt,

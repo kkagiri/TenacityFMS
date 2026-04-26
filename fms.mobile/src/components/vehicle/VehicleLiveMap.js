@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleLiveMap.js
  * Purpose: Embedded Google Maps showing live vehicle positions with SignalR streaming.
  *          Uses react-native-maps (MapView) with vehicle markers, callouts, and auto-tracking.
@@ -88,7 +88,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
         if (data && (data.latitude || data.Latitude)) {
           setSingleVehicleLocation({
             vehicleId: selectedVehicleId,
-            hyoungNo: selectedVehicle?.hyoungNo || selectedVehicle?.HyoungNo || "",
+            vehicleCode: selectedVehicle?.vehicleCode || selectedVehicle?.VehicleCode || "",
             vehicleName: selectedVehicle?.vehicleName || selectedVehicle?.VehicleName || "",
             numberPlate: selectedVehicle?.numberPlate || selectedVehicle?.NumberPlate || "",
             latitude: data.latitude || data.Latitude,
@@ -204,8 +204,8 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
       return;
     }
     const label =
-      vehicle.hyoungNo ||
-      vehicle.HyoungNo ||
+      vehicle.vehicleCode ||
+      vehicle.VehicleCode ||
       vehicle.vehicleName ||
       vehicle.VehicleName ||
       "Vehicle";
@@ -252,7 +252,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
               <View style={[styles.fallbackDotLarge, { backgroundColor: getMarkerColor(selectedVehicleData) }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.fallbackVehicleName}>
-                  {selectedVehicleData.hyoungNo || selectedVehicleData.HyoungNo || selectedVehicleData.vehicleName || selectedVehicleData.VehicleName}
+                  {selectedVehicleData.vehicleCode || selectedVehicleData.VehicleCode || selectedVehicleData.vehicleName || selectedVehicleData.VehicleName}
                 </Text>
                 <Text style={styles.fallbackVehicleCoords}>
                   {selectedLat.toFixed(6)}, {selectedLng.toFixed(6)}
@@ -297,7 +297,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
               <View style={[styles.fallbackDot, { backgroundColor: getMarkerColor(v) }]} />
               <View style={styles.fallbackListInfo}>
                 <Text style={styles.fallbackListText}>
-                  {v.hyoungNo || v.HyoungNo || v.vehicleName || v.VehicleName}
+                  {v.vehicleCode || v.VehicleCode || v.vehicleName || v.VehicleName}
                 </Text>
                 <Text style={styles.fallbackListCoord}>
                   {(v.latitude || v.Latitude || 0).toFixed(4)}, {(v.longitude || v.Longitude || 0).toFixed(4)}
@@ -365,7 +365,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
           const lng = vehicle.longitude || vehicle.Longitude;
           const heading = vehicle.heading || vehicle.Heading || 0;
           const { isOnline, isMoving, speed: rawSpeed } = getVehicleStatus(vehicle);
-          const plate = vehicle.hyoungNo || vehicle.HyoungNo || vehicle.numberPlate || vehicle.NumberPlate || "";
+          const plate = vehicle.vehicleCode || vehicle.VehicleCode || vehicle.numberPlate || vehicle.NumberPlate || "";
           const name = vehicle.vehicleName || vehicle.VehicleName || "";
           const speed = Math.round(rawSpeed);
           const isSelected = selectedVehicleId === vehicleId;
@@ -453,7 +453,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
           <View style={[styles.selectedDot, { backgroundColor: getMarkerColor(selectedVehicleData) }]} />
           <View style={styles.selectedInfo}>
             <Text style={styles.selectedPlate}>
-              {selectedVehicleData.hyoungNo || selectedVehicleData.HyoungNo || selectedVehicleData.vehicleName || selectedVehicleData.VehicleName}
+              {selectedVehicleData.vehicleCode || selectedVehicleData.VehicleCode || selectedVehicleData.vehicleName || selectedVehicleData.VehicleName}
             </Text>
             <Text style={styles.selectedStatus}>
               {(() => {

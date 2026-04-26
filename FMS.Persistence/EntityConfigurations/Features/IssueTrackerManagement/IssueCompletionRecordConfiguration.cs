@@ -19,17 +19,11 @@ namespace FMS.Persistence.EntityConfigurations
             builder.ToTable("issuecompletionrecord");
 
             builder.Property(e => e.Id)
-                .ValueGeneratedNever()
-                .HasColumnType("int(11)")
-                .HasColumnName("ID");
+                .ValueGeneratedNever();
 
-            builder.Property(e => e.IssueId)
-                .HasColumnType("int(11)")
-                .HasColumnName("IssueID");
+            builder.Property(e => e.IssueId);
 
-            builder.Property(e => e.TemplateActionId)
-                .HasColumnType("int(11)")
-                .HasColumnName("TemplateActionID");
+            builder.Property(e => e.TemplateActionId);
 
             builder.Property(e => e.ActionName)
                 .HasMaxLength(150)
@@ -57,9 +51,7 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.DevicePhoneNumber)
                 .HasMaxLength(50);
 
-            builder.Property(e => e.SourceVehicleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("SourceVehicleID");
+            builder.Property(e => e.SourceVehicleId);
 
             // Camera fields
             builder.Property(e => e.CameraImei)
@@ -96,7 +88,6 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasMaxLength(256);
 
             builder.Property(e => e.CompletedAt)
-                .HasColumnType("datetime")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             // Indexes
@@ -129,3 +120,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

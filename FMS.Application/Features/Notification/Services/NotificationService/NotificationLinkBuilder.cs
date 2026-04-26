@@ -8,12 +8,10 @@
  * Last Modified: 2025-01-15
  *
  * Key Functions:
- * - ForFuelImportManagement(): link to the fuel import management page.
  * - ForTankStockEvent(): link to the tank / active events page for a tank-level event.
  * - ForWarningLetterSignature(): link to the warning letter preview page (signature request).
  * - ForWarningLetterView(): link to the warning letter view page (signed copy uploaded).
  * - ForIssue(): link to the issue tracker detail page.
- * - ForVehicleDocument(): link to the vehicle documents page for a specific vehicle.
  * - ForVehicleTrip(): link to a vehicle trip detail page.
  * - ForVehicleTransfer(): link to a vehicle transfer detail page.
  * - ForActiveEvent(): link to the active events dashboard filtered by event.
@@ -39,9 +37,6 @@ namespace FMS.Application.Features.Notification.Services
             public string Label { get; }
         }
 
-        public static NotificationLink ForFuelImportManagement()
-            => new NotificationLink("/reports/import-management", "Open import management");
-
         public static NotificationLink ForTankStockEvent(int? siteId, int? tankId, string? eventType)
         {
             // Prefer a tank-scoped route when a tank is available, otherwise fall back to the
@@ -61,9 +56,6 @@ namespace FMS.Application.Features.Notification.Services
 
         public static NotificationLink ForIssue(int issueTrackerId)
             => new NotificationLink($"/issues/{issueTrackerId}", "Open issue");
-
-        public static NotificationLink ForVehicleDocument(int vehicleId)
-            => new NotificationLink("/vehicles/documents", "Open vehicle documents");
 
         // Vehicle trips do not currently have a per-trip detail route, so we link to the
         // trips list where the user can locate and respond to the trip.

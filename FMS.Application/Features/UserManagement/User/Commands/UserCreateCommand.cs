@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -40,7 +40,7 @@ public record UserCreateResultDto(
 
 public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSResponse<UserCreateResultDto>>
 {
-    private const string TemporaryPasswordPrefix = "Hyoung";
+    private const string TemporaryPasswordPrefix = "Tenacy";
     private const string PasswordLetters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     private const string PasswordSpecialCharacters = "!@#$%^&*";
     private const string DevelopmentEnvironmentName = "Development";
@@ -203,7 +203,7 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
 
                 onboardingEmailSent = await _emailService.SendEmailAsync(
                     to: normalizedEmail,
-                    subject: request.RequireEmailConfirmation ? "Confirm your Hyoung FMS account" : "Your Hyoung FMS account is ready",
+                    subject: request.RequireEmailConfirmation ? "Confirm your Tenacy FMS account" : "Your Tenacy FMS account is ready",
                     body: emailBody,
                     isHtml: true,
                     cancellationToken: cancellationToken);
@@ -287,7 +287,7 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
         return $@"
 <div style=""font-family:Segoe UI, Arial, sans-serif; color:#201f1e; line-height:1.6;"">
     <p>Hello {safeName},</p>
-    <p>Your Hyoung FMS account has been created. Use the temporary password below{(string.IsNullOrWhiteSpace(confirmationLink) ? string.Empty : ", then confirm your email before signing in")}.</p>
+    <p>Your Tenacy FMS account has been created. Use the temporary password below{(string.IsNullOrWhiteSpace(confirmationLink) ? string.Empty : ", then confirm your email before signing in")}.</p>
     <p><strong>Username:</strong> {safeUserName}<br />
          <strong>Temporary password:</strong> {safePassword}</p>
     {confirmationSection}

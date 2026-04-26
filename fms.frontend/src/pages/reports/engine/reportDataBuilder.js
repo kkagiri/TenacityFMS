@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: reportDataBuilder.js
  * Purpose: Normalize source API responses into template-ready JSReport payloads.
  * Dependencies: None
@@ -679,7 +679,7 @@ const mapFuelRefill = (rawRecords) => {
         return {
             rowNumber: index + 1,
             dateTime: formatUtcDateTimeToLocal(getValue(record, ['dateTime', 'date', 'createdOn', 'dateCreated'])),
-            vehicleName: normalizeText(getValue(record, ['vehicleName', 'hyoungNo', 'vehicleInfo']) || (vehicleId ? `Vehicle #${vehicleId}` : '-')),
+            vehicleName: normalizeText(getValue(record, ['vehicleName', 'vehicleCode', 'vehicleInfo']) || (vehicleId ? `Vehicle #${vehicleId}` : '-')),
             siteName: normalizeText(resolvedSiteName || (siteId ? `Site #${siteId}` : '-')),
             volume: formatNumber(volumeValue),
             fuelAverage: formatNumber(averageValue),
@@ -706,7 +706,7 @@ const mapFuelRefill = (rawRecords) => {
     const summaryFuelAverageUnit = mixedUnitMode
         ? 'Km/L or L/Hr'
         : (summaryIsKmPerLiter ? 'Km/L' : 'L/Hr');
-    const uniqueVehicles = new Set(rawRecords.map((r) => getValue(r, ['vehicleId', 'vehicleName', 'hyoungNo'])).filter(Boolean)).size;
+    const uniqueVehicles = new Set(rawRecords.map((r) => getValue(r, ['vehicleId', 'vehicleName', 'vehicleCode'])).filter(Boolean)).size;
 
     return {
         records: mapped,
@@ -736,8 +736,8 @@ const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
 
         return {
             rowNumber: index + 1,
-            vehicleName: getValue(record, ['vehicleName', 'hyoungNo', 'vehicleInfo']) || '-',
-            numberPlate: getValue(record, ['numberPlate', 'hyoungNo']) || '-',
+            vehicleName: getValue(record, ['vehicleName', 'vehicleCode', 'vehicleInfo']) || '-',
+            numberPlate: getValue(record, ['numberPlate', 'vehicleCode']) || '-',
             vehicleType: getValue(record, ['vehicleType']) || '-',
             siteName: getValue(record, ['workingSiteName', 'siteName']) || '-',
             driverName: normalizeText(getValue(record, ['driverName', 'employeeName']), '-'),
@@ -1207,7 +1207,7 @@ const mapTankVolumeHistory = (rawRecords, container) => {
             rowNumber: globalRowNumber++,
             tankName,
             siteName: normalizeText(getValue(record, ['siteName', 'site']), '-'),
-            vehiclePlate: normalizeText(getValue(record, ['vehicleName', 'vehicleHyoungNo']), ''),
+            vehiclePlate: normalizeText(getValue(record, ['vehicleName', 'vehicleCode']), ''),
             operatorName: normalizeText(getValue(record, ['recordedByUserName', 'recordedBy']), '-'),
             timestamp: {
                 date: formatDate(ts),
@@ -1488,11 +1488,11 @@ const mapIssueTracker = (rawRecords, container, queryParams) => {
         const issueId = numberOrZero(getValue(record, ['id', 'issueId']));
         const siteId = numberOrZero(getValue(record, ['siteId']));
         const vehicleId = numberOrZero(getValue(record, ['vehicleId']));
-        const vehicleHyoungNo = getValue(record, ['vehicleHyoungNo', 'vehicleName']);
+        const vehicleCode = getValue(record, ['vehicleCode', 'vehicleName']);
         const vehicleNumber = getValue(record, ['vehicleNumber', 'numberPlate']);
 
         const resolvedVehicle =
-            normalizeText(vehicleHyoungNo, '') ||
+            normalizeText(vehicleCode, '') ||
             normalizeText(vehicleNumber, '') ||
             (vehicleId > 0 ? `Vehicle #${vehicleId}` : '-');
 
@@ -2197,7 +2197,7 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             employeeId: numberOrZero(getValue(record, ['employeeId'])),
             letterTypeName,
             employeeName: normalizeText(getValue(record, ['employeeName']), '-'),
-            vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
+            vehicleCode: normalizeText(getValue(record, ['vehicleCode']), '-'),
             numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
             vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
             siteName: normalizeText(getValue(record, ['siteName']), '-'),
@@ -2329,7 +2329,7 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             warningCount: 0,
             totalExcessFuelLitres: 0,
             latestLetterDate: item.letterDate || '',
-            vehicleHyoungNo: item.vehicleHyoungNo || '-',
+            vehicleCode: item.vehicleCode || '-',
             warningType: item.letterTypeName || '-',
         };
 
@@ -2342,7 +2342,7 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         const itemDate = item.letterDate ? new Date(item.letterDate).getTime() : Number.NEGATIVE_INFINITY;
         if (itemDate >= existingDate) {
             existing.latestLetterDate = item.letterDate || existing.latestLetterDate;
-            existing.vehicleHyoungNo = item.vehicleHyoungNo || '-';
+            existing.vehicleCode = item.vehicleCode || '-';
             existing.warningType = item.letterTypeName || '-';
         }
 
@@ -2353,7 +2353,7 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
             ...item,
             totalExcessFuelLitres: roundTo(item.totalExcessFuelLitres, 2),
             totalExcessFuelLitresFormatted: formatNumber(roundTo(item.totalExcessFuelLitres, 2)),
-            vehicleHyoungNo: normalizeText(item.vehicleHyoungNo, '-'),
+            vehicleCode: normalizeText(item.vehicleCode, '-'),
             warningType: normalizeText(item.warningType, '-'),
         }))
         .sort((left, right) => right.warningCount - left.warningCount || left.employeeName.localeCompare(right.employeeName))
@@ -2365,16 +2365,16 @@ const mapWarningLetterAnalytics = (rawRecords, container, queryParams = {}) => {
         ? {
             employeeName: speedEmployeeRanking[0].employeeName,
             warningCount: speedEmployeeRanking[0].warningCount,
-            vehicleHyoungNo: speedEmployeeRanking[0].vehicleHyoungNo,
+            vehicleCode: speedEmployeeRanking[0].vehicleCode,
         }
-        : { employeeName: '-', warningCount: 0, vehicleHyoungNo: '-' };
+        : { employeeName: '-', warningCount: 0, vehicleCode: '-' };
     const topFuelEmployee = fuelEmployeeRanking[0]
         ? {
             employeeName: fuelEmployeeRanking[0].employeeName,
             warningCount: fuelEmployeeRanking[0].warningCount,
-            vehicleHyoungNo: fuelEmployeeRanking[0].vehicleHyoungNo,
+            vehicleCode: fuelEmployeeRanking[0].vehicleCode,
         }
-        : { employeeName: '-', warningCount: 0, vehicleHyoungNo: '-' };
+        : { employeeName: '-', warningCount: 0, vehicleCode: '-' };
 
     const lastWarningByEmployee = (rawAnalytics.lastWarningByEmployee || rawAnalytics.LastWarningByEmployee || []).map((item) => {
         const stageMeta = getWarningLetterWorkflowStageMeta(getValue(item, ['workflowStageName']));
@@ -2476,7 +2476,7 @@ const mapWarningLetterCandidates = (rawRecords, container) => {
         metricDate: normalizeText(getValue(record, ['metricDate']), '-'),
         period: normalizeText(getValue(record, ['period']), '-'),
         siteName: normalizeText(getValue(record, ['siteName']), '-'),
-        vehicleHyoungNo: normalizeText(getValue(record, ['vehicleHyoungNo']), '-'),
+        vehicleCode: normalizeText(getValue(record, ['vehicleCode']), '-'),
         numberPlate: normalizeText(getValue(record, ['numberPlate']), '-'),
         vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName']), '-'),
         employeeName: normalizeText(getValue(record, ['employeeName']), '-'),

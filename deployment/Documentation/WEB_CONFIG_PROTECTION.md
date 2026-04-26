@@ -1,4 +1,4 @@
-# ⚠️ IMPORTANT: web.config File Handling
+﻿# ⚠️ IMPORTANT: web.config File Handling
 
 ## 🔒 **Current Policy: DO NOT TOUCH EXISTING web.config Files**
 
@@ -10,19 +10,19 @@ All deployment scripts have been configured to **PRESERVE** your existing web.co
 
 ### Backend web.config
 ```
-C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config
+C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config
 ```
 
 ### Frontend web.config
 ```
-C:\inetpub\wwwroot\hyoungFMS\reactApp\web.config
+C:\inetpub\wwwroot\tenacyFMS\reactApp\web.config
 ```
 
 ---
 
 ## 🛡️ **Protection Mechanisms**
 
-### 1. Setup Script (setup-iis-hyoungfms.ps1)
+### 1. Setup Script (setup-iis-tenacyfms.ps1)
 
 **Behavior:**
 - ✅ **Checks** if web.config exists
@@ -78,7 +78,7 @@ The scripts assume you already have properly configured web.config files in:
 
 ## ✅ **Verified Protection Points**
 
-### In setup-iis-hyoungfms.ps1:
+### In setup-iis-tenacyfms.ps1:
 ```powershell
 # Lines 104-117
 # Only CHECKS existence, never creates or modifies
@@ -123,24 +123,24 @@ if (Test-Path $backup) {
 ### Before Running Setup:
 ```powershell
 # Check your existing web.config files
-Test-Path "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
-Test-Path "C:\inetpub\wwwroot\hyoungFMS\reactApp\web.config"
+Test-Path "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
+Test-Path "C:\inetpub\wwwroot\tenacyFMS\reactApp\web.config"
 
 # View content (to compare later)
-Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
+Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
 ```
 
 ### After Running Setup:
 ```powershell
 # Files should be identical
-Get-FileHash "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
+Get-FileHash "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
 # Hash should match original
 ```
 
 ### During Deployment:
 ```powershell
 # Check for backup files (temporary during deployment)
-Get-ChildItem "C:\inetpub\wwwroot\hyoungFMS\webAPI" -Filter "*.backup"
+Get-ChildItem "C:\inetpub\wwwroot\tenacyFMS\webAPI" -Filter "*.backup"
 # Should see web.config.backup during deployment
 ```
 
@@ -194,13 +194,13 @@ Get-ChildItem "C:\inetpub\wwwroot\hyoungFMS\webAPI" -Filter "*.backup"
 
 2. **Check for backup**
    ```powershell
-   Get-ChildItem "C:\inetpub\wwwroot\hyoungFMS\webAPI" -Filter "*.backup"
+   Get-ChildItem "C:\inetpub\wwwroot\tenacyFMS\webAPI" -Filter "*.backup"
    ```
 
 3. **Restore from backup** (if exists)
    ```powershell
-   Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup" `
-             "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" -Force
+   Copy-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config.backup" `
+             "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" -Force
    ```
 
 4. **Or restore from git** (recommended)
@@ -216,7 +216,7 @@ Get-ChildItem "C:\inetpub\wwwroot\hyoungFMS\webAPI" -Filter "*.backup"
 ### 1. Keep web.config in Source Control
 ```powershell
 # Add to git (if not already)
-cd C:\dev\Hyoung.FMS
+cd C:\dev\Tenacy.FMS
 git add FMS.WebClient/web.config
 git add fms.frontend/public/web.config
 git commit -m "Add web.config files"
@@ -240,7 +240,7 @@ Create a `web.config.notes.md` file documenting:
 ### 4. Regular Backups
 ```powershell
 # Manual backup before major changes
-Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" `
+Copy-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" `
           "C:\backups\web.config.$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 ```
 
@@ -250,19 +250,19 @@ Copy-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" `
 
 ```powershell
 # Check if web.config exists
-Test-Path "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
-Test-Path "C:\inetpub\wwwroot\hyoungFMS\reactApp\web.config"
+Test-Path "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
+Test-Path "C:\inetpub\wwwroot\tenacyFMS\reactApp\web.config"
 
 # View last modification time
-Get-Item "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" | Select-Object LastWriteTime
+Get-Item "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" | Select-Object LastWriteTime
 
 # Compare with backup (during deployment)
-$original = Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config"
-$backup = Get-Content "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config.backup"
+$original = Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config"
+$backup = Get-Content "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config.backup"
 Compare-Object $original $backup
 
 # Calculate hash (to detect changes)
-Get-FileHash "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" -Algorithm SHA256
+Get-FileHash "C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config" -Algorithm SHA256
 ```
 
 ---
@@ -271,7 +271,7 @@ Get-FileHash "C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config" -Algorithm SHA256
 
 | Script | web.config Behavior |
 |--------|-------------------|
-| **setup-iis-hyoungfms.ps1** | ✅ Checks only, never creates/modifies |
+| **setup-iis-tenacyfms.ps1** | ✅ Checks only, never creates/modifies |
 | **deploy-manual.ps1** | ✅ Backs up, then restores original |
 | **deploy-to-iis.yml** | ✅ Backs up, then restores original |
 | **control-iis.ps1** | ✅ Doesn't touch web.config at all |

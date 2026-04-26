@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: GetWarningLetterConsumptionCandidatesQuery.cs
  * Purpose: Returns filtered vehicle-consumption records that qualify as warning letter candidates.
  * Dependencies: MediatR, GpsdataContext, ISystemConfigurationService, FMSResponse, WarningLetter DTOs/entities
@@ -188,7 +188,7 @@ public class GetWarningLetterConsumptionCandidatesQueryHandler : IRequestHandler
             SiteId = candidate.SiteId,
             SiteName = candidate.Site.Name,
             VehicleId = candidate.VehicleId,
-            VehicleHyoungNo = candidate.Vehicle.HyoungNo,
+            VehicleCode = candidate.Vehicle.VehicleCode,
             NumberPlate = candidate.Vehicle.NumberPlate,
             EmployeeId = employeeId,
             EmployeeName = employeeName,

@@ -1,4 +1,4 @@
-# 🔌 Port Configuration Guide for Hyoung FMS
+﻿# 🔌 Port Configuration Guide for Tenacy FMS
 
 ## 📍 Current Port Setup
 
@@ -70,7 +70,7 @@ Check your `appsettings.json` for Kestrel URL configuration:
 
 ### 3. IIS Setup Script (IIS Site Ports)
 ```powershell
-# setup-iis-hyoungfms.ps1
+# setup-iis-tenacyfms.ps1
 [int]$BackendPort = 7009    # Updated to match Program.cs
 [int]$FrontendPort = 80     # Standard HTTP port
 ```
@@ -174,12 +174,12 @@ http://yourserver:7009         → Backend (direct)
 **Development:**
 ```powershell
 # Backend
-cd C:\dev\Hyoung.FMS\FMS.WebClient
+cd C:\dev\Tenacy.FMS\FMS.WebClient
 dotnet run
 # Runs on: http://localhost:7009
 
 # Frontend
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 npm start
 # Runs on: http://localhost:3000
 # Configure to call: http://localhost:7009/api
@@ -188,7 +188,7 @@ npm start
 **Production (IIS):**
 ```powershell
 # Run setup
-.\setup-iis-hyoungfms.ps1
+.\setup-iis-tenacyfms.ps1
 # Creates:
 #   Backend:  http://localhost:7009
 #   Frontend: http://localhost:80
@@ -244,7 +244,7 @@ app.UseCors("AllowFrontend");
 
 ### 3. Update IIS web.config (if needed)
 
-**File**: `C:\inetpub\wwwroot\hyoungFMS\webAPI\web.config`
+**File**: `C:\inetpub\wwwroot\tenacyFMS\webAPI\web.config`
 
 The backend web.config should reference the correct DLL:
 ```xml

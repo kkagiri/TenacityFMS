@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace FMS.Application.Features.Geofence.DTOs;
@@ -26,9 +26,9 @@ public class LocationBypassHistoryDTO
     public string? VehicleName { get; set; }
 
     /// <summary>
-    /// Vehicle HyoungNo
+    /// Vehicle VehicleCode
     /// </summary>
-    public string? VehicleHyoungNo { get; set; }
+    public string? VehicleCode { get; set; }
 
     /// <summary>
     /// User ID if bypass was for a specific user

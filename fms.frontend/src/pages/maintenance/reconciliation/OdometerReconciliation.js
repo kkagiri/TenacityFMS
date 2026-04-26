@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { DataGrid } from 'devextreme-react';
 import {
   Column,
@@ -88,7 +88,7 @@ const OdometerReconciliation = () => {
 
           return {
             vehicleId: item.vehicleId,
-            hyoungNo: item.hyoungNo,
+            vehicleCode: item.vehicleCode,
             numberPlate: item.numberPlate,
             averageKmL: item.averageKmL,
             unit: item.averageKmL ? 'km' : 'hr',
@@ -162,7 +162,7 @@ const OdometerReconciliation = () => {
       `<div class="tw-text-center">
         <p class="tw-mb-2"><strong>${action}</strong></p>
         <p>This will sync <strong>${validVehicles.length}</strong> vehicle(s)</p>
-        <p class="tw-text-sm tw-text-gray-600 tw-mt-2">Vehicles: ${validVehicles.slice(0, 5).map(v => v.hyoungNo).join(', ')}${validVehicles.length > 5 ? ` and ${validVehicles.length - 5} more...` : ''}</p>
+        <p class="tw-text-sm tw-text-gray-600 tw-mt-2">Vehicles: ${validVehicles.slice(0, 5).map(v => v.vehicleCode).join(', ')}${validVehicles.length > 5 ? ` and ${validVehicles.length - 5} more...` : ''}</p>
       </div>`,
       'Confirm Bulk Sync'
     );
@@ -264,7 +264,7 @@ const OdometerReconciliation = () => {
   const handleSingleSync = async (vehicleId, direction = 'from-gps', skipConfirm = false) => {
     // Find vehicle info for confirmation message
     const vehicle = comparisons.find(v => v.vehicleId === vehicleId);
-    const vehicleName = vehicle?.hyoungNo || `ID: ${vehicleId}`;
+    const vehicleName = vehicle?.vehicleCode || `ID: ${vehicleId}`;
     const action = direction === 'from-gps'
       ? 'Pull GPS reading to update database'
       : 'Push database reading to GPS';
@@ -605,7 +605,7 @@ const OdometerReconciliation = () => {
             <Paging enabled={true} defaultPageSize={50} />
 
             <Column dataField="vehicleId" caption="ID" width={60} />
-            <Column dataField="hyoungNo" caption="Vehicle" width={100} />
+            <Column dataField="vehicleCode" caption="Vehicle" width={100} />
             <Column dataField="numberPlate" caption="Plate" width={90} />
 
             <Column dataField="siteName" caption="Site" width={100} allowGrouping={true} />
@@ -872,7 +872,7 @@ const OdometerReconciliation = () => {
         closeOnOutsideClick={true}
         showCloseButton={true}
         showTitle={true}
-        title={`Diagnostic: ${diagnosticVehicle?.hyoungNo || 'Vehicle'}`}
+        title={`Diagnostic: ${diagnosticVehicle?.vehicleCode || 'Vehicle'}`}
         width={600}
         height={650}
         contentRender={() => diagnosticVehicle ? (
@@ -885,7 +885,7 @@ const OdometerReconciliation = () => {
               </h4>
               <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-text-sm">
                 <div><span className="tw-text-gray-500">ID:</span> {diagnosticVehicle.vehicleId}</div>
-                <div><span className="tw-text-gray-500">Hyoung No:</span> {diagnosticVehicle.hyoungNo}</div>
+                <div><span className="tw-text-gray-500">Tenacy No:</span> {diagnosticVehicle.vehicleCode}</div>
                 <div><span className="tw-text-gray-500">Plate:</span> {diagnosticVehicle.numberPlate}</div>
                 <div><span className="tw-text-gray-500">Type:</span> {diagnosticVehicle.vehicleTypeName}</div>
                 <div><span className="tw-text-gray-500">Site:</span> {diagnosticVehicle.siteName}</div>

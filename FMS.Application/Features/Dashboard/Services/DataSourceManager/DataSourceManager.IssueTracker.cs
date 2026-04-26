@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DataSourceManager.IssueTracker.cs
  * Purpose: Provides issue-tracker dashboard data sources based on existing issue-tracker entities and filters.
  * Dependencies: GpsdataContext, Issuetracker, DataSourceMetadata
@@ -201,8 +201,8 @@ namespace FMS.Application.Services.Dashboard
                     VehicleName = i.Vehicle != null
                         ? (!string.IsNullOrWhiteSpace(i.Vehicle.NumberPlate)
                             ? i.Vehicle.NumberPlate
-                            : !string.IsNullOrWhiteSpace(i.Vehicle.HyoungNo)
-                                ? i.Vehicle.HyoungNo
+                            : !string.IsNullOrWhiteSpace(i.Vehicle.VehicleCode)
+                                ? i.Vehicle.VehicleCode
                                 : $"Vehicle {i.VehicleId}")
                         : "Unknown",
                     SiteName = i.Site != null ? i.Site.Name : null
@@ -304,8 +304,8 @@ namespace FMS.Application.Services.Dashboard
                     VehicleName = i.Vehicle != null
                         ? (!string.IsNullOrWhiteSpace(i.Vehicle.NumberPlate)
                             ? i.Vehicle.NumberPlate
-                            : !string.IsNullOrWhiteSpace(i.Vehicle.HyoungNo)
-                                ? i.Vehicle.HyoungNo
+                            : !string.IsNullOrWhiteSpace(i.Vehicle.VehicleCode)
+                                ? i.Vehicle.VehicleCode
                                 : $"Vehicle {i.VehicleId}")
                         : "Unknown",
                     i.OpenDate,
@@ -512,8 +512,8 @@ namespace FMS.Application.Services.Dashboard
                     VehicleName = i.Vehicle != null
                         ? (!string.IsNullOrWhiteSpace(i.Vehicle.NumberPlate)
                             ? i.Vehicle.NumberPlate
-                            : !string.IsNullOrWhiteSpace(i.Vehicle.HyoungNo)
-                                ? i.Vehicle.HyoungNo
+                            : !string.IsNullOrWhiteSpace(i.Vehicle.VehicleCode)
+                                ? i.Vehicle.VehicleCode
                                 : $"Vehicle {i.VehicleId}")
                         : null,
                     i.AssignedTo,

@@ -92,7 +92,7 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
                         RuleName = "Max trips per day per vehicle",
                         Severity = "Warning",
                         VehicleId = sample.VehicleId,
-                        VehicleLabel = BuildVehicleLabel(sample.Vehicle.HyoungNo, sample.Vehicle.NumberPlate),
+                        VehicleLabel = BuildVehicleLabel(sample.Vehicle.VehicleCode, sample.Vehicle.NumberPlate),
                         TripDate = perVehicleDay.Key.Date,
                         CurrentValue = tripCount,
                         ThresholdValue = DefaultMaxTripsPerDay,
@@ -110,7 +110,7 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
                     RuleName = "Max distance per trip",
                     Severity = "Warning",
                     VehicleId = item.Group.VehicleId,
-                    VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.HyoungNo, item.Group.Vehicle.NumberPlate),
+                    VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.VehicleCode, item.Group.Vehicle.NumberPlate),
                     TripDate = item.Group.TripDate,
                     VehicleTripGroupId = item.Group.VehicleTripGroupId,
                     VehicleTripId = item.Trip.VehicleTripId,
@@ -156,7 +156,7 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
                             RuleName = "Expected trip duration between two sites",
                             Severity = "Warning",
                             VehicleId = item.Group.VehicleId,
-                            VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.HyoungNo, item.Group.Vehicle.NumberPlate),
+                            VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.VehicleCode, item.Group.Vehicle.NumberPlate),
                             TripDate = item.Group.TripDate,
                             VehicleTripGroupId = item.Group.VehicleTripGroupId,
                             VehicleTripId = item.Trip.VehicleTripId,
@@ -183,7 +183,7 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
                             RuleName = "Fuel consumption rate thresholds per route",
                             Severity = "Critical",
                             VehicleId = item.Group.VehicleId,
-                            VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.HyoungNo, item.Group.Vehicle.NumberPlate),
+                            VehicleLabel = BuildVehicleLabel(item.Group.Vehicle.VehicleCode, item.Group.Vehicle.NumberPlate),
                             TripDate = item.Group.TripDate,
                             VehicleTripGroupId = item.Group.VehicleTripGroupId,
                             VehicleTripId = item.Trip.VehicleTripId,
@@ -212,7 +212,7 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
                         RuleName = "Tipper minimum cycles per day",
                         Severity = "Warning",
                         VehicleId = sample.VehicleId,
-                        VehicleLabel = BuildVehicleLabel(sample.Vehicle.HyoungNo, sample.Vehicle.NumberPlate),
+                        VehicleLabel = BuildVehicleLabel(sample.Vehicle.VehicleCode, sample.Vehicle.NumberPlate),
                         TripDate = perVehicleDay.Key.Date,
                         CurrentValue = cycleCount,
                         ThresholdValue = DefaultMinimumTipperCyclesPerDay,
@@ -242,10 +242,10 @@ public class GetVehicleTripRuleEvaluationQueryHandler : IRequestHandler<GetVehic
         }
     }
 
-    private static string BuildVehicleLabel(string? hyoungNo, string? numberPlate)
+    private static string BuildVehicleLabel(string? vehicleCode, string? numberPlate)
     {
         return !string.IsNullOrWhiteSpace(numberPlate)
-            ? $"{hyoungNo} / {numberPlate}"
-            : hyoungNo ?? string.Empty;
+            ? $"{vehicleCode} / {numberPlate}"
+            : vehicleCode ?? string.Empty;
     }
 }

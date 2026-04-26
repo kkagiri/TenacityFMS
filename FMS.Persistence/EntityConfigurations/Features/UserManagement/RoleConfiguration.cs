@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 
@@ -20,9 +20,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
                 builder
-                    .ToTable("roles")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                    .ToTable("roles");
 
                 builder.Property(e => e.Id).HasMaxLength(100);
                 builder.Property(e => e.ConcurrencyStamp).HasMaxLength(256);
@@ -37,7 +35,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .OnDelete(DeleteBehavior.Cascade);
             }
 
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");
@@ -47,3 +44,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

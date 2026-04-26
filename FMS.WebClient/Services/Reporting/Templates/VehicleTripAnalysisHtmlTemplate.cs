@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTripAnalysisHtmlTemplate.cs
  * Purpose: Handlebars/HTML template for the vehicle trip route analysis report.
  * Dependencies: Vehicle trip route-analysis payload from the reporting engine.
@@ -18,7 +18,7 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <meta charset=""UTF-8"">
-    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <title>{{reportTitle}} - Tenacy FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet"">
     <style>
         :root {
@@ -471,7 +471,7 @@ namespace FMS.WebClient.Services.Reporting
     {{/unless}}
 
     <div class=""report-footer"">
-        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Tenacy Fleet Management</strong></span></div>
         <div>Report ID: {{reportId}}</div>
     </div>
 </div>

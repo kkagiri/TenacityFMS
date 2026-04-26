@@ -27,24 +27,19 @@ namespace FMS.Persistence.EntityConfigurations
 
                 builder.ToTable("site", tb => tb.HasComment("			"));
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("id");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.Name)
-                    .HasMaxLength(45)
-                    .HasColumnName("name");
+                    .HasMaxLength(45);
 
                 builder.Property(e => e.IsActive)
                     .IsRequired()
-                    .HasColumnType("TINYINT(1)")
                     .HasDefaultValue(true)
                     .HasComment("Indicates whether the site is active for fuel reporting");
 
                 // Site Administrator relationship
                 builder.Property(e => e.SiteAdministratorId)
-                    .HasMaxLength(100)
-                    .HasColumnName("site_administrator_id");
+                    .HasMaxLength(100);
 
                 builder.HasOne(d => d.SiteAdministrator)
                     .WithMany()
@@ -57,52 +52,39 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // GPSGate Tag Configuration
                 builder.Property(e => e.GpsGateTagId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("gps_gate_tag_id")
                     .HasComment("The GPSGate tag ID for monitoring vehicles at this site");
 
                 builder.Property(e => e.GpsGateTagName)
                     .HasMaxLength(100)
-                    .HasColumnName("gps_gate_tag_name")
                     .HasComment("The GPSGate tag name for display purposes");
 
                 builder.Property(e => e.AutoUpdateGpsGateTag)
-                    .HasColumnType("TINYINT(1)")
                     .HasDefaultValue(true)
-                    .HasColumnName("auto_update_gps_gate_tag")
                     .HasComment("Whether to automatically update GPSGate tags when vehicles are transferred");
 
                 // GPSGate Geofence Configuration
                 builder.Property(e => e.GpsGeofenceId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("gps_geofence_id")
                     .HasComment("Selected local GPS geofence ID from gps_geofence");
 
                 builder.Property(e => e.GpsGeofenceName)
                     .HasMaxLength(200)
-                    .HasColumnName("gps_geofence_name")
                     .HasComment("Selected GPS geofence display name snapshot");
 
                 builder.Property(e => e.GpsGeofenceType)
                     .HasMaxLength(20)
-                    .HasColumnName("gps_geofence_type")
                     .HasComment("Selected GPS geofence type snapshot: Circle, Polygon, Route");
 
                 builder.Property(e => e.GpsGeofenceCenterLatitude)
                     .HasColumnType("decimal(10,7)")
-                    .HasColumnName("gps_geofence_center_latitude")
                     .HasComment("Selected GPS geofence center latitude snapshot");
 
                 builder.Property(e => e.GpsGeofenceCenterLongitude)
                     .HasColumnType("decimal(10,7)")
-                    .HasColumnName("gps_geofence_center_longitude")
                     .HasComment("Selected GPS geofence center longitude snapshot");
 
                 // Site Classification
                 builder.Property(e => e.Classification)
-                    .HasColumnType("TINYINT")
                     .HasDefaultValue(SiteClassification.Unknown)
-                    .HasColumnName("classification")
                     .HasComment("Operational classification: 0=Unknown, 1=Parking, 2=Load, 3=Dump, 4=Fuel, 5=Workshop");
 
                 builder.HasOne(d => d.GpsGeofence)
@@ -132,11 +114,11 @@ namespace FMS.Persistence.EntityConfigurations
                 //                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
                 //             j.ToTable("usersite");
                 //             j.HasIndex(new[] { "UserId" }, "UserID_idx");
-                //             j.IndexerProperty<int>("SiteId").HasColumnType("int(11)");
+                //             j.IndexerProperty<int>("SiteId");
                 //             j.IndexerProperty<string>("UserId")
                 //                 .HasMaxLength(100)
-                //                 .UseCollation("utf8mb4_general_ci")
-                //                 .HasCharSet("utf8mb4");
+                //
+                //;
                 //         });
             }
             catch (Exception ex)
@@ -146,3 +128,6 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+
+

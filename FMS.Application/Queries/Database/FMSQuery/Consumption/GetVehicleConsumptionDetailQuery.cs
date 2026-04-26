@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -112,7 +112,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption
                 return new VehicleConsumptionDetailDTO
                 {
                     VehicleId = vehicle.VehicleId,
-                    HyoungNo = vehicle.HyoungNo ?? string.Empty,
+                    VehicleCode = vehicle.VehicleCode ?? string.Empty,
                     VehicleType = vehicle.VehicleType?.Name ?? "Unknown",
                     VehicleModel = vehicle.VehicleModel?.Name ?? "Unknown",
                     Manufacturer = vehicle.VehicleManufacturer?.Name ?? "Unknown",

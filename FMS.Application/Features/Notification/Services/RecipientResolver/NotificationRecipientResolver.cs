@@ -100,7 +100,7 @@ namespace FMS.Application.Features.Notification.Services.RecipientResolver
                 }
 
                 // If explicit recipients provided with DisableFallbackAllUsers, return immediately
-                // This is the intended behavior for targeted notifications like FuelImport
+                // This is the intended behavior for targeted notifications
                 if (request.DisableFallbackAllUsers && recipients.Any())
                 {
                     _logger.LogInformation("Returning {Count} explicit recipients only (DisableFallbackAllUsers=true)", recipients.Count);

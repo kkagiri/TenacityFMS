@@ -101,7 +101,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 return FMSResponse.FailedResponse("No approvers found for this site");
             }
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
             var fromSite = transfer.FromSite?.Name ?? $"Site #{transfer.FromSiteId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
@@ -172,7 +172,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 return FMSResponse.FailedResponse("Transfer creator not found");
             }
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
 
             var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
@@ -234,7 +234,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             if (string.IsNullOrWhiteSpace(transfer.CreatedBy))
                 return FMSResponse.FailedResponse("Transfer creator not found");
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
 
             var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
             var request = new CreateNotificationRequest
@@ -299,7 +299,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
                 return FMSResponse.FailedResponse("Transfer receiver user not assigned");
             }
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
             var fromSite = transfer.FromSite?.Name ?? $"Site #{transfer.FromSiteId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
@@ -367,7 +367,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             if (string.IsNullOrWhiteSpace(transfer.CreatedBy))
                 return FMSResponse.FailedResponse("Transfer creator not found");
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
             var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
 
             var transferLink = NotificationLinkBuilder.ForVehicleTransfer(transferId);
@@ -428,7 +428,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             if (transfer == null)
                 return FMSResponse.FailedResponse($"Transfer {transferId} not found");
 
-            var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+            var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
 
             // Collect all stakeholders except the person who cancelled
             var recipientIds = new List<string>();
@@ -516,7 +516,7 @@ public class VehicleTransferNotificationService : IVehicleTransferNotificationSe
             {
                 try
                 {
-                    var vehicleLabel = transfer.Vehicle?.HyoungNo ?? $"Vehicle #{transfer.VehicleId}";
+                    var vehicleLabel = transfer.Vehicle?.VehicleCode ?? $"Vehicle #{transfer.VehicleId}";
                     var fromSite = transfer.FromSite?.Name ?? $"Site #{transfer.FromSiteId}";
                     var toSite = transfer.ToSite?.Name ?? $"Site #{transfer.ToSiteId}";
                     var daysInTransit = transfer.DispatchedAt.HasValue

@@ -11,21 +11,16 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.ToTable("employeevehicle")
-                    .HasCharSet("latin1");
+                builder.ToTable("employeevehicle");
 
                 builder.HasKey(e => new { e.VehicleId, e.EmployeeId })
                     .HasName("PRIMARY");
 
                 builder.HasIndex(e => e.EmployeeId, "EmployeeID_idx");
 
-                builder.Property(e => e.EmployeeId)
-          .HasColumnType("int(11)")
-          .HasColumnName("EmployeeID");
+                builder.Property(e => e.EmployeeId);
 
-                builder.Property(e => e.VehicleId)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("VehicleID");
+                builder.Property(e => e.VehicleId);
 
                 // Configure relationships with specific column names
                 builder.HasOne(ev => ev.Employee)
@@ -45,3 +40,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

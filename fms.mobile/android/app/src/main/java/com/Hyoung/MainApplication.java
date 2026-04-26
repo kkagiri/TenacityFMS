@@ -1,4 +1,4 @@
-package com.Hyoung;
+﻿package com.Tenacy;
 
 import android.app.Application;
 import com.facebook.react.PackageList;
@@ -60,7 +60,7 @@ public class MainApplication extends Application implements ReactApplication {
     // Flipper is only available in debug builds
     if (BuildConfig.DEBUG) {
       try {
-        Class<?> flipperClass = Class.forName("com.Hyoung.ReactNativeFlipper");
+        Class<?> flipperClass = Class.forName("com.Tenacy.ReactNativeFlipper");
         flipperClass
             .getMethod(
                 "initializeFlipper",

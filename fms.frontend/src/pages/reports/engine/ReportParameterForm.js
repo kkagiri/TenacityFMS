@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ReportParameterForm.js
  * Purpose: Dynamic filter/parameter form that renders controls based on a report source's
  *          parameter schema. Supports date, lookup, select, number, and text parameter types.
@@ -56,7 +56,7 @@ const normalizeSearchableVehicleResults = (items) => {
     return raw
         .map((vehicle) => ({
             id: vehicle.vehicleId || vehicle.id,
-            name: vehicle.hyoungNo || vehicle.vehicleName || vehicle.name || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId || vehicle.id}`,
+            name: vehicle.vehicleCode || vehicle.vehicleName || vehicle.name || vehicle.numberPlate || `Vehicle ${vehicle.vehicleId || vehicle.id}`,
         }))
         .filter((vehicle) => vehicle.id);
 };
@@ -171,7 +171,7 @@ const LOOKUP_CONFIG = {
             const raw = state.vehicle?.vehicles || state.vehicle?.list || [];
             return (Array.isArray(raw) ? raw : []).map((v) => ({
                 id: v.vehicleId || v.id,
-                name: v.hyoungNo || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`,
+                name: v.vehicleCode || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`,
                 vehicleTypeId: v.vehicleTypeId,
                 vehicleTypeName: v.vehicleTypeName || v.vehicleType?.name || v.vehicleType?.vehicleTypeName || v.vehicleType || v.typeName || '',
                 workingSiteId: v.workingSiteId,

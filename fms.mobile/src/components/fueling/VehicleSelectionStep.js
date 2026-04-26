@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -209,7 +209,7 @@ const VehicleSelectionStep = ({
           // Normalize the results to handle both PascalCase and camelCase
           const normalizedResults = (results || []).map((v) => ({
             vehicleId: v.VehicleId || v.vehicleId,
-            hyoungNo: v.HyoungNo || v.hyoungNo || "",
+            vehicleCode: v.VehicleCode || v.vehicleCode || "",
             vehicleName:
               v.VehicleName || v.vehicleName || v.Name || v.name || "",
             numberPlate:
@@ -293,7 +293,7 @@ const VehicleSelectionStep = ({
 
         const vehicle = {
           vehicleId: tagDetails.vehicleId,
-          hyoungNo: tagDetails.hyoungNo || "",
+          vehicleCode: tagDetails.vehicleCode || "",
           vehicleName: tagDetails.vehicleName || "",
           numberPlate: tagDetails.numberPlate || "",
           tagId: tagId,
@@ -658,7 +658,7 @@ const VehicleSelectionStep = ({
               style={styles.searchInput}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Search by Hyoung No, Plate, Name..."
+              placeholder="Search by Tenacy No, Plate, Name..."
               placeholderTextColor="#9ca3af"
               autoFocus
               returnKeyType="search"
@@ -702,7 +702,7 @@ const VehicleSelectionStep = ({
                   activeOpacity={0.7}
                 >
                   <View style={styles.vehicleInfo}>
-                    <Text style={styles.vehicleHyoung}>{item.hyoungNo}</Text>
+                    <Text style={styles.vehicleTenacy}>{item.vehicleCode}</Text>
                     {/* <Text style={styles.vehicleName}>
                       {item.vehicleName} • {item.siteName}
                     </Text> */}
@@ -1047,7 +1047,7 @@ const styles = StyleSheet.create({
   vehicleInfo: {
     flex: 1,
   },
-  vehicleHyoung: {
+  vehicleTenacy: {
     fontSize: 15,
     fontWeight: "600",
     color: "#1f2937",

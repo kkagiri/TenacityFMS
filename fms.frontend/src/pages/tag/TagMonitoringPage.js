@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+﻿import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchTagConfigs,
@@ -40,7 +40,7 @@ const TagMonitoringPage = () => {
           {configs &&
             configs.map((cfg) => (
               <tr key={cfg.id}>
-                <td>{cfg.vehicle?.hyoungNo || cfg.vehicleId}</td>
+                <td>{cfg.vehicle?.vehicleCode || cfg.vehicleId}</td>
                 <td>{cfg.tagName}</td>
                 <td>{cfg.isEnabled ? "Yes" : "No"}</td>
                 <td>{cfg.ignoredLocations}</td>
@@ -80,7 +80,7 @@ const TagMonitoringPage = () => {
             logs.map((log) => (
               <tr key={log.id}>
                 <td>{new Date(log.timestamp).toLocaleString()}</td>
-                <td>{log.vehicle?.hyoungNo || log.vehicleId}</td>
+                <td>{log.vehicle?.vehicleCode || log.vehicleId}</td>
                 <td>{log.oldTag}</td>
                 <td>{log.newTag}</td>
                 <td>{log.location}</td>

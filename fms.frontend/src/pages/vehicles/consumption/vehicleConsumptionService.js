@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: vehicleConsumptionService.js
  * Purpose: Wraps vehicle consumption module API calls and normalizes payloads for the vehicle operations pages.
  * Dependencies: axiosInstance
@@ -184,7 +184,7 @@ const normalizeSite = (item = {}) => ({
 
 const normalizeVehicle = (item = {}) => ({
     vehicleId: toNumber(pickValue(item, ["vehicleId", "VehicleId", "id", "Id"])),
-    hyoungNo: pickValue(item, ["hyoungNo", "HyoungNo"], ""),
+    vehicleCode: pickValue(item, ["vehicleCode", "VehicleCode"], ""),
     numberPlate: pickValue(item, ["numberPlate", "NumberPlate"], ""),
     siteId: toNumber(pickValue(item, ["workingSiteId", "WorkingSiteId", "siteId", "SiteId"])),
     siteName: pickValue(item, ["workingSiteName", "WorkingSiteName", "siteName", "SiteName"], ""),
@@ -211,7 +211,7 @@ const normalizeModuleRecord = (item = {}) => {
     return {
         id: toNumber(pickValue(item, ["id", "Id"])),
         vehicleId: toNumber(pickValue(item, ["vehicleId", "VehicleId"])),
-        hyoungNo: pickValue(item, ["hyoungNo", "HyoungNo"], ""),
+        vehicleCode: pickValue(item, ["vehicleCode", "VehicleCode"], ""),
         numberPlate: pickValue(item, ["numberPlate", "NumberPlate"], ""),
         vehicleTypeId: toNumber(pickValue(item, ["vehicleTypeId", "VehicleTypeId"])),
         vehicleTypeName: pickValue(item, ["vehicleTypeName", "VehicleTypeName"], "Unknown"),
@@ -237,7 +237,7 @@ const normalizeModuleRecord = (item = {}) => {
 const normalizeRecordDetail = (item = {}) => ({
     id: toNumber(pickValue(item, ["id", "Id"])),
     vehicleId: toNumber(pickValue(item, ["vehicleId", "VehicleId"])),
-    hyoungNo: pickValue(item, ["hyoungNo", "HyoungNo"], ""),
+    vehicleCode: pickValue(item, ["vehicleCode", "VehicleCode"], ""),
     numberPlate: pickValue(item, ["numberPlate", "NumberPlate"], ""),
     vehicleTypeName: pickValue(item, ["vehicleTypeName", "VehicleTypeName"], "Unknown"),
     vehicleModelName: pickValue(item, ["vehicleModelName", "VehicleModelName"], ""),
@@ -322,7 +322,7 @@ export const getVehicleConsumptionFilterOptions = async () => {
     const vehicles = ensureArray(vehiclesResponse.data)
         .map(normalizeVehicle)
         .filter((item) => item.vehicleId > 0)
-        .sort((left, right) => (left.hyoungNo || left.numberPlate).localeCompare(right.hyoungNo || right.numberPlate));
+        .sort((left, right) => (left.vehicleCode || left.numberPlate).localeCompare(right.vehicleCode || right.numberPlate));
 
     const vehicleTypeMap = new Map();
     vehicles.forEach((vehicle) => {

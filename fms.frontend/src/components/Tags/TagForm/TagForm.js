@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from "react";
+﻿import React, { useState, useEffect, memo } from "react";
 import { Button } from "devextreme-react/button";
 import { ScrollView } from "devextreme-react/scroll-view";
 import { useDispatch, useSelector } from "react-redux";
@@ -368,7 +368,7 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
             <VehicleSearchableSelector
               value={formData.vehicleId}
               onValueChanged={(e) => handleFieldChange("vehicleId", e.value)}
-              placeholder="Search vehicle by plate or Hyoung No..."
+              placeholder="Search vehicle by plate or Tenacy No..."
             />
           </div>
 

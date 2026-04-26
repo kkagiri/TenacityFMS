@@ -51,7 +51,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       route: "/vehicles",
       color: "#107c10",
       webAppPermission: WEB_APP_PERMISSIONS.VEHICLES,
-      legacyPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "GeofenceModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer", "_Read_Geofence"]
+      legacyPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleTransferModule", "VehicleHealthModule", "GeofenceModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleTransfer", "_Read_Geofence"]
     },
     {
       id: 3,
@@ -96,7 +96,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       route: "/tankstock",
       color: "#498205",
       webAppPermission: WEB_APP_PERMISSIONS.TANK_STOCK,
-      legacyPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_TankVolumeHistory"]
+      legacyPermissions: ["TankStockModule", "TankReconciliationModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_FuelAudit", "_Read_TankVolumeHistory"]
     },
     {
       id: 8,

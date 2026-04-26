@@ -1,6 +1,6 @@
-# ===============================================================================
+﻿# ===============================================================================
 # Environment Variables Verification Script
-# Hyoung.FMS - Production
+# Tenacy.FMS - Production
 # ===============================================================================
 #
 # This script verifies that all required environment variables are set

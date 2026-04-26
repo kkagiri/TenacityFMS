@@ -1,4 +1,4 @@
-# SignalR External Connection - Quick Fix Summary
+﻿# SignalR External Connection - Quick Fix Summary
 
 ## 🚨 Problem Statement
 
@@ -41,7 +41,7 @@ Follow these steps on your production server:
 
 ```powershell
 # Run on production server as Administrator
-cd C:\dev\Hyoung.FMS\Documentation\Frontend
+cd C:\dev\Tenacy.FMS\Documentation\Frontend
 .\SIGNALR_DIAGNOSTICS.ps1
 ```
 
@@ -53,7 +53,7 @@ This will tell you:
 
 ### Step 2: Update Environment Variables (2 minutes)
 
-Edit `C:\dev\Hyoung.FMS\fms.frontend\.env.production`:
+Edit `C:\dev\Tenacy.FMS\fms.frontend\.env.production`:
 
 ```bash
 # === CRITICAL: Use public IP ===
@@ -70,7 +70,7 @@ NODE_ENV=production
 ### Step 3: Rebuild Frontend (5 minutes)
 
 ```powershell
-cd C:\dev\Hyoung.FMS\fms.frontend
+cd C:\dev\Tenacy.FMS\fms.frontend
 
 # Clean previous build
 Remove-Item -Recurse -Force build\
@@ -101,22 +101,22 @@ Select-String -Path "build\index.html" -Pattern "x-api-url"
 ```powershell
 # Backup current deployment
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-Copy-Item -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp" `
-          -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp_backup_$timestamp" `
+Copy-Item -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp" `
+          -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp_backup_$timestamp" `
           -Recurse
 
 # Deploy new build
 Copy-Item -Path "fms.frontend\build\*" `
-          -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" `
+          -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" `
           -Recurse -Force
 
 # Verify web.config exists
-Test-Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config"
+Test-Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config"
 ```
 
 ### Step 6: Update web.config (5 minutes)
 
-Edit `c:\inetpub\wwwroot\hyoungFMS\reactApp\web.config`:
+Edit `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`:
 
 Add this line inside `<system.webServer>` section:
 
@@ -395,7 +395,7 @@ REACT_APP_SIGNALR_URL=http://197.254.33.227:7009
 
 ```powershell
 # Verify current deployed URL
-Select-String -Path "c:\inetpub\wwwroot\hyoungFMS\reactApp\index.html" -Pattern "x-api-url"
+Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern "x-api-url"
 
 # Check if backend is running
 netstat -ano | findstr :7009
@@ -407,7 +407,7 @@ Invoke-WebRequest -Uri "http://197.254.33.227/ptsHub/negotiate?negotiateVersion=
 cd fms.frontend; Remove-Item build\ -Recurse -Force; npm run build
 
 # Deploy to IIS
-Copy-Item -Path "fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\hyoungFMS\reactApp\" -Recurse -Force
+Copy-Item -Path "fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
 
 # Restart IIS
 iisreset /noforce
@@ -462,4 +462,4 @@ If you're still stuck after following this guide:
 
 **Last Updated**: 2025-10-31
 **Production Server**: 197.254.33.227
-**Application**: Hyoung FMS
+**Application**: Tenacy FMS

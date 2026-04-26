@@ -1,4 +1,4 @@
-using FMS.Application.Features.EventEngine.Engine;
+﻿using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Domain.Entities.enums;
@@ -157,7 +157,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                             stoppingToken);
 
                         overdueAlarmsCreated++;
-                        _logger.LogWarning($"Created overdue alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.HyoungNo}");
+                        _logger.LogWarning($"Created overdue alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.VehicleCode}");
                     }
                     else if (isDueSoon && !isOverdue)
                     {
@@ -173,7 +173,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                             stoppingToken);
 
                         dueSoonAlarmsCreated++;
-                        _logger.LogInformation($"Created due soon alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.HyoungNo}");
+                        _logger.LogInformation($"Created due soon alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.VehicleCode}");
                     }
                 }
 
@@ -199,7 +199,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             int? daysOverdue,
             decimal? kilometersDue)
         {
-            string vehicleInfo = $"Vehicle {maintenance.Vehicle?.HyoungNo ?? "Unknown"} ({maintenance.Vehicle?.NumberPlate ?? "N/A"})";
+            string vehicleInfo = $"Vehicle {maintenance.Vehicle?.VehicleCode ?? "Unknown"} ({maintenance.Vehicle?.NumberPlate ?? "N/A"})";
             string maintenanceType = maintenance.MaintenanceType;
 
             List<string> parts = [$"{maintenanceType} maintenance is OVERDUE for {vehicleInfo}"];
@@ -222,7 +222,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             int? daysUntilDue,
             decimal? kilometersDue)
         {
-            string vehicleInfo = $"Vehicle {maintenance.Vehicle?.HyoungNo ?? "Unknown"} ({maintenance.Vehicle?.NumberPlate ?? "N/A"})";
+            string vehicleInfo = $"Vehicle {maintenance.Vehicle?.VehicleCode ?? "Unknown"} ({maintenance.Vehicle?.NumberPlate ?? "N/A"})";
             string maintenanceType = maintenance.MaintenanceType;
 
             List<string> parts = [$"{maintenanceType} maintenance is due soon for {vehicleInfo}"];
@@ -263,7 +263,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                     ReferenceId = maintenance.MaintenanceId,
                     ReferenceType = "VehicleMaintenance",
                 };
-                maintenanceEvent.Data["VehicleNo"] = maintenance.Vehicle?.HyoungNo ?? "Unknown";
+                maintenanceEvent.Data["VehicleNo"] = maintenance.Vehicle?.VehicleCode ?? "Unknown";
                 maintenanceEvent.Data["NumberPlate"] = maintenance.Vehicle?.NumberPlate ?? "N/A";
                 maintenanceEvent.Data["MaintenanceType"] = maintenance.MaintenanceType;
                 maintenanceEvent.Data["Status"] = maintenance.Status;
@@ -282,7 +282,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             List<string> details =
             [
                 $"Maintenance Type: {maintenance.MaintenanceType}",
-            $"Vehicle: {maintenance.Vehicle?.HyoungNo ?? "Unknown"}",
+            $"Vehicle: {maintenance.Vehicle?.VehicleCode ?? "Unknown"}",
             $"Plate: {maintenance.Vehicle?.NumberPlate ?? "N/A"}",
             $"Status: {maintenance.Status}",
             $"Priority: {GetPriorityLabel(maintenance.Priority)}"

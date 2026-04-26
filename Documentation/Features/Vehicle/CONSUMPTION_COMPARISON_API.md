@@ -1,4 +1,4 @@
-# Vehicle Consumption Comparison - Backend Implementation Guide
+﻿# Vehicle Consumption Comparison - Backend Implementation Guide
 
 **Created:** 2025-11-08
 **Feature:** Multi-vehicle consumption comparison with site filtering and trend analysis
@@ -224,7 +224,7 @@ namespace FMS.Application.Features.Consumption.Queries
                     .Select(c => new VehicleConsumptionComparisonDto
                     {
                         VehicleId = c.VehicleId,
-                        VehicleNo = c.Vehicle.HyoungNo,
+                        VehicleNo = c.Vehicle.VehicleCode,
                         SiteId = c.SiteId,
                         Site = c.Site.Name,
                         Date = c.Date,

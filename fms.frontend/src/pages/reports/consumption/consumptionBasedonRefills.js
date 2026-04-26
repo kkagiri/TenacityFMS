@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, { Paging,
           HeaderFilter, SearchPanel, Toolbar, Item as TItems,
@@ -38,7 +38,7 @@ const ConsumptionBasedonRefills = () => {
         vehicleType: null,
         siteId: null,
         driverId: null,
-        hyoungNo: null
+        vehicleCode: null
     });
     const dataGridRef = React.useRef(null);
 
@@ -153,7 +153,7 @@ const ConsumptionBasedonRefills = () => {
             vehicleType: null,
             siteId: null,
             driverId: null,
-            hyoungNo: null
+            vehicleCode: null
         });
         notify('Filters cleared', 'info', 2000);
     }, []);
@@ -430,7 +430,7 @@ const ConsumptionBasedonRefills = () => {
         width={70}
       />
            <Column dataField={'vehicleId'} caption={'ID'} width={100}  visible={false}/>
-            <Column dataField="hyoungNo" caption="Vehicle Number"  />
+            <Column dataField="vehicleCode" caption="Vehicle Number"  />
 
             <Column dataField="vehicleType" caption="Vehicle Type" />
             <Column dataField="workingSiteName" caption="Working Site" groupIndex={0} />
@@ -463,12 +463,12 @@ const ConsumptionBasedonRefills = () => {
                     valueFormat="#,##0"
                 />
               <GroupItem
-                        column="hyoungNo"
+                        column="vehicleCode"
                         summaryType="count"
                         displayFormat="{0} vehicles"
                     />
                        <TotalItem
-                        column="hyoungNo"
+                        column="vehicleCode"
                         summaryType="count"
                         displayFormat="Total: {0} vehicles"
                     />
@@ -547,25 +547,25 @@ const ConsumptionBasedonRefills = () => {
                     </SimpleItem>
 
                     <SimpleItem
-                        dataField="hyoungNo"
+                        dataField="vehicleCode"
                         editorType="dxSelectBox"
                         editorOptions={{
                             items: [
                                 { value: null, text: 'All Vehicles' },
                                 ...vehicleSearchResults.map(vehicle => ({
-                                    value: vehicle.hyoungNo,
-                                    text: `${vehicle.hyoungNo} - ${vehicle.vehicleName || vehicle.numberPlate || 'Unknown'}`
+                                    value: vehicle.vehicleCode,
+                                    text: `${vehicle.vehicleCode} - ${vehicle.vehicleName || vehicle.numberPlate || 'Unknown'}`
                                 }))
                             ],
                             displayExpr: 'text',
                             valueExpr: 'value',
-                            value: filters.hyoungNo,
+                            value: filters.vehicleCode,
                             searchEnabled: true,
                             searchMode: 'contains',
                             searchTimeout: 300,
                             minSearchLength: 2,
                             onValueChanged: (e) => {
-                                handleFilterChange('hyoungNo', e.value);
+                                handleFilterChange('vehicleCode', e.value);
                             },
                             onOpened: () => {
                                 // Load some initial vehicles when dropdown opens
@@ -579,10 +579,10 @@ const ConsumptionBasedonRefills = () => {
                                     searchVehicles(e.text);
                                 }
                             },
-                            placeholder: 'Search vehicle by Hyoung No or Name'
+                            placeholder: 'Search vehicle by Tenacy No or Name'
                         }}
                     >
-                        <Label text="Vehicle (Hyoung No / Number Plate)" />
+                        <Label text="Vehicle (Tenacy No / Number Plate)" />
                     </SimpleItem>
 
                     <SimpleItem

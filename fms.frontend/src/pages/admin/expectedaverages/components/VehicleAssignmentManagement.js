@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, {
   Column,
@@ -57,7 +57,7 @@ const VehicleAssignmentManagement = () => {
           <Item name="searchPanel" />
         </Toolbar>
 
-        <Column dataField="vehicleHyoungNo" caption="Vehicle" width={120} />
+        <Column dataField="vehicleCode" caption="Vehicle" width={120} />
         <Column dataField="vehicleTypeName" caption="Type" width={100} />
         <Column
           dataField="isKmPerLiter"

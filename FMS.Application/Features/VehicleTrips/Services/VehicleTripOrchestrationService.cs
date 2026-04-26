@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTripOrchestrationService.cs
  * Purpose: Coordinates trip detection, idempotent persistence, and grouped trip creation for backend workflows.
  * Dependencies: DbContext, trip detection services, FMSResponse, vehicle trip entities.
@@ -549,14 +549,14 @@ public class VehicleTripOrchestrationService : IVehicleTripOrchestrationService
 
     private static string BuildVehicleLabel(VehicleEntity vehicle)
     {
-        if (!string.IsNullOrWhiteSpace(vehicle.HyoungNo) && !string.IsNullOrWhiteSpace(vehicle.NumberPlate))
+        if (!string.IsNullOrWhiteSpace(vehicle.VehicleCode) && !string.IsNullOrWhiteSpace(vehicle.NumberPlate))
         {
-            return $"{vehicle.HyoungNo} ({vehicle.NumberPlate})";
+            return $"{vehicle.VehicleCode} ({vehicle.NumberPlate})";
         }
 
-        if (!string.IsNullOrWhiteSpace(vehicle.HyoungNo))
+        if (!string.IsNullOrWhiteSpace(vehicle.VehicleCode))
         {
-            return vehicle.HyoungNo;
+            return vehicle.VehicleCode;
         }
 
         if (!string.IsNullOrWhiteSpace(vehicle.NumberPlate))

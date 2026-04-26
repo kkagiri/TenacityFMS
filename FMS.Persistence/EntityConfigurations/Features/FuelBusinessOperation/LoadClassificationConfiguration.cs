@@ -12,50 +12,35 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-                builder.ToTable("loadclassifications")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                builder.ToTable("loadclassifications");
 
                 builder.HasIndex(e => e.Name, "IX_LoadClassification_Name").IsUnique();
 
-                builder.Property(e => e.Id)
-                    .HasColumnType("int(11)")
-                    .HasColumnName("ID");
+                builder.Property(e => e.Id);
 
                 builder.Property(e => e.Name)
                     .HasMaxLength(100)
-                    .IsRequired()
-                    .HasColumnName("Name");
+                    .IsRequired();
 
                 builder.Property(e => e.Description)
-                    .HasMaxLength(500)
-                    .HasColumnName("Description");
+                    .HasMaxLength(500);
 
                 builder.Property(e => e.MinWeightTonnes)
-                    .HasPrecision(10, 2)
-                    .HasColumnName("MinWeightTonnes");
+                    .HasPrecision(10, 2);
 
                 builder.Property(e => e.MaxWeightTonnes)
-                    .HasPrecision(10, 2)
-                    .HasColumnName("MaxWeightTonnes");
+                    .HasPrecision(10, 2);
 
                 builder.Property(e => e.SortOrder)
-                    .HasColumnType("int(11)")
-                    .HasDefaultValue(0)
-                    .HasColumnName("SortOrder");
+                    .HasDefaultValue(0);
 
                 builder.Property(e => e.IsActive)
-                    .HasColumnType("tinyint(1)")
-                    .HasDefaultValue(true)
-                    .HasColumnName("IsActive");
+                    .HasDefaultValue(true);
 
-                builder.Property(e => e.CreatedAt)
-                    .HasColumnType("datetime")
-                    .HasColumnName("CreatedAt");
+                builder.Property(e => e.CreatedAt);
 
                 builder.Property(e => e.CreatedBy)
-                    .HasMaxLength(100)
-                    .HasColumnName("CreatedBy");
+                    .HasMaxLength(100);
             }
             catch (Exception ex)
             {
@@ -65,3 +50,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

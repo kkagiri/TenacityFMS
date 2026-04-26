@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: VehicleTripMappingProfile.cs
  * Purpose: AutoMapper profile for vehicle trip entities to DTOs.
  * Dependencies: VehicleTrip, VehicleTripGroup, VehicleTripOverride entities; Trip DTOs and enums.
@@ -191,8 +191,8 @@ public class VehicleTripMappingProfile : Profile
     {
         if (vehicle == null) return "";
         return !string.IsNullOrWhiteSpace(vehicle.NumberPlate)
-            ? $"{vehicle.HyoungNo} / {vehicle.NumberPlate}"
-            : vehicle.HyoungNo;
+            ? $"{vehicle.VehicleCode} / {vehicle.NumberPlate}"
+            : vehicle.VehicleCode;
     }
 
     private static void ResolveGroupDisplayNames(

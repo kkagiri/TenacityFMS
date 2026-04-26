@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ReportJobManager.cs
  * Purpose: In-memory manager for async report generation jobs.
  *          Orchestrates data fetching (via MediatR), PDF/Excel rendering (via JsReport),
@@ -26,7 +26,6 @@ using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Services;
-using FMS.Application.Features.VehicleDocumentManagement.Queries;
 using FMS.Application.Features.WarningLetter.Queries;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
@@ -466,9 +465,6 @@ namespace FMS.WebClient.Services
                 case "pump-transaction":
                     return await FetchPumpTransactionData(mediator, request, currentJob, ct);
 
-                case "vehicle-document-compliance":
-                    return await FetchVehicleDocumentComplianceData(mediator, request, ct);
-
                 case "warning-letter-candidates":
                     return await FetchWarningLetterCandidatesData(mediator, request, ct);
 
@@ -668,81 +664,6 @@ namespace FMS.WebClient.Services
                 GetStringParam(request.Parameters, "tankName"),
                 GetStringParam(request.Parameters, "vehicleName"),
                 GetStringParam(request.Parameters, "fuelGradeName"));
-        }
-
-        private async Task<object> FetchVehicleDocumentComplianceData(
-            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
-        {
-            var complianceCategoryId = GetIntParam(request.Parameters, "complianceCategory");
-            var statusId = GetIntParam(request.Parameters, "status");
-
-            var query = new GetVehicleDocumentReportQuery
-            {
-                VehicleId = GetIntParam(request.Parameters, "vehicleId"),
-                SiteId = GetIntParam(request.Parameters, "siteId"),
-                VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
-                ComplianceCategory = complianceCategoryId.HasValue && Enum.IsDefined(typeof(VehicleComplianceCategory), complianceCategoryId.Value)
-                    ? (VehicleComplianceCategory?)complianceCategoryId.Value
-                    : null,
-                Status = statusId.HasValue && Enum.IsDefined(typeof(DocumentStatus), statusId.Value)
-                    ? (DocumentStatus?)statusId.Value
-                    : null,
-            };
-
-            var result = await mediator.Send(query, ct);
-            if (!result.IsSuccess || result.Data == null)
-            {
-                _logger.LogWarning("VehicleDocumentCompliance query failed for report job: {Msg}", result.Message);
-                return null;
-            }
-
-            var rows = result.Data;
-            var records = rows
-                .Select((row, index) => new
-                {
-                    rowNumber = index + 1,
-                    vehicleRegistration = string.IsNullOrWhiteSpace(row.VehicleRegistration) ? "-" : row.VehicleRegistration,
-                    siteName = string.IsNullOrWhiteSpace(row.SiteName) ? "-" : row.SiteName,
-                    vehicleTypeName = string.IsNullOrWhiteSpace(row.VehicleTypeName) ? "-" : row.VehicleTypeName,
-                    complianceCategoryName = string.IsNullOrWhiteSpace(row.ComplianceCategoryName) ? "-" : row.ComplianceCategoryName,
-                    documentTypeName = string.IsNullOrWhiteSpace(row.DocumentTypeName) ? "-" : row.DocumentTypeName,
-                    documentNumber = string.IsNullOrWhiteSpace(row.DocumentNumber) ? "-" : row.DocumentNumber,
-                    issuingAuthority = string.IsNullOrWhiteSpace(row.IssuingAuthority) ? "-" : row.IssuingAuthority,
-                    issueDate = row.IssueDate.ToString("dd MMM yyyy"),
-                    expiryDate = row.ExpiryDate.ToString("dd MMM yyyy"),
-                    alertLeadDays = row.AlertLeadDays,
-                    statusName = string.IsNullOrWhiteSpace(row.StatusName) ? "-" : row.StatusName,
-                    statusClass = row.Status == DocumentStatus.Expired
-                        ? "text-danger"
-                        : row.DaysUntilExpiry <= 30
-                            ? "text-success"
-                            : "text-muted",
-                    daysUntilExpiry = row.DaysUntilExpiry,
-                    notes = string.IsNullOrWhiteSpace(row.Notes) ? "-" : row.Notes,
-                })
-                .ToList();
-
-            return new
-            {
-                reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
-                    ? BuildDefaultReportTitle(request.SourceId)
-                    : request.ReportTitle,
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = "System",
-                reportId = $"RPT-{DateTime.UtcNow:yyyyMMddHHmmss}",
-                records,
-                data = records,
-                items = records,
-                transactions = records,
-                summary = new
-                {
-                    totalRecords = records.Count,
-                    validCount = rows.Count(row => row.Status == DocumentStatus.Valid),
-                    expiringCount = rows.Count(row => row.Status == DocumentStatus.ExpiringSoon),
-                    expiredCount = rows.Count(row => row.Status == DocumentStatus.Expired),
-                    siteCount = rows.Select(row => row.SiteName).Where(siteName => !string.IsNullOrWhiteSpace(siteName)).Distinct().Count(),
-                },
-            };
         }
 
 
@@ -1059,7 +980,7 @@ namespace FMS.WebClient.Services
   <tr><td style='background:#0078d4;padding:16px 24px;'>
     <table width='100%' cellpadding='0' cellspacing='0' border='0'>
     <tr>
-      <td style='font-size:10px;font-weight:600;color:#ffffff;'>Hyoung FMS</td>
+      <td style='font-size:10px;font-weight:600;color:#ffffff;'>Tenacy FMS</td>
       <td align='right' style='font-size:11px;color:#ffffff;'>Report Delivery</td>
     </tr>
     </table>
@@ -1126,7 +1047,7 @@ namespace FMS.WebClient.Services
   <!-- Footer -->
   <tr><td style='padding:16px 24px;border-top:1px solid #edebe9;background:#faf9f8;'>
     <p style='margin:0;font-size:11px;color:#a19f9d;'>
-      This is an automated message from Hyoung FMS Report Engine. Please do not reply to this email.
+      This is an automated message from Tenacy FMS Report Engine. Please do not reply to this email.
     </p>
   </td></tr>
 

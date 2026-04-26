@@ -28,99 +28,67 @@ public class VehicleMaintenanceConfiguration : EntityTypeConfiguration<VehicleMa
             builder.HasIndex(e => e.MaintenanceScheduleId, "idx_maintenance_schedule");
 
             // Column configurations
-            builder.Property(e => e.MaintenanceId)
-                .HasColumnType("int(11)")
-                .HasColumnName("MaintenanceID");
+            builder.Property(e => e.MaintenanceId);
 
-            builder.Property(e => e.VehicleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("VehicleID");
+            builder.Property(e => e.VehicleId);
 
             builder.Property(e => e.MaintenanceType)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("MaintenanceType");
+                .HasMaxLength(100);
 
             builder.Property(e => e.Status)
                 .IsRequired()
                 .HasMaxLength(50)
-                .HasColumnName("Status")
                 .HasDefaultValue("Scheduled");
 
-            builder.Property(e => e.ScheduledDate)
-                .HasColumnType("datetime")
-                .HasColumnName("ScheduledDate");
+            builder.Property(e => e.ScheduledDate);
 
-            builder.Property(e => e.CompletedDate)
-                .HasColumnType("datetime")
-                .HasColumnName("CompletedDate");
+            builder.Property(e => e.CompletedDate);
 
             builder.Property(e => e.OdometerAtSchedule)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("OdometerAtSchedule");
+                .HasColumnType("decimal(10,2)");
 
             builder.Property(e => e.OdometerAtCompletion)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("OdometerAtCompletion");
+                .HasColumnType("decimal(10,2)");
 
             builder.Property(e => e.NextDueOdometer)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("NextDueOdometer");
+                .HasColumnType("decimal(10,2)");
 
-            builder.Property(e => e.NextDueDate)
-                .HasColumnType("datetime")
-                .HasColumnName("NextDueDate");
+            builder.Property(e => e.NextDueDate);
 
             builder.Property(e => e.Cost)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("Cost");
+                .HasColumnType("decimal(10,2)");
 
             builder.Property(e => e.ServiceProvider)
-                .HasMaxLength(200)
-                .HasColumnName("ServiceProvider");
+                .HasMaxLength(200);
 
             builder.Property(e => e.Description)
-                .HasMaxLength(1000)
-                .HasColumnName("Description");
+                .HasMaxLength(1000);
 
             builder.Property(e => e.Notes)
-                .HasMaxLength(2000)
-                .HasColumnName("Notes");
+                .HasMaxLength(2000);
 
             builder.Property(e => e.Priority)
-                .HasColumnType("int(11)")
-                .HasColumnName("Priority")
                 .HasDefaultValue(2);
 
             builder.Property(e => e.IsOverdue)
-                .HasColumnType("tinyint(1)")
-                .HasColumnName("IsOverdue")
                 .HasDefaultValue(false);
 
             builder.Property(e => e.CreatedBy)
-                .HasMaxLength(255)
-                .HasColumnName("CreatedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.ModifiedBy)
-                .HasMaxLength(255)
-                .HasColumnName("ModifiedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.ResponsiblePerson)
-                .HasMaxLength(255)
-                .HasColumnName("ResponsiblePerson");
+                .HasMaxLength(255);
 
             builder.Property(e => e.DateCreated)
-                .HasColumnType("datetime")
-                .HasColumnName("DateCreated")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.DateModified)
-                .HasColumnType("datetime")
-                .HasColumnName("DateModified");
+            builder.Property(e => e.DateModified);
 
-            builder.Property(e => e.MaintenanceScheduleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("MaintenanceScheduleID");
+            builder.Property(e => e.MaintenanceScheduleId);
 
             // Relationships
             builder.HasOne(d => d.Vehicle)
@@ -149,3 +117,4 @@ public class VehicleMaintenanceConfiguration : EntityTypeConfiguration<VehicleMa
         }
     }
 }
+

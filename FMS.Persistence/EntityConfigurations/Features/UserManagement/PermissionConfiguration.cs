@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
 
@@ -20,23 +20,20 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasKey(e => e.Id).HasName("PRIMARY");
 
                 builder
-                    .ToTable("permissions")
-                    .HasCharSet("utf8mb4")
-                    .UseCollation("utf8mb4_general_ci");
+                    .ToTable("permissions");
 
                 builder.HasIndex(e => e.ParentId, "FK_Permissions_Parent");
                 builder.HasIndex(e => e.Name, "Name_UNIQUE").IsUnique();
 
-                builder.Property(e => e.Id).HasColumnType("int(11)");
+                builder.Property(e => e.Id);
                 builder.Property(e => e.Name).HasMaxLength(100);
-                builder.Property(e => e.ParentId).HasColumnType("int(11)");
+                builder.Property(e => e.ParentId);
 
                 // Relationships
                 builder.HasOne(d => d.Parent).WithMany(p => p.InverseParent)
                     .HasForeignKey(d => d.ParentId)
                     .HasConstraintName("FK_Permissions_Parent");
             }
-
 
             catch (Exception ex)
             {
@@ -47,3 +44,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

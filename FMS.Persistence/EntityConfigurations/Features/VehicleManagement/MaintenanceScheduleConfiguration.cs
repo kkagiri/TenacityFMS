@@ -26,78 +26,51 @@ public class MaintenanceScheduleConfiguration : EntityTypeConfiguration<Maintena
             builder.HasIndex(e => e.IsActive, "idx_schedule_is_active");
 
             // Column configurations
-            builder.Property(e => e.ScheduleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("ScheduleID");
+            builder.Property(e => e.ScheduleId);
 
             builder.Property(e => e.MaintenanceType)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("MaintenanceType");
+                .HasMaxLength(100);
 
             builder.Property(e => e.Description)
-                .HasMaxLength(500)
-                .HasColumnName("Description");
+                .HasMaxLength(500);
 
             builder.Property(e => e.IntervalKilometers)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("IntervalKilometers");
+                .HasColumnType("decimal(10,2)");
 
-            builder.Property(e => e.IntervalDays)
-                .HasColumnType("int(11)")
-                .HasColumnName("IntervalDays");
+            builder.Property(e => e.IntervalDays);
 
             builder.Property(e => e.WarningThresholdKm)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("WarningThresholdKm");
+                .HasColumnType("decimal(10,2)");
 
-            builder.Property(e => e.WarningThresholdDays)
-                .HasColumnType("int(11)")
-                .HasColumnName("WarningThresholdDays");
+            builder.Property(e => e.WarningThresholdDays);
 
             builder.Property(e => e.EstimatedCost)
-                .HasColumnType("decimal(10,2)")
-                .HasColumnName("EstimatedCost");
+                .HasColumnType("decimal(10,2)");
 
-            builder.Property(e => e.VehicleTypeId)
-                .HasColumnType("int(11)")
-                .HasColumnName("VehicleTypeID");
+            builder.Property(e => e.VehicleTypeId);
 
             builder.Property(e => e.IsActive)
-                .HasColumnType("tinyint(1)")
-                .HasColumnName("IsActive")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.ApplyToAllVehicles)
-                .HasColumnType("tinyint(1)")
-                .HasColumnName("ApplyToAllVehicles")
                 .HasDefaultValue(true);
 
-            builder.Property(e => e.VehicleId)
-                .HasColumnType("int(11)")
-                .HasColumnName("VehicleID");
+            builder.Property(e => e.VehicleId);
 
             builder.Property(e => e.DefaultPriority)
-                .HasColumnType("int(11)")
-                .HasColumnName("DefaultPriority")
                 .HasDefaultValue(2);
 
             builder.Property(e => e.CreatedBy)
-                .HasMaxLength(255)
-                .HasColumnName("CreatedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.ModifiedBy)
-                .HasMaxLength(255)
-                .HasColumnName("ModifiedBy");
+                .HasMaxLength(255);
 
             builder.Property(e => e.DateCreated)
-                .HasColumnType("datetime")
-                .HasColumnName("DateCreated")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-            builder.Property(e => e.DateModified)
-                .HasColumnType("datetime")
-                .HasColumnName("DateModified");
+            builder.Property(e => e.DateModified);
 
             // Relationships
             builder.HasOne(d => d.Vehicle)
@@ -139,3 +112,4 @@ public class MaintenanceScheduleConfiguration : EntityTypeConfiguration<Maintena
         }
     }
 }
+

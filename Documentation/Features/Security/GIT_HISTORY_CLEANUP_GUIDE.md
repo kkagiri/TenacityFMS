@@ -1,4 +1,4 @@
-# Git History Cleanup Guide
+﻿# Git History Cleanup Guide
 ## Removing Exposed Secrets from Repository History
 
 **Status**: 🔴 CRITICAL - Required to complete security remediation
@@ -77,10 +77,10 @@ mkdir -p /backups/git-cleanup-$(date +%Y%m%d)
 cd /backups/git-cleanup-$(date +%Y%m%d)
 
 # Backup the entire repository
-git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
+git clone --mirror https://github.com/your-org/Tenacy.FMS.git
 
 # Create archive
-tar -czf Hyoung.FMS-backup-$(date +%Y%m%d-%H%M%S).tar.gz Hyoung.FMS.git
+tar -czf Tenacy.FMS-backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacy.FMS.git
 
 # Verify backup
 ls -lh *.tar.gz
@@ -132,10 +132,10 @@ mkdir -p ~/git-cleanup
 cd ~/git-cleanup
 
 # Clone as mirror (includes all branches, tags, refs)
-git clone --mirror https://github.com/Hyoung-EA/Hyoung.FMS.git
+git clone --mirror https://github.com/your-org/Tenacy.FMS.git
 
-# This creates: Hyoung.FMS.git/
-cd Hyoung.FMS.git
+# This creates: Tenacy.FMS.git/
+cd Tenacy.FMS.git
 ```
 
 ---
@@ -169,10 +169,10 @@ Create a file with passwords/secrets to scrub from ALL files:
 ```bash
 cat > ../passwords-to-remove.txt << 'EOF'
 Niwewenamimi1000
-Hyoung2030
+Tenacy2030
 Niwewe1000
 hk%2bXL3thlikm31JLAon0FjBxyyOtnrUOMCHIP%2bFfrhEXQPffqSrPDVGperVhCXPA
-hy.gps@hyoung.co.ke
+hy.gps@example.com
 10.0.10.150
 10.0.10.153
 10.0.11.90
@@ -193,22 +193,22 @@ cd ~/git-cleanup
 # Remove sensitive files from history
 java -jar ~/tools/bfg.jar \
   --delete-files '{appsettings.json,appsettings.*.json,.env,setup-environment.ps1,setup-*.ps1}' \
-  Hyoung.FMS.git
+  Tenacy.FMS.git
 
 # Alternative: Use the files list
 java -jar ~/tools/bfg.jar \
   --delete-files files-to-delete.txt \
-  Hyoung.FMS.git
+  Tenacy.FMS.git
 
 # Replace passwords in ALL remaining files
 java -jar ~/tools/bfg.jar \
   --replace-text passwords-to-remove.txt \
-  Hyoung.FMS.git
+  Tenacy.FMS.git
 ```
 
 **Expected output:**
 ```
-Using repo : /path/to/Hyoung.FMS.git
+Using repo : /path/to/Tenacy.FMS.git
 
 Found 1234 commits
 Cleaning commits:       100% (1234/1234)
@@ -232,7 +232,7 @@ BFG run is complete! When ready, run: git reflog expire --expire=now --all && gi
 ### Step 7: Expire Reflogs and Garbage Collect
 
 ```bash
-cd ~/git-cleanup/Hyoung.FMS.git
+cd ~/git-cleanup/Tenacy.FMS.git
 
 # Expire all old reflog entries
 git reflog expire --expire=now --all
@@ -258,7 +258,7 @@ Total 45678 (delta 23456), reused 40000 (delta 20000)
 ### Step 8: Verify the Cleanup
 
 ```bash
-cd ~/git-cleanup/Hyoung.FMS.git
+cd ~/git-cleanup/Tenacy.FMS.git
 
 # Check that sensitive files are gone from history
 git log --all --full-history -- '**/setup-environment.ps1'
@@ -268,7 +268,7 @@ git log --all --full-history -- '**/setup-environment.ps1'
 git log --all -S "Niwewenamimi1000"
 # Should show: (nothing)
 
-git log --all -S "Hyoung2030"
+git log --all -S "Tenacy2030"
 # Should show: (nothing)
 
 # Check file list in a few commits
@@ -289,7 +289,7 @@ git ls-tree -r HEAD | grep -i 'example'
 **⚠️ CRITICAL**: This rewrites history. Coordinate with your team!
 
 ```bash
-cd ~/git-cleanup/Hyoung.FMS.git
+cd ~/git-cleanup/Tenacy.FMS.git
 
 # Force push all refs (branches, tags)
 git push --force --all
@@ -312,7 +312,7 @@ Compressing objects: 100% (12345/12345), done.
 Writing objects: 100% (45678/45678), done.
 Total 45678 (delta 23456), reused 40000 (delta 20000)
 remote: Resolving deltas: 100% (23456/23456), done.
-To https://github.com/Hyoung-EA/Hyoung.FMS.git
+To https://github.com/your-org/Tenacy.FMS.git
  + abc123...def456 main -> main (forced update)
  + xyz789...uvw012 productionv1 -> productionv1 (forced update)
 ```
@@ -326,7 +326,7 @@ To https://github.com/Hyoung-EA/Hyoung.FMS.git
 ```
 URGENT: Git Repository History Cleaned - Action Required
 
-The Hyoung.FMS repository history has been cleaned to remove exposed secrets.
+The Tenacy.FMS repository history has been cleaned to remove exposed secrets.
 All developers MUST follow these steps:
 
 1. COMMIT OR STASH your current work:
@@ -334,12 +334,12 @@ All developers MUST follow these steps:
 
 2. DELETE your local repository:
    cd ..
-   rm -rf Hyoung.FMS
-   # (or move it: mv Hyoung.FMS Hyoung.FMS.old)
+   rm -rf Tenacy.FMS
+   # (or move it: mv Tenacy.FMS Tenacy.FMS.old)
 
 3. CLONE fresh copy:
-   git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-   cd Hyoung.FMS
+   git clone https://github.com/your-org/Tenacy.FMS.git
+   cd Tenacy.FMS
 
 4. RESTORE your work (if stashed):
    git stash pop
@@ -378,8 +378,8 @@ sudo mv git-filter-repo /usr/local/bin/
 
 ```bash
 # Clone fresh copy (NOT mirror)
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
+cd Tenacy.FMS
 
 # Remove sensitive files
 git filter-repo --invert-paths \
@@ -394,7 +394,7 @@ git filter-repo --invert-paths \
 git filter-repo --replace-text ../passwords-to-remove.txt --force
 
 # Force push
-git remote add origin https://github.com/Hyoung-EA/Hyoung.FMS.git
+git remote add origin https://github.com/your-org/Tenacy.FMS.git
 git push --force --all
 git push --force --tags
 ```
@@ -407,22 +407,22 @@ After force pushing, verify the cleanup worked:
 
 ### On GitHub Website
 
-1. Go to: https://github.com/Hyoung-EA/Hyoung.FMS
+1. Go to: https://github.com/your-org/Tenacy.FMS
 2. Use GitHub search: `"Niwewenamimi1000"`
 3. Should show: **No results**
-4. Try other passwords: `"Hyoung2030"`, `"Niwewe1000"`
+4. Try other passwords: `"Tenacy2030"`, `"Niwewe1000"`
 5. All should show: **No results**
 
 ### On Local Machine
 
 ```bash
 # Clone fresh copy
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git hyoung-verify
-cd hyoung-verify
+git clone https://github.com/your-org/Tenacy.FMS.git tenacy-verify
+cd tenacy-verify
 
 # Search entire history for passwords
 git log --all -S "Niwewenamimi1000" --source --all
-git log --all -S "Hyoung2030" --source --all
+git log --all -S "Tenacy2030" --source --all
 git log --all -S "Niwewe1000" --source --all
 
 # Should all show: (nothing)
@@ -447,7 +447,7 @@ du -sh .git
 **Step 1: Save Current Work**
 
 ```bash
-cd Hyoung.FMS
+cd Tenacy.FMS
 
 # Check for uncommitted changes
 git status
@@ -467,17 +467,17 @@ git commit -m "Temp: Save work before repo cleanup"
 cd ..
 
 # Option A: Delete completely
-rm -rf Hyoung.FMS
+rm -rf Tenacy.FMS
 
 # Option B: Archive for safety (recommended)
-mv Hyoung.FMS Hyoung.FMS.OLD-$(date +%Y%m%d)
+mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
 ```
 
 **Step 3: Clone Fresh Copy**
 
 ```bash
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
-cd Hyoung.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
+cd Tenacy.FMS
 
 # Verify cleaned history
 git log --oneline | head -20
@@ -502,19 +502,19 @@ cp FMS.WebClient/appsettings.example.json FMS.WebClient/appsettings.json
 
 ```bash
 # If you used stash (and old repo still exists)
-cd ../Hyoung.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
 git stash list
 # Note the stash you want
 
 # Apply to new repo
-cd ../Hyoung.FMS
+cd ../Tenacy.FMS
 # Copy files manually or use git apply
 
 # If you used temp branch
-cd ../Hyoung.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
 git diff main temp-before-cleanup > ../my-changes.patch
 
-cd ../Hyoung.FMS
+cd ../Tenacy.FMS
 git apply ../my-changes.patch
 ```
 
@@ -558,15 +558,15 @@ git pull  # ✗ Won't work
 
 # DO this:
 cd ..
-rm -rf Hyoung.FMS
-git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
+rm -rf Tenacy.FMS
+git clone https://github.com/your-org/Tenacy.FMS.git
 ```
 
 ### Issue: "Still seeing passwords in history"
 
 ```bash
 # Make sure you cleaned the mirror clone
-cd ~/git-cleanup/Hyoung.FMS.git
+cd ~/git-cleanup/Tenacy.FMS.git
 git log --all -S "password123"
 
 # If still there, you may need to:
@@ -590,11 +590,11 @@ git log --all -S "password123"
 ```bash
 # Use your backup from Step 1
 cd /backups/git-cleanup-YYYYMMDD
-tar -xzf Hyoung.FMS-backup-*.tar.gz
+tar -xzf Tenacy.FMS-backup-*.tar.gz
 
 # Force push the backup
-cd Hyoung.FMS.git
-git remote add origin https://github.com/Hyoung-EA/Hyoung.FMS.git
+cd Tenacy.FMS.git
+git remote add origin https://github.com/your-org/Tenacy.FMS.git
 git push --force --all
 git push --force --tags
 ```
@@ -694,8 +694,8 @@ See attached document: Team_Resync_Instructions.md
 
 Or follow these steps:
 1. Stash your work: git stash
-2. Delete local repo: cd .. && rm -rf Hyoung.FMS
-3. Clone fresh: git clone https://github.com/Hyoung-EA/Hyoung.FMS.git
+2. Delete local repo: cd .. && rm -rf Tenacy.FMS
+3. Clone fresh: git clone https://github.com/your-org/Tenacy.FMS.git
 4. Restore config: Copy .env.example to .env, etc.
 5. Restore work: git stash pop (if applicable)
 

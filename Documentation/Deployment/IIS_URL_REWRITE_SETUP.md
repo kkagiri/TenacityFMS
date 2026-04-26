@@ -1,4 +1,4 @@
-# IIS URL Rewrite Setup Guide
+﻿# IIS URL Rewrite Setup Guide
 ## Forward API Requests from Port 80 to Port 7009
 
 This guide explains how to set up IIS to serve your React frontend on port 80 while forwarding API requests to your ASP.NET Core API on port 7009.
@@ -91,7 +91,7 @@ New-WebBinding -Name "FMS-Frontend" -IPAddress "*" -Port 80 -Protocol http
 
 ```powershell
 # Build React app
-cd C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend
+cd C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend
 npm run build:prod
 
 # Copy build files to IIS
@@ -328,7 +328,7 @@ builder.Services.AddCors(options =>
 **Solution:**
 ```powershell
 # Rebuild and redeploy
-cd C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend
+cd C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend
 npm run build:prod
 Remove-Item "C:\inetpub\wwwroot\fms-frontend\*" -Recurse -Force
 Copy-Item -Path "build\*" -Destination "C:\inetpub\wwwroot\fms-frontend" -Recurse -Force
@@ -349,7 +349,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$FrontendSourcePath = "C:\Users\kkagiri\source\repos\Hyoung.Fms\fms.frontend"
+$FrontendSourcePath = "C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend"
 $IISFrontendPath = "C:\inetpub\wwwroot\fms-frontend"
 
 Write-Host "=== FMS Frontend Deployment ===" -ForegroundColor Cyan

@@ -1,4 +1,4 @@
-using FMS.Domain.Entities;
+﻿using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -24,16 +24,13 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.UserName, "UserName_UNIQUE").IsUnique();
 
                 builder.Property(e => e.Id)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
-                builder.Property(e => e.AccessFailedCount).HasColumnType("int(11)");
+                builder.Property(e => e.AccessFailedCount);
 
                 builder.Property(e => e.MasterRFIDTag);
 
-                builder.Property(e => e.DepartmentId)
-                    .HasColumnType("int(11)");
+                builder.Property(e => e.DepartmentId);
 
                 builder.HasOne(e => e.MasterTags)
                     .WithMany()
@@ -41,14 +38,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasConstraintName("FK_TagID_TAGID");
 
                 builder.Property(e => e.ConcurrencyStamp)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.Email)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.IsDeleted)
                     .HasDefaultValueSql("'0'").IsRequired(false);
@@ -57,34 +50,22 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue(false);
 
                 builder.Property(e => e.NormalizedEmail)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.NormalizedUserName)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.PasswordHash)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.PhoneNumber)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.SecurityStamp)
-                    .HasMaxLength(256)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(256);
 
                 builder.Property(e => e.UserName)
-                    .HasMaxLength(100)
-                    .UseCollation("utf8mb4_general_ci")
-                    .HasCharSet("utf8mb4");
+                    .HasMaxLength(100);
 
                 // Apply global query filter
                 builder.HasQueryFilter(u => !u.IsDeleted == true);
@@ -98,3 +79,4 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+

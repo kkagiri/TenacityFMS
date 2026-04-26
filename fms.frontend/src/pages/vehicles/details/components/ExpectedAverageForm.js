@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Form } from 'devextreme-react/form';
 import Button from 'devextreme-react/button';
@@ -212,8 +212,8 @@ const ExpectedAverageForm = ({ vehicle, onClose, onSuccess }) => {
             </h4>
             <div className="tw-grid tw-grid-cols-3 tw-gap-4 tw-text-sm">
               <div>
-                <span className="tw-text-gray-600">Hyoung No:</span>
-                <span className="tw-ml-2 tw-font-medium">{vehicle.hyoungNo}</span>
+                <span className="tw-text-gray-600">Tenacy No:</span>
+                <span className="tw-ml-2 tw-font-medium">{vehicle.vehicleCode}</span>
               </div>
               <div>
                 <span className="tw-text-gray-600">Vehicle Type:</span>

@@ -1,4 +1,4 @@
-using FMS.Domain.Entities.Auth;
+﻿using FMS.Domain.Entities.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -9,9 +9,7 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasKey (rp => new { rp.RoleId, rp.PermissionId });
                 builder.HasIndex (rp => new { rp.RoleId, rp.PermissionId }).IsUnique ();
 
-                builder.ToTable ("rolepermissions")
-                    .HasCharSet ("utf8mb4")
-                    .UseCollation ("utf8mb4_general_ci");
+                builder.ToTable ("rolepermissions");
 
                 builder.HasOne (rp => rp.Role)
                     .WithMany (r => r.RolePermissions)

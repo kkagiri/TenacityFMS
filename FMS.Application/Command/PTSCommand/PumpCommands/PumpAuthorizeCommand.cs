@@ -1,4 +1,4 @@
-//
+﻿//
 // File: PumpAuthorizeCommand.cs
 // Purpose: Handles pump authorization workflow and returns standardized FMSResponse with proper ErrorType mapping
 // Dependencies: FMSResponse<T>, PTSDeviceException, logging, Redis, device monitoring services
@@ -827,10 +827,10 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 var vehicle = await _context.Vehicles
                     .AsNoTracking()
                     .Where(v => v.VehicleId == request.VehicleId.Value)
-                    .Select(v => new { v.NumberPlate, v.HyoungNo })
+                    .Select(v => new { v.NumberPlate, v.VehicleCode })
                     .FirstOrDefaultAsync(cancellationToken);
 
-                vehicleName = vehicle?.NumberPlate ?? vehicle?.HyoungNo;
+                vehicleName = vehicle?.NumberPlate ?? vehicle?.VehicleCode;
             }
 
             string? userName = null;

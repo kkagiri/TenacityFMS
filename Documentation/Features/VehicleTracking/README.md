@@ -1,4 +1,4 @@
-# Vehicle Tracking System - Documentation
+﻿# Vehicle Tracking System - Documentation
 
 ## Overview
 
@@ -288,7 +288,7 @@ These are kept for reference but superseded by the current consolidated document
 
 ## License
 
-Copyright © 2025 Hyoung-EA FMS. All rights reserved.
+Copyright © 2025 your-org FMS. All rights reserved.
 
 ---
 

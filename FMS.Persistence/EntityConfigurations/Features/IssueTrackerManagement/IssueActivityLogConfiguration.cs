@@ -24,69 +24,39 @@ namespace FMS.Persistence.EntityConfigurations
             builder.HasIndex(e => e.ActivityType, "ix_issue_activity_log_activity_type");
 
             builder.Property(e => e.Id)
-                .ValueGeneratedOnAdd()
-                .HasColumnType("int(11)")
-                .HasColumnName("id");
+                .ValueGeneratedOnAdd();
 
             builder.Property(e => e.IssueId)
-                .HasColumnType("int(11)")
-                .HasColumnName("issue_id")
                 .IsRequired();
 
             builder.Property(e => e.ActivityType)
                 .HasMaxLength(50)
-                .HasColumnName("activity_type")
-                .IsRequired()
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .IsRequired();
 
             builder.Property(e => e.FieldName)
-                .HasMaxLength(100)
-                .HasColumnName("field_name")
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(100);
 
             builder.Property(e => e.OldValue)
-                .HasMaxLength(500)
-                .HasColumnName("old_value")
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(500);
 
             builder.Property(e => e.NewValue)
-                .HasMaxLength(500)
-                .HasColumnName("new_value")
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .HasMaxLength(500);
 
             builder.Property(e => e.Description)
                 .HasMaxLength(500)
-                .HasColumnName("description")
-                .IsRequired()
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
+                .IsRequired();
 
             builder.Property(e => e.PerformedBy)
                 .HasMaxLength(100)
-                .HasColumnName("performed_by")
-                .IsRequired()
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
-
-            builder.Property(e => e.PerformedByUserName)
-                .HasMaxLength(100)
-                .HasColumnName("performed_by_user_name")
-                .UseCollation("utf8mb4_general_ci")
-                .HasCharSet("utf8mb4");
-
-            builder.Property(e => e.ActivityDate)
-                .HasColumnName("activity_date")
                 .IsRequired();
 
-            builder.Property(e => e.Metadata)
-                .HasColumnType("longtext")
-                .HasColumnName("metadata")
-                .UseCollation("utf8_general_ci")
-                .HasCharSet("utf8");
+            builder.Property(e => e.PerformedByUserName)
+                .HasMaxLength(100);
+
+            builder.Property(e => e.ActivityDate)
+                .IsRequired();
+
+            builder.Property(e => e.Metadata);
 
             // Relationships
             builder.HasOne(e => e.Issue)
@@ -97,3 +67,5 @@ namespace FMS.Persistence.EntityConfigurations
         }
     }
 }
+
+

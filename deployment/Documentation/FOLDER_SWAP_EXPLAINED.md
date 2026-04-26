@@ -1,4 +1,4 @@
-# 🔄 Folder Swap Deployment - Visual Guide
+﻿# 🔄 Folder Swap Deployment - Visual Guide
 
 ## The Magic of Atomic Folder Swap
 
@@ -46,7 +46,7 @@ TOTAL DOWNTIME: 11 seconds (10 sec wait + 1 sec for swap and start)
 ### State 1: Initial (Before Deployment)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 └── webAPI\                            ← IIS Points Here (Running)
     ├── web.config                     ← Your production config
@@ -65,7 +65,7 @@ Users: Accessing application normally
 ### State 2: During Build (App Still Running!)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI\                            ← IIS Points Here (Still Running! 🟢)
 │   ├── web.config
@@ -94,7 +94,7 @@ Build Time: 60-90 seconds
 ### State 3: web.config Copied (Before Swap)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI\                            ← IIS Points Here (Running)
 │   ├── web.config                     ← Original (will be preserved)
@@ -115,7 +115,7 @@ Result: New deployment has your production configuration
 ### State 4: IIS Stopped (Ready for Swap)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI\                            ← IIS Points Here (🛑 STOPPED)
 │   ├── web.config                     ← Files no longer locked!
@@ -144,7 +144,7 @@ Rename-Item "webAPI" → "webAPI_old"
 
 **Result after Step A:**
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI_old\                        ← Renamed! (old version saved)
 │   ├── web.config
@@ -166,7 +166,7 @@ Rename-Item "webAPI_temp_20251007103152" → "webAPI"
 
 **Result after Step B:**
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI_old\                        ← Old version (backup)
 │   ├── web.config
@@ -194,7 +194,7 @@ Time for Swap: ~0.1 seconds (folder rename is instant!)
 ### State 6: IIS Started (New Version Running)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 ├── webAPI_old\                        ← Backup (will be cleaned up)
 │   ├── web.config
@@ -218,7 +218,7 @@ Start Time: 3-5 seconds
 ### State 7: Cleanup (Final State)
 
 ```
-C:\inetpub\wwwroot\hyoungFMS\
+C:\inetpub\wwwroot\tenacyFMS\
 │
 └── webAPI\                            ← IIS Points Here (Running)
     ├── web.config (preserved)
@@ -295,12 +295,12 @@ If new version has problems:
 
 ```powershell
 # Manual rollback (takes 15 seconds)
-cd C:\inetpub\wwwroot\hyoungFMS
+cd C:\inetpub\wwwroot\tenacyFMS
 
-Stop-WebAppPool -Name "HyoungFMS.WebAPI"
+Stop-WebAppPool -Name "TenacyFMS.WebAPI"
 Rename-Item webAPI webAPI_broken
 Rename-Item webAPI_old webAPI
-Start-WebAppPool -Name "HyoungFMS.WebAPI"
+Start-WebAppPool -Name "TenacyFMS.WebAPI"
 ```
 
 **Result**: Back to previous working version instantly!
