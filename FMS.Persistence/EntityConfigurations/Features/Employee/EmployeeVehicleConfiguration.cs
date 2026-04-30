@@ -13,8 +13,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.ToTable("employeevehicle");
 
-                builder.HasKey(e => new { e.VehicleId, e.EmployeeId })
-                    .HasName("PRIMARY");
+                builder.HasKey(e => new { e.VehicleId, e.EmployeeId });
 
                 builder.HasIndex(e => e.EmployeeId, "EmployeeID_idx");
 

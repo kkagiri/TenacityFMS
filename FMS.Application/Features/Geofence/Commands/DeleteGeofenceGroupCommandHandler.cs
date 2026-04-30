@@ -12,17 +12,17 @@ namespace FMS.Application.Features.Geofence.Commands;
 /**
  * File: DeleteGeofenceGroupCommandHandler.cs
  * Purpose: Deletes a GPSGate geofence group and marks its local cache entry inactive.
- * Dependencies: IGPSGateGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
+ * Dependencies: ITrackingGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
  * Last Modified: 2026-03-10
  */
 public class DeleteGeofenceGroupCommandHandler : IRequestHandler<DeleteGeofenceGroupCommand, FMSResponse<bool>>
 {
-    private readonly IGPSGateGeofenceService _gpsGateGeofenceService;
+    private readonly ITrackingGeofenceService _gpsGateGeofenceService;
     private readonly IGeofenceCacheSyncService _cacheSyncService;
     private readonly GpsdataContext _context;
 
     public DeleteGeofenceGroupCommandHandler(
-        IGPSGateGeofenceService gpsGateGeofenceService,
+        ITrackingGeofenceService gpsGateGeofenceService,
         IGeofenceCacheSyncService cacheSyncService,
         GpsdataContext context)
     {

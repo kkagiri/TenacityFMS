@@ -14,7 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
     {
         public override void Configure(EntityTypeBuilder<IssueAttachment> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.HasKey(e => e.Id);
 
             builder.ToTable("issue_attachments");
 

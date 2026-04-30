@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.VehicleTransfer.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -19,13 +20,8 @@ namespace FMS.Application.Features.VehicleTransfer.Commands;
 /// <summary>
 /// Interface for GPSGate tag management - implemented in Infrastructure layer
 /// </summary>
-public interface IGpsGateTagTransferService
+public interface IGpsGateTagTransferService : ITrackingTagTransferService
 {
-    Task<FMSResponse<object>> MoveVehicleBetweenSiteTagsAsync(
-        int vehicleId,
-        int fromSiteId,
-        int toSiteId,
-        CancellationToken cancellationToken = default);
 }
 
 public record UpdateVehicleTransferStatusCommand(int TransferId, string Status, string? UserId) : IRequest<FMSResponse<bool>>;
@@ -34,13 +30,13 @@ public class UpdateVehicleTransferStatusCommandHandler : IRequestHandler<UpdateV
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<UpdateVehicleTransferStatusCommandHandler> _logger;
-    private readonly IGpsGateTagTransferService? _tagTransferService;
+    private readonly ITrackingTagTransferService? _tagTransferService;
     private readonly IVehicleTransferNotificationService? _transferNotificationService;
 
     public UpdateVehicleTransferStatusCommandHandler(
         GpsdataContext context,
         ILogger<UpdateVehicleTransferStatusCommandHandler> logger,
-        IGpsGateTagTransferService? tagTransferService = null,
+        ITrackingTagTransferService? tagTransferService = null,
         IVehicleTransferNotificationService? transferNotificationService = null)
     {
         _context = context;

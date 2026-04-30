@@ -25,12 +25,12 @@ public class GetAvailableGeofenceGroupsQueryHandler
     : IRequestHandler<GetAvailableGeofenceGroupsQuery, FMSResponse<List<AvailableGeofenceGroupDTO>>>
 {
     private readonly GpsdataContext _context;
-    private readonly IGPSGateGeofenceService _gpsGateService;
+    private readonly ITrackingGeofenceService _gpsGateService;
     private readonly ILogger<GetAvailableGeofenceGroupsQueryHandler> _logger;
 
     public GetAvailableGeofenceGroupsQueryHandler(
         GpsdataContext context,
-        IGPSGateGeofenceService gpsGateService,
+        ITrackingGeofenceService gpsGateService,
         ILogger<GetAvailableGeofenceGroupsQueryHandler> logger)
     {
         _context = context;

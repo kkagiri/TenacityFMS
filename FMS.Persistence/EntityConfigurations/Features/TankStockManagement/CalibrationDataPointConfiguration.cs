@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
     {
         public override void Configure(EntityTypeBuilder<CalibrationDataPoint> builder)
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.HasKey(e => e.Id);
 
             builder.ToTable("calibrationdatapoints");
 

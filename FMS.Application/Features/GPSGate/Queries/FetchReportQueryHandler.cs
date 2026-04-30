@@ -11,13 +11,13 @@ namespace FMS.Application.Features.GPSGate.Queries
 {
     public class FetchReportQueryHandler : IRequestHandler<FetchReportQuery, FMSResponse<FetchReportResponseDto>>
     {
-        private readonly IGPSGateReportingService _reportingService;
-        private readonly IGPSGateDirectoryService _directoryService;
+        private readonly ITrackingReportService _reportingService;
+        private readonly ITrackingDirectoryService _directoryService;
         private readonly ILogger<FetchReportQueryHandler> _logger;
 
         public FetchReportQueryHandler(
-            IGPSGateReportingService reportingService,
-            IGPSGateDirectoryService directoryService,
+            ITrackingReportService reportingService,
+            ITrackingDirectoryService directoryService,
             ILogger<FetchReportQueryHandler> logger)
         {
             _reportingService = reportingService;

@@ -427,8 +427,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 }
 
                 return await context.VehicleProviderMappings
-                    .Where(m => m.ProviderConfigId == provider.Id && m.IsActive)
-                    .Select(m => m.VehicleId)
+                    .Where(m => m.ProviderConfigId == provider.Id && m.IsActive && m.VehicleId != null)
+                    .Select(m => m.VehicleId!.Value)
                     .ToListAsync();
             }
             catch (Exception ex)

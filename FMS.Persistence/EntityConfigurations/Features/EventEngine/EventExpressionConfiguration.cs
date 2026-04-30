@@ -16,7 +16,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.ToTable("event_expressions");
 
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.Property(e => e.Id)
                     .ValueGeneratedOnAdd();

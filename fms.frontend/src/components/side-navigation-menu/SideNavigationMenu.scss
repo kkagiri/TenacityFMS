@@ -3,12 +3,14 @@
 
 .side-navigation-menu {
   position: relative;
-  box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.24);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   min-height: 100%;
   height: 100%;
   width: 250px !important;
+  background: linear-gradient(180deg, #2f4050 0%, #293846 100%);
+  color: #a7b1c2;
 
   // Mobile navigation styles (for very small screens)
   &.mobile-navigation {
@@ -28,7 +30,7 @@
     top: 0;
     height: 100vh;
     z-index: 1001;
-    background: #fff;
+    background: linear-gradient(180deg, #2f4050 0%, #293846 100%);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
 
@@ -56,12 +58,12 @@
 
         // Adjust nested items padding
         .dx-treeview-node {
-          &[aria-level='2'] .dx-treeview-item-content {
+          &[aria-level="2"] .dx-treeview-item-content {
             padding: 0 30px;
             font-size: 13px;
           }
 
-          &[aria-level='3'] .dx-treeview-item-content {
+          &[aria-level="3"] .dx-treeview-item-content {
             padding: 0 45px;
             font-size: 12px;
           }
@@ -86,6 +88,16 @@
     display: flex;
     flex: 1;
     overflow-y: auto;
+    padding: 18px 0 24px;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+    }
 
     // Cursor: Compact mode styling
     .dx-treeview-compact {
@@ -99,6 +111,9 @@
     }
 
     .dx-treeview {
+      color: #a7b1c2;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+
       // ## Long text positioning
       white-space: nowrap;
       // ##
@@ -108,13 +123,23 @@
         padding-left: 0;
         padding-right: 0;
         border: none;
-        padding: 12px 16px;
+        padding: 11px 18px;
+        color: #a7b1c2;
+        min-height: 44px;
+        transition:
+          background-color 0.18s ease,
+          color 0.18s ease;
 
         .dx-icon {
           width: $side-panel-min-width !important;
           margin: 0 !important;
           margin-right: 12px;
           text-align: center;
+          color: #a7b1c2;
+        }
+
+        .dx-treeview-item-content {
+          color: inherit;
         }
       }
       // ##
@@ -126,6 +151,10 @@
 
       .dx-treeview-toggle-item-visibility {
         right: 8px;
+
+        &:before {
+          color: #8095a8;
+        }
       }
 
       .dx-rtl .dx-treeview-toggle-item-visibility {
@@ -136,12 +165,14 @@
 
       // ## Item levels customization
       .dx-treeview-node {
-        &[aria-level='1'] {
-          font-weight: bold;
-          border-bottom: 1px solid $base-border-color;
+        &[aria-level="1"] {
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: none;
+          border-bottom: 0;
         }
 
-        &[aria-level='2'] .dx-treeview-item-content {
+        &[aria-level="2"] .dx-treeview-item-content {
           font-weight: normal;
           padding: 0 $side-panel-min-width;
         }
@@ -153,23 +184,43 @@
     .dx-treeview {
       .dx-treeview-node-container {
         .dx-treeview-node {
-          &.dx-state-selected:not(.dx-state-focused)> .dx-treeview-item {
-            background: transparent;
+          &.dx-state-selected:not(.dx-state-focused) > .dx-treeview-item {
+            background: #293846;
           }
 
           &.dx-state-selected > .dx-treeview-item * {
-            color: $base-accent;
+            color: #ffffff;
           }
 
-          &:not(.dx-state-focused)>.dx-treeview-item.dx-state-hover {
-            background-color: lighten($base-bg, 4.00);
+          &:not(.dx-state-focused) > .dx-treeview-item.dx-state-hover {
+            background-color: rgba(255, 255, 255, 0.06);
+            color: #ffffff;
+          }
+
+          &.dx-state-selected > .dx-treeview-item {
+            position: relative;
+            background: rgba(26, 179, 148, 0.18);
+
+            &::before {
+              content: "";
+              position: absolute;
+              left: 0;
+              top: 8px;
+              bottom: 8px;
+              width: 3px;
+              border-radius: 0 4px 4px 0;
+              background: #1ab394;
+            }
           }
         }
       }
     }
 
     .dx-theme-generic .dx-treeview {
-      .dx-treeview-node-container .dx-treeview-node.dx-state-selected.dx-state-focused > .dx-treeview-item * {
+      .dx-treeview-node-container
+        .dx-treeview-node.dx-state-selected.dx-state-focused
+        > .dx-treeview-item
+        * {
         color: inherit;
       }
     }
@@ -180,7 +231,7 @@
   @media (min-width: 768px) {
     position: relative;
     transform: none !important;
-    box-shadow: 1px 0 3px rgba(0,0,0,0.1);
+    box-shadow: none;
   }
 }
 

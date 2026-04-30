@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
 
             try
             {
-                builder.HasKey(e => new { e.SiteId, e.UserId }).HasName("PRIMARY");
+                builder.HasKey(e => new { e.SiteId, e.UserId });
 
                 builder.ToTable("usersite");
 

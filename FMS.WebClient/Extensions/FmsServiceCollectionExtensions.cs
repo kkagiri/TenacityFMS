@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: FmsServiceCollectionExtensions.cs
  * Purpose: Centralized dependency injection registration for FMS WebClient.
  * Dependencies: ASP.NET Core DI, FMS services, background services, MediatR
@@ -55,8 +55,6 @@ using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.PTS.Services;
 using FMS.Application.Features.PTSService.Services;
-using FMS.Application.Features.VehicleTrips.Services;
-using FMS.Application.Features.VehicleTrips.Validators;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
@@ -64,6 +62,7 @@ using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Features.WarningLetter.Services;
 using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
+using FMS.Devices.Core.DependencyInjection; // AddDeviceCore() for multi-device provider platform
 
 using FMS.Application.Command.PTSCommand.Common;
 // Removed incorrect Tracker namespace import; DeviceConnectionTracker lives directly under FMS.Application.Communication
@@ -75,14 +74,12 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using FMS.Application.Communication;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
-using FMS.BackgroundServices.VehicleMaintenance;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
 using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
 using FMS.BackgroundServices.IssueTracker;
-using FMS.Application.Features.VehicleTrips.StateMachines;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
@@ -110,6 +107,11 @@ public static class FmsServiceCollectionExtensions
                            FMS.Application.Features.MultiTenancy.Services.TenantContext>();
         services.AddScoped<FMS.Application.Features.MultiTenancy.Services.TenantSaveChangesInterceptor>();
 
+        // Device platform: bridge ITenantScope (FMS.Devices.Abstractions) onto ITenantContext
+        // so per-tenant repository filters in FMS.Devices.Core resolve from the same request scope.
+        services.AddScoped<FMS.Devices.Abstractions.Common.ITenantScope, TenantContextScopeAdapter>();
+        services.AddDeviceCore();
+
         // Controllers & JSON
         services.AddControllers().AddJsonOptions(o =>
         {
@@ -136,7 +138,7 @@ public static class FmsServiceCollectionExtensions
             options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
 
-        // Add Redis backplane for cross-process SignalR communication (WebClient ↔ Windows Service)
+        // Add Redis backplane for cross-process SignalR communication (WebClient â†” Windows Service)
         if (!string.IsNullOrEmpty(redisConn))
         {
             signalRBuilder.AddStackExchangeRedis(redisConn, options =>
@@ -163,7 +165,10 @@ public static class FmsServiceCollectionExtensions
         services.AddDashboardWidgetServices();
 
         // Register vehicle tracking provider infrastructure (Phase 1-4)
-        services.AddVehicleTracking();
+        services.AddVehicleTracking(options =>
+        {
+            options.AssemblyNames = new[] { "FMS.Devices.Tracking" };
+        });
 
         // Register DevExpress Reporting services
         RegisterDevExpressReporting(services);
@@ -235,12 +240,8 @@ public static class FmsServiceCollectionExtensions
 
     public static IServiceCollection AddFmsDatabase(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
-        var fmsConnectionString = GetEnvRequired("ConnectionStrings__FMSConnection");
-        if (!fmsConnectionString.Contains("AllowZeroDateTime") && !fmsConnectionString.Contains("ConvertZeroDateTime"))
-        {
-            fmsConnectionString += fmsConnectionString.Contains("?") ? "&" : ";";
-            fmsConnectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
-        }
+        var fmsConnectionString = NormalizePostgresConnectionString(
+            GetEnvRequired("ConnectionStrings__FMSConnection"));
 
         // Disambiguate Role between FMS.Domain.Entities.Role and StackExchange.Redis.Role by fully qualifying the domain Role
         services.AddIdentity<User, FMS.Domain.Entities.Role>()
@@ -274,7 +275,7 @@ public static class FmsServiceCollectionExtensions
             .EnableDetailedErrors();
 
             // Multi-tenancy: auto-stamp TenantId on inserted ITenantOwned entities.
-            // Interceptor is scoped — resolve from the request's service provider.
+            // Interceptor is scoped â€” resolve from the request's service provider.
             opt.AddInterceptors(
                 sp.GetRequiredService<FMS.Application.Features.MultiTenancy.Services.TenantSaveChangesInterceptor>());
 
@@ -526,6 +527,8 @@ public static class FmsServiceCollectionExtensions
         // GPSGate Services
         services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
         services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
+        services.AddScoped<FMS.Application.Features.GPSGate.Services.ITrackingDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
+        services.AddScoped<FMS.Application.Features.GPSGate.Services.ITrackingReportService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
 
         // Vehicle Transfer Notification Service
         services.AddScoped<FMS.Application.Features.VehicleTransfer.Services.IVehicleTransferNotificationService, FMS.Application.Features.VehicleTransfer.Services.VehicleTransferNotificationService>();
@@ -563,39 +566,6 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
         services.AddScoped<IGPSService, FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>();
         services.AddScoped<FMS.Application.Features.Geofence.Services.IGeofenceCacheSyncService, FMS.Application.Features.Geofence.Services.GeofenceCacheSyncService>();
-        services.AddScoped<IVehicleTripGeofenceDetectionService, VehicleTripGeofenceDetectionService>();
-        services.AddScoped<IVehicleTripClusterDetectionService, VehicleTripClusterDetectionService>();
-        services.AddScoped<IVehicleTripGroupingService, VehicleTripGroupingService>();
-        services.AddScoped<IVehicleTripConfidenceScoringService, VehicleTripConfidenceScoringService>();
-        services.Configure<VehicleTripPreProcessorOptions>(configuration.GetSection(VehicleTripPreProcessorOptions.SectionName));
-        services.Configure<VehicleTripGeofenceDetectionOptions>(configuration.GetSection(VehicleTripGeofenceDetectionOptions.SectionName));
-        services.Configure<VehicleTripClusterDetectionOptions>(configuration.GetSection(VehicleTripClusterDetectionOptions.SectionName));
-        services.Configure<VehicleTripGeofenceStateMachineOptions>(configuration.GetSection(VehicleTripGeofenceStateMachineOptions.SectionName));
-        services.Configure<VehicleTripClusterStateMachineOptions>(configuration.GetSection(VehicleTripClusterStateMachineOptions.SectionName));
-        services.AddScoped<IVehicleTripGpsPreProcessor, VehicleTripGpsPreProcessor>();
-        services.AddSingleton<VehicleTripGeofenceStateMachine>();
-        services.AddSingleton<VehicleTripClusterStateMachine>();
-        services.AddSingleton<IVehicleTripRealtimeDispatcher, VehicleTripRealtimeDispatcher>();
-        services.AddScoped<IVehicleTripFuelContextService, VehicleTripFuelContextService>();
-        services.AddScoped<IVehicleTripOrchestrationService, VehicleTripOrchestrationService>();
-        services.AddScoped<IVehicleTripReconciliationService, VehicleTripReconciliationService>();
-        services.AddScoped<IVehicleTripOverrideAuditService, VehicleTripOverrideAuditService>();
-        services.AddScoped<IVehicleTripManualOverrideValidationService, VehicleTripManualOverrideValidationService>();
-        services.AddScoped<IVehicleTripManualOverrideService, VehicleTripManualOverrideService>();
-        services.AddScoped<IVehicleTripSettingsService, VehicleTripSettingsService>();
-        services.AddScoped<IRecomputeVehicleTripsCommandValidator, RecomputeVehicleTripsCommandValidator>();
-        services.AddScoped<IGetVehicleTripsQueryValidator, GetVehicleTripsQueryValidator>();
-        services.AddScoped<IGetVehicleTripHistoryQueryValidator, GetVehicleTripHistoryQueryValidator>();
-        services.AddScoped<IGetVehicleTripDetailQueryValidator, GetVehicleTripDetailQueryValidator>();
-        services.AddScoped<IGetVehicleTripBreadcrumbsQueryValidator, GetVehicleTripBreadcrumbsQueryValidator>();
-        services.AddScoped<ISplitVehicleTripCommandValidator, SplitVehicleTripCommandValidator>();
-        services.AddScoped<IMergeVehicleTripsCommandValidator, MergeVehicleTripsCommandValidator>();
-        services.AddScoped<IReassignVehicleTripSiteCommandValidator, ReassignVehicleTripSiteCommandValidator>();
-        services.AddScoped<IAddVehicleTripCommandValidator, AddVehicleTripCommandValidator>();
-        services.AddScoped<IDeleteVehicleTripCommandValidator, DeleteVehicleTripCommandValidator>();
-        services.AddScoped<IAdjustVehicleTripTimesCommandValidator, AdjustVehicleTripTimesCommandValidator>();
-        services.AddScoped<IReconcileVehicleTripsCommandValidator, ReconcileVehicleTripsCommandValidator>();
-        services.AddScoped<IUpdateVehicleTripSettingsCommandValidator, UpdateVehicleTripSettingsCommandValidator>();
 
         // Configuration Services
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
@@ -653,16 +623,16 @@ public static class FmsServiceCollectionExtensions
         // - DailyTankReconciliationService (daily aggregation at 12:00 AM and reconciliation at 2:00 AM)
         services.AddHostedService<FMS.BackgroundServices.TankReconciliation.UnifiedTankReconciliationService>();
 
-        // Tank Volume Entry Check — daily check for missing opening/closing stock entries
+        // Tank Volume Entry Check â€” daily check for missing opening/closing stock entries
         // Fires SystemEvents through EventExpressionEngine for NoTankStockEntry expressions
         services.AddHostedService<FMS.BackgroundServices.TankStock.TankVolumeEntryCheckService>();
 
-        // Automated Closing Stock — auto-creates closing stock at 23:45 for tanks that haven't been closed
+        // Automated Closing Stock â€” auto-creates closing stock at 23:45 for tanks that haven't been closed
         // Uses sensor data first, then PhysicalStockValue, then calculation. Skips if variance exceeds threshold.
         // Config: AutoClosingStock_Enabled (default false), AutoClosingStock_ScheduleTime, AutoClosingStock_MaxVarianceLiters
         services.AddHostedService<FMS.BackgroundServices.TankStock.AutomatedClosingStockService>();
 
-        // Automated Opening Stock — auto-creates opening stock at 11:45 for tanks that haven't been opened
+        // Automated Opening Stock â€” auto-creates opening stock at 11:45 for tanks that haven't been opened
         // Uses yesterday's closing stock first, then sensor data, then PhysicalStockValue. Skips if variance exceeds threshold.
         // Config: AutoOpeningStock_Enabled (default false), AutoOpeningStock_ScheduleTime, AutoOpeningStock_MaxVarianceLiters
         services.AddHostedService<FMS.BackgroundServices.TankStock.AutomatedOpeningStockService>();
@@ -674,9 +644,7 @@ public static class FmsServiceCollectionExtensions
 
         // Other Background Services
         services.AddHostedService<SystemUserInitializationService>();
-        services.AddHostedService<VehicleMaintenanceNotifierService>();
         // DEAD CODE: OdometerSyncBackgroundService temporarily disabled (2026-01-28)
-        // services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
 
         // Tank measurement real-time broadcast (FrontEndHub)
@@ -688,10 +656,8 @@ public static class FmsServiceCollectionExtensions
         // Vehicle Transfer InTransit reminder service - sends daily reminders to receivers
         services.AddHostedService<FMS.BackgroundServices.TransferReminderBackgroundService>();
 
-        // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
-        // Consumes GPS position updates from GPSGate and broadcasts to connected clients
-        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
-        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.VehicleTripReconciliationBackgroundService>();
+        // GPSGate RabbitMQ Consumer temporarily disabled to suppress startup noise
+        // while GPSGate provider configuration is not present in the database.
 
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
         services.AddIssueTrackerBackgroundServices();
@@ -722,7 +688,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
         services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
-        // Alert Configuration Service — cached, typed access to configurable alert thresholds
+        // Alert Configuration Service â€” cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()
         services.AddScoped<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder, FMS.Application.Services.Dashboard.WidgetTemplateSeeder>();
@@ -755,6 +721,7 @@ public static class FmsServiceCollectionExtensions
 
         // GPSGate Services - Use AddHttpClient to properly inject HttpClient for API calls
         services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.IGPSGateTracksService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.GPSGateTracksService>();
+        services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.ITrackingTracksService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.GPSGateTracksService>();
 
         // Fuel Audit Services
         services.AddScoped<FMS.Application.Features.FuelAudit.Services.IFuelAuditGPSService, FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services.FuelAuditGPSService>();
@@ -791,18 +758,50 @@ public static class FmsServiceCollectionExtensions
         return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine) ?? throw new InvalidOperationException($"Missing environment variable: {key}");
     }
 
+    private static string NormalizePostgresConnectionString(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return connectionString;
+        }
+
+        var invalidKeys = new[]
+        {
+            "AllowZeroDateTime",
+            "ConvertZeroDateTime",
+            "TreatTinyAsBoolean",
+            "UseCompression",
+            "OldGuids",
+            "UseAffectedRows",
+        };
+
+        var segments = connectionString
+            .Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment => segment.Trim())
+            .Where(segment =>
+            {
+                var separatorIndex = segment.IndexOf('=');
+                if (separatorIndex <= 0)
+                {
+                    return true;
+                }
+
+                var key = segment[..separatorIndex].Trim();
+                return !invalidKeys.Any(invalidKey =>
+                    string.Equals(key, invalidKey, StringComparison.OrdinalIgnoreCase));
+            });
+
+        return string.Join(';', segments);
+    }
+
     /// <summary>
     /// Registers DevExpress Reporting services for Report Viewer and Report Designer.
     /// </summary>
     private static void RegisterDevExpressReporting(IServiceCollection services)
     {
         // Get connection string for DevExpress Report Designer data sources
-        var fmsConnectionString = GetEnvRequired("ConnectionStrings__FMSConnection");
-        if (!fmsConnectionString.Contains("AllowZeroDateTime") && !fmsConnectionString.Contains("ConvertZeroDateTime"))
-        {
-            fmsConnectionString += fmsConnectionString.Contains("?") ? "&" : ";";
-            fmsConnectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
-        }
+        var fmsConnectionString = NormalizePostgresConnectionString(
+            GetEnvRequired("ConnectionStrings__FMSConnection"));
 
         // Add DevExpress controls support - this registers all required services including:
         // - IWebDocumentViewerMvcControllerService

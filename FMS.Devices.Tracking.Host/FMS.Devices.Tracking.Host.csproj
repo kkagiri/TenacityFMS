@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>fms-devices-tracking-host</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Core\FMS.Devices.Core.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Tracking\FMS.Devices.Tracking.csproj" />
+    <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -25,12 +25,12 @@ public class SyncGeofencesCommand : IRequest<FMSResponse<SyncGeofencesResponseDT
 public class SyncGeofencesCommandHandler : IRequestHandler<SyncGeofencesCommand, FMSResponse<SyncGeofencesResponseDTO>>
 {
     private readonly GpsdataContext _context;
-    private readonly IGPSGateGeofenceService _geofenceService;
+    private readonly ITrackingGeofenceService _geofenceService;
     private readonly ILogger<SyncGeofencesCommandHandler> _logger;
 
     public SyncGeofencesCommandHandler(
         GpsdataContext context,
-        IGPSGateGeofenceService geofenceService,
+        ITrackingGeofenceService geofenceService,
         ILogger<SyncGeofencesCommandHandler> logger)
     {
         _context = context;

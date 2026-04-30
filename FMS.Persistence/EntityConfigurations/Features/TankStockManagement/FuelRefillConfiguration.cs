@@ -13,7 +13,7 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<FuelRefill> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
                 builder.ToTable ("fuelrefil");
 
                 // Indexes
@@ -24,45 +24,41 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => e.Date, "fuelrefill_date_idx");
 
                 // Column configurations
-                builder.Property (e => e.Id).HasColumnType ("int(11)");
-                builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
+                builder.Property (e => e.VehicleId);
                 builder.Property (e => e.ManualFuelrefillAmount).HasPrecision (10, 2);
-                builder.Property (e => e.Date).HasColumnType ("datetime");
+                builder.Property (e => e.Date);
                 builder.Property (e => e.PreviousMeterReading).HasPrecision (10, 2);
                 builder.Property (e => e.CurrentMeterReading).HasPrecision (10, 2);
-                builder.Property (e => e.SiteId).HasColumnType ("int(11)");
+                builder.Property (e => e.SiteId);
                 builder.Property (e => e.Comment).HasMaxLength (500);
                 builder.Property (e => e.FuelBy)
                     .HasMaxLength (450)
                     .IsRequired ();
-                builder.Property (e => e.PumpTranscationId).HasColumnType ("int(11)");
-                builder.Property (e => e.DriverId).HasColumnType ("int(11)");
+                builder.Property (e => e.PumpTranscationId);
+                builder.Property (e => e.DriverId);
                 builder.Property (e => e.TagId).HasMaxLength (50);
-                builder.Property (e => e.TankId).HasColumnType ("int(11)");
-                builder.Property (e => e.DateCreated).HasColumnType ("datetime");
-                builder.Property (e => e.DateModified).HasColumnType ("datetime");
+                builder.Property (e => e.TankId);
+                builder.Property (e => e.DateCreated);
+                builder.Property (e => e.DateModified);
                 builder.Property (e => e.ModifiedBy).HasMaxLength (450);
-                builder.Property (e => e.IsModified).HasColumnType ("tinyint(4)");
+                builder.Property (e => e.IsModified);
 
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
-                    .HasColumnType ("tinyint(1)")
                     .HasDefaultValue (false);
 
-                builder.Property (e => e.DeletedAt)
-                    .HasColumnType ("datetime");
+                builder.Property (e => e.DeletedAt);
 
                 builder.Property (e => e.DeletedBy)
                     .HasMaxLength (450);
 
                 // Correction tracking properties
                 builder.Property (e => e.IsCorrection)
-                    .HasColumnType ("tinyint(1)")
                     .IsRequired()
                     .HasDefaultValue (false);
 
-                builder.Property (e => e.CorrectsRecordId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.CorrectsRecordId);
 
                 builder.Property (e => e.CorrectionReason)
                     .HasMaxLength (200);

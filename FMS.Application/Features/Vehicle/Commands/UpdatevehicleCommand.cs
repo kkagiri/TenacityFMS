@@ -26,13 +26,13 @@ namespace FMS.Application.Command.DatabaseCommand.VehicleCmd
         private readonly GpsdataContext _context;
         private readonly ILogger<UpdateVehiclesCommandHandler> _logger;
         private readonly IMapper _mapper;
-        private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
+        private readonly ITrackingDriverNameService? _gpsGateDriverNameService;
 
         public UpdateVehiclesCommandHandler(
             GpsdataContext context,
             ILogger<UpdateVehiclesCommandHandler> logger,
             IMapper mapper,
-            IGPSGateDriverNameService? gpsGateDriverNameService = null)
+            ITrackingDriverNameService? gpsGateDriverNameService = null)
         {
             _context = context;
             _logger = logger;

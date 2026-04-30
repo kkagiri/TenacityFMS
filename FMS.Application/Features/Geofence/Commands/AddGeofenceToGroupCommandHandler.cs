@@ -13,17 +13,17 @@ namespace FMS.Application.Features.Geofence.Commands;
 /**
  * File: AddGeofenceToGroupCommandHandler.cs
  * Purpose: Adds a cached geofence to a cached GPSGate group and refreshes local membership cache.
- * Dependencies: IGPSGateGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
+ * Dependencies: ITrackingGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
  * Last Modified: 2026-03-10
  */
 public class AddGeofenceToGroupCommandHandler : IRequestHandler<AddGeofenceToGroupCommand, FMSResponse<GpsGeofenceGroupDTO>>
 {
-    private readonly IGPSGateGeofenceService _gpsGateGeofenceService;
+    private readonly ITrackingGeofenceService _gpsGateGeofenceService;
     private readonly IGeofenceCacheSyncService _cacheSyncService;
     private readonly GpsdataContext _context;
 
     public AddGeofenceToGroupCommandHandler(
-        IGPSGateGeofenceService gpsGateGeofenceService,
+        ITrackingGeofenceService gpsGateGeofenceService,
         IGeofenceCacheSyncService cacheSyncService,
         GpsdataContext context)
     {

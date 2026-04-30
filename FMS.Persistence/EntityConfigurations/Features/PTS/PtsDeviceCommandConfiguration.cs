@@ -14,7 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.ToTable("ptsdevice_pendingcommands");
 
                 // Define the primary key
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 // Auto-increment ID
                 builder.Property(e => e.Id)

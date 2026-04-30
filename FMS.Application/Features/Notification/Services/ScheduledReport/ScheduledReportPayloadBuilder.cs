@@ -16,8 +16,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Features.VehicleTrips.DTOs;
-using FMS.Application.Features.VehicleTrips.Queries;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
@@ -59,7 +57,6 @@ namespace FMS.Application.Features.Notification.Services
             "device-offline",
             "pts-device",
             "issue-tracker",
-            "live-trip-operations",
             "tank-level-detail",
             "storage-received-vs-dispensed",
             "alarm-report",
@@ -147,7 +144,6 @@ namespace FMS.Application.Features.Notification.Services
                     "device-offline" => await BuildDeviceOfflinePayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "pts-device" => await BuildPtsDevicePayload(metadata, reportTitle, cancellationToken),
                     "issue-tracker" => await BuildIssueTrackerPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
-                    "live-trip-operations" => await BuildLiveTripOperationsPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "tank-level-detail" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "storage-received-vs-dispensed" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "alarm-report" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
@@ -801,32 +797,6 @@ namespace FMS.Application.Features.Notification.Services
                 closedIssues = result.Data.ClosedIssues,
                 autoCreatedIssues = result.Data.AutoCreatedIssues,
             });
-        }
-
-        // ─── Live Trip Operations ─────────────────────────────────────────────────
-
-        private async Task<object?> BuildLiveTripOperationsPayload(
-            JObject metadata, DateTime startUtc, DateTime endUtc,
-            DateTime startLocal, DateTime endLocal, string reportTitle,
-            CancellationToken ct)
-        {
-            var query = new GetVehicleTripLiveOperationsReportQuery
-            {
-                VehicleId = GetIntParam(metadata, "vehicleId"),
-                SiteId = GetIntParam(metadata, "siteId"),
-                StartDate = startUtc,
-                EndDate = endUtc,
-                IdleThresholdMinutes = GetIntParam(metadata, "idleThresholdMinutes") ?? 15,
-            };
-
-            var result = await _mediator.Send(query, ct);
-            if (!result.IsSuccess || result.Data == null)
-            {
-                _logger.LogWarning("Live trip operations query failed for scheduled report: {Msg}", result.Message);
-                return BuildEmptyLiveTripOperationsPayload(reportTitle, startLocal, endLocal, query.IdleThresholdMinutes);
-            }
-
-            return BuildLiveTripOperationsPayload(result.Data, reportTitle, startLocal, endLocal);
         }
 
     }

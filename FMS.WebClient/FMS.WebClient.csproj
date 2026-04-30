@@ -40,6 +40,10 @@
     <PackageReference Include="jsreport.Types" Version="3.9.4" />
     <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="22.2.5" /> -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="PuppeteerSharp" Version="21.1.1" />
     <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
@@ -100,12 +104,14 @@
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
     <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Core\FMS.Devices.Core.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Tracking\FMS.Devices.Tracking.csproj" />
   </ItemGroup>
 
   <!-- Runtime data files from referenced projects that must be present in the publish output -->
   <ItemGroup>
-    <Content Include="..\FMS.BackgroundServices\FMS\GPSGATELocationMapping.json"
-             Link="FMS.BackgroundServices\FMS\GPSGATELocationMapping.json">
+    <Content Include="..\FMS.BackgroundServices\FMS\GPSGATELocationMapping.json" Link="FMS.BackgroundServices\FMS\GPSGATELocationMapping.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>

@@ -18,12 +18,12 @@ namespace FMS.Application.Features.GPSGate.Commands
 
     public class CancelGpsReportCommandHandler : IRequestHandler<CancelGpsReportCommand, FMSResponse<object>>
     {
-        private readonly IGPSGateReportingService _reportingService;
+        private readonly ITrackingReportService _reportingService;
         private readonly GpsdataContext _context;
         private readonly ILogger<CancelGpsReportCommandHandler> _logger;
 
         public CancelGpsReportCommandHandler(
-            IGPSGateReportingService reportingService,
+            ITrackingReportService reportingService,
             GpsdataContext context,
             ILogger<CancelGpsReportCommandHandler> logger)
         {

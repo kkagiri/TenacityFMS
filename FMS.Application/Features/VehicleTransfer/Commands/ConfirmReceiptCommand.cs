@@ -8,6 +8,7 @@
  * - ConfirmReceiptCommand: Carries transfer id, receiver user id, and optional remarks.
  */
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.VehicleTransfer.DTOs;
 using MediatR;
 using AutoMapper;
@@ -32,7 +33,7 @@ public class ConfirmReceiptCommandHandler : IRequestHandler<ConfirmReceiptComman
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
     private readonly IVehicleTransferNotificationService _notificationService;
-    private readonly IGpsGateTagTransferService? _tagTransferService;
+    private readonly ITrackingTagTransferService? _tagTransferService;
     private readonly ILogger<ConfirmReceiptCommandHandler> _logger;
 
     public ConfirmReceiptCommandHandler(
@@ -40,7 +41,7 @@ public class ConfirmReceiptCommandHandler : IRequestHandler<ConfirmReceiptComman
         IMapper mapper,
         IVehicleTransferNotificationService notificationService,
         ILogger<ConfirmReceiptCommandHandler> logger,
-        IGpsGateTagTransferService? tagTransferService = null)
+        ITrackingTagTransferService? tagTransferService = null)
     {
         _context = context;
         _mapper = mapper;

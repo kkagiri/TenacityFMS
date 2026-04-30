@@ -18,6 +18,14 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
+            builder.Property(e => e.TenantId)
+                .IsRequired();
+
+            builder.Property(e => e.DeviceCategory)
+                .HasMaxLength(40)
+                .IsRequired()
+                .HasDefaultValue("Tracking");
+
             builder.Property(e => e.Name)
                 .HasMaxLength(100)
                 .IsRequired();
@@ -68,9 +76,12 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
                 .HasMaxLength(100);
 
             // Indexes
-            builder.HasIndex(e => e.Name)
+            builder.HasIndex(e => new { e.TenantId, e.Name })
                 .IsUnique()
-                .HasDatabaseName("idx_provider_name");
+                .HasDatabaseName("idx_provider_tenant_name");
+
+            builder.HasIndex(e => new { e.TenantId, e.DeviceCategory, e.IsEnabled })
+                .HasDatabaseName("idx_provider_tenant_category");
 
             builder.HasIndex(e => e.IsEnabled)
                 .HasDatabaseName("idx_provider_enabled");

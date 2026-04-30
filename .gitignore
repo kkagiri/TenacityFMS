@@ -424,3 +424,8 @@ Type
 EMPLOYEE LIST 1.pdf
 import_positions_dedupe.py
 import_positions.py
+
+# Local-only overrides (never commit secrets)
+appsettings.Local.json
+appsettings.*.Local.json
+

@@ -119,7 +119,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IDeviceConnectionTypeService _connectionTypeService;
         private readonly Features.LocationValidation.Services.ILocationValidationService _locationValidationService;
         private readonly Features.Vehicle.Services.IGPSService? _gpsService;
-        private readonly IGPSGateDriverNameService? _driverNameService;
+        private readonly ITrackingDriverNameService? _driverNameService;
         private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
         public PumpAuthorizeCommandHandler(
@@ -138,7 +138,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             Features.LocationValidation.Services.ILocationValidationService locationValidationService,
             ILogger<PumpAuthorizeCommandHandler> logger,
             Features.Vehicle.Services.IGPSService? gpsService = null,
-            IGPSGateDriverNameService? driverNameService = null,
+            ITrackingDriverNameService? driverNameService = null,
             Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
             _authTracker = authstatetracker;

@@ -23,15 +23,15 @@ namespace FMS.Application.Features.GPSGate.Queries
     public class ProcessReportQueryHandler<T> : IRequestHandler<ProcessReportQuery<T>, FMSResponse<ProcessedReportDto<T>>>
         where T : class
     {
-        private readonly IGPSGateReportingService _reportingService;
-        private readonly IGPSGateDirectoryService _directoryService;
+        private readonly ITrackingReportService _reportingService;
+        private readonly ITrackingDirectoryService _directoryService;
         private readonly IReportProcessorFactory _processorFactory;
         private readonly GpsdataContext _context;
         private readonly ILogger<ProcessReportQueryHandler<T>> _logger;
 
         public ProcessReportQueryHandler(
-            IGPSGateReportingService reportingService,
-            IGPSGateDirectoryService directoryService,
+            ITrackingReportService reportingService,
+            ITrackingDirectoryService directoryService,
             IReportProcessorFactory processorFactory,
             GpsdataContext context,
             ILogger<ProcessReportQueryHandler<T>> logger)

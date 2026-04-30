@@ -17,7 +17,7 @@ namespace FMS.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -172,7 +172,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("unit");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_active_events");
 
                     b.HasIndex("EventExpressionId")
                         .HasDatabaseName("IX_ActiveEvents_ExpressionId");
@@ -209,6 +209,10 @@ namespace FMS.Persistence.Migrations
                     b.Property<string>("SiteId")
                         .HasColumnType("text")
                         .HasColumnName("site_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.HasKey("AssetId")
                         .HasName("pk_assets");
@@ -291,7 +295,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<int>("GroupId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("group_id");
 
                     b.Property<bool>("IsActive")
@@ -368,7 +372,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_calibrationdata");
 
                     b.HasIndex(new[] { "VehicleId" }, "calibrationDataRow_idx")
                         .HasDatabaseName("ix_calibrationdata_vehicle_id");
@@ -460,7 +464,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("total_transfers_out");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_dailytankreconciliation");
 
                     b.HasIndex(new[] { "TankId" }, "DailyTankReconciliation_TankId_idx")
                         .HasDatabaseName("ix_dailytankreconciliation_tank_id");
@@ -566,7 +570,7 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -585,7 +589,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("width");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_dashboard_widget_instance");
 
                     b.HasIndex("Category")
                         .HasDatabaseName("IX_DashboardWidgetInstance_Category");
@@ -622,7 +626,7 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<string>("ConfigurationJson")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("text")
                         .HasColumnName("configuration_json");
 
                     b.Property<DateTime>("CreatedAt")
@@ -673,7 +677,7 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("WidgetType")
                         .IsRequired()
@@ -682,7 +686,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("widget_type");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_dashboard_widget_template");
 
                     b.HasIndex("Category")
                         .HasDatabaseName("IX_DashboardWidgetTemplate_Category");
@@ -735,7 +739,7 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -749,7 +753,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_user_dashboard_layout");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_UserDashboardLayout_User");
@@ -862,7 +866,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tank_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_delivery");
 
                     b.HasIndex("DeletedBy")
                         .HasDatabaseName("ix_delivery_deleted_by");
@@ -926,7 +930,7 @@ namespace FMS.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_devicetype");
 
                     b.HasIndex("Name")
                         .IsUnique()
@@ -1008,7 +1012,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("site_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_employee");
 
                     b.HasIndex(new[] { "ModifiedBy" }, "Employe_modifyUser_idx")
                         .HasDatabaseName("ix_employee_modified_by");
@@ -1163,7 +1167,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("sort_order");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_employee_position");
 
                     b.HasIndex(new[] { "IsActive" }, "ix_employee_position_is_active")
                         .HasDatabaseName("ix_employee_position_is_active");
@@ -1189,7 +1193,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("employee_id");
 
                     b.HasKey("VehicleId", "EmployeeId")
-                        .HasName("PRIMARY");
+                        .HasName("pk_employeevehicle");
 
                     b.HasIndex(new[] { "EmployeeId" }, "EmployeeID_idx")
                         .HasDatabaseName("ix_employeevehicle_employee_id");
@@ -1353,7 +1357,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("trigger_count");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_event_expressions");
 
                     b.HasIndex("AssignIssueTo")
                         .HasDatabaseName("ix_event_expressions_assign_issue_to");
@@ -1457,7 +1461,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("was_triggered");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_event_expression_executions");
 
                     b.HasIndex("IssueTrackerId")
                         .HasDatabaseName("ix_event_expression_executions_issue_tracker_id");
@@ -1637,7 +1641,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_expectedaverage");
 
                     b.HasIndex(new[] { "ExpectedAverageClassificationId" }, "Expected_classification_idx")
                         .HasDatabaseName("ix_expectedaverage_expected_average_classification_id");
@@ -1679,7 +1683,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_expectedaverageclassification");
 
                     b.ToTable("expectedaverageclassification", (string)null);
                 });
@@ -1698,7 +1702,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("detected_at");
 
                     b.Property<int>("ExecutionId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("execution_id");
 
                     b.Property<bool>("IsResolved")
@@ -1913,7 +1917,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_fuelingrule");
 
                     b.HasIndex("SiteId")
                         .HasDatabaseName("ix_fuelingrule_site_id");
@@ -1926,7 +1930,7 @@ namespace FMS.Persistence.Migrations
 
                     b.ToTable("fuelingrule", (string)null);
 
-                    b.HasDiscriminator<string>("Discriminator").HasValue("FuelingRule");
+                    b.HasDiscriminator().HasValue("FuelingRule");
 
                     b.UseTphMappingStrategy();
                 });
@@ -1952,7 +1956,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_fuelingruleset");
 
                     b.ToTable("fuelingruleset", (string)null);
                 });
@@ -2002,7 +2006,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("site_id");
 
                     b.Property<int?>("TagId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tag_id");
 
                     b.Property<string>("TargetType")
@@ -2028,7 +2032,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_type_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_fueling_rule_set_assignments");
 
                     b.HasIndex(new[] { "FuelingRuleSetId" }, "IX_Assignment_RuleSetId")
                         .HasDatabaseName("ix_fueling_rule_set_assignments_fueling_rule_set_id");
@@ -2615,7 +2619,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tenant");
 
                     b.HasIndex(new[] { "Code" }, "Tenant_Code_UNIQUE")
                         .IsUnique()
@@ -2784,7 +2788,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification");
 
                     b.HasIndex("IssueTrackerId")
                         .HasDatabaseName("ix_notification_issue_tracker_id");
@@ -2938,7 +2942,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -2989,7 +2993,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_group");
 
                     b.HasIndex("SiteId")
                         .HasDatabaseName("ix_notification_group_site_id");
@@ -3005,13 +3009,13 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("GroupId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("group_id");
 
                     b.Property<string>("MemberId")
@@ -3027,7 +3031,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("member_type");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_group_member");
 
                     b.HasIndex(new[] { "GroupId", "MemberType", "MemberId" }, "IX_NotificationGroupMember_UQ")
                         .IsUnique()
@@ -3228,7 +3232,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("trigger_conditions");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_policy");
 
                     b.HasIndex("IssueCategory")
                         .HasDatabaseName("ix_notification_policy_issue_category");
@@ -3270,7 +3274,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -3281,7 +3285,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("allowed_delivery_methods");
 
                     b.Property<int>("GroupId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("group_id");
 
                     b.Property<int>("PolicyId")
@@ -3289,7 +3293,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("policy_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_policy_group");
 
                     b.HasIndex("GroupId")
                         .HasDatabaseName("ix_notification_policy_group_group_id");
@@ -3352,7 +3356,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_policy_recipient");
 
                     b.HasIndex("CreatedBy")
                         .HasDatabaseName("ix_notification_policy_recipient_created_by");
@@ -3454,7 +3458,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_notification_recipient");
 
                     b.HasIndex(new[] { "DeliveryMethod" }, "IX_NotificationRecipient_DeliveryMethod")
                         .HasDatabaseName("ix_notification_recipient_delivery_method");
@@ -4120,7 +4124,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("volume_per_mm");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_calibrationdatapoints");
 
                     b.HasIndex("TankId", "HeightInterval", "RecordedAtUtc")
                         .HasDatabaseName("IX_calibrationdatapoints_tank_interval_recorded");
@@ -4177,7 +4181,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tank_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_calibrationintervalaccumulations");
 
                     b.HasIndex("TankId", "LastUpdatedUtc")
                         .HasDatabaseName("IX_calibrationintervalaccumulations_tank_updated");
@@ -4254,7 +4258,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("total_records");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tankcalibrationsnapshots");
 
                     b.HasIndex("TankId", "ChartType", "RecordedAtUtc")
                         .HasDatabaseName("IX_tankcalibrationsnapshots_tank_chart_recorded");
@@ -4327,7 +4331,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("volume_change");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tankvolumehistory");
 
                     b.HasIndex("DeletedBy")
                         .HasDatabaseName("ix_tankvolumehistory_deleted_by");
@@ -4345,7 +4349,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -4360,7 +4364,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("date_time");
 
                     b.Property<int>("FuelGradeId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("fuel_grade_id");
 
                     b.Property<string>("FuelGradeName")
@@ -4369,7 +4373,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("fuel_grade_name");
 
                     b.Property<int>("PacketId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("packet_id");
 
                     b.Property<double?>("ProductDensity")
@@ -4407,15 +4411,15 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("status");
 
                     b.Property<int>("Tank")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank");
 
                     b.Property<int?>("TankFillingPercentage")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank_filling_percentage");
 
                     b.Property<int?>("TankId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank_id");
 
                     b.Property<double?>("Temperature")
@@ -4431,7 +4435,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("water_volume");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tankmeasurement");
 
                     b.HasIndex("TankId")
                         .HasDatabaseName("ix_tankmeasurement_tank_id");
@@ -4520,7 +4524,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("water_volume");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_uploadstatusprobereading");
 
                     b.HasIndex("DateTime")
                         .HasDatabaseName("IX_uploadstatusprobereading_DateTime");
@@ -4656,321 +4660,6 @@ namespace FMS.Persistence.Migrations
                         .HasDatabaseName("idx_refreshtoken_active");
 
                     b.ToTable("refreshtokens", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceIssue", b =>
-                {
-                    b.Property<int>("IssueId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("issue_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("IssueId"));
-
-                    b.Property<decimal?>("AdditionalCost")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("additional_cost");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime?>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<DateTime>("DateReported")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_reported");
-
-                    b.Property<DateTime?>("DateResolved")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_resolved");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("description");
-
-                    b.Property<string>("IssueType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("issue_type");
-
-                    b.Property<int>("MaintenanceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("maintenance_id");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("modified_by");
-
-                    b.Property<string>("ReportedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("reported_by");
-
-                    b.Property<string>("ResolutionNotes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("resolution_notes");
-
-                    b.Property<string>("ResponsiblePerson")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("responsible_person");
-
-                    b.Property<string>("Severity")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("severity");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.HasKey("IssueId")
-                        .HasName("pk_maintenance_issues");
-
-                    b.HasIndex("MaintenanceId")
-                        .HasDatabaseName("ix_maintenance_issues_maintenance_id");
-
-                    b.ToTable("maintenance_issues", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceSchedule", b =>
-                {
-                    b.Property<int>("ScheduleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("schedule_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ScheduleId"));
-
-                    b.Property<bool>("ApplyToAllVehicles")
-                        .HasColumnType("boolean")
-                        .HasColumnName("apply_to_all_vehicles");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("created_by");
-
-                    b.Property<string>("CreatedByNavigationId")
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("created_by_navigation_id");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime?>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<int>("DefaultPriority")
-                        .HasColumnType("integer")
-                        .HasColumnName("default_priority");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("description");
-
-                    b.Property<decimal?>("EstimatedCost")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("estimated_cost");
-
-                    b.Property<int?>("IntervalDays")
-                        .HasColumnType("integer")
-                        .HasColumnName("interval_days");
-
-                    b.Property<decimal?>("IntervalKilometers")
-                        .HasColumnType("numeric")
-                        .HasColumnName("interval_kilometers");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_active");
-
-                    b.Property<string>("MaintenanceType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("maintenance_type");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("modified_by");
-
-                    b.Property<string>("ModifiedByNavigationId")
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("modified_by_navigation_id");
-
-                    b.Property<int?>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int?>("VehicleTypeId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_type_id");
-
-                    b.Property<int?>("WarningThresholdDays")
-                        .HasColumnType("integer")
-                        .HasColumnName("warning_threshold_days");
-
-                    b.Property<decimal?>("WarningThresholdKm")
-                        .HasColumnType("numeric")
-                        .HasColumnName("warning_threshold_km");
-
-                    b.HasKey("ScheduleId")
-                        .HasName("pk_maintenance_schedules");
-
-                    b.HasIndex("CreatedByNavigationId")
-                        .HasDatabaseName("ix_maintenance_schedules_created_by_navigation_id");
-
-                    b.HasIndex("ModifiedByNavigationId")
-                        .HasDatabaseName("ix_maintenance_schedules_modified_by_navigation_id");
-
-                    b.HasIndex("VehicleId")
-                        .HasDatabaseName("ix_maintenance_schedules_vehicle_id");
-
-                    b.HasIndex("VehicleTypeId")
-                        .HasDatabaseName("ix_maintenance_schedules_vehicle_type_id");
-
-                    b.ToTable("maintenance_schedules", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleMaintenance", b =>
-                {
-                    b.Property<int>("MaintenanceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("maintenance_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MaintenanceId"));
-
-                    b.Property<DateTime?>("CompletedDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("completed_date");
-
-                    b.Property<decimal?>("Cost")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("cost");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("created_by");
-
-                    b.Property<DateTime>("DateCreated")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_created");
-
-                    b.Property<DateTime?>("DateModified")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("date_modified");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("description");
-
-                    b.Property<bool>("IsOverdue")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_overdue");
-
-                    b.Property<string>("IssueNote")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("issue_note");
-
-                    b.Property<int?>("MaintenanceScheduleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("maintenance_schedule_id");
-
-                    b.Property<string>("MaintenanceType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("maintenance_type");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("modified_by");
-
-                    b.Property<DateTime?>("NextDueDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("next_due_date");
-
-                    b.Property<decimal?>("NextDueOdometer")
-                        .HasColumnType("numeric")
-                        .HasColumnName("next_due_odometer");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)")
-                        .HasColumnName("notes");
-
-                    b.Property<decimal?>("OdometerAtCompletion")
-                        .HasColumnType("numeric")
-                        .HasColumnName("odometer_at_completion");
-
-                    b.Property<decimal?>("OdometerAtSchedule")
-                        .HasColumnType("numeric")
-                        .HasColumnName("odometer_at_schedule");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("integer")
-                        .HasColumnName("priority");
-
-                    b.Property<string>("ResponsiblePerson")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("responsible_person");
-
-                    b.Property<DateTime?>("ScheduledDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("scheduled_date");
-
-                    b.Property<string>("ServiceProvider")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("service_provider");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("status");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.HasKey("MaintenanceId")
-                        .HasName("pk_vehicle_maintenances");
-
-                    b.HasIndex("MaintenanceScheduleId")
-                        .HasDatabaseName("ix_vehicle_maintenances_maintenance_schedule_id");
-
-                    b.HasIndex("VehicleId")
-                        .HasDatabaseName("ix_vehicle_maintenances_vehicle_id");
-
-                    b.ToTable("vehicle_maintenances", (string)null);
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer", b =>
@@ -5639,7 +5328,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("violation_summary");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_warning_letter");
 
                     b.HasIndex("CreatedBy")
                         .HasDatabaseName("ix_warning_letter_created_by");
@@ -6754,7 +6443,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -6770,7 +6459,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("correction_reason");
 
                     b.Property<int?>("CorrectsRecordId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("corrects_record_id");
 
                     b.Property<decimal?>("CurrentMeterReading")
@@ -6779,19 +6468,19 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("current_meter_reading");
 
                     b.Property<DateTime?>("Date")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("date");
 
                     b.Property<DateTime>("DateCreated")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_created");
 
                     b.Property<DateTime?>("DateModified")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("date_modified");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("DeletedBy")
@@ -6800,7 +6489,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("deleted_by");
 
                     b.Property<int?>("DriverId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("driver_id");
 
                     b.Property<string>("FuelBy")
@@ -6811,18 +6500,18 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<bool>("IsCorrection")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_correction");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
                     b.Property<short?>("IsModified")
-                        .HasColumnType("tinyint(4)")
+                        .HasColumnType("smallint")
                         .HasColumnName("is_modified");
 
                     b.Property<decimal?>("ManualFuelrefillAmount")
@@ -6841,11 +6530,11 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("previous_meter_reading");
 
                     b.Property<int?>("PumpTranscationId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("pump_transcation_id");
 
                     b.Property<int>("SiteId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("site_id");
 
                     b.Property<string>("TagId")
@@ -6854,15 +6543,15 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tag_id");
 
                     b.Property<int?>("TankId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank_id");
 
                     b.Property<int>("VehicleId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_fuelrefil");
 
                     b.HasIndex("CorrectsRecordId")
                         .HasDatabaseName("ix_fuelrefil_corrects_record_id");
@@ -6980,11 +6669,11 @@ namespace FMS.Persistence.Migrations
             modelBuilder.Entity("FMS.Domain.Entities.FuelTag", b =>
                 {
                     b.Property<int>("Id")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     b.Property<int?>("FuelRuleSetId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("fuel_rule_set_id");
 
                     b.Property<bool?>("IsEnabled")
@@ -7006,11 +6695,11 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.Property<int?>("VehicleId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tag");
 
                     b.HasAlternateKey("Name")
                         .HasName("ak_fuel_tags_name");
@@ -7063,7 +6752,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("modified_date");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_fuelreportgenerate");
 
                     b.HasIndex(new[] { "ApprovedBy" }, "fuelregenrate_user_idx")
                         .HasDatabaseName("ix_fuelreportgenerate_approved_by");
@@ -7538,7 +7227,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tank_id");
 
                     b.HasKey("DeliveryId")
-                        .HasName("PRIMARY");
+                        .HasName("pk_intankdelivery");
 
                     b.HasIndex("DetectedAt")
                         .HasDatabaseName("IX_intankdelivery_DetectedAt");
@@ -7621,7 +7310,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("performed_by_user_name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issueactivitylogs");
 
                     b.HasIndex(new[] { "ActivityDate" }, "ix_issue_activity_log_activity_date")
                         .HasDatabaseName("ix_issueactivitylogs_activity_date");
@@ -7703,7 +7392,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("uploaded_by");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issue_attachments");
 
                     b.HasIndex(new[] { "AttachmentCategory" }, "issueattach_category_idx")
                         .HasDatabaseName("ix_issue_attachments_attachment_category");
@@ -7831,7 +7520,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("template_action_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuecompletionrecord");
 
                     b.HasIndex("IssueId")
                         .HasDatabaseName("IX_issuecompletionrecord_issueid");
@@ -7886,7 +7575,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issue_follower");
 
                     b.HasIndex(new[] { "IssueId" }, "ix_issue_follower_issue_id")
                         .HasDatabaseName("ix_issue_follower_issue_id");
@@ -7978,7 +7667,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("reminder_type");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issue_reminder");
 
                     b.HasIndex(new[] { "IsActive" }, "ix_issue_reminder_is_active")
                         .HasDatabaseName("ix_issue_reminder_is_active");
@@ -8076,7 +7765,7 @@ namespace FMS.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuetemplateaction");
 
                     b.HasIndex("IssueTemplateId")
                         .HasDatabaseName("IX_issuetemplateaction_templateid");
@@ -8129,7 +7818,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuetemplateworkflow");
 
                     b.HasIndex("IssueTemplateId")
                         .IsUnique()
@@ -8185,7 +7874,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("workflow_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuetemplateworkflowstage");
 
                     b.HasIndex("WorkflowId", "SortOrder")
                         .HasDatabaseName("IX_issuetemplateworkflowstage_workflow_sortorder");
@@ -8220,7 +7909,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("issue");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issueassignmenttracker");
 
                     b.HasIndex(new[] { "AssignedTo" }, "AssigneTo_idx")
                         .HasDatabaseName("ix_issueassignmenttracker_assigned_to");
@@ -8283,7 +7972,7 @@ namespace FMS.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issueautocloseconfig");
 
                     b.HasIndex("IssueTemplateId")
                         .IsUnique()
@@ -8309,7 +7998,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuecategory");
 
                     b.ToTable("issuecategory", (string)null);
                 });
@@ -8326,7 +8015,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuepriority");
 
                     b.ToTable("issuepriority", (string)null);
                 });
@@ -8343,7 +8032,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuestatus");
 
                     b.ToTable("issuestatus", (string)null);
                 });
@@ -8422,7 +8111,7 @@ namespace FMS.Persistence.Migrations
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuetemplate");
 
                     b.HasIndex("DefaultPriorityId")
                         .HasDatabaseName("ix_issuetemplate_default_priority_id");
@@ -8565,7 +8254,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_issuetracker");
 
                     b.HasIndex(new[] { "Priority" }, "Issue_tracker_issuepriorty_idx")
                         .HasDatabaseName("ix_issuetracker_priority");
@@ -8685,7 +8374,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_loginactivities");
 
                     b.HasIndex(new[] { "UserId" }, "FK_LoginActivities_Users")
                         .HasDatabaseName("ix_loginactivities_user_id");
@@ -8724,7 +8413,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("parent_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_navigationitems");
 
                     b.ToTable("navigationitems", (string)null);
                 });
@@ -8879,7 +8568,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("parent_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_permissions");
 
                     b.HasIndex(new[] { "ParentId" }, "FK_Permissions_Parent")
                         .HasDatabaseName("ix_permissions_parent_id");
@@ -8965,7 +8654,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_ptsdevice_pendingcommands");
 
                     b.HasIndex("CommandType")
                         .HasDatabaseName("IX_device_commands_CommandType");
@@ -9112,7 +8801,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("web_socket_capable");
 
                     b.HasKey("Ptsid")
-                        .HasName("PRIMARY");
+                        .HasName("pk_ptsdevice");
 
                     b.HasIndex(new[] { "Site" }, "PTSDevice_site_idx")
                         .HasDatabaseName("ix_ptsdevice_site");
@@ -9280,7 +8969,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("volume");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_pumptransaction");
 
                     b.HasIndex(new[] { "PtsId" }, "FK_pumptransaction_idx")
                         .HasDatabaseName("ix_pumptransaction_pts_id");
@@ -9372,7 +9061,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("percentage_variance");
 
                     b.Property<int?>("PolicyExecutionId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("policy_execution_id");
 
                     b.Property<string>("ResolutionMethod")
@@ -9397,7 +9086,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("trend_analysis");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_reconciliationdiscrepancy");
 
                     b.HasIndex(new[] { "PolicyExecutionId" }, "FK_ReconciliationDiscrepancy_PolicyExecution_idx")
                         .HasDatabaseName("ix_reconciliationdiscrepancy_policy_execution_id");
@@ -9520,7 +9209,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tank_scope_configuration");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_reconciliationpolicy");
 
                     b.HasIndex(new[] { "CreatedBy" }, "FK_ReconciliationPolicy_CreatedBy_idx")
                         .HasDatabaseName("ix_reconciliationpolicy_created_by");
@@ -9544,7 +9233,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -9556,7 +9245,7 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<int>("DiscrepanciesDetected")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("discrepancies_detected");
 
@@ -9575,7 +9264,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("execution_duration_ms");
 
                     b.Property<DateTime?>("ExecutionEndTime")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("execution_end_time");
 
                     b.Property<string>("ExecutionLog")
@@ -9587,32 +9276,32 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("execution_results");
 
                     b.Property<DateTime>("ExecutionStartTime")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("execution_start_time");
 
                     b.Property<int>("PolicyId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("policy_id");
 
                     b.Property<int>("ReconciliationFailures")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("reconciliation_failures");
 
                     b.Property<int>("Status")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("status");
 
                     b.Property<int>("TanksEvaluated")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("tanks_evaluated");
 
                     b.Property<int>("TanksReconciled")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0)
                         .HasColumnName("tanks_reconciled");
 
@@ -9622,7 +9311,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("total_volume_variance");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_reconciliationpolicyexecution");
 
                     b.HasIndex(new[] { "PolicyId" }, "FK_ReconciliationPolicyExecution_Policy_idx")
                         .HasDatabaseName("ix_reconciliationpolicyexecution_policy_id");
@@ -9706,7 +9395,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_reportitems");
 
                     b.ToTable("reportitems", (string)null);
                 });
@@ -9739,7 +9428,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("normalized_name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_roles");
 
                     b.ToTable("roles", (string)null);
                 });
@@ -9748,13 +9437,13 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<int>("NavigationItemId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("navigation_item_id");
 
                     b.Property<string>("RoleId")
@@ -9764,7 +9453,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("role_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_rolenavigation");
 
                     b.HasIndex("NavigationItemId")
                         .HasDatabaseName("ix_rolenavigation_navigation_item_id");
@@ -9854,8 +9543,12 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("site_administrator_id");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_site");
 
                     b.HasIndex(new[] { "GpsGeofenceId" }, "IX_Site_GpsGeofence")
                         .HasDatabaseName("ix_site_gps_geofence_id");
@@ -9873,17 +9566,17 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AdjustmentDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("adjustment_date");
 
                     b.Property<int>("AdjustmentType")
-                        .HasColumnType("tinyint(4)")
+                        .HasColumnType("integer")
                         .HasColumnName("adjustment_type")
                         .HasComment("0=Increase, 1=Decrease, 2=Correction");
 
@@ -9893,7 +9586,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("approved_by");
 
                     b.Property<DateTime?>("ApprovedOn")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("approved_on");
 
                     b.Property<string>("CorrectionReason")
@@ -9902,7 +9595,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("correction_reason");
 
                     b.Property<int?>("CorrectsRecordId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("corrects_record_id");
 
                     b.Property<string>("CreatedBy")
@@ -9913,12 +9606,12 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<DateTime>("CreatedOn")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_on")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("DeletedBy")
@@ -9932,7 +9625,7 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
@@ -9958,26 +9651,26 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("reason");
 
                     b.Property<int>("ReasonCode")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("reason_code");
 
                     b.Property<int>("SiteId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("site_id");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(4)")
+                        .HasColumnType("integer")
                         .HasDefaultValue(1)
                         .HasColumnName("status")
                         .HasComment("0=Pending, 1=Approved, 2=Rejected");
 
                     b.Property<int>("TankId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank_id");
 
                     b.Property<int?>("TankVolumeHistoryId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("tank_volume_history_id");
 
                     b.Property<decimal>("VolumeChange")
@@ -9986,7 +9679,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("volume_change");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_stock_adjustments");
 
                     b.HasIndex("ApprovedBy")
                         .HasDatabaseName("ix_stock_adjustments_approved_by");
@@ -10137,7 +9830,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_supplier");
 
                     b.ToTable("supplier", (string)null);
                 });
@@ -10170,7 +9863,7 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -10216,9 +9909,9 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at")
-                        .HasDefaultValueSql("'0000-00-00 00:00:00'");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -10392,7 +10085,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("use_pts_probe_readings");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tank");
 
                     b.HasIndex("PtsId")
                         .HasDatabaseName("ix_tank_pts_id");
@@ -10413,7 +10106,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -10429,15 +10122,15 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("correction_reason");
 
                     b.Property<int?>("CorrectsRecordId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("corrects_record_id");
 
                     b.Property<DateTime>("CreatedOn")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_on");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at");
 
                     b.Property<string>("DeletedBy")
@@ -10446,18 +10139,18 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("deleted_by");
 
                     b.Property<int?>("DestinationTankId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("destination_tank_id");
 
                     b.Property<bool>("IsCorrection")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_correction");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
+                        .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("is_deleted");
 
@@ -10467,15 +10160,15 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("recorded_by");
 
                     b.Property<int?>("SourceTankId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("source_tank_id");
 
                     b.Property<DateTime?>("TransferDate")
-                        .HasColumnType("datetime")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("transfer_date");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tanktransfer");
 
                     b.HasIndex("CorrectsRecordId")
                         .HasDatabaseName("ix_tanktransfer_corrects_record_id");
@@ -10564,7 +10257,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tank_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tankvolumeadjustmentaudit");
 
                     b.HasIndex(new[] { "AdjustmentId" }, "IX_TankVolumeAdjustmentAudit_AdjustmentId")
                         .HasDatabaseName("ix_tankvolumeadjustmentaudit_adjustment_id");
@@ -10748,7 +10441,7 @@ namespace FMS.Persistence.Migrations
                         .HasComment("Reference to TankTransfer record if transfer occurred");
 
                     b.HasKey("EntryId")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tankstock");
 
                     b.HasIndex(new[] { "TankId" }, "TankID_idx")
                         .HasDatabaseName("ix_tankstock_tank_id");
@@ -10869,7 +10562,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("lockout_end");
 
                     b.Property<int?>("MasterRFIDTag")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("master_rfid_tag");
 
                     b.Property<string>("NormalizedEmail")
@@ -10907,6 +10600,10 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("character varying(256)")
                         .HasColumnName("security_stamp");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("two_factor_enabled");
@@ -10917,7 +10614,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_user");
 
                     b.HasIndex("DepartmentId")
                         .HasDatabaseName("ix_user_department_id");
@@ -10977,7 +10674,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_user_activity");
 
                     b.HasIndex(new[] { "UserId" }, "UserId")
                         .HasDatabaseName("ix_user_activity_user_id");
@@ -11059,7 +10756,7 @@ namespace FMS.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("UpdatedBy")
                         .HasMaxLength(100)
@@ -11073,7 +10770,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_user_notification_preference");
 
                     b.HasIndex("CreatedBy")
                         .HasDatabaseName("ix_user_notification_preference_created_by");
@@ -11112,7 +10809,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("user_id");
 
                     b.HasKey("SiteId", "UserId")
-                        .HasName("PRIMARY");
+                        .HasName("pk_usersite");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("UserID_idx");
@@ -11213,6 +10910,10 @@ namespace FMS.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("passenger");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<string>("VehicleCode")
                         .IsRequired()
                         .HasMaxLength(45)
@@ -11249,7 +10950,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("yom");
 
                     b.HasKey("VehicleId")
-                        .HasName("PRIMARY");
+                        .HasName("pk_vehicle");
 
                     b.HasIndex(new[] { "VehicleCode" }, "VehicleCode_UNIQUE")
                         .IsUnique()
@@ -11354,7 +11055,7 @@ namespace FMS.Persistence.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -11384,11 +11085,11 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("tag_name");
 
                     b.Property<int?>("VehicleId")
-                        .HasColumnType("int(11)")
+                        .HasColumnType("integer")
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_tag_monitoring_config");
 
                     b.HasIndex("VehicleId")
                         .HasDatabaseName("ix_tag_monitoring_config_vehicle_id");
@@ -11521,7 +11222,7 @@ namespace FMS.Persistence.Migrations
 
                     b.Property<string>("Settings")
                         .IsRequired()
-                        .HasColumnType("longtext")
+                        .HasColumnType("text")
                         .HasColumnName("settings");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -11911,807 +11612,6 @@ namespace FMS.Persistence.Migrations
                     b.ToTable("vehicle_provider_mappings", (string)null);
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTrip", b =>
-                {
-                    b.Property<int>("VehicleTripId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripId"));
-
-                    b.Property<int>("AnomalyFlags")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("anomaly_flags");
-
-                    b.Property<string>("ConfidenceBand")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("High")
-                        .HasColumnName("confidence_band");
-
-                    b.Property<decimal>("ConfidenceScore")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(1.00m)
-                        .HasColumnName("confidence_score");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<int?>("DestinationGeofenceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("destination_geofence_id");
-
-                    b.Property<int?>("DestinationSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("destination_site_id");
-
-                    b.Property<string>("DetectionMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("detection_mode");
-
-                    b.Property<decimal>("DistanceKm")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("distance_km");
-
-                    b.Property<decimal>("DurationMinutes")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("duration_minutes");
-
-                    b.Property<decimal>("EndLatitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("end_latitude");
-
-                    b.Property<decimal>("EndLongitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("end_longitude");
-
-                    b.Property<DateTime>("EndTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_time_utc");
-
-                    b.Property<int?>("EndTrackInfoId")
-                        .HasColumnType("integer")
-                        .HasColumnName("end_track_info_id");
-
-                    b.Property<decimal?>("FuelAtArrival")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("fuel_at_arrival");
-
-                    b.Property<decimal?>("FuelAtDeparture")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("fuel_at_departure");
-
-                    b.Property<decimal?>("FuelConsumed")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("fuel_consumed");
-
-                    b.Property<bool>("IsLowConfidence")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("is_low_confidence");
-
-                    b.Property<bool?>("IsOutOfBounds")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_out_of_bounds");
-
-                    b.Property<bool?>("IsProductiveMovement")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_productive_movement");
-
-                    b.Property<decimal?>("MaxSpeedKph")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("max_speed_kph");
-
-                    b.Property<int>("MovementProfile")
-                        .HasColumnType("integer")
-                        .HasColumnName("movement_profile");
-
-                    b.Property<int?>("OriginGeofenceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("origin_geofence_id");
-
-                    b.Property<int?>("OriginSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("origin_site_id");
-
-                    b.Property<int?>("PlannedDestinationZoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_destination_zone_id");
-
-                    b.Property<int?>("PlannedHaulRouteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_haul_route_id");
-
-                    b.Property<int?>("PlannedOriginZoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_origin_zone_id");
-
-                    b.Property<string>("PlanningMatchStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("planning_match_status");
-
-                    b.Property<int?>("ProjectPlanId")
-                        .HasColumnType("integer")
-                        .HasColumnName("project_plan_id");
-
-                    b.Property<int>("ReconciliationStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("reconciliation_status");
-
-                    b.Property<int>("SequenceNo")
-                        .HasColumnType("integer")
-                        .HasColumnName("sequence_no");
-
-                    b.Property<decimal>("StartLatitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("start_latitude");
-
-                    b.Property<decimal>("StartLongitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("start_longitude");
-
-                    b.Property<DateTime>("StartTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_time_utc");
-
-                    b.Property<int?>("StartTrackInfoId")
-                        .HasColumnType("integer")
-                        .HasColumnName("start_track_info_id");
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(2)
-                        .HasColumnName("status");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int>("VehicleTripGroupId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_group_id");
-
-                    b.Property<int?>("WorkShiftId")
-                        .HasColumnType("integer")
-                        .HasColumnName("work_shift_id");
-
-                    b.HasKey("VehicleTripId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("DestinationSiteId")
-                        .HasDatabaseName("ix_vehicle_trip_destination_site_id");
-
-                    b.HasIndex("OriginSiteId")
-                        .HasDatabaseName("ix_vehicle_trip_origin_site_id");
-
-                    b.HasIndex(new[] { "VehicleTripGroupId" }, "idx_vehicle_trip_group")
-                        .HasDatabaseName("ix_vehicle_trip_vehicle_trip_group_id");
-
-                    b.HasIndex(new[] { "VehicleId", "StartTimeUtc" }, "idx_vehicle_trip_vehicle_start")
-                        .HasDatabaseName("ix_vehicle_trip_vehicle_id_start_time_utc");
-
-                    b.ToTable("vehicle_trip", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripClusterSnapshot", b =>
-                {
-                    b.Property<int>("VehicleTripClusterSnapshotId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_cluster_snapshot_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripClusterSnapshotId"));
-
-                    b.Property<decimal>("AverageDwellMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("average_dwell_minutes");
-
-                    b.Property<DateTime>("CapturedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("captured_at_utc");
-
-                    b.Property<decimal>("CentroidLatitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("centroid_latitude");
-
-                    b.Property<decimal>("CentroidLongitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("centroid_longitude");
-
-                    b.Property<string>("Classification")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("Unknown")
-                        .HasColumnName("classification");
-
-                    b.Property<int>("ClusterIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("cluster_index");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("label");
-
-                    b.Property<int?>("MatchedSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("matched_site_id");
-
-                    b.Property<string>("MatchedSiteName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("matched_site_name");
-
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("text")
-                        .HasColumnName("metadata_json");
-
-                    b.Property<string>("SnapshotSource")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("RealtimeDetector")
-                        .HasColumnName("snapshot_source");
-
-                    b.Property<DateTime>("TripDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("trip_date");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int>("VisitCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("visit_count");
-
-                    b.HasKey("VehicleTripClusterSnapshotId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "MatchedSiteId" }, "idx_vehicle_trip_cluster_snapshot_site")
-                        .HasDatabaseName("ix_vehicle_trip_cluster_snapshot_matched_site_id");
-
-                    b.HasIndex(new[] { "VehicleId", "TripDate", "CapturedAtUtc" }, "idx_vehicle_trip_cluster_snapshot_vehicle_date")
-                        .HasDatabaseName("ix_vehicle_trip_cluster_snapshot_vehicle_id_trip_date_captured");
-
-                    b.ToTable("vehicle_trip_cluster_snapshot", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripGroup", b =>
-                {
-                    b.Property<int>("VehicleTripGroupId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_group_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripGroupId"));
-
-                    b.Property<int>("AnomalyFlags")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("anomaly_flags");
-
-                    b.Property<string>("ConfidenceBand")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("High")
-                        .HasColumnName("confidence_band");
-
-                    b.Property<decimal>("ConfidenceScore")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(1.00m)
-                        .HasColumnName("confidence_score");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<int?>("DestinationSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("destination_site_id");
-
-                    b.Property<string>("DetectionMode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("detection_mode");
-
-                    b.Property<DateTime>("EndTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("end_time_utc");
-
-                    b.Property<int>("GroupingType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("grouping_type");
-
-                    b.Property<bool?>("IsOutOfBounds")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_out_of_bounds");
-
-                    b.Property<bool?>("IsProductiveMovement")
-                        .HasColumnType("boolean")
-                        .HasColumnName("is_productive_movement");
-
-                    b.Property<int>("MovementProfile")
-                        .HasColumnType("integer")
-                        .HasColumnName("movement_profile");
-
-                    b.Property<int?>("OriginSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("origin_site_id");
-
-                    b.Property<int?>("PlannedDestinationZoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_destination_zone_id");
-
-                    b.Property<int?>("PlannedHaulRouteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_haul_route_id");
-
-                    b.Property<int?>("PlannedOriginZoneId")
-                        .HasColumnType("integer")
-                        .HasColumnName("planned_origin_zone_id");
-
-                    b.Property<string>("PlanningMatchStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("planning_match_status");
-
-                    b.Property<int?>("ProjectPlanId")
-                        .HasColumnType("integer")
-                        .HasColumnName("project_plan_id");
-
-                    b.Property<int>("ReconciliationStatus")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("reconciliation_status");
-
-                    b.Property<DateTime>("StartTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("start_time_utc");
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(2)
-                        .HasColumnName("status");
-
-                    b.Property<decimal>("TotalDistanceKm")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("total_distance_km");
-
-                    b.Property<decimal>("TotalDurationMinutes")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("total_duration_minutes");
-
-                    b.Property<decimal?>("TotalFuelConsumed")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("total_fuel_consumed");
-
-                    b.Property<int>("TripCount")
-                        .HasColumnType("integer")
-                        .HasColumnName("trip_count");
-
-                    b.Property<DateTime>("TripDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("trip_date");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int?>("WorkShiftId")
-                        .HasColumnType("integer")
-                        .HasColumnName("work_shift_id");
-
-                    b.HasKey("VehicleTripGroupId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("DestinationSiteId")
-                        .HasDatabaseName("ix_vehicle_trip_group_destination_site_id");
-
-                    b.HasIndex(new[] { "OriginSiteId", "DestinationSiteId" }, "idx_vehicle_trip_group_route")
-                        .HasDatabaseName("ix_vehicle_trip_group_origin_site_id_destination_site_id");
-
-                    b.HasIndex(new[] { "VehicleId", "TripDate" }, "idx_vehicle_trip_group_vehicle_date")
-                        .HasDatabaseName("ix_vehicle_trip_group_vehicle_id_trip_date");
-
-                    b.ToTable("vehicle_trip_group", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripOutOfBoundsEvent", b =>
-                {
-                    b.Property<int>("VehicleTripOutOfBoundsEventId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_out_of_bounds_event_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripOutOfBoundsEventId"));
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<decimal?>("DistanceFromBoundaryMeters")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("distance_from_boundary_meters");
-
-                    b.Property<decimal?>("DurationMinutes")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("duration_minutes");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasDefaultValue("BoundaryExit")
-                        .HasColumnName("event_type");
-
-                    b.Property<int?>("GeofenceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("geofence_id");
-
-                    b.Property<decimal>("Latitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("latitude");
-
-                    b.Property<decimal>("Longitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("longitude");
-
-                    b.Property<string>("MetadataJson")
-                        .HasColumnType("text")
-                        .HasColumnName("metadata_json");
-
-                    b.Property<DateTime>("OccurredAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("occurred_at_utc");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("reason");
-
-                    b.Property<int?>("SiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("site_id");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int?>("VehicleTripGroupId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_group_id");
-
-                    b.Property<int?>("VehicleTripId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_id");
-
-                    b.HasKey("VehicleTripOutOfBoundsEventId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("SiteId")
-                        .HasDatabaseName("ix_vehicle_trip_out_of_bounds_event_site_id");
-
-                    b.HasIndex(new[] { "VehicleTripGroupId" }, "idx_vehicle_trip_oob_group")
-                        .HasDatabaseName("ix_vehicle_trip_out_of_bounds_event_vehicle_trip_group_id");
-
-                    b.HasIndex(new[] { "VehicleTripId" }, "idx_vehicle_trip_oob_trip")
-                        .HasDatabaseName("ix_vehicle_trip_out_of_bounds_event_vehicle_trip_id");
-
-                    b.HasIndex(new[] { "VehicleId", "OccurredAtUtc" }, "idx_vehicle_trip_oob_vehicle_occurred")
-                        .HasDatabaseName("ix_vehicle_trip_out_of_bounds_event_vehicle_id_occurred_at_utc");
-
-                    b.ToTable("vehicle_trip_out_of_bounds_event", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripOverride", b =>
-                {
-                    b.Property<int>("VehicleTripOverrideId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_override_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripOverrideId"));
-
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("action_type");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<string>("NewValuesJson")
-                        .HasColumnType("text")
-                        .HasColumnName("new_values_json");
-
-                    b.Property<string>("OriginalValuesJson")
-                        .HasColumnType("text")
-                        .HasColumnName("original_values_json");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("reason");
-
-                    b.Property<string>("RequestIpAddress")
-                        .HasMaxLength(45)
-                        .HasColumnType("character varying(45)")
-                        .HasColumnName("request_ip_address");
-
-                    b.Property<DateTime>("RequestedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("requested_at_utc");
-
-                    b.Property<string>("RequestedByName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("requested_by_name");
-
-                    b.Property<string>("RequestedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("requested_by_user_id");
-
-                    b.Property<bool>("RequiredSupervisorApproval")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("required_supervisor_approval");
-
-                    b.Property<int?>("ResultVehicleTripGroupId")
-                        .HasColumnType("integer")
-                        .HasColumnName("result_vehicle_trip_group_id");
-
-                    b.Property<int?>("SecondaryVehicleTripId")
-                        .HasColumnType("integer")
-                        .HasColumnName("secondary_vehicle_trip_id");
-
-                    b.Property<string>("SupervisorApprovalJson")
-                        .HasColumnType("text")
-                        .HasColumnName("supervisor_approval_json");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.Property<int?>("VehicleTripGroupId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_group_id");
-
-                    b.Property<int?>("VehicleTripId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_id");
-
-                    b.HasKey("VehicleTripOverrideId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex(new[] { "VehicleTripGroupId" }, "idx_vehicle_trip_override_group")
-                        .HasDatabaseName("ix_vehicle_trip_override_vehicle_trip_group_id");
-
-                    b.HasIndex(new[] { "ResultVehicleTripGroupId" }, "idx_vehicle_trip_override_result_group")
-                        .HasDatabaseName("ix_vehicle_trip_override_result_vehicle_trip_group_id");
-
-                    b.HasIndex(new[] { "VehicleTripId" }, "idx_vehicle_trip_override_trip")
-                        .HasDatabaseName("ix_vehicle_trip_override_vehicle_trip_id");
-
-                    b.HasIndex(new[] { "VehicleId", "RequestedAtUtc" }, "idx_vehicle_trip_override_vehicle_requested")
-                        .HasDatabaseName("ix_vehicle_trip_override_vehicle_id_requested_at_utc");
-
-                    b.ToTable("vehicle_trip_override", (string)null);
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripState", b =>
-                {
-                    b.Property<int>("VehicleTripStateId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_trip_state_id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VehicleTripStateId"));
-
-                    b.Property<decimal>("AccumulatedDistanceKm")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(10,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("accumulated_distance_km");
-
-                    b.Property<int>("ConsecutiveAtSitePoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("consecutive_at_site_points");
-
-                    b.Property<int>("ConsecutiveOutOfSitePoints")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0)
-                        .HasColumnName("consecutive_out_of_site_points");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<int?>("CurrentClusterIndex")
-                        .HasColumnType("integer")
-                        .HasColumnName("current_cluster_index");
-
-                    b.Property<int?>("CurrentGeofenceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("current_geofence_id");
-
-                    b.Property<int?>("CurrentSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("current_site_id");
-
-                    b.Property<string>("CurrentSiteName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("current_site_name");
-
-                    b.Property<string>("CurrentState")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("AT_SITE")
-                        .HasColumnName("current_state");
-
-                    b.Property<decimal?>("FuelAtDeparture")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("fuel_at_departure");
-
-                    b.Property<int?>("InProgressTripGroupId")
-                        .HasColumnType("integer")
-                        .HasColumnName("in_progress_trip_group_id");
-
-                    b.Property<int?>("InProgressTripId")
-                        .HasColumnType("integer")
-                        .HasColumnName("in_progress_trip_id");
-
-                    b.Property<string>("KnownClustersJson")
-                        .HasColumnType("text")
-                        .HasColumnName("known_clusters_json");
-
-                    b.Property<DateTime?>("LastGpsTimestampUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_gps_timestamp_utc");
-
-                    b.Property<decimal?>("LastLatitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("last_latitude");
-
-                    b.Property<decimal?>("LastLongitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("last_longitude");
-
-                    b.Property<DateTime?>("LastProcessedPointTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("last_processed_point_time_utc");
-
-                    b.Property<decimal?>("MaxSpeedKph")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("max_speed_kph");
-
-                    b.Property<int>("MovementProfile")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(1)
-                        .HasColumnName("movement_profile");
-
-                    b.Property<int?>("OriginGeofenceId")
-                        .HasColumnType("integer")
-                        .HasColumnName("origin_geofence_id");
-
-                    b.Property<decimal?>("OriginLatitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("origin_latitude");
-
-                    b.Property<decimal?>("OriginLongitude")
-                        .HasColumnType("decimal(11,8)")
-                        .HasColumnName("origin_longitude");
-
-                    b.Property<int?>("OriginSiteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("origin_site_id");
-
-                    b.Property<string>("OriginSiteName")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("origin_site_name");
-
-                    b.Property<string>("RecentPointsJson")
-                        .HasColumnType("text")
-                        .HasColumnName("recent_points_json");
-
-                    b.Property<DateTime>("StateDate")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("state_date");
-
-                    b.Property<DateTime?>("TripStartTimeUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("trip_start_time_utc");
-
-                    b.Property<int?>("TripStartTrackInfoId")
-                        .HasColumnType("integer")
-                        .HasColumnName("trip_start_track_info_id");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
-
-                    b.Property<int>("VehicleId")
-                        .HasColumnType("integer")
-                        .HasColumnName("vehicle_id");
-
-                    b.HasKey("VehicleTripStateId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("CurrentSiteId")
-                        .HasDatabaseName("ix_vehicle_trip_state_current_site_id");
-
-                    b.HasIndex("InProgressTripGroupId")
-                        .HasDatabaseName("ix_vehicle_trip_state_in_progress_trip_group_id");
-
-                    b.HasIndex("InProgressTripId")
-                        .HasDatabaseName("ix_vehicle_trip_state_in_progress_trip_id");
-
-                    b.HasIndex("OriginSiteId")
-                        .HasDatabaseName("ix_vehicle_trip_state_origin_site_id");
-
-                    b.HasIndex(new[] { "CurrentState" }, "idx_vehicle_trip_state_current_state")
-                        .HasDatabaseName("ix_vehicle_trip_state_current_state");
-
-                    b.HasIndex(new[] { "UpdatedAtUtc" }, "idx_vehicle_trip_state_updated_at")
-                        .HasDatabaseName("ix_vehicle_trip_state_updated_at_utc");
-
-                    b.HasIndex(new[] { "VehicleId", "MovementProfile", "StateDate" }, "ux_vehicle_trip_state_vehicle_profile_date")
-                        .IsUnique()
-                        .HasDatabaseName("ix_vehicle_trip_state_vehicle_id_movement_profile_state_date");
-
-                    b.ToTable("vehicle_trip_state", (string)null);
-                });
-
             modelBuilder.Entity("FMS.Domain.Entities.Vehicleconsumption", b =>
                 {
                     b.Property<int>("Id")
@@ -12788,8 +11688,8 @@ namespace FMS.Persistence.Migrations
                     b.Property<decimal>("IsKmperLiter")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)")
-                        .HasColumnName("is_kmper_liter")
-                        .HasDefaultValueSql("b'0'");
+                        .HasDefaultValue(0m)
+                        .HasColumnName("is_kmper_liter");
 
                     b.Property<short?>("IsModified")
                         .HasColumnType("smallint")
@@ -12798,8 +11698,8 @@ namespace FMS.Persistence.Migrations
                     b.Property<decimal>("IsNightShift")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)")
-                        .HasColumnName("is_night_shift")
-                        .HasDefaultValueSql("b'0'");
+                        .HasDefaultValue(0m)
+                        .HasColumnName("is_night_shift");
 
                     b.Property<decimal?>("MaxSpeed")
                         .HasPrecision(10, 2)
@@ -12838,7 +11738,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("vehicle_id");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_vehicleconsumption");
 
                     b.HasIndex(new[] { "VehicleId", "Date", "IsNightShift" }, "vehicle_date_shift_unique")
                         .IsUnique()
@@ -12871,7 +11771,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_vehiclemanufacturer");
 
                     b.ToTable("vehiclemanufacturer", (string)null);
                 });
@@ -12895,7 +11795,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_vehiclemodel");
 
                     b.HasIndex("ManufacturerId")
                         .HasDatabaseName("ix_vehiclemodel_manufacturer_id");
@@ -12929,7 +11829,7 @@ namespace FMS.Persistence.Migrations
                         .HasColumnName("nothinghere");
 
                     b.HasKey("Id")
-                        .HasName("PRIMARY");
+                        .HasName("pk_vehicletype");
 
                     b.ToTable("vehicletype", null, t =>
                         {
@@ -14156,68 +13056,6 @@ namespace FMS.Persistence.Migrations
                         .HasConstraintName("fk_refreshtokens_user_user_id");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceIssue", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Features.VehicleManagement.VehicleMaintenance", "Maintenance")
-                        .WithMany("Issues")
-                        .HasForeignKey("MaintenanceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_maintenance_issues_vehicle_maintenances_maintenance_id");
-
-                    b.Navigation("Maintenance");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceSchedule", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.User", "CreatedByNavigation")
-                        .WithMany()
-                        .HasForeignKey("CreatedByNavigationId")
-                        .HasConstraintName("fk_maintenance_schedules_user_created_by_navigation_id");
-
-                    b.HasOne("FMS.Domain.Entities.User", "ModifiedByNavigation")
-                        .WithMany()
-                        .HasForeignKey("ModifiedByNavigationId")
-                        .HasConstraintName("fk_maintenance_schedules_user_modified_by_navigation_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .HasConstraintName("fk_maintenance_schedules_vehicles_vehicle_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicletype", "VehicleType")
-                        .WithMany()
-                        .HasForeignKey("VehicleTypeId")
-                        .HasConstraintName("fk_maintenance_schedules_vehicletypes_vehicle_type_id");
-
-                    b.Navigation("CreatedByNavigation");
-
-                    b.Navigation("ModifiedByNavigation");
-
-                    b.Navigation("Vehicle");
-
-                    b.Navigation("VehicleType");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleMaintenance", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceSchedule", "MaintenanceSchedule")
-                        .WithMany("MaintenanceRecords")
-                        .HasForeignKey("MaintenanceScheduleId")
-                        .HasConstraintName("fk_vehicle_maintenances_maintenance_schedules_maintenance_sche");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_maintenances_vehicles_vehicle_id");
-
-                    b.Navigation("MaintenanceSchedule");
-
-                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer", b =>
@@ -15486,207 +14324,6 @@ namespace FMS.Persistence.Migrations
                     b.Navigation("Vehicle");
                 });
 
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTrip", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Site", "DestinationSite")
-                        .WithMany()
-                        .HasForeignKey("DestinationSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_site_destination_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Site", "OriginSite")
-                        .WithMany()
-                        .HasForeignKey("OriginSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_site_origin_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany("VehicleTrips")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_vehicle_vehicle_id");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTripGroup", "VehicleTripGroup")
-                        .WithMany("Trips")
-                        .HasForeignKey("VehicleTripGroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_vehicle_trip_group_vehicle_trip_group_id");
-
-                    b.Navigation("DestinationSite");
-
-                    b.Navigation("OriginSite");
-
-                    b.Navigation("Vehicle");
-
-                    b.Navigation("VehicleTripGroup");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripClusterSnapshot", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Site", "MatchedSite")
-                        .WithMany()
-                        .HasForeignKey("MatchedSiteId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_cluster_snapshot_site_matched_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_cluster_snapshot_vehicle_vehicle_id");
-
-                    b.Navigation("MatchedSite");
-
-                    b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripGroup", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Site", "DestinationSite")
-                        .WithMany()
-                        .HasForeignKey("DestinationSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_group_site_destination_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Site", "OriginSite")
-                        .WithMany()
-                        .HasForeignKey("OriginSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_group_site_origin_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany("VehicleTripGroups")
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_group_vehicle_vehicle_id");
-
-                    b.Navigation("DestinationSite");
-
-                    b.Navigation("OriginSite");
-
-                    b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripOutOfBoundsEvent", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Site", "Site")
-                        .WithMany()
-                        .HasForeignKey("SiteId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_out_of_bounds_event_site_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_out_of_bounds_event_vehicle_vehicle_id");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTripGroup", "VehicleTripGroup")
-                        .WithMany()
-                        .HasForeignKey("VehicleTripGroupId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_out_of_bounds_event_vehicle_trip_group_vehicle");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTrip", "VehicleTrip")
-                        .WithMany()
-                        .HasForeignKey("VehicleTripId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_out_of_bounds_event_vehicle_trip_vehicle_trip_");
-
-                    b.Navigation("Site");
-
-                    b.Navigation("Vehicle");
-
-                    b.Navigation("VehicleTrip");
-
-                    b.Navigation("VehicleTripGroup");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripOverride", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.VehicleTripGroup", "ResultVehicleTripGroup")
-                        .WithMany()
-                        .HasForeignKey("ResultVehicleTripGroupId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_override_vehicle_trip_group_result_vehicle_tri");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_override_vehicle_vehicle_id");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTripGroup", "VehicleTripGroup")
-                        .WithMany()
-                        .HasForeignKey("VehicleTripGroupId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_override_vehicle_trip_group_vehicle_trip_group");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTrip", "VehicleTrip")
-                        .WithMany()
-                        .HasForeignKey("VehicleTripId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_override_vehicle_trip_vehicle_trip_id");
-
-                    b.Navigation("ResultVehicleTripGroup");
-
-                    b.Navigation("Vehicle");
-
-                    b.Navigation("VehicleTrip");
-
-                    b.Navigation("VehicleTripGroup");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripState", b =>
-                {
-                    b.HasOne("FMS.Domain.Entities.Site", "CurrentSite")
-                        .WithMany()
-                        .HasForeignKey("CurrentSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_state_site_current_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTripGroup", "InProgressTripGroup")
-                        .WithMany()
-                        .HasForeignKey("InProgressTripGroupId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_state_vehicle_trip_groups_in_progress_trip_gro");
-
-                    b.HasOne("FMS.Domain.Entities.VehicleTrip", "InProgressTrip")
-                        .WithMany()
-                        .HasForeignKey("InProgressTripId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_vehicle_trip_state_vehicle_trips_in_progress_trip_id");
-
-                    b.HasOne("FMS.Domain.Entities.Site", "OriginSite")
-                        .WithMany()
-                        .HasForeignKey("OriginSiteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_vehicle_trip_state_site_origin_site_id");
-
-                    b.HasOne("FMS.Domain.Entities.Vehicle", "Vehicle")
-                        .WithMany()
-                        .HasForeignKey("VehicleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_vehicle_trip_state_vehicle_vehicle_id");
-
-                    b.Navigation("CurrentSite");
-
-                    b.Navigation("InProgressTrip");
-
-                    b.Navigation("InProgressTripGroup");
-
-                    b.Navigation("OriginSite");
-
-                    b.Navigation("Vehicle");
-                });
-
             modelBuilder.Entity("FMS.Domain.Entities.Vehicleconsumption", b =>
                 {
                     b.HasOne("FMS.Domain.Entities.Site", "Site")
@@ -15877,16 +14514,6 @@ namespace FMS.Persistence.Migrations
             modelBuilder.Entity("FMS.Domain.Entities.Features.UserManagement.Department", b =>
                 {
                     b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.MaintenanceSchedule", b =>
-                {
-                    b.Navigation("MaintenanceRecords");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleMaintenance", b =>
-                {
-                    b.Navigation("Issues");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer", b =>
@@ -16181,18 +14808,9 @@ namespace FMS.Persistence.Migrations
 
                     b.Navigation("Tags");
 
-                    b.Navigation("VehicleTripGroups");
-
-                    b.Navigation("VehicleTrips");
-
                     b.Navigation("Vehicleconsumptions");
 
                     b.Navigation("WarningLetters");
-                });
-
-            modelBuilder.Entity("FMS.Domain.Entities.VehicleTripGroup", b =>
-                {
-                    b.Navigation("Trips");
                 });
 
             modelBuilder.Entity("FMS.Domain.Entities.Vehiclemanufacturer", b =>

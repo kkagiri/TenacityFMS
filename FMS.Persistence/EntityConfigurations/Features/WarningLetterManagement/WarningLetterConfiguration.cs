@@ -17,7 +17,7 @@ public class WarningLetterConfiguration : EntityTypeConfiguration<WarningLetter>
     {
         try
         {
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.HasKey(e => e.Id);
 
             builder.ToTable("warning_letter");
 

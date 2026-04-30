@@ -1,4 +1,4 @@
-﻿// using Microsoft.EntityFrameworkCore;
+// using Microsoft.EntityFrameworkCore;
 // using Microsoft.EntityFrameworkCore.Metadata.Builders;
 // using FMS.Domain.Entities;
 
@@ -17,7 +17,7 @@
 //         {
 //             try
 //             {
-//                 builder.HasKey(e => e.Id).HasName("PRIMARY");
+//                 builder.HasKey(e => e.Id);
 
 //                 builder.ToTable("pendingcommand");
 

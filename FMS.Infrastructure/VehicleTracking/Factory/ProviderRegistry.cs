@@ -281,37 +281,4 @@ namespace FMS.Infrastructure.VehicleTracking.Factory
 
         #endregion
     }
-
-    /// <summary>
-    /// Attribute to mark and describe provider implementations
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-    public class ProviderAttribute : Attribute
-    {
-        /// <summary>
-        /// Provider name (unique identifier)
-        /// </summary>
-        public string Name { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Provider display name
-        /// </summary>
-        public string DisplayName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Provider description
-        /// </summary>
-        public string Description { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Provider version
-        /// </summary>
-        public string Version { get; set; } = "1.0.0";
-
-        public ProviderAttribute(string name)
-        {
-            Name = name;
-            DisplayName = name;
-        }
-    }
 }

@@ -18,6 +18,22 @@ namespace FMS.Domain.Entities.VehicleTracking
         public int Id { get; set; }
 
         /// <summary>
+        /// Tenant that owns this provider configuration. <see cref="System.Guid.Empty"/>
+        /// is reserved for the system tenant during the tenancy migration.
+        /// </summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        /// <summary>
+        /// Top-level device family this provider belongs to (e.g. Tracking, Fueling, Atg).
+        /// Mirrors the FMS.Devices.Abstractions.Common.DeviceCategory enum at the database level.
+        /// </summary>
+        [Required]
+        [MaxLength(40)]
+        [Column("device_category")]
+        public string DeviceCategory { get; set; } = "Tracking";
+
+        /// <summary>
         /// Unique provider name (e.g., "GPSGate", "Geotab", "Traccar")
         /// </summary>
         [Required]
@@ -61,9 +77,9 @@ namespace FMS.Domain.Entities.VehicleTracking
         public string Version { get; set; } = "1.0.0";
 
         /// <summary>
-        /// JSON configuration settings (stored as LONGTEXT for MySQL 5.5/5.6 compatibility; encrypted for sensitive data)
+        /// JSON configuration settings (stored as text; encrypted for sensitive data)
         /// </summary>
-        [Column("settings", TypeName = "longtext")]
+        [Column("settings", TypeName = "text")]
         public string Settings { get; set; } = "{}";
 
         /// <summary>

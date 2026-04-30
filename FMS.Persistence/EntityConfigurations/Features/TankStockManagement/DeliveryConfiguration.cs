@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.ToTable("delivery", tb => tb.HasComment("		"));
 
@@ -75,12 +75,12 @@ namespace FMS.Persistence.EntityConfigurations
 
                 // Correction tracking properties
                 // builder.Property (e => e.IsCorrection)
-                //     .HasColumnType ("tinyint(1)")
+                //
                 //
                 //     .HasDefaultValue (false);
 
                 // builder.Property (e => e.CorrectsRecordId)
-                //     .HasColumnType ("int(11)")
+                //
                 //;
 
                 // builder.Property (e => e.CorrectionReason)

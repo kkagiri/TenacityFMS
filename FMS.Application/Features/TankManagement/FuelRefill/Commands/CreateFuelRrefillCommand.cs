@@ -42,7 +42,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
         private readonly ClosingStockDiscrepancyRefreshService _closingDiscrepancyRefreshService;
         private readonly IVehicleSiteAutoAssignmentService? _siteAutoAssignmentService;
         private readonly IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
-        private readonly IGPSGateDriverNameService? _driverNameService;
+        private readonly ITrackingDriverNameService? _driverNameService;
         private readonly IExpectedFuelAverageAlertService _expectedFuelAverageAlertService;
 
         public CreateFuelRrefillCommandCommandHandler(
@@ -55,7 +55,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             IExpectedFuelAverageAlertService expectedFuelAverageAlertService,
             IVehicleSiteAutoAssignmentService? siteAutoAssignmentService = null,
             IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null,
-            IGPSGateDriverNameService? driverNameService = null)
+            ITrackingDriverNameService? driverNameService = null)
         {
             _context = context;
             _logger = logger;

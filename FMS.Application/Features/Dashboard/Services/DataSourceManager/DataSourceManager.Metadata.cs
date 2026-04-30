@@ -91,13 +91,7 @@ namespace FMS.Application.Services.Dashboard
             Add(FleetOfflineGpsDataSource, CreateFleetStatusMetricMetadata(
                 "Offline GPS Vehicles",
                 "Count of GPS-enabled vehicles currently offline."));
-            Add(TripDistanceDataSource, CreateTripDistanceMetadata());
             Add(MostVehicleTravelledGpsDataSource, CreateMostVehicleTravelledGpsMetadata());
-            Add(TripInTransitDataSource, CreateTripInTransitMetadata());
-            Add(VehiclesAtSiteDataSource, CreateVehiclesAtSiteMetadata());
-            Add(TripCountVsExpectedDataSource, CreateTripCountVsExpectedMetadata());
-            Add(TipperCycleCountDataSource, CreateTipperCycleCountMetadata());
-            Add(AverageTripDurationDataSource, CreateAverageTripDurationMetadata());
             Add(VehicleAnomalyCountDataSource, CreateVehicleAnomalyCountMetadata());
             Add(AnomalyReviewFeedDataSource, CreateAnomalyReviewFeedMetadata());
 

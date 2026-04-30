@@ -1,35 +1,36 @@
-﻿import React, { useState, useRef } from "react";
+﻿import React, { useRef } from "react";
 import { useSelector } from "react-redux";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 
 import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
-import { AppDrawer } from "../app-drawer";
 import ThemeSelector from "./ThemeSelector";
 import useBrandingLogo from "./useBrandingLogo";
 import "./Header.scss";
 
-export default function Header({ menuToggleEnabled, title }) {
-  const [isAppDrawerOpen, setIsAppDrawerOpen] = useState(false);
+/**
+ * Shared application header used by the Inspinia shell (SideNavOuterToolbar).
+ * Owns: sidebar toggle, branding, theme selector, notifications, user panel.
+ *
+ * The legacy app-launcher drawer has been removed — navigation now lives
+ * exclusively in the Inspinia side navigation menu (or AdminLayout for /admin).
+ */
+export default function Header({ menuToggleEnabled, toggleMenu, title }) {
   const appButtonRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
   const brandingLogoSrc = useBrandingLogo();
 
-  const toggleAppDrawer = (e) => {
-    setIsAppDrawerOpen(!isAppDrawerOpen);
-  };
-
-  const closeAppDrawer = () => {
-    setIsAppDrawerOpen(false);
+  const handleToggleMenu = (e) => {
+    if (typeof toggleMenu === "function") {
+      toggleMenu({ event: e });
+    }
   };
 
   // Firefox-specific click handler to prevent double firing
   const handleButtonClick = (e) => {
-    // Only handle if this is a mousedown event to prevent double firing
     if (e.type === 'mousedown') {
       e.preventDefault();
       e.stopPropagation();
-      // Don't call toggleAppDrawer here, let the onClick handle it
     }
   };
 
@@ -46,25 +47,21 @@ export default function Header({ menuToggleEnabled, title }) {
       <Toolbar height className={"header-toolbar"}>
         <Item
           visible={true}
-          location={"center"}
-          widget={"dxButton"}
-          cssClass={"app-grid-button"}
+          location={"before"}
+          cssClass={"app-menu-button"}
         >
           <div ref={appButtonRef} className="app-button-wrapper">
-            {/* Use native button for better Firefox compatibility */}
             <button
               type="button"
-              onClick={toggleAppDrawer}
+              onClick={handleToggleMenu}
               onMouseDown={handleButtonClick}
-              className="grid-icon-button native-button"
-              aria-label="Open App Menu"
+              className="grid-icon-button native-button grid-icon-button--menu"
+              aria-label="Toggle navigation menu"
             >
-              <div className="app-grid-icon">
-                <div className="grid-dots">
-                  <span></span><span></span><span></span>
-                  <span></span><span></span><span></span>
-                  <span></span><span></span><span></span>
-                </div>
+              <div className="app-menu-icon" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
               </div>
             </button>
           </div>
@@ -119,13 +116,6 @@ export default function Header({ menuToggleEnabled, title }) {
           <UserPanel menuMode={"list"} />
         </Template> */}
       </Toolbar>
-
-      {/* App Drawer Component */}
-      <AppDrawer
-        isOpen={isAppDrawerOpen}
-        onClose={closeAppDrawer}
-        buttonRef={appButtonRef}
-      />
     </header>
   );
 }

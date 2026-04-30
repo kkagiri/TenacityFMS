@@ -16,7 +16,7 @@
              try {
                  // Table configuration
                  builder.ToTable ("stock_reports");
-                 builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                 builder.HasKey (e => e.Id);
 
                  // Indexes
                  builder.HasIndex (e => e.ReportType, "idx_stock_reports_type");
@@ -28,33 +28,27 @@
                  builder.HasIndex (e => new { e.GeneratedBy, e.GeneratedDate }, "idx_stock_reports_user_date");
 
                  // Column configurations
-                 builder.Property (e => e.Id)
-                     .HasColumnType ("int(11)");
+                 builder.Property (e => e.Id);
 
                  builder.Property (e => e.ReportType)
                      .HasMaxLength (50)
                      .IsRequired ();
 
-                 builder.Property (e => e.GeneratedDate)
-                     .HasColumnType ("datetime");
+                 builder.Property (e => e.GeneratedDate);
 
                  builder.Property (e => e.GeneratedBy)
                      .HasMaxLength (100)
                      .IsRequired ();
 
                  builder.Property (e => e.Status)
-                     .HasColumnType ("tinyint(4)")
                      .HasDefaultValue (1)
                      .HasComment ("0=Generating, 1=Completed, 2=Failed");
 
-                 builder.Property (e => e.StartDate)
-                     .HasColumnType ("datetime");
+                 builder.Property (e => e.StartDate);
 
-                 builder.Property (e => e.EndDate)
-                     .HasColumnType ("datetime");
+                 builder.Property (e => e.EndDate);
 
-                 builder.Property (e => e.SiteId)
-                     .HasColumnType ("int(11)");
+                 builder.Property (e => e.SiteId);
 
                  builder.Property (e => e.FilePath)
                      .HasMaxLength (500);
@@ -65,8 +59,7 @@
                  builder.Property (e => e.ContentType)
                      .HasMaxLength (100);
 
-                 builder.Property (e => e.FileSize)
-                     .HasColumnType ("bigint(20)");
+                 builder.Property (e => e.FileSize);
 
                  builder.Property (e => e.Parameters)
                      .HasMaxLength (1000);
@@ -75,11 +68,9 @@
                      .HasMaxLength (500);
 
                  builder.Property (e => e.CreatedOn)
-                     .HasColumnType ("datetime")
                      .HasDefaultValueSql ("CURRENT_TIMESTAMP");
 
-                 builder.Property (e => e.UpdatedOn)
-                     .HasColumnType ("datetime");
+                 builder.Property (e => e.UpdatedOn);
 
                  // Relationships
                  builder.HasOne (d => d.GeneratedByNavigation)

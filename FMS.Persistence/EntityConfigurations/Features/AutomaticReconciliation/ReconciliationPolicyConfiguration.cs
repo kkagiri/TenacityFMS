@@ -1,4 +1,4 @@
-﻿//Cursor - Entity Framework Configuration for ReconciliationPolicy
+//Cursor - Entity Framework Configuration for ReconciliationPolicy
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +18,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.ToTable("reconciliationpolicy");
 

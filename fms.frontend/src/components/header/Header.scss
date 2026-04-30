@@ -15,12 +15,12 @@
 .header-component {
   flex: 0 0 auto;
   z-index: 10020;
-  box-shadow: 0 4px 8px var(--fms-shadow-color, rgba(0, 0, 0, 0.05)), 0 0 4px var(--fms-shadow-color, rgba(0, 0, 0, 0.15));
-  padding: 5px 0;
-  background-color: var(--fms-header-bg, #ffffff) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  padding: 0;
+  background-color: #ffffff !important;
   width: 100%;
   overflow: visible;
-  min-height: 50px;
+  min-height: 56px;
   position: relative;
   display: flex;
   -webkit-transform: translateZ(0);
@@ -34,10 +34,11 @@
 }
 
 .dx-toolbar.header-toolbar {
-  padding-left: 4px;
-  padding-right: 12px;
-  min-height: 48px;
-  background-color: var(--fms-header-bg, #ffffff) !important;
+  padding-left: 12px;
+  padding-right: 16px;
+  min-height: 56px;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e7eaec;
   position: relative;
   display: flex;
   width: 100%;
@@ -56,7 +57,7 @@
     .dx-item-content {
       display: flex;
       align-items: center;
-      min-height: 48px;
+      min-height: 56px;
       white-space: nowrap;
       overflow: visible;
       text-overflow: unset;
@@ -72,7 +73,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 48px;
+      min-height: 56px;
     }
   }
 }
@@ -81,16 +82,16 @@
   padding: 0;
   margin: 0;
   margin-left: 2px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--base-text-color, #333);
-  line-height: 48px;
+  color: #2f4050;
+  line-height: 56px;
 }
 
 .header-brand {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -104,8 +105,10 @@
 .header-brand__title {
   display: inline-flex;
   align-items: center;
-  color: var(--base-text-color, #333);
+  color: #2f4050;
   font-weight: 600;
+  font-size: 17px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   letter-spacing: -0.01em;
 }
 
@@ -121,8 +124,8 @@
   }
 
   .notification-wrapper {
-    height: 36px;
-    width: 36px;
+    height: 38px;
+    width: 38px;
     padding: 6px;
     display: flex;
     align-items: center;
@@ -178,7 +181,7 @@
     }
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: #f3f3f4;
     }
   }
 }
@@ -210,6 +213,8 @@
 }
 
 .app-grid-button {
+  margin-right: 8px;
+
   .dx-item-content {
     display: flex;
     align-items: center;
@@ -220,6 +225,19 @@
   }
 }
 
+.app-menu-button {
+  margin-right: 8px;
+
+  .dx-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    height: 100%;
+    min-height: 56px;
+  }
+}
+
 .app-grid-icon {
   display: flex;
   align-items: center;
@@ -227,6 +245,24 @@
   padding: 6px;
   width: 36px;
   height: 36px;
+}
+
+.app-menu-icon {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 18px;
+  height: 18px;
+
+  span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background-color: #676a6c;
+    transition: background-color 0.2s ease;
+  }
 }
 
 .grid-dots {
@@ -240,7 +276,7 @@
   span {
     width: 5px;
     height: 5px;
-    background-color: #333;
+    background-color: #676a6c;
     border-radius: 50%;
     display: block;
     transition: background-color 0.2s ease;
@@ -266,22 +302,31 @@
   background: none;
   border: none;
   outline: none;
+  background-color: transparent;
 
   &:hover {
-    background-color: rgba(0, 120, 212, 0.1) !important;
+    background-color: #f3f3f4 !important;
 
     .grid-dots span {
-      background-color: #0078d4;
+      background-color: #1ab394;
+    }
+
+    .app-menu-icon span {
+      background-color: #1ab394;
     }
   }
 
   &:active,
   &:focus {
-    background-color: rgba(0, 120, 212, 0.2) !important;
+    background-color: #eef8f5 !important;
     outline: none !important;
 
     .grid-dots span {
-      background-color: #106ebe;
+      background-color: #1c84c6;
+    }
+
+    .app-menu-icon span {
+      background-color: #1c84c6;
     }
   }
 }
@@ -315,7 +360,13 @@
   }
 
   .header-title .dx-item-content {
-    font-size: 15px;
+    font-size: 16px;
+  }
+
+  .header-brand__title {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-brand {
@@ -333,4 +384,3 @@
     min-width: 260px;
   }
 }
-

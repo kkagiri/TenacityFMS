@@ -28,6 +28,7 @@
     <PackageReference Include="ZXing.Net" Version="0.16.10" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <!-- <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" /> -->
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />

@@ -16,7 +16,7 @@ namespace FMS.Persistence.EntityConfigurations.Features.MultiTenancy
         public override void Configure(EntityTypeBuilder<Tenant> builder)
         {
             builder.ToTable("tenant");
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id);
 

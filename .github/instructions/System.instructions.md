@@ -32,6 +32,7 @@
 10. [Styling Guide — Fluent Design](#10-styling-guide--fluent-design)
 11. [AI Agent Response Protocol](#11-ai-agent-response-protocol)
 12. [Quality Checklist](#12-quality-checklist)
+13. [Devices Architecture (Multi-Provider Platform)](#13-devices-architecture-multi-provider-platform)
 
 ---
 
@@ -973,6 +974,97 @@ Complete this checklist before submitting any code change.
 - [ ] Checked for `{deprecated}` code and notified user if found
 - [ ] Recommended build/test instead of auto-building
 - [ ] Did **NOT** auto-generate documentation (no `[doc]` prefix in request)
+
+---
+
+## 13. Devices Architecture (Multi-Provider Platform)
+
+> 🚨 **Replaces the old "PTS code lives anywhere in FMS.Application" pattern.**
+> All device transport, protocol parsing, and channel code MUST live in a provider plugin under `FMS.Devices.*`. Business logic that consumes device data lives in `FMS.Application/Features/Devices/...`.
+>
+> **Authoritative references:** [PRD](../../documentation/features/devices/multi-device-platform/V1/implementation/PRD.md) · [Tasks](../../documentation/features/devices/multi-device-platform/V1/implementation/TASKS.md) · `.agents/skills/devices/SKILL.md`
+
+### 13.1 Project layout — what goes where
+
+| Project | Contains | Does NOT contain |
+|---|---|---|
+| `FMS.Devices.Abstractions` | Provider interfaces (`IVehicleTrackingProvider`, `IFuelingDeviceProvider`, `IFuelingPersistenceSink`), `[Provider]` attribute, capability interfaces, canonical envelopes (`DeviceMessage<T>`, `DeviceCommand<T>`). | Implementations, DB code, transport. |
+| `FMS.Devices.Core` | `ProviderRegistry`, `ProviderFactory`, `DeviceMessageRouter`, `ProviderHealthMonitor`, `IProviderConfigRepository`, `IDeviceMappingRepository`, tenant-scoped resolver. | Provider-specific code, transport, parsers. |
+| `FMS.Devices.Tracking` | `Providers/<Vendor>/` per tracking vendor with `Provider.cs`, `Api/`, `Configuration/`, `Services/`, `Channels/`, `Mapping/`. | Fueling code, business logic. |
+| `FMS.Devices.Fueling` | `Providers/<Vendor>/` per fueling vendor with `Transport/`, `Protocol/`, `Mapping/`, `Commands/`, `Channels/`. | Tracking code, business logic. |
+| `FMS.Devices.Tracking.Host` | Worker process. `AddDeviceCore().AddTrackingProviders()`. | Provider implementations. |
+| `FMS.Devices.Fueling.Host` | Windows Service. `AddDeviceCore().AddFuelingProviders()`. Replaces `FMS.PTS.WindowsService`. | Provider implementations. |
+| `FMS.Application/Features/Devices/` | Business logic consuming canonical MediatR notifications. Provisioning CRUD. | Transport, protocol parsing, vendor APIs. |
+
+### 13.2 Hard rules
+
+| ✅ DO | ❌ DON'T |
+|---|---|
+| Add new tracking vendor under `FMS.Devices.Tracking/Providers/<Vendor>/`. | Add tracking code in `FMS.Application/Communication`, `FMS.Infrastructure/ExternalServices`, or `FMS.BackgroundServices`. |
+| Add new fueling vendor under `FMS.Devices.Fueling/Providers/<Vendor>/`. | Add fueling/PTS code in `FMS.Application/{Handlers,Communication,Command/PTSCommand}` or `FMS.PTS.WindowsService`. |
+| Decorate provider with `[Provider("Name", DeviceCategory.X, Version="1.0")]`. | Manually wire providers in `Program.cs` — DI scan handles registration. |
+| Branch on `provider.Capabilities.HasFlag(...)`. | Compare `provider.Name == "GPSGate"`. |
+| Inject `IVehicleTrackingProvider` (resolved per-vehicle via `IProviderFactory`). | Inject `IGPSGateLocationService` etc. directly. |
+| New PTS packet type → 1 `IPtsPacketMapper<TPacket,TCanonical>` + 1 keyed DI registration. | Use `[PacketType]` attribute or `MessageHandlerRegistry` — both deleted. |
+| Read provider config via `IProviderConfigRepository` (tenant filter automatic). | Query `provider_configurations` directly. |
+| Persist tenant-scoped data using `ITenantContext.TenantId`. | Cross-tenant access without `IBypassTenancy`. |
+
+### 13.3 Anti-patterns — STOP if you see these
+
+```
+❌  FMS.Application/Communication/{WebSocket,Redis,Connection,HttpPolling,Tracker}/*           → fueling provider
+❌  FMS.Application/Handlers/{PacketHandlers,UploadTransactions,PumpResponse,Common/PTSMessageProcessor}/*  → DELETED, replaced by mappers
+❌  FMS.Application/Command/PTSCommand/*                                                       → split: serializers → fueling provider; orchestration → Features/Devices/Fueling
+❌  FMS.Application/PTSServices/*                                                              → DELETED
+❌  FMS.Application/Features/PTS/, /PTSDevice/, /PTSService/                                   → CONSOLIDATED into Features/Devices/Fueling
+❌  FMS.Infrastructure/ExternalServices/GPS/GPSGate/*                                          → tracking provider
+❌  FMS.Infrastructure/VehicleTracking/Providers/*                                             → tracking provider
+❌  FMS.IoT.Contracts / FMS.IoT.Gateway / FMS.IoT.ProcessingEngine                             → DELETED entirely
+❌  [PacketType("X")] reflection registry                                                     → DI-keyed mappers
+❌  provider.Name == "GPSGate"                                                                → capability flag
+❌  Direct _context.ProviderConfigurations.Where(...)                                          → IProviderConfigRepository
+```
+
+### 13.4 Adding a new device provider — 10-step cookbook
+
+1. Pick the right project: `FMS.Devices.Tracking` or `FMS.Devices.Fueling`.
+2. Create folder `Providers/<VendorName>/`.
+3. Add `<VendorName>Provider.cs` implementing `IVehicleTrackingProvider` or `IFuelingDeviceProvider`.
+4. Decorate: `[Provider("<VendorName>", DeviceCategory.<X>, Version="1.0")]`.
+5. Implement only the capabilities you support; declare them via `ProviderCapabilities` flags.
+6. Add subfolders as needed (tracking: `Api`, `Configuration`, `Services`, `Channels`, `Mapping`; fueling: `Transport`, `Protocol`, `Mapping`, `Commands`, `Channels`).
+7. For fueling, implement `IPtsPacketMapper<TPacket,TCanonical>` per packet type if your protocol uses packets.
+8. Register vendor-specific DI in a single `<VendorName>ServiceCollectionExtensions.cs` and call from `AddTrackingProviders()` / `AddFuelingProviders()`.
+9. Add a row in `provider_configurations` per tenant with encrypted Settings JSON.
+10. Add provider conformance tests under `FMS.Testing/Devices/<VendorName>/`.
+
+### 13.5 Tenancy
+
+- `provider_configurations.TenantId NOT NULL`, `device_provider_mappings.TenantId NOT NULL`.
+- Repositories apply `WHERE TenantId = ITenantContext.TenantId` automatically.
+- Cross-tenant reads require `IBypassTenancy` (admin-only, audited).
+
+### 13.6 Logging categories
+
+Add per-provider categories in `FmsLoggingConfiguration.cs` (WebClient & each host):
+- Tracking: `tracking-<vendor>/` under `C:\Logs\FMS.Devices.Tracking\`.
+- Fueling: `fueling-<vendor>/` under `C:\Logs\FMS.Devices.Fueling\`.
+
+Routing by `SourceContext` namespace match (e.g. `FMS.Devices.Tracking.Providers.GpsGate.*`). Always use `ILogger<T>`. Always include `({SourceContext})` in the output template.
+
+### 13.7 Hosts
+
+| Host | Purpose | Replaces |
+|---|---|---|
+| `FMS.Devices.Fueling.Host` | WebSocket listener + Redis command channel + fueling providers. | `FMS.PTS.WindowsService` |
+| `FMS.Devices.Tracking.Host` | RabbitMQ consumer + provider health + tracking providers. | Tracking jobs in `FMS.WebClient` / `FMS.BackgroundServices`. |
+
+### 13.8 References
+
+- PRD: `documentation/features/devices/multi-device-platform/V1/implementation/PRD.md`
+- Tasks: `documentation/features/devices/multi-device-platform/V1/implementation/TASKS.md`
+- Skill: `.agents/skills/devices/SKILL.md` (Copilot/Cursor) · `.claude/skills/devices/SKILL.md` (Claude Code)
+- Provider cookbook: `FMS.Devices.Abstractions/README.md` (created in T6.4)
 
 ---
 

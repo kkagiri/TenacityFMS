@@ -36,13 +36,13 @@ public class UpdateWarningLetterCommandHandler : IRequestHandler<UpdateWarningLe
     private readonly GpsdataContext _context;
     private readonly ISystemConfigurationService _systemConfigurationService;
     private readonly ILogger<UpdateWarningLetterCommandHandler> _logger;
-    private readonly IGPSGateDriverNameService? _driverNameService;
+    private readonly ITrackingDriverNameService? _driverNameService;
 
     public UpdateWarningLetterCommandHandler(
         GpsdataContext context,
         ISystemConfigurationService systemConfigurationService,
         ILogger<UpdateWarningLetterCommandHandler> logger,
-        IGPSGateDriverNameService? driverNameService = null)
+        ITrackingDriverNameService? driverNameService = null)
     {
         _context = context;
         _systemConfigurationService = systemConfigurationService;

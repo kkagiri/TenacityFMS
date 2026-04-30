@@ -47,6 +47,8 @@
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
     <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Core\FMS.Devices.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

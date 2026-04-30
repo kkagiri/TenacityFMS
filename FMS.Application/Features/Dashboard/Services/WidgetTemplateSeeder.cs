@@ -485,7 +485,6 @@ namespace FMS.Application.Services.Dashboard
             templates.AddRange(GetPumpTransactionTemplates(dashboardFuelPermission));
 
             templates.AddRange(GetVehicleFleetTemplates(dashboardVehiclePermission));
-            templates.AddRange(GetVehicleTripTemplates(dashboardVehiclePermission));
 
             var dashboardEventPermission = string.Join(",", Permissions.Dashboard.View, Permissions.EventExpression.Read);
             templates.AddRange(GetAnomalyTemplates(dashboardEventPermission));

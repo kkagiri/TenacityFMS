@@ -23,7 +23,7 @@ public class DepartmentConfiguration : EntityTypeConfiguration<Department>
     {
         try
         {
-            builder.HasKey(e => e.DepartmentId).HasName("PRIMARY");
+            builder.HasKey(e => e.DepartmentId);
 
             builder.ToTable("department");
 

@@ -14,7 +14,7 @@ public class EmployeePositionConfiguration : EntityTypeConfiguration<EmployeePos
 {
     public override void Configure(EntityTypeBuilder<EmployeePosition> builder)
     {
-        builder.HasKey(e => e.Id).HasName("PRIMARY");
+        builder.HasKey(e => e.Id);
 
         builder.ToTable("employee_position");
 

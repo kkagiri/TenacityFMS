@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities.Dashboard;
+using FMS.Domain.Entities.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,7 +10,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             builder.ToTable("user_dashboard_layout");
 
-            builder.HasKey(x => x.Id).HasName("PRIMARY");
+            builder.HasKey(x => x.Id);
 
             builder.Property(x => x.Id).HasMaxLength(36).IsRequired();
 
@@ -18,7 +18,7 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(x => x.LayoutName).HasMaxLength(100).IsRequired();
             builder.Property(x => x.LayoutJson).IsRequired();
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            builder.Property(x => x.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+            builder.Property(x => x.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             builder.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
             builder.Property(x => x.UpdatedBy).HasMaxLength(100);
 

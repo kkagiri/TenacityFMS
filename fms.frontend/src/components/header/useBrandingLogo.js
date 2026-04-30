@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from "react";
 import axiosInstance from "../../api/axiosInstance";
-import logoTenacy from "../../assets/logoTenacy.png";
+import logoTenacy from "../../assets/logoHyoung.png";
 
 const BRANDING_LOGO_KEYS = [
     "Branding.HeaderLogo",

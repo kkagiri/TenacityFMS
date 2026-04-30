@@ -18,8 +18,19 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
 
-            builder.Property(e => e.VehicleId)
+            builder.Property(e => e.TenantId)
                 .IsRequired();
+
+            builder.Property(e => e.DeviceCategory)
+                .HasMaxLength(40)
+                .IsRequired()
+                .HasDefaultValue("Tracking");
+
+            builder.Property(e => e.VehicleId);
+                // Now nullable to allow fueling-only mappings.
+
+            builder.Property(e => e.FuelingDeviceId);
+                // Populated only when DeviceCategory == "Fueling".
 
             builder.Property(e => e.ProviderConfigId)
                 .IsRequired();
@@ -47,14 +58,17 @@ namespace FMS.Persistence.EntityConfigurations.VehicleTracking
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Indexes
-            builder.HasIndex(e => e.VehicleId)
-                .HasDatabaseName("idx_mapping_vehicle_id");
+            builder.HasIndex(e => new { e.TenantId, e.VehicleId })
+                .HasDatabaseName("idx_mapping_tenant_vehicle");
+
+            builder.HasIndex(e => new { e.TenantId, e.FuelingDeviceId })
+                .HasDatabaseName("idx_mapping_tenant_fueling_device");
+
+            builder.HasIndex(e => new { e.TenantId, e.DeviceCategory, e.IsActive })
+                .HasDatabaseName("idx_mapping_tenant_category_active");
 
             builder.HasIndex(e => e.ProviderConfigId)
                 .HasDatabaseName("idx_mapping_provider_id");
-
-            builder.HasIndex(e => new { e.VehicleId, e.IsActive })
-                .HasDatabaseName("idx_mapping_vehicle_active");
 
             builder.HasIndex(e => e.ExternalDeviceId)
                 .HasDatabaseName("idx_mapping_external_device");

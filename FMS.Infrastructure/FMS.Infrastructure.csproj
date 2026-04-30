@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Tracking\FMS.Devices.Tracking.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
   </ItemGroup>
 

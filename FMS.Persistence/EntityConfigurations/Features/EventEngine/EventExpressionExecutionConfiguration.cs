@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities;
+using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,7 +16,7 @@ namespace FMS.Persistence.EntityConfigurations
             {
                 builder.ToTable("event_expression_executions");
 
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.Property(e => e.Id)
                     .ValueGeneratedOnAdd();

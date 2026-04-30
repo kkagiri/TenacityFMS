@@ -1,7 +1,7 @@
 /**
  * File: DataSourceManager.VehicleGpsTrackDistance.cs
  * Purpose: Provides dashboard data for GPSGate track-distance rankings using active vehicle-provider mappings.
- * Dependencies: GpsdataContext, VehicleProviderMappingEntity, IGPSGateTrackInfoSummaryService, DataSourceMetadata
+ * Dependencies: GpsdataContext, VehicleProviderMappingEntity, ITrackingTrackInfoSummaryService, DataSourceMetadata
  * Last Modified: 2026-03-25
  *
  * Key Functions:
@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Devices.Abstractions.Common;
 using FMS.Application.Features.Dashboard;
 using FMS.Application.Features.VehicleTracking.DTOs;
 using FMS.Application.Features.VehicleTracking.Services;
@@ -176,10 +177,10 @@ namespace FMS.Application.Services.Dashboard
             DateTime startDate,
             DateTime endDate)
         {
-            var summaryService = _serviceProvider.GetService<IGPSGateTrackInfoSummaryService>();
+            var summaryService = _serviceProvider.GetService<ITrackingTrackInfoSummaryService>();
             if (summaryService == null)
             {
-                _logger.LogWarning("IGPSGateTrackInfoSummaryService is not registered - most travelled GPS widgets will return empty data");
+                _logger.LogWarning("ITrackingTrackInfoSummaryService is not registered - most travelled GPS widgets will return empty data");
                 return new List<GpsTrackDistanceVehicleDayEntry>();
             }
 
@@ -194,7 +195,7 @@ namespace FMS.Application.Services.Dashboard
                     && !string.IsNullOrWhiteSpace(mapping.ExternalDeviceId)
                     && mapping.Vehicle != null
                     && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.IsEnabled)
-                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.Name == "GPSGate")
+                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.DeviceCategory == DeviceCategory.Tracking.ToString())
                     && (mapping.Vehicle.IsActive == null || mapping.Vehicle.IsActive != 0))
                 .ToListAsync();
 
@@ -208,7 +209,7 @@ namespace FMS.Application.Services.Dashboard
             if (request.VehicleIds != null && request.VehicleIds.Any())
             {
                 latestMappings = latestMappings
-                    .Where(mapping => request.VehicleIds.Contains(mapping.VehicleId))
+                    .Where(mapping => mapping.VehicleId.HasValue && request.VehicleIds.Contains(mapping.VehicleId.Value))
                     .ToList();
             }
 
@@ -258,7 +259,7 @@ namespace FMS.Application.Services.Dashboard
         private async Task<GpsTrackDistanceVehicleDayEntry?> BuildGpsTrackDistanceEntryAsync(
             VehicleProviderMappingEntity mapping,
             DateTime date,
-            IGPSGateTrackInfoSummaryService summaryService,
+            ITrackingTrackInfoSummaryService summaryService,
             SemaphoreSlim semaphore)
         {
             await semaphore.WaitAsync();
@@ -276,7 +277,7 @@ namespace FMS.Application.Services.Dashboard
                 return new GpsTrackDistanceVehicleDayEntry
                 {
                     VehicleId = vehicle.VehicleId,
-                    VehicleName = BuildVehicleDisplayName(vehicle),
+                    VehicleName = vehicle.NumberPlate ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate ?? string.Empty,
                     SiteId = vehicle.WorkingSiteId,
                     SiteName = vehicle.WorkingSite?.Name ?? "Unassigned",

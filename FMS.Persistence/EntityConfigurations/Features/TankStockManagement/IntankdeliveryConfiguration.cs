@@ -14,7 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
                             builder.ToTable("intankdelivery");
 
                             // Primary key with auto-increment.
-                            builder.HasKey(i => i.DeliveryId).HasName("PRIMARY");
+                            builder.HasKey(i => i.DeliveryId);
 
                             builder.HasIndex(i => i.Ptsid, "fk_psTID_idx");
 

@@ -222,27 +222,6 @@ public class CreateVehicleTransferCommandHandler : IRequestHandler<CreateVehicle
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // Create maintenance entry if requested
-            if (dto.CreateMaintenanceEntry)
-            {
-                var maintenance = new Domain.Entities.Features.VehicleManagement.VehicleMaintenance
-                {
-                    VehicleId = dto.VehicleId,
-                    MaintenanceType = "Transfer Inspection",
-                    Status = "Completed",
-                    ScheduledDate = dto.TransferDate,
-                    CompletedDate = dto.TransferDate,
-                    OdometerAtCompletion = dto.CurrentReading,
-                    NextDueOdometer = dto.NextServiceReading,
-                    Description = $"Vehicle transfer from {fromSite.Name} to {toSite.Name}",
-                    Notes = $"Transfer checkup completed. Delivery Note: {dto.DeliveryNoteNumber}",
-                    CreatedBy = dto.UserId,
-                    DateCreated = DateTime.UtcNow
-                };
-                _context.Set<Domain.Entities.Features.VehicleManagement.VehicleMaintenance>().Add(maintenance);
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-
             // Load related data for response
             await _context.Entry(transfer).Reference(t => t.Vehicle).LoadAsync(cancellationToken);
             await _context.Entry(transfer).Reference(t => t.FromSite).LoadAsync(cancellationToken);

@@ -7,7 +7,7 @@ namespace FMS.Application.Features.VehicleTracking.DTOs
     /// </summary>
     public class VehicleProviderMappingDTO
     {
-        public int VehicleId { get; set; }
+        public int? VehicleId { get; set; }
         public string? VehicleName { get; set; }
         public string? NumberPlate { get; set; }
         public string? VehicleType { get; set; }

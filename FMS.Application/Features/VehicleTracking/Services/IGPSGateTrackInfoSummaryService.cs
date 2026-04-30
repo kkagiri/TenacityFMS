@@ -14,11 +14,15 @@ using FMS.Application.Features.VehicleTracking.DTOs;
 
 namespace FMS.Application.Features.VehicleTracking.Services
 {
-    public interface IGPSGateTrackInfoSummaryService
+    public interface ITrackingTrackInfoSummaryService
     {
         Task<GpsTrackInfoDaySummaryDto?> GetDaySummaryAsync(
             string externalDeviceId,
             DateTime date,
             CancellationToken cancellationToken = default);
+    }
+
+    public interface IGPSGateTrackInfoSummaryService : ITrackingTrackInfoSummaryService
+    {
     }
 }

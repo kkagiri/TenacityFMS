@@ -112,8 +112,8 @@ namespace FMS.Application.Features.FuelAudit.Queries
                 // Fetch active GPS provider mappings with fuel sensor info for these vehicles
                 var gpsMappings = await _context.VehicleProviderMappings
                     .AsNoTracking()
-                    .Where(m => vehicleIds.Contains(m.VehicleId) && m.IsActive)
-                    .Select(m => new { m.VehicleId, m.HasFuelSensor })
+                    .Where(m => m.VehicleId != null && vehicleIds.Contains(m.VehicleId.Value) && m.IsActive)
+                    .Select(m => new { VehicleId = m.VehicleId!.Value, m.HasFuelSensor })
                     .ToListAsync(cancellationToken);
 
                 var vehiclesWithGps = new HashSet<int>(gpsMappings.Select(m => m.VehicleId));

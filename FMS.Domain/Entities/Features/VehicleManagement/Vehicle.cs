@@ -155,16 +155,6 @@ public partial class Vehicle
     /// </summary>
     public virtual ICollection<VehicleExpectedAverageAssignment> ExpectedAverageAssignments { get; set; } = new List<VehicleExpectedAverageAssignment>();
 
-    /// <summary>
-    /// Persisted trip route summaries for this vehicle.
-    /// </summary>
-    public virtual ICollection<VehicleTripGroup> VehicleTripGroups { get; set; } = new List<VehicleTripGroup>();
-
-    /// <summary>
-    /// Persisted detected trip legs for this vehicle.
-    /// </summary>
-    public virtual ICollection<VehicleTrip> VehicleTrips { get; set; } = new List<VehicleTrip>();
-
     // NOTE: Fixed Location Properties have been REMOVED.
     // Valid fueling locations for stationary equipment (generators, pumps, etc.)
     // should be defined as geofences in GPSGate instead.

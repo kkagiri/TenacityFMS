@@ -17,18 +17,18 @@ namespace FMS.Application.Features.Geofence.Commands;
 /**
  * File: CreateGeofenceCommandHandler.cs
  * Purpose: Validates and creates GPSGate geofences, then syncs them into local cache tables.
- * Dependencies: IGPSGateGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
+ * Dependencies: ITrackingGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
  * Last Modified: 2026-03-10
  */
 public class CreateGeofenceCommandHandler : IRequestHandler<CreateGeofenceCommand, FMSResponse<GpsGeofenceDTO>>
 {
-    private readonly IGPSGateGeofenceService _gpsGateGeofenceService;
+    private readonly ITrackingGeofenceService _gpsGateGeofenceService;
     private readonly IGeofenceCacheSyncService _cacheSyncService;
     private readonly GpsdataContext _context;
     private readonly ILogger<CreateGeofenceCommandHandler> _logger;
 
     public CreateGeofenceCommandHandler(
-        IGPSGateGeofenceService gpsGateGeofenceService,
+        ITrackingGeofenceService gpsGateGeofenceService,
         IGeofenceCacheSyncService cacheSyncService,
         GpsdataContext context,
         ILogger<CreateGeofenceCommandHandler> logger)

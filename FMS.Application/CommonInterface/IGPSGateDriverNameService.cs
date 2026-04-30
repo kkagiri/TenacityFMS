@@ -21,7 +21,7 @@ namespace FMS.Application.CommonInterface
     /// API Endpoint: PUT http://10.0.10.150/comGpsGate/api/v.1/applications/12/users/{vehicleId}/customfields/DriverName
     /// Payload: { "name": "DriverName", "value": "{Employee Full Name}" }
     /// </summary>
-    public interface IGPSGateDriverNameService
+    public interface IGPSGateDriverNameService : ITrackingDriverNameService
     {
         /// <summary>
         /// Updates the DriverName custom field in GPSGate for a vehicle.

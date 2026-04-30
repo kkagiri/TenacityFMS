@@ -40,7 +40,7 @@ namespace FMS.WebClient.Controllers
         /// GET /api/v1/GPSGate/tags
         /// </summary>
         [HttpGet("tags")]
-        public async Task<IActionResult> GetTags([FromServices] IGPSGateViewsService viewsService)
+        public async Task<IActionResult> GetTags([FromServices] ITrackingViewsService viewsService)
         {
             try
             {
@@ -69,7 +69,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPost("test-login")]
         [AllowAnonymous]
-        public async Task<IActionResult> TestLogin([FromServices] IGPSGateDirectoryService directoryService)
+        public async Task<IActionResult> TestLogin([FromServices] ITrackingDirectoryService directoryService)
         {
             try
             {
@@ -157,7 +157,7 @@ namespace FMS.WebClient.Controllers
                     return BadRequest(FMSResponse<GenerateReportResponseDto>.Failed("Session ID is required"));
                 }
 
-                var reportingService = HttpContext.RequestServices.GetRequiredService<IGPSGateReportingService>();
+                var reportingService = HttpContext.RequestServices.GetRequiredService<ITrackingReportService>();
 
                 var result = await reportingService.GenerateReportAsync(
                     sessionId,
@@ -218,7 +218,7 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogInformation("Cancelling report with handle {HandleId}", handleId);
 
-                var reportingService = HttpContext.RequestServices.GetRequiredService<IGPSGateReportingService>();
+                var reportingService = HttpContext.RequestServices.GetRequiredService<ITrackingReportService>();
 
                 // Cancel the report
                 var success = await reportingService.CancelReportAsync(sessionId, handleId);

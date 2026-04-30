@@ -8,7 +8,7 @@ import ScrollView from 'devextreme-react/scroll-view';
 import notify from 'devextreme/ui/notify';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import logoTenacy from '../../assets/logoTenacy.png';
+import logoTenacy from '../../assets/logoHyoung.png';
 import {
     fetchPumpTransactions
 } from '../../redux/actions/consumptionActions';

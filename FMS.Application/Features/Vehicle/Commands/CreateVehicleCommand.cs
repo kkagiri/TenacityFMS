@@ -23,13 +23,13 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
     private readonly GpsdataContext _context;
     private readonly ILogger<CreateVehicleCommandHandler> _logger;
     private readonly IMapper _mapper;
-    private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
+    private readonly ITrackingDriverNameService? _gpsGateDriverNameService;
 
     public CreateVehicleCommandHandler(
         GpsdataContext context,
         ILogger<CreateVehicleCommandHandler> logger,
         IMapper mapper,
-        IGPSGateDriverNameService? gpsGateDriverNameService = null)
+        ITrackingDriverNameService? gpsGateDriverNameService = null)
     {
         _context = context;
         _logger = logger;

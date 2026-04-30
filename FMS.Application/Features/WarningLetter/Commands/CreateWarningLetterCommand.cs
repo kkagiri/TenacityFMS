@@ -40,13 +40,13 @@ public class CreateWarningLetterCommandHandler : IRequestHandler<CreateWarningLe
     private readonly GpsdataContext _context;
     private readonly ISystemConfigurationService _systemConfigurationService;
     private readonly ILogger<CreateWarningLetterCommandHandler> _logger;
-    private readonly IGPSGateDriverNameService? _driverNameService;
+    private readonly ITrackingDriverNameService? _driverNameService;
 
     public CreateWarningLetterCommandHandler(
         GpsdataContext context,
         ISystemConfigurationService systemConfigurationService,
         ILogger<CreateWarningLetterCommandHandler> logger,
-        IGPSGateDriverNameService? driverNameService = null)
+        ITrackingDriverNameService? driverNameService = null)
     {
         _context = context;
         _systemConfigurationService = systemConfigurationService;

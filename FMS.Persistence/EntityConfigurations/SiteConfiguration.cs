@@ -23,7 +23,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.ToTable("site", tb => tb.HasComment("			"));
 
@@ -110,8 +110,8 @@ namespace FMS.Persistence.EntityConfigurations
                 //         j =>
                 //         {
                 //             j.HasKey("SiteId", "UserId")
-                //                 .HasName("PRIMARY")
-                //                 .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+                //
+                //;
                 //             j.ToTable("usersite");
                 //             j.HasIndex(new[] { "UserId" }, "UserID_idx");
                 //             j.IndexerProperty<int>("SiteId");

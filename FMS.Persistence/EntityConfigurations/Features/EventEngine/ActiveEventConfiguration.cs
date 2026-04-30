@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities;
+using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,7 +14,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             builder.ToTable("active_events");
 
-            builder.HasKey(e => e.Id).HasName("PRIMARY");
+            builder.HasKey(e => e.Id);
 
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd();
@@ -115,12 +115,12 @@ namespace FMS.Persistence.EntityConfigurations
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_ActiveEvents_Expression");
 
-            // Ignore IssueTrackers navigation for now â€” the issuetracker table
+            // Ignore IssueTrackers navigation for now — the issuetracker table
             // does not yet have an ActiveEventId FK column. This prevents EF from
             // creating a shadow property that fails at query time.
             builder.Ignore(e => e.IssueTrackers);
 
-            // Ignore Notifications navigation for now â€” the notification table
+            // Ignore Notifications navigation for now — the notification table
             // does not yet have an ActiveEventId FK column in current deployments.
             // Without this, EF creates a shadow FK and generates INSERTs that fail.
             builder.Ignore(e => e.Notifications);

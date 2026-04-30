@@ -13,17 +13,17 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<PTSDeviceConnection> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
 
                 builder.ToTable ("deviceconnections");
 
                 builder.HasIndex (e => e.PtsdeviceId, "DeviceConnection_PtsdeviceId_idx");
 
-                builder.Property (e => e.Id).HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
                 builder.Property (e => e.IpAddress).HasMaxLength (45);
-                builder.Property (e => e.ConnectedAt).HasColumnType ("datetime");
-                builder.Property (e => e.DisconnectedAt).HasColumnType ("datetime");
-                builder.Property (e => e.LastActivityAt).HasColumnType ("datetime");
+                builder.Property (e => e.ConnectedAt);
+                builder.Property (e => e.DisconnectedAt);
+                builder.Property (e => e.LastActivityAt);
                 builder.Property (e => e.ConnectionType).HasMaxLength (20);
                 builder.Property (e => e.Status).HasMaxLength (20);
                 builder.Property (e => e.PtsdeviceId).HasMaxLength (100);

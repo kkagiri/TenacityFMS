@@ -146,12 +146,12 @@ public interface IGeofenceSyncJobProcessor
 public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
 {
     private readonly GpsdataContext _context;
-    private readonly IGPSGateGeofenceService _geofenceService;
+    private readonly ITrackingGeofenceService _geofenceService;
     private readonly ILogger<GeofenceSyncJobProcessor> _logger;
 
     public GeofenceSyncJobProcessor(
         GpsdataContext context,
-        IGPSGateGeofenceService geofenceService,
+        ITrackingGeofenceService geofenceService,
         ILogger<GeofenceSyncJobProcessor> logger)
     {
         _context = context;

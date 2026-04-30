@@ -12,7 +12,6 @@
  * - ForWarningLetterSignature(): link to the warning letter preview page (signature request).
  * - ForWarningLetterView(): link to the warning letter view page (signed copy uploaded).
  * - ForIssue(): link to the issue tracker detail page.
- * - ForVehicleTrip(): link to a vehicle trip detail page.
  * - ForVehicleTransfer(): link to a vehicle transfer detail page.
  * - ForActiveEvent(): link to the active events dashboard filtered by event.
  */
@@ -56,11 +55,6 @@ namespace FMS.Application.Features.Notification.Services
 
         public static NotificationLink ForIssue(int issueTrackerId)
             => new NotificationLink($"/issues/{issueTrackerId}", "Open issue");
-
-        // Vehicle trips do not currently have a per-trip detail route, so we link to the
-        // trips list where the user can locate and respond to the trip.
-        public static NotificationLink ForVehicleTrip(int? _tripId)
-            => new NotificationLink("/vehicles/trips", "Open trips");
 
         public static NotificationLink ForVehicleTransfer(int transferId)
             => new NotificationLink($"/vehicles/transfers/{transferId}", "Open transfer");

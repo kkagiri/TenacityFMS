@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: DataSourceManager.VehicleFleet.cs
  * Purpose: Provides dashboard data sources for live GPS fleet counts and trip-distance KPIs.
  * Dependencies: GpsdataContext, IGPSService, VehicleLocationDTO, VehicleTripGroup, DataSourceMetadata
@@ -32,13 +32,7 @@ namespace FMS.Application.Services.Dashboard
         private const string FleetOnlineGpsDataSource = "fleet_online_gps";
         private const string FleetOfflineGpsDataSource = "fleet_offline_gps";
         private const string FleetTotalGpsDataSource = "fleet_total_gps";
-        private const string TripDistanceDataSource = "trip_distance";
         private const string MostVehicleTravelledGpsDataSource = "most_vehicle_travelled_gps";
-        private const string TripInTransitDataSource = "trip_in_transit";
-        private const string VehiclesAtSiteDataSource = "vehicles_at_site";
-        private const string TripCountVsExpectedDataSource = "trip_count_vs_expected";
-        private const string TipperCycleCountDataSource = "tipper_cycle_count";
-        private const string AverageTripDurationDataSource = "average_trip_duration";
 
         private static readonly string[] VehicleFleetDataSourceKeys =
         {
@@ -48,13 +42,7 @@ namespace FMS.Application.Services.Dashboard
             FleetOnlineGpsDataSource,
             FleetOfflineGpsDataSource,
             FleetTotalGpsDataSource,
-            TripDistanceDataSource,
-            MostVehicleTravelledGpsDataSource,
-            TripInTransitDataSource,
-            VehiclesAtSiteDataSource,
-            TripCountVsExpectedDataSource,
-            TipperCycleCountDataSource,
-            AverageTripDurationDataSource
+            MostVehicleTravelledGpsDataSource
         };
 
         private bool IsVehicleFleetDataSource(string canonicalSource)
@@ -76,21 +64,10 @@ namespace FMS.Application.Services.Dashboard
                 FleetOnlineGpsDataSource => await BuildLiveFleetMetricAsync(canonicalSource, "Online GPS Vehicles"),
                 FleetOfflineGpsDataSource => await BuildLiveFleetMetricAsync(canonicalSource, "Offline GPS Vehicles"),
                 FleetTotalGpsDataSource => await BuildLiveFleetMetricAsync(canonicalSource, "Total GPS Vehicles"),
-                TripInTransitDataSource => await BuildTripInTransitSnapshotAsync(request),
-                VehiclesAtSiteDataSource => await BuildVehiclesAtSiteSnapshotAsync(request),
-                TripCountVsExpectedDataSource => await BuildTripCountVsExpectedSnapshotAsync(request),
-                TipperCycleCountDataSource => await BuildTipperCycleSnapshotAsync(request),
-                AverageTripDurationDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
-                    => await BuildAverageTripDurationAggregatedAsync(request, aggregationInterval),
-                AverageTripDurationDataSource => await BuildAverageTripDurationSnapshotAsync(request),
                 MostVehicleTravelledGpsDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
                     => await BuildMostVehicleTravelledGpsAggregatedAsync(request, canonicalSource, aggregationInterval),
                 MostVehicleTravelledGpsDataSource
                     => await BuildMostVehicleTravelledGpsSnapshotAsync(request, canonicalSource),
-                TripDistanceDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
-                    => await BuildTripDistanceAggregatedAsync(request, aggregationInterval),
-                TripDistanceDataSource
-                    => await BuildTripDistanceSnapshotAsync(request),
                 _ => new { error = $"Unsupported vehicle fleet data source: {canonicalSource}", timestamp = DateTime.UtcNow }
             };
         }
@@ -176,119 +153,6 @@ namespace FMS.Application.Services.Dashboard
             var offline = Math.Max(0, totalGps - online);
 
             return (totalGps, online, offline, moving, parked, stopped);
-        }
-
-        private async Task<object> BuildTripDistanceSnapshotAsync(DashboardMetricRequestDto request)
-        {
-            var (startDate, endDate) = ResolveDashboardDateRange(request);
-            var baseQuery = BuildTripDistanceQuery(request, startDate, endDate);
-            var previousStartDate = startDate.AddDays(-((endDate.Date - startDate.Date).Days + 1));
-            var previousEndDate = startDate.AddDays(-1);
-            var previousQuery = BuildTripDistanceQuery(request, previousStartDate, previousEndDate);
-
-            var totalDistance = await baseQuery.SumAsync(group => group.TotalDistanceKm);
-            var previousDistance = await previousQuery.SumAsync(group => group.TotalDistanceKm);
-            var affectedVehiclesCount = await baseQuery.Select(group => group.VehicleId).Distinct().CountAsync();
-            var timeSeries = await BuildTripDistanceSeriesAsync(baseQuery);
-
-            return new
-            {
-                current = new
-                {
-                    value = totalDistance,
-                    unit = "km",
-                    timestamp = DateTime.UtcNow,
-                    label = "Trip Distance"
-                },
-                change = BuildChangePayload(totalDistance, previousDistance),
-                total = totalDistance,
-                timeSeries,
-                additionalInfo = new
-                {
-                    vehicles_count = affectedVehiclesCount
-                },
-                metadata = GetDataSourceMetadata(TripDistanceDataSource)
-            };
-        }
-
-        private async Task<object> BuildTripDistanceAggregatedAsync(
-            DashboardMetricRequestDto request,
-            string aggregationInterval)
-        {
-            var (startDate, endDate) = ResolveDashboardDateRange(request);
-            var baseQuery = BuildTripDistanceQuery(request, startDate, endDate);
-            var dataPoints = await BuildTripDistanceSeriesAsync(baseQuery);
-
-            var values = dataPoints
-                .Select(point => TryDecimal(point.GetType().GetProperty("value")?.GetValue(point)) ?? 0m)
-                .ToList();
-
-            var total = values.Sum();
-            var count = values.Count;
-            var average = count > 0 ? Math.Round(total / count, 2) : 0m;
-            var min = count > 0 ? values.Min() : 0m;
-            var max = count > 0 ? values.Max() : 0m;
-
-            return new
-            {
-                aggregationType = aggregationInterval,
-                granularity = "day",
-                dataPoints,
-                summary = new
-                {
-                    total = Math.Round(total, 2),
-                    average,
-                    min,
-                    max,
-                    count
-                },
-                metadata = GetDataSourceMetadata(TripDistanceDataSource)
-            };
-        }
-
-        private IQueryable<FMS.Domain.Entities.VehicleTripGroup> BuildTripDistanceQuery(
-            DashboardMetricRequestDto request,
-            DateTime startDate,
-            DateTime endDate)
-        {
-            var query = _context.VehicleTripGroups
-                .AsNoTracking()
-                .Where(group => group.TripDate >= startDate.Date && group.TripDate <= endDate.Date);
-
-            if (request.VehicleIds != null && request.VehicleIds.Any())
-            {
-                query = query.Where(group => request.VehicleIds.Contains(group.VehicleId));
-            }
-
-            if (request.SiteIds != null && request.SiteIds.Any())
-            {
-                query = query.Where(group =>
-                    (group.OriginSiteId.HasValue && request.SiteIds.Contains(group.OriginSiteId.Value)) ||
-                    (group.DestinationSiteId.HasValue && request.SiteIds.Contains(group.DestinationSiteId.Value)));
-            }
-
-            return query;
-        }
-
-        private async Task<List<object>> BuildTripDistanceSeriesAsync(IQueryable<FMS.Domain.Entities.VehicleTripGroup> query)
-        {
-            var grouped = await query
-                .GroupBy(group => group.TripDate.Date)
-                .Select(group => new
-                {
-                    TripDate = group.Key,
-                    Value = group.Sum(item => item.TotalDistanceKm)
-                })
-                .OrderBy(item => item.TripDate)
-                .ToListAsync();
-
-            return grouped
-                .Select(item => (object)new
-                {
-                    timestamp = item.TripDate,
-                    value = item.Value
-                })
-                .ToList();
         }
 
         private static (DateTime startDate, DateTime endDate) ResolveDashboardDateRange(DashboardMetricRequestDto request)
@@ -380,46 +244,5 @@ namespace FMS.Application.Services.Dashboard
             };
         }
 
-        private static DataSourceMetadata CreateTripDistanceMetadata()
-        {
-            return new DataSourceMetadata
-            {
-                DisplayName = "Trip Distance",
-                Unit = "km",
-                SupportedUnits = new List<string> { "km" },
-                Description = "GPS trip-group distance aggregated from persisted vehicle trip groups.",
-                SupportsLiveData = false,
-                SupportsHistoricalData = true,
-                SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated", "compare_periods" },
-                SupportedAggregations = new List<string> { "sum", "avg" },
-                SupportedGroupBy = new List<string> { "none", "site" },
-                DefaultGroupBy = "none",
-                DefaultAggregation = "sum",
-                SupportedGranularities = new List<string> { "day", "week" },
-                DefaultGranularity = "day",
-                DefaultMode = "historical_snapshot",
-                RecommendedUnits = new List<string> { "km" },
-                CompatibleWidgetTypes = new List<string>
-                {
-                    "BIG_STAT_CARD",
-                    "CHART_LINE_TREND",
-                    "CHART_BAR_COMPARISON"
-                },
-                RequiresSiteFilter = false,
-                RequiresVehicleFilter = false,
-                DefaultConfiguration = new Dictionary<string, object>
-                {
-                    ["aggregation"] = "sum",
-                    ["granularity"] = "day",
-                    ["datePreset"] = "today",
-                    ["unit"] = "km",
-                    ["mode"] = "historical_snapshot"
-                },
-                Category = WidgetTypeDefinitions.Categories.VEHICLE_PERFORMANCE,
-                RefreshIntervalSeconds = 300,
-                IncludeTotalDefault = true,
-                TopKDefault = 10
-            };
-        }
     }
 }

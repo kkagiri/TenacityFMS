@@ -14,17 +14,17 @@ namespace FMS.Application.Features.Geofence.Commands;
 /**
  * File: UpdateGeofenceGroupCommandHandler.cs
  * Purpose: Updates a synced GPSGate geofence group and refreshes its local cache record.
- * Dependencies: IGPSGateGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
+ * Dependencies: ITrackingGeofenceService, IGeofenceCacheSyncService, GpsdataContext.
  * Last Modified: 2026-03-10
  */
 public class UpdateGeofenceGroupCommandHandler : IRequestHandler<UpdateGeofenceGroupCommand, FMSResponse<GpsGeofenceGroupDTO>>
 {
-    private readonly IGPSGateGeofenceService _gpsGateGeofenceService;
+    private readonly ITrackingGeofenceService _gpsGateGeofenceService;
     private readonly IGeofenceCacheSyncService _cacheSyncService;
     private readonly GpsdataContext _context;
 
     public UpdateGeofenceGroupCommandHandler(
-        IGPSGateGeofenceService gpsGateGeofenceService,
+        ITrackingGeofenceService gpsGateGeofenceService,
         IGeofenceCacheSyncService cacheSyncService,
         GpsdataContext context)
     {

@@ -13,7 +13,7 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<FuelTag> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
 
                 builder.ToTable ("tag");
 
@@ -22,15 +22,14 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => e.Name, "Name_UNIQUE").IsUnique ();
 
                 builder.Property (e => e.Id)
-                    .ValueGeneratedNever ()
-                    .HasColumnType ("int(11)");
+                    .ValueGeneratedNever ();
 
-                builder.Property (e => e.FuelRuleSetId).HasColumnType ("int(11)");
+                builder.Property (e => e.FuelRuleSetId);
 
                 builder.Property (e => e.IsEnabled).HasDefaultValueSql ("'1'");
                 builder.Property (e => e.IsMaster).HasDefaultValueSql ("'0'");
                 builder.Property (e => e.Name).HasMaxLength (100);
-                builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+                builder.Property (e => e.VehicleId);
 
                 // Relationships
                 builder.HasOne (d => d.FuelRuleSet).WithMany (p => p.Tags)

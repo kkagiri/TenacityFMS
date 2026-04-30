@@ -13,20 +13,19 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<Tankmeasurement> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
                 builder.ToTable ("tankmeasurement");
 
-                builder.Property (e => e.Id)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
 
                 builder.Property (e => e.ConfigurationId).HasMaxLength (45);
-                builder.Property (e => e.FuelGradeId).HasColumnType ("int(11)");
-                builder.Property (e => e.PacketId).HasColumnType ("int(11)");
+                builder.Property (e => e.FuelGradeId);
+                builder.Property (e => e.PacketId);
                 builder.Property (e => e.ProductTcvolume);
                 builder.Property (e => e.Ptsid);
                 builder.Property (e => e.Status).HasMaxLength (45);
-                builder.Property (e => e.Tank).HasColumnType ("int(11)");
-                builder.Property (e => e.TankFillingPercentage).HasColumnType ("int(11)");
+                builder.Property (e => e.Tank);
+                builder.Property (e => e.TankFillingPercentage);
                 builder.Property (e => e.WaterHeight);
 
                 // Add new properties configuration
@@ -35,7 +34,6 @@ namespace FMS.Persistence.EntityConfigurations {
                     .IsRequired (false);
 
                 builder.Property (e => e.TankId)
-                    .HasColumnType ("int(11)")
                     .IsRequired (false);
 
                 // Add relationship to Tank entity

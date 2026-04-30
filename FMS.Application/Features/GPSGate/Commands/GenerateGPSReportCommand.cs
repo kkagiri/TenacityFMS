@@ -1,7 +1,7 @@
 /**
  * File: GenerateGPSReportCommand.cs
  * Purpose: Validates GPSGate report requests and triggers report generation.
- * Dependencies: MediatR, IGPSGateReportingService, IGPSGateDirectoryService, FMSResponse
+ * Dependencies: MediatR, ITrackingReportService, ITrackingDirectoryService, FMSResponse
  * Last Modified: 2026-01-26
  *
  * Key Classes:
@@ -26,13 +26,13 @@ namespace FMS.Application.Features.GPSGate.Commands
 
     public class GenerateGPSReportCommandHandler : IRequestHandler<GenerateGPSReportCommand, FMSResponse<GenerateReportResponseDto>>
     {
-        private readonly IGPSGateReportingService _reportingService;
-        private readonly IGPSGateDirectoryService _directoryService;
+        private readonly ITrackingReportService _reportingService;
+        private readonly ITrackingDirectoryService _directoryService;
         private readonly ILogger<GenerateGPSReportCommandHandler> _logger;
 
         public GenerateGPSReportCommandHandler(
-            IGPSGateReportingService reportingService,
-            IGPSGateDirectoryService directoryService,
+            ITrackingReportService reportingService,
+            ITrackingDirectoryService directoryService,
             ILogger<GenerateGPSReportCommandHandler> logger)
         {
             _reportingService = reportingService;

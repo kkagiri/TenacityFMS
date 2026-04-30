@@ -5,14 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace FMS.Persistence.EntityConfigurations {
     public class TagMonitoringConfigConfiguration : EntityTypeConfiguration<VehicleLocationTagMonitoringConfig> {
         public override void Configure (EntityTypeBuilder<VehicleLocationTagMonitoringConfig> builder) {
-            builder.HasKey (e => e.Id).HasName ("PRIMARY");
+            builder.HasKey (e => e.Id);
             builder.ToTable ("tag_monitoring_config");
 
             builder.Property (e => e.Id)
-                .ValueGeneratedOnAdd ()
-                .HasColumnType ("int(11)");
+                .ValueGeneratedOnAdd ();
 
-            builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+            builder.Property (e => e.VehicleId);
             builder.Property (e => e.TagName).HasMaxLength (100);
             builder.Property (e => e.IsEnabled).HasDefaultValueSql ("'1'");
             builder.Property (e => e.IgnoredLocations).HasMaxLength (255);

@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.AssetId).HasName("PRIMARY");
+                builder.HasKey(e => e.AssetId);
 
                 builder.ToTable("asset");
 

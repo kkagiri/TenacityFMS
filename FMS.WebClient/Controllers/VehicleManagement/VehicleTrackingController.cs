@@ -1,7 +1,7 @@
 /// <summary>
 /// File: VehicleTrackingController.cs
 /// Purpose: Exposes vehicle tracking APIs including live location retrieval and user preference persistence.
-/// Dependencies: MediatR, GPS provider services, GpsdataContext, FMSResponse, VehicleTrackingUserPreferenceDto
+/// Dependencies: MediatR, tracking provider services, GpsdataContext, FMSResponse, VehicleTrackingUserPreferenceDto
 /// Last Modified: 2026-03-09
 ///
 /// Key Actions:
@@ -13,6 +13,7 @@ using System.Security.Claims;
 using FMS.Application.Features.Vehicle.Queries.VehicleTracking;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Common;
+using FMS.Devices.Abstractions.Common;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using FMS.Persistence.DataAccess;
@@ -37,16 +38,16 @@ namespace FMS.WebClient.Controllers
         private const string VehicleTrackingPreferenceLayoutName = "VehicleTracking.Preference";
         private readonly IMediator _mediator;
         private readonly IGPSService _gpsService;
-        private readonly IGPSGateViewsService _viewsService;
-        private readonly IGPSGateTracksService _tracksService;
+        private readonly ITrackingViewsService _viewsService;
+        private readonly ITrackingTracksService _tracksService;
         private readonly GpsdataContext _context;
         private readonly ILogger<VehicleTrackingController> _logger;
 
         public VehicleTrackingController(
             IMediator mediator,
             IGPSService gpsService,
-            IGPSGateViewsService viewsService,
-            IGPSGateTracksService tracksService,
+            ITrackingViewsService viewsService,
+            ITrackingTracksService tracksService,
             GpsdataContext context,
             ILogger<VehicleTrackingController> logger)
         {
@@ -477,7 +478,7 @@ namespace FMS.WebClient.Controllers
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive
-                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.DeviceCategory == DeviceCategory.Tracking.ToString()
                         && m.ProviderConfiguration.IsEnabled)
                     .FirstOrDefaultAsync();
 

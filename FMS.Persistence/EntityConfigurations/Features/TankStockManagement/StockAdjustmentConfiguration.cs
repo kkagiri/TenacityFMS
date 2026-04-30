@@ -15,7 +15,7 @@ namespace FMS.Persistence.EntityConfigurations {
             try {
                 // Table configuration
                 builder.ToTable ("stock_adjustments");
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
 
                 // Indexes
                 builder.HasIndex (e => e.TankId, "idx_stock_adjustments_tank_id");
@@ -26,17 +26,13 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => new { e.TankId, e.AdjustmentDate }, "idx_stock_adjustments_tank_date");
 
                 // Column configurations
-                builder.Property (e => e.Id)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
 
-                builder.Property (e => e.TankId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.TankId);
 
-                builder.Property (e => e.SiteId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.SiteId);
 
-                builder.Property (e => e.AdjustmentDate)
-                    .HasColumnType ("datetime");
+                builder.Property (e => e.AdjustmentDate);
 
                 builder.Property (e => e.PreviousVolume)
                     .HasPrecision (10, 2);
@@ -48,11 +44,9 @@ namespace FMS.Persistence.EntityConfigurations {
                     .HasPrecision (10, 2);
 
                 builder.Property (e => e.AdjustmentType)
-                    .HasColumnType ("tinyint(4)")
                     .HasComment ("0=Increase, 1=Decrease, 2=Correction");
 
-                builder.Property (e => e.ReasonCode)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.ReasonCode);
 
                 builder.Property (e => e.Reason)
                     .HasMaxLength (200)
@@ -66,30 +60,24 @@ namespace FMS.Persistence.EntityConfigurations {
                     .IsRequired ();
 
                 builder.Property (e => e.CreatedOn)
-                    .HasColumnType ("datetime")
                     .HasDefaultValueSql ("CURRENT_TIMESTAMP");
 
                 builder.Property (e => e.ApprovedBy)
                     .HasMaxLength (100);
 
-                builder.Property (e => e.ApprovedOn)
-                    .HasColumnType ("datetime");
+                builder.Property (e => e.ApprovedOn);
 
                 builder.Property (e => e.Status)
-                    .HasColumnType ("tinyint(4)")
                     .HasDefaultValue (1)
                     .HasComment ("0=Pending, 1=Approved, 2=Rejected");
 
-                builder.Property (e => e.TankVolumeHistoryId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.TankVolumeHistoryId);
 
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
-                    .HasColumnType ("tinyint(1)")
                     .HasDefaultValue (false);
 
-                builder.Property (e => e.DeletedAt)
-                    .HasColumnType ("datetime");
+                builder.Property (e => e.DeletedAt);
 
                 builder.Property (e => e.DeletedBy)
                     .HasMaxLength (450);

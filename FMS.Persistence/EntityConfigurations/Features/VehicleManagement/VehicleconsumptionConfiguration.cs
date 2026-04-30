@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.Id).HasName("PRIMARY");
+                builder.HasKey(e => e.Id);
 
                 builder.ToTable("vehicleconsumption");
 
@@ -41,10 +41,10 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.FuelEfficiency).HasPrecision(10, 2);
                 builder.Property(e => e.FuelLost).HasPrecision(10, 2);
                 builder.Property(e => e.IsKmperLiter)
-                    .HasDefaultValueSql("b'0'");
+                    .HasDefaultValue(0UL);
                 builder.Property(e => e.IsModified);
                 builder.Property(e => e.IsNightShift)
-                    .HasDefaultValueSql("b'0'");
+                    .HasDefaultValue(0UL);
                 builder.Property(e => e.MaxSpeed).HasPrecision(10, 2);
                 builder.Property(e => e.ModifiedBy);
                 builder.Property(e => e.ReportId).HasMaxLength(100);

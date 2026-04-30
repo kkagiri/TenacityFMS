@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities.Dashboard;
+using FMS.Domain.Entities.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -10,7 +10,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             builder.ToTable("dashboard_widget_instance");
 
-            builder.HasKey(x => x.Id).HasName("PRIMARY");
+            builder.HasKey(x => x.Id);
 
             // User and identification
             builder.Property(x => x.UserId).HasMaxLength(100).IsRequired();
@@ -34,7 +34,7 @@ namespace FMS.Persistence.EntityConfigurations
 
             // Audit fields
             builder.Property(x => x.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            builder.Property(x => x.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+            builder.Property(x => x.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
             // Indexes
             builder.HasIndex(x => x.UserId).HasDatabaseName("IX_DashboardWidgetInstance_User");

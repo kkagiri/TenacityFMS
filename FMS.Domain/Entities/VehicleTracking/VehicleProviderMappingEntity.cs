@@ -19,10 +19,33 @@ namespace FMS.Domain.Entities.VehicleTracking
         public int Id { get; set; }
 
         /// <summary>
-        /// Vehicle ID from vehicles table
+        /// Tenant that owns this mapping. <see cref="System.Guid.Empty"/> is reserved for
+        /// the system tenant during the tenancy migration.
+        /// </summary>
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        /// <summary>
+        /// Top-level device family this mapping belongs to (Tracking, Fueling, Atg).
+        /// </summary>
+        [Required]
+        [MaxLength(40)]
+        [Column("device_category")]
+        public string DeviceCategory { get; set; } = "Tracking";
+
+        /// <summary>
+        /// Vehicle ID from vehicles table. Nullable to allow fueling device mappings that have
+        /// no vehicle counterpart (T1.9 widening).
         /// </summary>
         [Column("vehicle_id")]
-        public int VehicleId { get; set; }
+        public int? VehicleId { get; set; }
+
+        /// <summary>
+        /// Fueling device ID (e.g. PTS device id) when <see cref="DeviceCategory"/> is Fueling.
+        /// Nullable; populated only for fueling mappings.
+        /// </summary>
+        [Column("fueling_device_id")]
+        public int? FuelingDeviceId { get; set; }
 
         /// <summary>
         /// Provider configuration ID

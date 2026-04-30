@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.VehicleTransfer.Commands;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +60,7 @@ public class VehicleSiteAutoAssignmentService : IVehicleSiteAutoAssignmentServic
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<VehicleSiteAutoAssignmentService> _logger;
-    private readonly IGpsGateTagTransferService? _tagTransferService;
+    private readonly ITrackingTagTransferService? _tagTransferService;
 
     /// <summary>
     /// Number of consecutive refuels required at the same site to trigger auto-assignment
@@ -74,7 +75,7 @@ public class VehicleSiteAutoAssignmentService : IVehicleSiteAutoAssignmentServic
     public VehicleSiteAutoAssignmentService(
         GpsdataContext context,
         ILogger<VehicleSiteAutoAssignmentService> logger,
-        IGpsGateTagTransferService? tagTransferService = null)
+        ITrackingTagTransferService? tagTransferService = null)
     {
         _context = context;
         _logger = logger;

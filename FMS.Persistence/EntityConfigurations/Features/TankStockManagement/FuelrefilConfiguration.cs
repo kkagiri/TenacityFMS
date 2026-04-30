@@ -10,9 +10,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => new { e.Id, e.TankId })
-                    .HasName("PRIMARY")
-                    .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+                builder.HasKey(e => new { e.Id, e.TankId });
 
                 builder.ToTable("fuelrefil");
 

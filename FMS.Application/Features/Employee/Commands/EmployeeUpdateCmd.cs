@@ -24,13 +24,13 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<EmployeeUpdateCmdHandler> _logger;
-        private readonly IGPSGateDriverNameService? _gpsGateDriverNameService;
+        private readonly ITrackingDriverNameService? _gpsGateDriverNameService;
 
         public EmployeeUpdateCmdHandler(
             GpsdataContext context,
             IMapper mapper,
             ILogger<EmployeeUpdateCmdHandler> logger,
-            IGPSGateDriverNameService? gpsGateDriverNameService = null)
+            ITrackingDriverNameService? gpsGateDriverNameService = null)
         {
             _context = context;
             _logger = logger;

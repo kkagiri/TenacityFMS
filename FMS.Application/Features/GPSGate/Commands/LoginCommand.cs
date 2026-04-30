@@ -14,11 +14,11 @@ namespace FMS.Application.Features.GPSGate.Commands
 
     public class LoginCommandHandler : IRequestHandler<LoginCommand, FMSResponse<LoginResponseDto>>
     {
-        private readonly IGPSGateDirectoryService _directoryService;
+        private readonly ITrackingDirectoryService _directoryService;
         private readonly ILogger<LoginCommandHandler> _logger;
 
         public LoginCommandHandler(
-            IGPSGateDirectoryService directoryService,
+            ITrackingDirectoryService directoryService,
             ILogger<LoginCommandHandler> logger)
         {
             _directoryService = directoryService;

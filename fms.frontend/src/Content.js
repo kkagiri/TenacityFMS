@@ -1,16 +1,22 @@
 ﻿/**
  * File: Content.js
  * Purpose: Defines application routing and global layout wrappers
- * Dependencies: react-router-dom, react-redux, AppDrawerLayout
- * Last Modified: 2026-01-19
+ * Dependencies: react-router-dom, react-redux, SideNavOuterToolbar, AdminLayout
+ * Last Modified: 2026-04-29
  *
  * Key Functions/Components:
  * - Content(): Root route configuration and layout composition
+ *
+ * Layout Standard:
+ * - All feature applications render inside SideNavOuterToolbar (Inspinia shell)
+ *   with the shared backend-driven side navigation menu.
+ * - Admin (/admin/*) renders OUTSIDE the Inspinia shell as its own full-page
+ *   layout so AdminLayout owns the sidebar + header chrome end-to-end.
  */
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import React from "react";
 import appInfo from "./app-info";
-import { AppDrawerLayout } from "./layouts";
+import { SideNavOuterToolbar } from "./layouts";
 import { Footer } from "./components";
 
 import { useSelector } from "react-redux";
@@ -64,8 +70,30 @@ export default function Content() {
     );
   }
 
+  // Admin runs as its own full-page shell (own sidebar + header from AdminLayout).
+  // It is rendered OUTSIDE the Inspinia SideNavOuterToolbar by design.
+  if (location.pathname.startsWith("/admin")) {
+    return (
+      <Routes>
+        <Route
+          path="/admin"
+          element={React.createElement(
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
+          )}
+        />
+        <Route
+          path="/admin/*"
+          element={React.createElement(
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
+          )}
+        />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    );
+  }
+
   return (
-    <AppDrawerLayout title={appInfo.title}>
+    <SideNavOuterToolbar title={appInfo.title}>
       <Routes>
         <Route path="/change-password-required" element={<ForcePasswordChangePage />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
@@ -137,19 +165,8 @@ export default function Content() {
           element={React.createElement(resolvedComponents("notification-center"))}
         />
 
-        {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
-        <Route
-          path="/admin"
-          element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
-          )}
-        />
-        <Route
-          path="/admin/*"
-          element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
-          )}
-        />
+        {/* Admin routes intentionally NOT here — admin renders OUTSIDE this shell.
+            See the early-return branch above for /admin/* handling. */}
 
         {/* PTS Terminal Test Page - ISOLATED for debugging */}
         <Route
@@ -303,6 +320,6 @@ export default function Content() {
           </div>
         </div>
       </Footer>
-    </AppDrawerLayout>
+    </SideNavOuterToolbar>
   );
 }

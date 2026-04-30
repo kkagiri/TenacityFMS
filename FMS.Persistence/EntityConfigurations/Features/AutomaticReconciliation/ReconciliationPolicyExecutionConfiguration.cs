@@ -14,7 +14,7 @@
          /// <param name="builder">The entity type builder</param>
          public override void Configure (EntityTypeBuilder<ReconciliationPolicyExecution> builder) {
              try {
-                 builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                 builder.HasKey (e => e.Id);
 
                  builder.ToTable ("reconciliationpolicyexecution");
 
@@ -24,15 +24,15 @@
                  builder.HasIndex (e => e.Status, "IX_ReconciliationPolicyExecution_Status");
 
                  // Properties
-                 builder.Property (e => e.Id).HasColumnType ("int(11)");
-                 builder.Property (e => e.PolicyId).HasColumnType ("int(11)").IsRequired ();
-                 builder.Property (e => e.ExecutionStartTime).HasColumnType ("datetime").IsRequired ();
-                 builder.Property (e => e.ExecutionEndTime).HasColumnType ("datetime");
-                 builder.Property (e => e.Status).HasColumnType ("int(11)").IsRequired ();
-                 builder.Property (e => e.TanksEvaluated).HasColumnType ("int(11)").HasDefaultValue (0);
-                 builder.Property (e => e.DiscrepanciesDetected).HasColumnType ("int(11)").HasDefaultValue (0);
-                 builder.Property (e => e.TanksReconciled).HasColumnType ("int(11)").HasDefaultValue (0);
-                 builder.Property (e => e.ReconciliationFailures).HasColumnType ("int(11)").HasDefaultValue (0);
+                 builder.Property (e => e.Id);
+                 builder.Property (e => e.PolicyId).IsRequired ();
+                 builder.Property (e => e.ExecutionStartTime).IsRequired ();
+                 builder.Property (e => e.ExecutionEndTime);
+                 builder.Property (e => e.Status).IsRequired ();
+                 builder.Property (e => e.TanksEvaluated).HasDefaultValue (0);
+                 builder.Property (e => e.DiscrepanciesDetected).HasDefaultValue (0);
+                 builder.Property (e => e.TanksReconciled).HasDefaultValue (0);
+                 builder.Property (e => e.ReconciliationFailures).HasDefaultValue (0);
                  builder.Property (e => e.TotalVolumeVariance).HasPrecision (10, 2);
                  builder.Property (e => e.AveragePercentageVariance).HasPrecision (5, 2);
                  builder.Property (e => e.ExecutionDurationMs).HasColumnType ("bigint");

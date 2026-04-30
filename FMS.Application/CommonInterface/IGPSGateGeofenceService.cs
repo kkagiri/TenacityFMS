@@ -11,7 +11,7 @@ namespace FMS.Application.CommonInterface;
 /// This abstraction allows the Application layer to work with geofences
 /// without depending on the Infrastructure layer.
 /// </summary>
-public interface IGPSGateGeofenceService
+public interface ITrackingGeofenceService
 {
     #region Geofence Operations
 
@@ -128,4 +128,8 @@ public interface IGPSGateGeofenceService
     Task<FMSResponse<bool>> RemoveGeofenceFromGroupAsync(int groupId, int geofenceId);
 
     #endregion
+}
+
+public interface IGPSGateGeofenceService : ITrackingGeofenceService
+{
 }

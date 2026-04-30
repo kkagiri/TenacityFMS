@@ -27,7 +27,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.VehicleId).HasName("PRIMARY");
+                builder.HasKey(e => e.VehicleId);
 
                 builder.ToTable("vehicle");
 
@@ -51,7 +51,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.DefaultEmployeeId);
                 builder.Property(e => e.DefaultExptdAvgid);
                 //builder.Property (e => e.DeviceId)
-                //    .HasColumnType ("int(11)")
+                //
                 //;
                 builder.Property(e => e.ExcessWorkingHrCost).HasPrecision(10);
                 builder.Property(e => e.GpsgategeneratedId);
@@ -102,16 +102,6 @@ namespace FMS.Persistence.EntityConfigurations
                 //builder.HasOne (d => d.Device).WithMany (p => p.Vehicles)
                 //    .HasForeignKey (d => d.DeviceId)
                 //    .HasConstraintName ("Vehicle_Device");
-
-                builder.HasMany(v => v.VehicleTripGroups)
-                    .WithOne(g => g.Vehicle)
-                    .HasForeignKey(g => g.VehicleId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                builder.HasMany(v => v.VehicleTrips)
-                    .WithOne(t => t.Vehicle)
-                    .HasForeignKey(t => t.VehicleId)
-                    .OnDelete(DeleteBehavior.Restrict);
 
                 builder.HasOne(d => d.ModifiedByNavigation).WithMany(p => p.Vehicles)
                     .HasForeignKey(d => d.ModifiedBy)

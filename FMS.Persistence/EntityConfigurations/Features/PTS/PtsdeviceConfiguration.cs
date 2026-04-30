@@ -17,7 +17,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             try
             {
-                builder.HasKey(e => e.Ptsid).HasName("PRIMARY");
+                builder.HasKey(e => e.Ptsid);
 
                 builder.ToTable("ptsdevice");
 

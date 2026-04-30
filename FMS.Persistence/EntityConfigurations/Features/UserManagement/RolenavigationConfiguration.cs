@@ -13,18 +13,17 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<Rolenavigation> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
 
                 builder.ToTable ("rolenavigation");
 
-                builder.Property (e => e.Id).HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
 
                 builder.Property (e => e.RoleId)
                     .IsRequired ()
                     .HasMaxLength (100);
 
-                builder.Property (e => e.NavigationItemId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.NavigationItemId);
 
                 // Configure relationships with Restrict delete behavior
                 builder.HasOne (e => e.NavigationItem)

@@ -18,7 +18,7 @@ using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 
 namespace FMS.Infrastructure.VehicleTracking.Services
 {
-    public class GPSGateTrackInfoSummaryServiceAdapter : IGPSGateTrackInfoSummaryService
+    public class GPSGateTrackInfoSummaryServiceAdapter : IGPSGateTrackInfoSummaryService, ITrackingTrackInfoSummaryService
     {
         private readonly IGPSGateTrackInfoService _trackInfoService;
 

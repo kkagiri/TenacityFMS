@@ -13,7 +13,7 @@ namespace FMS.Persistence.EntityConfigurations {
         /// <param name="builder">The entity type builder</param>
         public override void Configure (EntityTypeBuilder<TankTransfer> builder) {
             try {
-                builder.HasKey (e => e.Id).HasName ("PRIMARY");
+                builder.HasKey (e => e.Id);
 
                 builder.ToTable ("tanktransfer");
 
@@ -22,33 +22,29 @@ namespace FMS.Persistence.EntityConfigurations {
                 builder.HasIndex (e => e.DestinationTankId, "dest_idx");
                 builder.HasIndex (e => e.RecordedBy, "recordedby_idx");
 
-                builder.Property (e => e.Id).HasColumnType ("int(11)");
-                builder.Property (e => e.SourceTankId).HasColumnType ("int(11)");
-                builder.Property (e => e.DestinationTankId).HasColumnType ("int(11)");
+                builder.Property (e => e.Id);
+                builder.Property (e => e.SourceTankId);
+                builder.Property (e => e.DestinationTankId);
                 // Schema requires DECIMAL(10,0)
                 builder.Property (e => e.Amount).HasPrecision (10, 0);
-                builder.Property (e => e.TransferDate).HasColumnType ("datetime");
+                builder.Property (e => e.TransferDate);
                 builder.Property (e => e.RecordedBy).HasMaxLength (100);
-                builder.Property (e => e.CreatedOn).HasColumnType ("datetime");
+                builder.Property (e => e.CreatedOn);
 
                 // Soft delete properties
                 builder.Property (e => e.IsDeleted)
-                    .HasColumnType ("tinyint(1)")
                     .HasDefaultValue (false);
 
-                builder.Property (e => e.DeletedAt)
-                    .HasColumnType ("datetime");
+                builder.Property (e => e.DeletedAt);
 
                 builder.Property (e => e.DeletedBy)
                     .HasMaxLength (450);
 
                 // Correction tracking properties
                 builder.Property (e => e.IsCorrection)
-                    .HasColumnType ("tinyint(1)")
                     .HasDefaultValue (false);
 
-                builder.Property (e => e.CorrectsRecordId)
-                    .HasColumnType ("int(11)");
+                builder.Property (e => e.CorrectsRecordId);
 
                 builder.Property (e => e.CorrectionReason)
                     .HasMaxLength (200);

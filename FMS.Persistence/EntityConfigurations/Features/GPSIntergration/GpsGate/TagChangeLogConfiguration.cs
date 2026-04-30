@@ -5,19 +5,18 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace FMS.Persistence.EntityConfigurations {
     public class TagChangeLogConfiguration : EntityTypeConfiguration<VehicleTagChangeLog> {
         public override void Configure (EntityTypeBuilder<VehicleTagChangeLog> builder) {
-            builder.HasKey (e => e.Id).HasName ("PRIMARY");
+            builder.HasKey (e => e.Id);
             builder.ToTable ("tag_change_log");
 
             builder.Property (e => e.Id)
-                .ValueGeneratedOnAdd ()
-                .HasColumnType ("int(11)");
+                .ValueGeneratedOnAdd ();
 
-            builder.Property (e => e.VehicleId).HasColumnType ("int(11)");
+            builder.Property (e => e.VehicleId);
             builder.Property (e => e.Username).HasMaxLength (100);
             builder.Property (e => e.OldTag).HasMaxLength (100);
             builder.Property (e => e.NewTag).HasMaxLength (100);
             builder.Property (e => e.Location).HasMaxLength (255);
-            builder.Property (e => e.Timestamp).HasColumnType ("datetime");
+            builder.Property (e => e.Timestamp);
             builder.Property (e => e.Action).HasMaxLength (50);
             builder.Property (e => e.Note).HasMaxLength (255);
 

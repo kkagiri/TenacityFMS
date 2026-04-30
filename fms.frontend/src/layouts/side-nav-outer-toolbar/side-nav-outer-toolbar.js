@@ -18,6 +18,10 @@ export default function SideNavOuterToolbar({ title, children }) {
     isLarge ? MenuStatus.Opened : MenuStatus.Closed
   );
 
+  useEffect(() => {
+    setMenuStatus(isLarge ? MenuStatus.Opened : MenuStatus.Closed);
+  }, [isLarge]);
+
   // Handle outside clicks
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,7 +68,7 @@ export default function SideNavOuterToolbar({ title, children }) {
 
       navigate(itemData.path); //only thing has changed
 
-        scrollViewRef.current.instance.scrollTo(0);
+      scrollViewRef.current.instance.scrollTo(0);
 
       if (!isLarge || menuStatus === MenuStatus.TemporaryOpened) {
         setMenuStatus(MenuStatus.Closed);
@@ -85,7 +89,7 @@ export default function SideNavOuterToolbar({ title, children }) {
   }, [menuStatus]);
 
   return (
-    <div className={"side-nav-outer-toolbar"}>
+    <div className={"side-nav-outer-toolbar inspinia-shell"}>
       <Header
         menuToggleEnabled={true}
         toggleMenu={toggleMenu}

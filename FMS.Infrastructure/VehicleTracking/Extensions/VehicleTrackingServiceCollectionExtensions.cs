@@ -73,16 +73,19 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             services.AddHttpClient<IGPSGateTracksService, GPSGateTracksService>();
             services.TryAddScoped<IGPSGateTracksService, GPSGateTracksService>();
+            services.AddHttpClient<ITrackingTracksService, GPSGateTracksService>();
 
             services.AddHttpClient<IGPSGateTrackInfoService, GPSGateTrackInfoService>();
             services.TryAddScoped<IGPSGateTrackInfoService, GPSGateTrackInfoService>();
             services.TryAddScoped<FMS.Application.Features.VehicleTracking.Services.IGPSGateTrackInfoSummaryService, GPSGateTrackInfoSummaryServiceAdapter>();
+            services.TryAddScoped<FMS.Application.Features.VehicleTracking.Services.ITrackingTrackInfoSummaryService, GPSGateTrackInfoSummaryServiceAdapter>();
 
             services.AddHttpClient<IGPSGateSensorService, GPSGateSensorService>();
             services.TryAddScoped<IGPSGateSensorService, GPSGateSensorService>();
 
             services.AddHttpClient<FMS.Application.CommonInterface.IGPSGateGeofenceService, GPSGateGeofenceService>();
             services.TryAddScoped<FMS.Application.CommonInterface.IGPSGateGeofenceService, GPSGateGeofenceService>();
+            services.AddHttpClient<FMS.Application.CommonInterface.ITrackingGeofenceService, GPSGateGeofenceService>();
 
             // Geofence sync job processor for background sync operations
             services.TryAddScoped<FMS.Application.Features.Geofence.Commands.IGeofenceSyncJobProcessor,
@@ -99,6 +102,7 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             services.AddHttpClient<IGPSGateViewsService, GPSGateViewsService>();
             services.TryAddScoped<IGPSGateViewsService, GPSGateViewsService>();
+            services.AddHttpClient<ITrackingViewsService, GPSGateViewsService>();
 
             // Register GPSGate Tag Management Service for vehicle transfer tag updates
             services.AddHttpClient<IGpsGateTagManagementService, GpsGateTagManagementService>();
@@ -106,6 +110,7 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
 
             // Register GPSGate Tag Transfer Service adapter for Application layer integration
             services.TryAddScoped<FMS.Application.Features.VehicleTransfer.Commands.IGpsGateTagTransferService, GpsGateTagTransferServiceAdapter>();
+            services.TryAddScoped<ITrackingTagTransferService, GpsGateTagTransferServiceAdapter>();
 
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
@@ -113,9 +118,7 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             // Register GPSGate DriverName Service for updating driver name custom field during fueling
             services.AddHttpClient<IGPSGateDriverNameService, GPSGateDriverNameService>();
             services.TryAddScoped<IGPSGateDriverNameService, GPSGateDriverNameService>();
-
-            // Register Odometer Sync service for bidirectional sync between GPS and fueling data
-            services.TryAddScoped<IOdometerSyncService, OdometerSyncService>();
+            services.AddHttpClient<ITrackingDriverNameService, GPSGateDriverNameService>();
 
             // Register Fuel Audit GPS Service for fetching GPS-based fuel data
             services.AddHttpClient<IFuelAuditGPSService, FuelAuditGPSService>();

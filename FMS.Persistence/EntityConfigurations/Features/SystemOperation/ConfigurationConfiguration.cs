@@ -17,7 +17,7 @@
 //         {
 //             try
 //             {
-//                 builder.HasKey(e => e.Id).HasName("PRIMARY");
+//                 builder.HasKey(e => e.Id);
 
 //                 builder.ToTable("configurations");
 

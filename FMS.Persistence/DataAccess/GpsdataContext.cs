@@ -196,12 +196,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<ReportItem> ReportItems { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
-    public virtual DbSet<VehicleTripState> VehicleTripStates { get; set; }
-    public virtual DbSet<VehicleTrip> VehicleTrips { get; set; }
-    public virtual DbSet<VehicleTripGroup> VehicleTripGroups { get; set; }
-    public virtual DbSet<VehicleTripOverride> VehicleTripOverrides { get; set; }
-    public virtual DbSet<VehicleTripClusterSnapshot> VehicleTripClusterSnapshots { get; set; }
-    public virtual DbSet<VehicleTripOutOfBoundsEvent> VehicleTripOutOfBoundsEvents { get; set; }
 
     // Vehicle Tracking Provider Configuration
     public virtual DbSet<ProviderConfigurationEntity> ProviderConfigurations { get; set; }
@@ -519,12 +513,6 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new UserSitesConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring UserSitesConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new VehicleConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripStateConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripStateConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripGroupConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripGroupConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripOverrideConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripOverrideConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripClusterSnapshotConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripClusterSnapshotConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleTripOutOfBoundsEventConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTripOutOfBoundsEventConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new VehicleconsumptionConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleconsumptionConfiguration: {ex.Message}"); }
 

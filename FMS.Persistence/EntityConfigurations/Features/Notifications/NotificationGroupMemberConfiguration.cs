@@ -1,4 +1,4 @@
-﻿using FMS.Domain.Entities.Features.Notifications;
+using FMS.Domain.Entities.Features.Notifications;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -7,9 +7,9 @@ namespace FMS.Persistence.EntityConfigurations {
         public void Configure (EntityTypeBuilder<NotificationGroupMember> builder) {
             builder.ToTable ("notification_group_member");
 
-            builder.HasKey (e => e.Id).HasName ("PRIMARY");
+            builder.HasKey (e => e.Id);
 
-            builder.Property (e => e.Id).HasColumnType ("int(11)");
+            builder.Property (e => e.Id);
             builder.Property (e => e.GroupId).IsRequired ();
             builder.Property (e => e.MemberType).HasMaxLength (20).IsRequired ();
             builder.Property (e => e.MemberId).HasMaxLength (100).IsRequired ();
