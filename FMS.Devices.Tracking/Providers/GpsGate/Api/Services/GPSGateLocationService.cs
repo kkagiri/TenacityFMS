@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -23,10 +23,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     /// NOT the legacy Vehicle.DeviceId field.
     ///
     /// GPS Validation Rules for Fueling:
-    /// - If TrackPoint.Valid = true AND DeviceActivity within 1 month → Allow fueling (Valid)
-    /// - If TrackPoint.Valid = false BUT DeviceActivity within 2 hours → Allow fueling (InvalidButRecentActivity)
-    /// - If TrackPoint.Valid = true BUT DeviceActivity older than 1 month → Block fueling + Create notification (ValidButStaleDevice)
-    /// - If TrackPoint.Valid = false AND DeviceActivity older than 2 hours → Block fueling (InvalidAndStale)
+    /// - If TrackPoint.Valid = true AND DeviceActivity within 1 month ? Allow fueling (Valid)
+    /// - If TrackPoint.Valid = false BUT DeviceActivity within 2 hours ? Allow fueling (InvalidButRecentActivity)
+    /// - If TrackPoint.Valid = true BUT DeviceActivity older than 1 month ? Block fueling + Create notification (ValidButStaleDevice)
+    /// - If TrackPoint.Valid = false AND DeviceActivity older than 2 hours ? Block fueling (InvalidAndStale)
     /// </summary>
     public class GPSGateLocationService : IGPSGateLocationService
     {
@@ -95,7 +95,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 }
 
                 // Step 3: Get the ExternalDeviceId from VehicleProviderMapping (NOT Vehicle.DeviceId)
-                var providerMapping = await context.Set<VehicleProviderMappingEntity>()
+                var providerMapping = await context.Set<DeviceProviderMappingEntity>()
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .FirstOrDefaultAsync();
 
@@ -262,11 +262,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         /// Determines the GPS validation status based on the valid flag, device activity time, and position age.
         ///
         /// Rules:
-        /// - If GPS position is older than 24 hours → InvalidAndStale (block fueling, position is stale)
-        /// - Valid=true AND DeviceActivity within 1 month → Valid (allow fueling)
-        /// - Valid=false AND DeviceActivity within 2 hours → InvalidButRecentActivity (allow fueling)
-        /// - Valid=true AND DeviceActivity older than 1 month → ValidButStaleDevice (block + notify)
-        /// - Valid=false AND DeviceActivity older than 2 hours → InvalidAndStale (block)
+        /// - If GPS position is older than 24 hours ? InvalidAndStale (block fueling, position is stale)
+        /// - Valid=true AND DeviceActivity within 1 month ? Valid (allow fueling)
+        /// - Valid=false AND DeviceActivity within 2 hours ? InvalidButRecentActivity (allow fueling)
+        /// - Valid=true AND DeviceActivity older than 1 month ? ValidButStaleDevice (block + notify)
+        /// - Valid=false AND DeviceActivity older than 2 hours ? InvalidAndStale (block)
         /// </summary>
         private (GPSValidationStatus Status, string Reason) DetermineValidationStatus(
             bool isGpsValid,
@@ -289,7 +289,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     if (ShouldLogStalePositionWarning(vehicleId, now, out var suppressedSinceLastWarning))
                     {
                         _logger.LogWarning(
-                            "⚠️ [{Source}] Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS POSITION IS STALE - Position timestamp: {PositionTime} ({Age} old). " +
+                            "?? [{Source}] Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS POSITION IS STALE - Position timestamp: {PositionTime} ({Age} old). " +
                             "GPS device may be offline or malfunctioning. FUELING ALLOWED (treated as faulty GPS) but logged for review. " +
                             "SuppressedDuplicatesSinceLastWarning: {SuppressedCount}",
                             validationSource,
@@ -339,7 +339,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (timeSinceActivity > StaleDeviceThreshold)
                 {
                     _logger.LogDebug(
-                        "⚠️ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is VALID but device activity is STALE ({Days} days old). " +
+                        "?? Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is VALID but device activity is STALE ({Days} days old). " +
                         "BLOCKING FUELING and requiring notification.",
                         vehicleId, gpsGateUserId, timeSinceActivity.TotalDays);
 
@@ -369,7 +369,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 else
                 {
                     _logger.LogDebug(
-                        "❌ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is INVALID and device activity is too old ({Hours} hours). " +
+                        "? Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is INVALID and device activity is too old ({Hours} hours). " +
                         "BLOCKING FUELING.",
                         vehicleId, gpsGateUserId, timeSinceActivity.TotalHours);
 
@@ -382,7 +382,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
         private VehicleLocationDTO CreateOfflineLocationDto(
             Domain.Entities.Vehicle vehicle,
-            VehicleProviderMappingEntity? providerMapping,
+            DeviceProviderMappingEntity? providerMapping,
             GPSValidationStatus status,
             string reason)
         {
@@ -420,7 +420,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 // Step 2: Get all active provider mappings for these vehicles
                 var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
-                var providerMappings = await context.Set<VehicleProviderMappingEntity>()
+                var providerMappings = await context.Set<DeviceProviderMappingEntity>()
                     .Where(m => m.VehicleId != null && vehicleIds.Contains(m.VehicleId.Value) && m.IsActive && !string.IsNullOrEmpty(m.ExternalDeviceId))
                     .ToDictionaryAsync(m => m.VehicleId!.Value, m => m);
 

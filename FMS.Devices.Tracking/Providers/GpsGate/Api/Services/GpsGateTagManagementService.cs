@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -227,7 +227,7 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
             result.VehicleCode = vehicle.VehicleCode;
 
             // Get the GPSGate user ID from provider mappings
-            var providerMapping = await _context.VehicleProviderMappings
+            var providerMapping = await _context.DeviceProviderMappings
                 .Where(pm => pm.VehicleId == vehicleId && pm.ExternalDeviceId != null)
                 .Select(pm => pm.ExternalDeviceId)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -347,7 +347,7 @@ public class GpsGateTagManagementService : IGpsGateTagManagementService
             }
 
             // First try to get from local database (VehicleProviderMappings)
-            var providerMapping = await _context.VehicleProviderMappings
+            var providerMapping = await _context.DeviceProviderMappings
                 .Join(_context.Vehicles,
                     pm => pm.VehicleId,
                     v => v.VehicleId,

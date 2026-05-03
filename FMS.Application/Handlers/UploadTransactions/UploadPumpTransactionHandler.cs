@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 using FMS.Application.Features.PTS.Services; // For TransactionContext
 using FMS.Application.Handlers.Interface;
 using FMS.Domain.Entities;

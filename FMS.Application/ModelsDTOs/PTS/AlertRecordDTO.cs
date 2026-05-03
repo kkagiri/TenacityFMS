@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace FMS.Application.Features.ATG;
+namespace FMS.Application.ModelsDTOs.PTS;
 
 public partial class AlertRecordDTO {
     public int AlertId { get; set; }

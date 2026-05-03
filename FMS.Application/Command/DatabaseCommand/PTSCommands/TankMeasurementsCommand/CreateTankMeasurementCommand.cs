@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Configuration;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.FMS.Tank;

@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Devices.Abstractions.Common;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 

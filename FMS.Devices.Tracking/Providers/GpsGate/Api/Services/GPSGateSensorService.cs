@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -47,7 +47,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found");
 
                 // Try to get device ID from vehicle_provider_mappings first (new way)
-                var providerMapping = await context.VehicleProviderMappings
+                var providerMapping = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive
@@ -206,7 +206,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found");
 
                 // Try to get device ID from vehicle_provider_mappings first (new way)
-                var providerMapping = await context.VehicleProviderMappings
+                var providerMapping = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,7 +37,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
     /// Background service that consumes GPS tracking data from GPSGate RabbitMQ
     /// and broadcasts to connected clients via SignalR VehicleTrackingHub
     ///
-    /// Flow: GPSGate → RabbitMQ → This Consumer → SignalR → Frontend
+    /// Flow: GPSGate ? RabbitMQ ? This Consumer ? SignalR ? Frontend
     /// </summary>
     public class GPSGateRabbitMQConsumerService : BackgroundService
     {
@@ -51,7 +51,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
         private bool _isConnected;
         private DateTime _lastQueueDiagnosticsUtc = DateTime.MinValue;
 
-        // Cache for GPSGate UserId → FMS VehicleId mapping
+        // Cache for GPSGate UserId ? FMS VehicleId mapping
         private IReadOnlyDictionary<int, VehicleMapping> _vehicleCache = new Dictionary<int, VehicleMapping>();
         private long _vehicleCacheExpiryTicks = DateTime.MinValue.Ticks;
         private readonly TimeSpan _vehicleCacheDuration = TimeSpan.FromMinutes(5);
@@ -79,7 +79,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("🚀 GPSGate RabbitMQ Consumer Service starting...");
+            _logger.LogInformation("?? GPSGate RabbitMQ Consumer Service starting...");
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -128,7 +128,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                         autoAck: false,
                         consumer: consumer);
 
-                    _logger.LogInformation("✅ GPSGate RabbitMQ consumer started. Queue: {QueueName}", _settings.QueueName);
+                    _logger.LogInformation("? GPSGate RabbitMQ consumer started. Queue: {QueueName}", _settings.QueueName);
 
                     // Keep the connection alive
                     while (!stoppingToken.IsCancellationRequested && _isConnected)
@@ -153,13 +153,13 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                 }
                 catch (BrokerUnreachableException ex)
                 {
-                    _logger.LogError(ex, "❌ RabbitMQ broker unreachable. Retrying in {Delay} seconds...",
+                    _logger.LogError(ex, "? RabbitMQ broker unreachable. Retrying in {Delay} seconds...",
                         _settings?.ReconnectDelaySeconds ?? 5);
                     await Task.Delay(TimeSpan.FromSeconds(_settings?.ReconnectDelaySeconds ?? 5), stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ Unexpected error in GPSGate RabbitMQ consumer. Retrying in {Delay} seconds...",
+                    _logger.LogError(ex, "? Unexpected error in GPSGate RabbitMQ consumer. Retrying in {Delay} seconds...",
                         _settings?.ReconnectDelaySeconds ?? 5);
                     await Task.Delay(TimeSpan.FromSeconds(_settings?.ReconnectDelaySeconds ?? 5), stoppingToken);
                 }
@@ -169,7 +169,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                 }
             }
 
-            _logger.LogInformation("🛑 GPSGate RabbitMQ Consumer Service stopped.");
+            _logger.LogInformation("?? GPSGate RabbitMQ Consumer Service stopped.");
         }
 
         private Task LogQueueDiagnosticsIfDueAsync()
@@ -267,7 +267,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                     };
                 }
 
-                _logger.LogInformation("🔌 Connecting to RabbitMQ at {Host}:{Port}...", _settings.Host, _settings.Port);
+                _logger.LogInformation("?? Connecting to RabbitMQ at {Host}:{Port}...", _settings.Host, _settings.Port);
 
                 _connection = factory.CreateConnection("FMS-GPSGate-Consumer");
                 _channel = _connection.CreateModel();
@@ -302,14 +302,14 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                     string.Join(", ", _settings.RoutingKeys));
 
                 _isConnected = true;
-                _logger.LogInformation("✅ Connected to RabbitMQ successfully");
+                _logger.LogInformation("? Connected to RabbitMQ successfully");
 
                 // Pre-load vehicle cache
                 await RefreshVehicleCacheAsync(stoppingToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Failed to connect to RabbitMQ");
+                _logger.LogError(ex, "? Failed to connect to RabbitMQ");
                 _isConnected = false;
                 throw;
             }
@@ -798,7 +798,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate.Channels
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
 
                 // Get all active vehicle-provider mappings with vehicle info
-                var mappings = await context.VehicleProviderMappings
+                var mappings = await context.DeviceProviderMappings
                     .AsNoTracking()
                     .Include(m => m.Vehicle)
                     .Where(m => m.IsActive && m.VehicleId != null && m.ProviderConfiguration.Name == GpsGateProviderConstants.Name)

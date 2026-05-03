@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleTracking.DTOs;
 using MediatR;
@@ -40,7 +40,7 @@ namespace FMS.Application.Features.VehicleTracking.Queries.GetVehicleProviderMap
                 _logger.LogInformation("Getting vehicle-provider mappings{Filter}",
                     request.VehicleId.HasValue ? $" for vehicle {request.VehicleId}" : "");
 
-                var query = _context.VehicleProviderMappings
+                var query = _context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Include(m => m.Vehicle)
                     .ThenInclude(v => v.VehicleType)

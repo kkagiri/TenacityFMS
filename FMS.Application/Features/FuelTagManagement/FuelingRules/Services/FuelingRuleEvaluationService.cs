@@ -9,7 +9,7 @@ using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.FuelRule;
 using FMS.Domain.Entities.Features.FuelRule.Rules;
 using FMS.Domain.Entities.Features.FuelRuleSet;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -334,7 +334,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
             }
 
             // Check for GPS fuel sensor
-            var providerMapping = await _context.VehicleProviderMappings
+            var providerMapping = await _context.DeviceProviderMappings
                 .Include(m => m.ProviderConfiguration)
                 .Where(m => m.VehicleId == vehicleId
                     && m.IsActive

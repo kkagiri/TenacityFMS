@@ -7,27 +7,29 @@
 | Feature       | multi-device-platform         |
 | Version       | V1                            |
 | Status        | Approved for implementation   |
-| Last reviewed | 2026-04-30                    |
+| Last reviewed | 2026-05-03                    |
 
-Implementation status snapshot as of 2026-04-30:
+Implementation status snapshot as of 2026-05-03:
 
 - Phase 0 complete.
 - Phase 1 foundations implemented in code, with migration generation still handed off to the user.
 - `ITenantScope` is now bridged onto `ITenantContext` in `FMS.WebClient` via `TenantContextScopeAdapter`.
 - Tenant-filter repository tests were added under `FMS.Testing/Devices/`.
-- Phase 2 has started with `FMS.Devices.Tracking` and the `GpsWoxProvider` stub already in place.
+- Phase 2 tracking migration is structurally in place, with live GPSGate smoke still required.
+- Phase 3 fueling migration is in progress: Technotrade PTS transport/protocol/channel folders exist under `FMS.Devices.Fueling`, inbound canonical mappers/handlers have a parallel slice for the main upload packets, and outbound PTS command execution now resolves through `TechnotradePtsCommandExecutor`.
+- Legacy `MessageHandlerRegistry` / `PTSMessageProcessor` remain active until the remaining inbound packet types, UploadStatus behavior, and tests are cut over.
 
 ---
 
 ## 1. Problem
 
-FMS supports two device families today — fueling (Technotrade PTS, Nafta ATG schema) and vehicle tracking (GPSGate). Each was built ad-hoc:
+FMS supports two device families today — fueling (Technotrade PTS) and vehicle tracking (GPSGate). Each was built ad-hoc:
 
 - PTS transport, protocol parsing, packet→business mapping, and Redis command channel are scattered across `FMS.Application/Communication`, `FMS.Application/Handlers`, `FMS.Application/Command/PTSCommand`, `FMS.Application/PTSServices`, `FMS.Application/Features/PTS{,Device,Service}`, plus `FMS.PTS.WindowsService`.
 - GPSGate is split between `FMS.Infrastructure/ExternalServices/GPS/GPSGate` (26 files), `FMS.Infrastructure/VehicleTracking` (the correct seam), `FMS.Application/Communication/GPSGate`, and `FMS.BackgroundServices/VehicleTracking`. Hardcoded `provider.Name == "GPSGate"` checks exist in the WebClient.
 - Three IoT scaffold projects (`FMS.IoT.{Contracts,Gateway,ProcessingEngine}`) existed but were never wired and had contract mismatches. **Deleted in Phase 0.**
 - `ProviderConfigurationEntity` has no `TenantId`; provider credentials are global across tenants.
-- ATG entities live under `FMS.Domain/ATGEntities/Nafta` and PTS DTOs are physically in `ModelsDTOs/PTS` while declared in namespace `FMS.Application.Features.ATG`.
+- Legacy ATG persistence schema support has been removed from this system.
 - Onboarding new providers (GPSWox, future fueling vendors, real ATG hardware) requires touching 5+ projects.
 
 ---
@@ -49,8 +51,7 @@ FMS supports two device families today — fueling (Technotrade PTS, Nafta ATG s
 - Frontend rewrite of vehicle-tracking pages (only adds the device-provider admin page).
 - Domain entity schema redesign beyond `TenantId`/`DeviceCategory` columns.
 - Replacing MediatR or EF Core.
-- Replacing the Nafta POS DB schema.
-- Real ATG hardware integration (no hardware today; only Nafta DB sink).
+- Real ATG hardware integration.
 - `TenantId` on `pts_devices`, `pumps`, `tanks` (handled by the parallel tier-1 tenancy migration).
 
 ---
@@ -157,7 +158,6 @@ FMS.Devices.Tracking.Host/       worker process; AddDeviceCore().AddTrackingProv
 FMS.Devices.Fueling/             fueling provider plugins
 └── Providers/
     ├── TechnotradePts/          Provider.cs, Transport/, Protocol/, Mapping/, Commands/, Channels/
-    └── NaftaAtg/                Provider.cs (IFuelingPersistenceSink)
 
 FMS.Devices.Fueling.Host/        Windows Service (replaces FMS.PTS.WindowsService)
 
@@ -213,7 +213,7 @@ Create `FMS.Devices.Tracking` and add the `GpsWoxProvider` stub. Then move GPSGa
 
 ### Phase 3 — Fueling abstraction (2 sprints, depends on P1)
 
-Create `FMS.Devices.Fueling`. Move PTS transport from `FMS.PTS.WindowsService/Infrastructure/Communication/WebSocket/*`, `FMS.Application/Communication/{Connection,WebSocket,HttpPolling,Tracker}/*`, and protocol from `FMS.PTS.WindowsService/Core/Protocal/*` (fix typo) into `Providers/TechnotradePts/`. For each `[PacketType]` handler create one `IPtsPacketMapper<TPacket,TCanonical>`. Move business logic into MediatR notification handlers under `FMS.Application/Features/Devices/Fueling/`. Delete `[PacketType]`, `MessageHandlerRegistry`, `PTSMessageProcessor`. Add `NaftaAtgProvider` (`IFuelingPersistenceSink`).
+Create `FMS.Devices.Fueling`. Move PTS transport from `FMS.PTS.WindowsService/Infrastructure/Communication/WebSocket/*`, `FMS.Application/Communication/{Connection,WebSocket,HttpPolling,Tracker}/*`, and protocol from `FMS.PTS.WindowsService/Core/Protocal/*` (fix typo) into `Providers/TechnotradePts/`. For each `[PacketType]` handler create one `IPtsPacketMapper<TPacket,TCanonical>`. Move business logic into MediatR notification handlers under `FMS.Application/Features/Devices/Fueling/`. Move outbound PTS command serialization/execution into `Providers/TechnotradePts/Commands/` behind `TechnotradePtsCommandExecutor`, while preserving `ICommandExecutor` as the temporary application-facing adapter. Delete `[PacketType]`, `MessageHandlerRegistry`, `PTSMessageProcessor` after canonical inbound cutover is proven.
 
 ### Phase 4 — Application consolidation (1 sprint, depends on P3)
 
@@ -276,7 +276,7 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 2. `FMS.Application` has zero references to `Microsoft.AspNetCore.WebSockets` from PTS code paths.
 3. `[PacketType]` and `MessageHandlerRegistry` are deleted (`grep` confirms).
 4. New mappers each have a unit test against a real captured packet sample.
-5. `NaftaAtgProvider` writes a sample pump-transaction to Nafta DB on receipt of `PumpTransactionReceivedNotification`.
+6. Outbound PTS commands (`PumpAuthorize`, `PumpGetStatus`, `PumpCloseTransaction`, `PumpGetTransactionInformation`, `PumpGetTag`, configuration, diagnostics, and probe calibration commands) are mapped by `FMS.Devices.Fueling/Providers/TechnotradePts/Commands/` and executed through `TechnotradePtsCommandExecutor` in both WebClient and the PTS service.
 
 ### Phase 4
 
@@ -305,8 +305,7 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 - Frontend rewrite of vehicle-tracking pages (only adds the new admin UI in Phase 4).
 - Domain entity schema redesign beyond `TenantId` and `DeviceCategory` columns.
 - Replacing MediatR or EF Core.
-- Replacing the Nafta POS DB schema.
-- Real ATG hardware protocol (no hardware integration today; only Nafta DB sink).
+- Real ATG hardware protocol.
 - `TenantId` on `pts_devices`, `pumps`, `tanks` etc. — handled by the existing tier-1 tenancy migration.
 
 ---

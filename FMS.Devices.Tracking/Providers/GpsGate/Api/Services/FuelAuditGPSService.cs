@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -669,7 +669,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             try
             {
                 // Try new provider mapping first
-                var providerMapping = await _context.VehicleProviderMappings
+                var providerMapping = await _context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive

@@ -8,6 +8,7 @@
  * Last Modified: 2026-04-30
  */
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Devices.Abstractions.Common;
@@ -24,6 +25,10 @@ namespace FMS.Devices.Tracking.Providers.GpsWox;
 [Provider("GpsWox", DeviceCategory.Tracking, "0.1.0-stub")]
 public sealed class GpsWoxProvider : ITrackingProviderMarker
 {
+    public string ProviderName => "GpsWox";
+
+    public string ProviderVersion => "0.1.0-stub";
+
     public ProviderMetadata Metadata { get; } = new()
     {
         Name = "GpsWox",
@@ -40,4 +45,71 @@ public sealed class GpsWoxProvider : ITrackingProviderMarker
 
     public Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(false);
+
+    public Task<TrackingOperationResult<bool>> InitializeAsync(
+        TrackingProviderConfiguration configuration,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> ShutdownAsync(CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> ValidateConfigurationAsync(
+        TrackingProviderConfiguration configuration,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<TrackingVehicleLocation>> GetVehicleLocationAsync(
+        int vehicleId,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<IReadOnlyList<TrackingVehicleLocation>>> GetAllVehicleLocationsAsync(
+        bool onlineOnly = false,
+        bool gpsEnabledOnly = true,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<TrackingVehicleOdometer>> GetVehicleOdometerAsync(
+        int vehicleId,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> IsVehicleOnlineAsync(
+        int vehicleId,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<IReadOnlyList<TrackingDevice>>> GetAllDevicesAsync(
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<IReadOnlyList<TrackingHistoryPoint>>> GetVehicleHistoryAsync(
+        int vehicleId,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<IReadOnlyList<TrackingGeofence>>> GetGeofencesAsync(
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> SubscribeToEventsAsync(
+        ITrackingEventHandler eventHandler,
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> UnsubscribeFromEventsAsync(CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<TrackingProviderHealth>> GetHealthStatusAsync(
+        CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    public Task<TrackingOperationResult<bool>> ValidateConnectionAsync(CancellationToken cancellationToken = default) =>
+        throw NotSupported();
+
+    private static NotSupportedException NotSupported() =>
+        new("GpsWox provider is a Phase 2 registry stub. Full tracking support is scheduled for T6.1.");
 }

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Core\FMS.Devices.Core.csproj" />
     <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />

@@ -17,7 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Configuration;
 using FMS.Application.Features.FMS.Tank;
-using FMS.Application.Features.ATG.Common;
+using FMS.Application.ModelsDTOs.PTS.Common;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.TankManagement.Deliveries.Services;

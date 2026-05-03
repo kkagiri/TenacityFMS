@@ -76,6 +76,8 @@ using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
+using FMS.Devices.Fueling.DependencyInjection;
+using FMS.Devices.Fueling.Providers.TechnotradePts.Commands;
 using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
@@ -111,6 +113,7 @@ public static class FmsServiceCollectionExtensions
         // so per-tenant repository filters in FMS.Devices.Core resolve from the same request scope.
         services.AddScoped<FMS.Devices.Abstractions.Common.ITenantScope, TenantContextScopeAdapter>();
         services.AddDeviceCore();
+        services.AddFuelingProviders();
 
         // Controllers & JSON
         services.AddControllers().AddJsonOptions(o =>
@@ -575,7 +578,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IPumpService, PumpService>();
         services.AddScoped<IPTSConfigService, PTSConfigService>();
         services.AddScoped<PumpTransactionIntegrationService>();
-        services.AddScoped<ICommandExecutor, CommandExecutor>();
+        services.AddScoped<ICommandExecutor, TechnotradePtsCommandExecutor>();
         services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService>();
         services.AddScoped<ITransactionCompletionService, TransactionCompletionService>();
         services.AddScoped<IAutoTransactionCompletionService, AutoTransactionCompletionService>();

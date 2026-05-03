@@ -3,11 +3,13 @@ using System.Text.Json;
 using System.Net.Sockets;
 using Newtonsoft.Json;
 using FMS.Application.Communication.Connection;
+using FMS.Application.Features.Devices.Fueling.Services;
 using FMS.Application.Handlers.Interface;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 using FMS.Domain.PTSCommon;
 using Newtonsoft.Json.Linq;
 
@@ -17,15 +19,21 @@ namespace FMS.Application.Handlers.Common
     {
         private readonly ILogger<PTSMessageProcessor> _logger;
         private readonly MessageHandlerRegistry _handlerRegistry;
+        private readonly IReadOnlyList<ICanonicalPtsPacketProcessor> _canonicalPacketProcessors;
 
         private readonly IPTSConnectionManager _connectionManager;
 
 
-        public PTSMessageProcessor(ILogger<PTSMessageProcessor> logger, MessageHandlerRegistry handlerRegistry, IPTSConnectionManager connectionManager)
+        public PTSMessageProcessor(
+            ILogger<PTSMessageProcessor> logger,
+            MessageHandlerRegistry handlerRegistry,
+            IPTSConnectionManager connectionManager,
+            IEnumerable<ICanonicalPtsPacketProcessor> canonicalPacketProcessors)
         {
             _logger = logger;
             _handlerRegistry = handlerRegistry;
             _connectionManager = connectionManager;
+            _canonicalPacketProcessors = canonicalPacketProcessors?.ToList() ?? new List<ICanonicalPtsPacketProcessor>();
         }
 
         private async Task<PTSMessage> ProcessMessageInternalAsync(string deviceId, PTSMessage message)
@@ -112,6 +120,7 @@ namespace FMS.Application.Handlers.Common
                     }
 
                     responseMessage.Packets.Add(responsePacket);
+                    await TryPublishCanonicalPacketAsync(deviceId, packet);
 
                 }
                 catch (Exception ex)
@@ -132,6 +141,43 @@ namespace FMS.Application.Handlers.Common
             }
 
             return responseMessage;
+        }
+
+        private async Task TryPublishCanonicalPacketAsync(string deviceId, Packet packet)
+        {
+            var processor = _canonicalPacketProcessors.FirstOrDefault(candidate => candidate.CanProcess(packet.Type));
+            if (processor == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var handled = await processor.TryProcessAsync(deviceId, packet);
+                if (!handled)
+                {
+                    _logger.LogDebug(
+                        "Canonical processor declined packet {PacketId} of type {PacketType}; legacy handler already processed it.",
+                        packet.Id,
+                        packet.Type);
+                    return;
+                }
+
+                _logger.LogInformation(
+                    "Canonical sidecar published packet {PacketId} of type {PacketType} for device {DeviceId}.",
+                    packet.Id,
+                    packet.Type,
+                    deviceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Canonical sidecar failed for packet {PacketId} of type {PacketType} on device {DeviceId}; legacy handler already processed it.",
+                    packet.Id,
+                    packet.Type,
+                    deviceId);
+            }
         }
 
 

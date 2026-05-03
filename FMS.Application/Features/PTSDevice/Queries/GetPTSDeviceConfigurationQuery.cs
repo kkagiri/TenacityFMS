@@ -2,7 +2,6 @@ using System;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Features.NaftaATG;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;

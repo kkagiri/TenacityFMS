@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
@@ -154,7 +154,7 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard
                 .OrderBy(d => d.Date)
                 .ToListAsync(cancellationToken);
 
-            var totalGpsVehicles = await _context.VehicleProviderMappings
+            var totalGpsVehicles = await _context.DeviceProviderMappings
                 .Where(m => m.IsActive)
                 .Select(m => m.VehicleId)
                 .Distinct()

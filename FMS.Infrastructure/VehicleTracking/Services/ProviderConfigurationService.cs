@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Infrastructure.VehicleTracking.Models;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -112,7 +112,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
             {
                 await using var context = await _contextFactory.CreateDbContextAsync();
                 // Check if vehicle has a specific provider mapping
-                var mapping = await context.VehicleProviderMappings
+                var mapping = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive);
 
@@ -341,7 +341,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 }
 
                 // Deactivate existing mappings
-                var existingMappings = await context.VehicleProviderMappings
+                var existingMappings = await context.DeviceProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .ToListAsync();
 
@@ -353,7 +353,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 }
 
                 // Create new mapping with device metadata
-                var newMapping = new VehicleProviderMappingEntity
+                var newMapping = new DeviceProviderMappingEntity
                 {
                     VehicleId = vehicleId,
                     ProviderConfigId = provider.Id,
@@ -369,7 +369,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     UpdatedBy = currentUser
                 };
 
-                context.VehicleProviderMappings.Add(newMapping);
+                context.DeviceProviderMappings.Add(newMapping);
                 await context.SaveChangesAsync();
 
                 _logger.LogInformation("Mapped vehicle {VehicleId} to provider {ProviderName} with device {DeviceId}",
@@ -390,7 +390,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
             try
             {
                 await using var context = await _contextFactory.CreateDbContextAsync();
-                var mappings = await context.VehicleProviderMappings
+                var mappings = await context.DeviceProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .ToListAsync();
 
@@ -426,7 +426,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     return new List<int>();
                 }
 
-                return await context.VehicleProviderMappings
+                return await context.DeviceProviderMappings
                     .Where(m => m.ProviderConfigId == provider.Id && m.IsActive && m.VehicleId != null)
                     .Select(m => m.VehicleId!.Value)
                     .ToListAsync();

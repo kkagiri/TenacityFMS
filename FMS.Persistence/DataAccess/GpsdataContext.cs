@@ -1,4 +1,4 @@
-﻿/**
+/**
  * File: GpsdataContext.cs
  * Purpose: Entity Framework Core DbContext for FMS persistence mappings and configuration.
  * Dependencies: Microsoft.EntityFrameworkCore, FMS.Domain.Entities, FMS.Persistence.EntityConfigurations
@@ -28,10 +28,10 @@ using FMS.Domain.Entities.Features.UserManagement;
 using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.Domain.Entities.GPSGate;
 using FMS.Domain.Entities.FuelAudit;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Domain.Entities.Reports;
 using FMS.Persistence.EntityConfigurations;
-using FMS.Persistence.EntityConfigurations.VehicleTracking;
+using FMS.Persistence.EntityConfigurations.Devices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -197,10 +197,10 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
-    // Vehicle Tracking Provider Configuration
+    // Device Provider Configuration
     public virtual DbSet<ProviderConfigurationEntity> ProviderConfigurations { get; set; }
     public virtual DbSet<ProviderHealthHistoryEntity> ProviderHealthHistories { get; set; }
-    public virtual DbSet<VehicleProviderMappingEntity> VehicleProviderMappings { get; set; }
+    public virtual DbSet<DeviceProviderMappingEntity> DeviceProviderMappings { get; set; }
     public virtual DbSet<VehicleHealthMonitorEntity> VehicleHealthMonitors { get; set; }
     public virtual DbSet<VehicleLastKnownLocationEntity> VehicleLastKnownLocations { get; set; }
 
@@ -305,7 +305,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         {
             entity.HasKey(e => e.Id);
         });
-        // 🔥 ADD THIS: Ignore Dictionary types that EF is picking up
+        // ?? ADD THIS: Ignore Dictionary types that EF is picking up
         modelBuilder.Ignore<Dictionary<string, string>>();
         modelBuilder.Ignore<Dictionary<int, int>>();
         modelBuilder.Ignore<Dictionary<string, int>>();
@@ -558,7 +558,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new ProviderConfigurationEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ProviderConfigurationEntityConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new ProviderHealthHistoryEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring ProviderHealthHistoryEntityConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleHealthMonitorEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleHealthMonitorEntityConfiguration: {ex.Message}"); }
-        try { modelBuilder.ApplyConfiguration(new VehicleProviderMappingEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleProviderMappingEntityConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new DeviceProviderMappingEntityConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring DeviceProviderMappingEntityConfiguration: {ex.Message}"); }
         try { modelBuilder.ApplyConfiguration(new VehicleLastKnownLocationConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleLastKnownLocationConfiguration: {ex.Message}"); }
 
         // GPSGate fuel-refill entries (consumed by FuelAudit)

@@ -27,6 +27,7 @@
 
 using System;
 using System.IO;
+using FMS.Devices.Fueling.Providers.TechnotradePts.Configuration;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -84,7 +85,7 @@ public static class PTSLoggingConfiguration
         if (environment == "Production")
         {
             loggerConfig.MinimumLevel.Override(
-                "FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket.PTSWebSocketListenerService",
+                "FMS.Devices.Fueling.Providers.TechnotradePts.Transport.PTSWebSocketListenerService",
                 LogEventLevel.Warning);
             loggerConfig.MinimumLevel.Override(
                 "FMS.Application.Communication.Tracker.DeviceConnectionTracker",

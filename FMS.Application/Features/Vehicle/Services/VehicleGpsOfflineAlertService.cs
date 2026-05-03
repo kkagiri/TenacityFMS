@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.EventEngine.Engine;
@@ -89,7 +89,7 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
         try
         {
             // Step 1: Check if vehicle has GPS tracking configured
-            var providerMapping = await _context.VehicleProviderMappings
+            var providerMapping = await _context.DeviceProviderMappings
                 .Include(m => m.Vehicle)
                 .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive, cancellationToken);
 

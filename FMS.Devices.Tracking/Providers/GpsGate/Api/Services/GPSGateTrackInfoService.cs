@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -236,7 +236,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             int vehicleId,
             CancellationToken cancellationToken)
         {
-            var providerMapping = await context.Set<VehicleProviderMappingEntity>()
+            var providerMapping = await context.Set<DeviceProviderMappingEntity>()
                 .Include(mapping => mapping.ProviderConfiguration)
                 .Where(mapping => mapping.VehicleId == vehicleId
                     && mapping.IsActive

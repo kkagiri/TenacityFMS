@@ -1,7 +1,7 @@
 /**
  * File: DataSourceManager.VehicleGpsTrackDistance.cs
  * Purpose: Provides dashboard data for GPSGate track-distance rankings using active vehicle-provider mappings.
- * Dependencies: GpsdataContext, VehicleProviderMappingEntity, ITrackingTrackInfoSummaryService, DataSourceMetadata
+ * Dependencies: GpsdataContext, DeviceProviderMappingEntity, ITrackingTrackInfoSummaryService, DataSourceMetadata
  * Last Modified: 2026-03-25
  *
  * Key Functions:
@@ -19,7 +19,7 @@ using FMS.Application.Features.Dashboard;
 using FMS.Application.Features.VehicleTracking.DTOs;
 using FMS.Application.Features.VehicleTracking.Services;
 using FMS.Domain.Entities.Dashboard;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -184,7 +184,7 @@ namespace FMS.Application.Services.Dashboard
                 return new List<GpsTrackDistanceVehicleDayEntry>();
             }
 
-            var mappings = await _context.Set<VehicleProviderMappingEntity>()
+            var mappings = await _context.Set<DeviceProviderMappingEntity>()
                 .AsNoTracking()
                 .Include(mapping => mapping.ProviderConfiguration)
                 .Include(mapping => mapping.Vehicle)
@@ -257,7 +257,7 @@ namespace FMS.Application.Services.Dashboard
         }
 
         private async Task<GpsTrackDistanceVehicleDayEntry?> BuildGpsTrackDistanceEntryAsync(
-            VehicleProviderMappingEntity mapping,
+            DeviceProviderMappingEntity mapping,
             DateTime date,
             ITrackingTrackInfoSummaryService summaryService,
             SemaphoreSlim semaphore)

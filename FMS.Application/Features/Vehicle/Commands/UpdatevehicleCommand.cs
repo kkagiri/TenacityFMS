@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface;
-using FMS.Application.Features.NaftaATG;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle;
 using FMS.Domain.Entities;

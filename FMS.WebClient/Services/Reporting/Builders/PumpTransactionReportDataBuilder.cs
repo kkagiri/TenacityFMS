@@ -10,7 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 
 namespace FMS.WebClient.Services.Reporting
 {

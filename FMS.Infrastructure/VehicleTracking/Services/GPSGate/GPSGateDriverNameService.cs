@@ -119,7 +119,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                 await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
                 // Get the GPSGate user ID from VehicleProviderMappings
-                var providerMapping = await context.VehicleProviderMappings
+                var providerMapping = await context.DeviceProviderMappings
                     .AsNoTracking()
                     .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive && m.ExternalDeviceId != null,
                         cancellationToken);
@@ -210,7 +210,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
 
             await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
-            var providerMapping = await context.VehicleProviderMappings
+            var providerMapping = await context.DeviceProviderMappings
                 .AsNoTracking()
                 .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive && m.ExternalDeviceId != null,
                     cancellationToken);

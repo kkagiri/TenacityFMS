@@ -474,7 +474,7 @@ namespace FMS.WebClient.Controllers
                 var targetDate = date ?? DateTime.Today;
 
                 // Get device mapping for the vehicle
-                var deviceMapping = await _context.VehicleProviderMappings
+                var deviceMapping = await _context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive
@@ -492,7 +492,7 @@ namespace FMS.WebClient.Controllers
                     if (vehicle?.DeviceId != null)
                     {
                         _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
-                        deviceMapping = new FMS.Domain.Entities.VehicleTracking.VehicleProviderMappingEntity
+                        deviceMapping = new FMS.Domain.Entities.Devices.DeviceProviderMappingEntity
                         {
                             ExternalDeviceId = vehicle.DeviceId.Value.ToString()
                         };

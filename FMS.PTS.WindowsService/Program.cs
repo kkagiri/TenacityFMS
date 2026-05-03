@@ -27,7 +27,10 @@ using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket;
+using FMS.Devices.Fueling.Providers.TechnotradePts.Configuration;
+using FMS.Devices.Fueling.DependencyInjection;
+using FMS.Devices.Fueling.Providers.TechnotradePts.Commands;
+using FMS.Devices.Fueling.Providers.TechnotradePts.Transport;
 using FMS.PTS.WindowsService.Infrastructure.Logging;
 using FMS.PTS.WindowsService.Services.Pump;
 using MediatR;
@@ -398,6 +401,7 @@ namespace FMS.PTS.WindowsService
 
             // Register RedisCommandService if it's not already registered.
             services.AddScoped<RedisCommandService>();
+            services.AddFuelingProviders();
 
             //Cursor: Register RedisPTSCommandProcessor hosted service to start Redis subscriptions
             services.AddHostedService<RedisPTSCommandProcessorHostedService>();
@@ -469,7 +473,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();
             services.AddScoped<IDeviceValidator, DeviceValidator>();
             services.AddScoped<UserManager<User>>();
-            services.AddScoped<ICommandExecutor, CommandExecutor>();
+            services.AddScoped<ICommandExecutor, TechnotradePtsCommandExecutor>();
             //Cursor on changes to code
             services.AddScoped<IStaleConnectionDetectionService, StaleConnectionDetectionService>();
             services.AddScoped<ReconciliationOrchestrationService>(); //Cursor on changes to code

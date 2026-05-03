@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FMS.Application.Features.ATG
+namespace FMS.Application.ModelsDTOs.PTS
 {
     public class PumpTransactionDto
     {

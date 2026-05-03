@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCommand;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 using FMS.Application.Handlers.Interface;
 using FMS.Domain.PTSCommon;
 using MediatR;

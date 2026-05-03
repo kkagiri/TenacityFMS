@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using FMS.Domain.Entities;
 using Newtonsoft.Json;
 
-namespace FMS.Application.Features.ATG {
+namespace FMS.Application.ModelsDTOs.PTS {
     public class TankMeasurementDto {
 
         [JsonProperty ("DateTime")]

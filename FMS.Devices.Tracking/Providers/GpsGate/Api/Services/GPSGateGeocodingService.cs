@@ -115,7 +115,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<ReverseGeocodeResultDTO>.Failed("Vehicle not found");
 
                 // Try to get device ID from vehicle_provider_mappings first (new way)
-                var providerMapping = await _context.VehicleProviderMappings
+                var providerMapping = await _context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive

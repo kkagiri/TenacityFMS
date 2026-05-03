@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -44,7 +44,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (vehicle == null)
                     return FMSResponse<List<GPSEventDTO>>.Failed("Vehicle not found");
 
-                var providerMapping = await context.VehicleProviderMappings
+                var providerMapping = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive
@@ -113,7 +113,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 // Get vehicle mappings
                 await using var context = await _contextFactory.CreateDbContextAsync();
-                var vehicles = await context.VehicleProviderMappings
+                var vehicles = await context.DeviceProviderMappings
                     .AsNoTracking()
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.IsActive

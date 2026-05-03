@@ -2,14 +2,14 @@
  * File:          DeviceMappingRepository.cs
  * Purpose:       Tenant-scoped EF Core implementation of IDeviceMappingRepository.
  * Dependencies:  GpsdataContext, ITenantScope
- * Last Modified: 2026-04-29
+ * Last Modified: 2026-05-03
  */
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Devices.Abstractions.Common;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,15 +26,15 @@ public sealed class DeviceMappingRepository : IDeviceMappingRepository
         _tenant = tenant;
     }
 
-    private IQueryable<VehicleProviderMappingEntity> Query() =>
-        _context.VehicleProviderMappings.Where(m => m.TenantId == _tenant.TenantId && m.IsActive);
+    private IQueryable<DeviceProviderMappingEntity> Query() =>
+        _context.DeviceProviderMappings.Where(m => m.TenantId == _tenant.TenantId && m.IsActive);
 
-    public Task<VehicleProviderMappingEntity?> GetForVehicleAsync(int vehicleId, CancellationToken cancellationToken = default) =>
+    public Task<DeviceProviderMappingEntity?> GetForVehicleAsync(int vehicleId, CancellationToken cancellationToken = default) =>
         Query().FirstOrDefaultAsync(m => m.VehicleId == vehicleId, cancellationToken);
 
-    public Task<VehicleProviderMappingEntity?> GetForFuelingDeviceAsync(int fuelingDeviceId, CancellationToken cancellationToken = default) =>
+    public Task<DeviceProviderMappingEntity?> GetForFuelingDeviceAsync(int fuelingDeviceId, CancellationToken cancellationToken = default) =>
         Query().FirstOrDefaultAsync(m => m.FuelingDeviceId == fuelingDeviceId, cancellationToken);
 
-    public async Task<IReadOnlyList<VehicleProviderMappingEntity>> ListByProviderAsync(int providerConfigId, CancellationToken cancellationToken = default) =>
+    public async Task<IReadOnlyList<DeviceProviderMappingEntity>> ListByProviderAsync(int providerConfigId, CancellationToken cancellationToken = default) =>
         await Query().Where(m => m.ProviderConfigId == providerConfigId).ToListAsync(cancellationToken);
 }

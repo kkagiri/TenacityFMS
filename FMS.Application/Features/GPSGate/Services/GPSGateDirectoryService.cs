@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using DirectoryServiceReference;
 using FMS.Application.Features.GPSGate.DTOs;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Persistence.DataAccess;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;

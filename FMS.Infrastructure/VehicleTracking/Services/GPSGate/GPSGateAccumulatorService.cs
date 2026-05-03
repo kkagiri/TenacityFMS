@@ -47,7 +47,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
             {
                 await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
                 // Get vehicle's external device ID and provider configuration
-                var mapping = await context.VehicleProviderMappings
+                var mapping = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive, cancellationToken);
 

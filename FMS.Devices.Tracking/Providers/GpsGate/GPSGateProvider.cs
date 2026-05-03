@@ -1,4 +1,4 @@
-﻿/**
+/**
  * File: GPSGateProvider.cs
  * Purpose: Implements IVehicleTrackingProvider for GPSGate APIs and provider-mapping lookups.
  * Dependencies: IDbContextFactory<GpsdataContext>, HttpClient, ILogger<GPSGateProvider>
@@ -289,7 +289,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
 
             try
             {
-                _logger.LogInformation("🔍 Getting location for vehicle {VehicleId} from GPSGate", vehicleId);
+                _logger.LogInformation("?? Getting location for vehicle {VehicleId} from GPSGate", vehicleId);
 
                 await using var context = await _contextFactory.CreateDbContextAsync();
 
@@ -300,29 +300,29 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
 
                 if (vehicle == null)
                 {
-                    _logger.LogWarning("⚠ Vehicle {VehicleId} not found or doesn't have GPS installed", vehicleId);
+                    _logger.LogWarning("? Vehicle {VehicleId} not found or doesn't have GPS installed", vehicleId);
                     return FMSResponse<VehicleLocationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
                 }
 
                 // Get active provider mapping for this vehicle
-                var mapping = await context.VehicleProviderMappings
+                var mapping = await context.DeviceProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync();
 
                 if (mapping == null || string.IsNullOrEmpty(mapping.ExternalDeviceId))
                 {
-                    _logger.LogWarning("⚠ Vehicle {VehicleId} ({VehicleName}) has no active provider mapping",
+                    _logger.LogWarning("? Vehicle {VehicleId} ({VehicleName}) has no active provider mapping",
                         vehicleId, vehicle.VehicleCode);
                     return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have an active GPS provider mapping");
                 }
 
-                _logger.LogInformation("✓ Found mapping: VehicleId={VehicleId} → ExternalDeviceId={ExternalDeviceId}",
+                _logger.LogInformation("? Found mapping: VehicleId={VehicleId} ? ExternalDeviceId={ExternalDeviceId}",
                     vehicleId, mapping.ExternalDeviceId);
 
                 // Get user status from GPSGate API
                 var apiUrl = $"{_baseUrl}/applications/{_applicationId}/users/{mapping.ExternalDeviceId}/status";
-                _logger.LogInformation("📡 Calling GPSGate API: {Url}", apiUrl);
+                _logger.LogInformation("?? Calling GPSGate API: {Url}", apiUrl);
 
                 var response = await _httpClient.GetAsync(apiUrl);
 
@@ -337,7 +337,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                 }
 
                 var content = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("📥 Received GPSGate response for vehicle {VehicleId}: {ContentLength} bytes",
+                _logger.LogInformation("?? Received GPSGate response for vehicle {VehicleId}: {ContentLength} bytes",
                     vehicleId, content.Length);
 
                 var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
@@ -356,7 +356,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                     IsOnline = gpsData?.Position != null
                 };
 
-                _logger.LogInformation("📍 GPS Position data present: {HasPosition}, IsOnline: {IsOnline}",
+                _logger.LogInformation("?? GPS Position data present: {HasPosition}, IsOnline: {IsOnline}",
                     gpsData?.Position != null, locationDto.IsOnline);
 
                 if (gpsData?.Position != null)
@@ -386,7 +386,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                         ? (decimal)gpsData.Velocity.Heading
                         : null;
 
-                    _logger.LogInformation("✓ Location parsed: Lat={Lat}, Lng={Lng}, Speed={Speed} km/h",
+                    _logger.LogInformation("? Location parsed: Lat={Lat}, Lng={Lng}, Speed={Speed} km/h",
                         locationDto.Latitude, locationDto.Longitude, locationDto.Speed);
 
                     // Check if GPS position is stale (older than 24 hours)
@@ -400,7 +400,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                         {
                             var ageDescription = FormatTimeSpan(positionAge);
                             _logger.LogWarning(
-                                "⚠️ Vehicle {VehicleId} (GPSGate {ExternalDeviceId}): GPS POSITION IS STALE - " +
+                                "?? Vehicle {VehicleId} (GPSGate {ExternalDeviceId}): GPS POSITION IS STALE - " +
                                 "Position timestamp: {PositionTime:yyyy-MM-dd HH:mm:ss} UTC ({Age} old). " +
                                 "Treated as faulty GPS device - FUELING ALLOWED but logged for review.",
                                 vehicleId, mapping.ExternalDeviceId, positionTimestamp.Value, ageDescription);
@@ -422,13 +422,13 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                     }
                     else
                     {
-                        _logger.LogWarning("⚠ Vehicle {VehicleId}: No position timestamp available - cannot verify position freshness", vehicleId);
+                        _logger.LogWarning("? Vehicle {VehicleId}: No position timestamp available - cannot verify position freshness", vehicleId);
                     }
                 }
                 else
                 {
                     locationDto.LastUpdated = DateTime.UtcNow;
-                    _logger.LogWarning("⚠ No position data in GPSGate response for vehicle {VehicleId}", vehicleId);
+                    _logger.LogWarning("? No position data in GPSGate response for vehicle {VehicleId}", vehicleId);
                 }
 
                 return FMSResponse<VehicleLocationDTO>.Success(locationDto);
@@ -470,7 +470,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                         "Vehicle not found or doesn't have GPS installed");
                 }
 
-                var mapping = await context.VehicleProviderMappings
+                var mapping = await context.DeviceProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive && !string.IsNullOrWhiteSpace(m.ExternalDeviceId))
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync();
@@ -669,7 +669,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                 await using var context = await _contextFactory.CreateDbContextAsync();
 
                 // Get all GPS-enabled vehicles with active provider mappings
-                var vehiclesWithMappings = await context.VehicleProviderMappings
+                var vehiclesWithMappings = await context.DeviceProviderMappings
                     .Where(m => m.IsActive && m.ExternalDeviceId != null)
                     .Include(m => m.Vehicle)
                     .Include(m => m.ProviderConfiguration)
@@ -785,7 +785,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                 }
 
                 // Get active provider mapping
-                var mapping = await context.VehicleProviderMappings
+                var mapping = await context.DeviceProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .FirstOrDefaultAsync();
 
@@ -925,7 +925,7 @@ namespace FMS.Devices.Tracking.Providers.GpsGate
                 await using var context = await _contextFactory.CreateDbContextAsync();
 
                 // Get all current vehicle-to-provider mappings
-                var mappings = await context.VehicleProviderMappings
+                var mappings = await context.DeviceProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.IsActive && m.ProviderConfiguration.Name == ProviderName)
                     .Include(m => m.Vehicle)

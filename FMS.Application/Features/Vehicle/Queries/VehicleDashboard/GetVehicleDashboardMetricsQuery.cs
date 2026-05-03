@@ -67,7 +67,7 @@ namespace FMS.Application.Features.Vehicle.Queries.VehicleDashboard
                 var activeVehicles = await _context.Vehicles.CountAsync(v => v.IsActive == 1, cancellationToken);
 
                 // GPS-enabled vehicles count (using VehicleProviderMapping for new approach)
-                var gpsEnabledVehicles = await _context.VehicleProviderMappings
+                var gpsEnabledVehicles = await _context.DeviceProviderMappings
                     .Where(m => m.IsActive)
                     .Select(m => m.VehicleId)
                     .Distinct()

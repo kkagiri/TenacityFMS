@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -110,7 +110,7 @@ namespace FMS.Application.Features.FuelAudit.Queries
                     .ToList();
 
                 // Fetch active GPS provider mappings with fuel sensor info for these vehicles
-                var gpsMappings = await _context.VehicleProviderMappings
+                var gpsMappings = await _context.DeviceProviderMappings
                     .AsNoTracking()
                     .Where(m => m.VehicleId != null && vehicleIds.Contains(m.VehicleId.Value) && m.IsActive)
                     .Select(m => new { VehicleId = m.VehicleId!.Value, m.HasFuelSensor })

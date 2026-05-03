@@ -732,7 +732,7 @@ namespace FMS.PTS.WindowsService.Services.Pump
                     throw new ArgumentException("Invalid pump number. Must be between 1 and 50.");
                 }
                 var commandData = new { Pump = pumpId, Nozzle = nozzle };
-                var result = await _commandExecution.ExecuteCommandAsync(pTSDeviceId, "PumpTag", commandData);
+                var result = await _commandExecution.ExecuteCommandAsync(pTSDeviceId, "PumpGetTag", commandData);
 
                 if (!result.Success)
                 {

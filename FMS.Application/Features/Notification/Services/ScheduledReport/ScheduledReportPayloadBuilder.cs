@@ -16,7 +16,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Features.Reporting.Services;

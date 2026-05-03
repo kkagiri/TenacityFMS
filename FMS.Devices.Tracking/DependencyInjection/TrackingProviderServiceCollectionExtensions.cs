@@ -10,6 +10,7 @@
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.FuelAudit.Services;
 using FMS.Devices.Abstractions.Common;
+using FMS.Devices.Tracking.Providers.GpsGate;
 using FMS.Devices.Tracking.Providers.GpsGate.Channels;
 using FMS.Devices.Tracking.Providers.GpsWox;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate;
@@ -29,7 +30,9 @@ public static class TrackingProviderServiceCollectionExtensions
         configureOptions?.Invoke(options);
         services.TryAddSingleton(options);
 
-        services.TryAddSingleton<IDeviceProvider, GpsWoxProvider>();
+        services.AddHttpClient<GPSGateProvider>();
+        services.AddSingleton<IDeviceProvider, GpsWoxProvider>();
+        services.AddSingleton<IDeviceProvider, GpsGateDeviceProvider>();
 
         services.AddHttpClient<IGPSGateConfigurationProvider, GPSGateConfigurationProvider>();
         services.TryAddScoped<IGPSGateConfigurationProvider, GPSGateConfigurationProvider>();

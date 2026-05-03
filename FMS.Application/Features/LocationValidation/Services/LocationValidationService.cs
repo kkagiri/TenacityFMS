@@ -1,4 +1,4 @@
-﻿using FMS.Application.Features.LocationValidation.DTOs;
+using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Configuration;
 using FMS.Application.Services.Configuration;
@@ -7,7 +7,7 @@ using FMS.Domain.Entities.Enums;
 using FMS.Domain.Entities.Features.FuelRuleSet;
 using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Domain.Entities.Features.LocationValidation;
-using FMS.Domain.Entities.VehicleTracking;
+using FMS.Domain.Entities.Devices;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -158,7 +158,7 @@ public partial class LocationValidationService : ILocationValidationService
             {
                 _logger.LogDebug("Location validation globally disabled via SystemConfiguration");
 
-                // 🔍 DEBUG: Calculate and log distances even when validation is disabled
+                // ?? DEBUG: Calculate and log distances even when validation is disabled
                 await LogDistanceDebugInfoAsync(request, cancellationToken);
 
                 result = LocationValidationResult.Skipped("Location validation is globally disabled");
@@ -284,7 +284,7 @@ public partial class LocationValidationService : ILocationValidationService
                     if (vehicleProximity.WasRequired && !vehicleProximity.IsValid)
                     {
                         _logger.LogWarning(
-                            "[LocationValidation] ❌ VEHICLE PROXIMITY FAILED - Distance: {Distance:F0}m, Max allowed: {MaxRadius}m, " +
+                            "[LocationValidation] ? VEHICLE PROXIMITY FAILED - Distance: {Distance:F0}m, Max allowed: {MaxRadius}m, " +
                             "Bypassed due to GPS failure: {WasBypassed}",
                             vehicleProximity.DistanceMeters,
                             vehicleProximity.AllowedRadiusMeters,
@@ -367,7 +367,7 @@ public partial class LocationValidationService : ILocationValidationService
 
             // All checks passed
             _logger.LogInformation(
-                "[LocationValidation] ✅ Location validation PASSED for Tank {TankId}, Vehicle {VehicleId}. " +
+                "[LocationValidation] ? Location validation PASSED for Tank {TankId}, Vehicle {VehicleId}. " +
                 "Vehicle distance: {VehicleDistance:F0}m (max: {VehicleRadius}m), Mobile distance: {MobileDistance:F0}m (max: {MobileRadius}m)",
                 request.TankId,
                 request.VehicleId,
@@ -760,7 +760,7 @@ public partial class LocationValidationService : ILocationValidationService
             };
 
             _logger.LogWarning(
-                "[LocationValidation] ❌ Vehicle {VehicleId} GPS validation FAILED. Status: {Status}, Reason: {Reason}",
+                "[LocationValidation] ? Vehicle {VehicleId} GPS validation FAILED. Status: {Status}, Reason: {Reason}",
                 vehicleId, locationValidation.ValidationStatus, statusReason);
 
             // Create notification for stale device
@@ -784,7 +784,7 @@ public partial class LocationValidationService : ILocationValidationService
         if (locationValidation.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.InvalidButRecentActivity)
         {
             _logger.LogInformation(
-                "[LocationValidation] ⚠️ Vehicle {VehicleId} GPS is INVALID but device was active recently. Allowing fueling.",
+                "[LocationValidation] ?? Vehicle {VehicleId} GPS is INVALID but device was active recently. Allowing fueling.",
                 vehicleId);
         }
 
@@ -793,7 +793,7 @@ public partial class LocationValidationService : ILocationValidationService
         if (locationValidation.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.StalePositionBypassed)
         {
             _logger.LogWarning(
-                "[LocationValidation] ⚠️ Vehicle {VehicleId} GPS POSITION IS STALE (faulty GPS device). " +
+                "[LocationValidation] ?? Vehicle {VehicleId} GPS POSITION IS STALE (faulty GPS device). " +
                 "BYPASSING distance check - stale coordinates are unreliable. Fueling allowed but logged. Reason: {Reason}",
                 vehicleId, locationValidation.ValidationStatusReason);
 
@@ -1022,7 +1022,7 @@ public partial class LocationValidationService : ILocationValidationService
         }
 
         // Additionally verify there's an active provider mapping (for actual GPS tracking)
-        var hasActiveMapping = await _context.Set<VehicleProviderMappingEntity>()
+        var hasActiveMapping = await _context.Set<DeviceProviderMappingEntity>()
             .AsNoTracking()
             .AnyAsync(m => m.VehicleId == vehicleId && m.IsActive, cancellationToken);
 
@@ -1243,18 +1243,18 @@ public partial class LocationValidationService : ILocationValidationService
     {
         try
         {
-            _logger.LogDebug("📍 [LocationDebug] ========== DISTANCE DEBUG INFO (Validation Disabled) ==========");
+            _logger.LogDebug("?? [LocationDebug] ========== DISTANCE DEBUG INFO (Validation Disabled) ==========");
 
             // Get tank location
             var (tankLocation, tankSource) = await GetTankLocationAsync(request.TankId, cancellationToken);
 
             if (tankLocation == null || !tankLocation.IsValid)
             {
-                _logger.LogWarning("📍 [LocationDebug] ❌ Tank {TankId} has no valid location configured", request.TankId);
+                _logger.LogWarning("?? [LocationDebug] ? Tank {TankId} has no valid location configured", request.TankId);
                 return;
             }
 
-            _logger.LogDebug("📍 [LocationDebug] 🏭 TANK {TankId} Location: ({Lat:F6}, {Lng:F6}) - Source: {Source}",
+            _logger.LogDebug("?? [LocationDebug] ?? TANK {TankId} Location: ({Lat:F6}, {Lng:F6}) - Source: {Source}",
                 request.TankId, tankLocation.Latitude, tankLocation.Longitude, tankSource);
 
             // Calculate vehicle distance if VehicleId provided
@@ -1266,9 +1266,9 @@ public partial class LocationValidationService : ILocationValidationService
                 {
                     var vehicleDistance = CalculateDistanceMeters(vehicleLocation, tankLocation);
 
-                    _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE {VehicleId} Location: ({Lat:F6}, {Lng:F6})",
+                    _logger.LogDebug("?? [LocationDebug] ?? VEHICLE {VehicleId} Location: ({Lat:F6}, {Lng:F6})",
                         request.VehicleId, vehicleLocation.Latitude, vehicleLocation.Longitude);
-                    _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE -> TANK Distance: {Distance:F1} meters",
+                    _logger.LogDebug("?? [LocationDebug] ?? VEHICLE -> TANK Distance: {Distance:F1} meters",
                         vehicleDistance);
 
                     // Get PTS device settings for context
@@ -1280,20 +1280,20 @@ public partial class LocationValidationService : ILocationValidationService
                         var effectiveRadius = vehicleRadius + gracePeriod;
 
                         var wouldPass = vehicleDistance <= effectiveRadius;
-                        var status = wouldPass ? "✅ WOULD PASS" : "❌ WOULD FAIL";
+                        var status = wouldPass ? "? WOULD PASS" : "? WOULD FAIL";
 
-                        _logger.LogDebug("📍 [LocationDebug] 🚗 VEHICLE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
+                        _logger.LogDebug("?? [LocationDebug] ?? VEHICLE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
                             status, vehicleDistance, vehicleRadius, gracePeriod, effectiveRadius);
                     }
                 }
                 else
                 {
-                    _logger.LogWarning("📍 [LocationDebug] 🚗 VEHICLE {VehicleId} - No GPS location available", request.VehicleId);
+                    _logger.LogWarning("?? [LocationDebug] ?? VEHICLE {VehicleId} - No GPS location available", request.VehicleId);
                 }
             }
             else
             {
-                _logger.LogDebug("📍 [LocationDebug] 🚗 No VehicleId provided - skipping vehicle distance calculation");
+                _logger.LogDebug("?? [LocationDebug] ?? No VehicleId provided - skipping vehicle distance calculation");
             }
 
             // Calculate mobile distance if provided
@@ -1301,10 +1301,10 @@ public partial class LocationValidationService : ILocationValidationService
             {
                 var mobileDistance = CalculateDistanceMeters(request.MobileAppLocation, tankLocation);
 
-                _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE Location: ({Lat:F6}, {Lng:F6}), Accuracy: {Accuracy}m, IsCached: {IsCached}",
+                _logger.LogDebug("?? [LocationDebug] ?? MOBILE Location: ({Lat:F6}, {Lng:F6}), Accuracy: {Accuracy}m, IsCached: {IsCached}",
                     request.MobileAppLocation.Latitude, request.MobileAppLocation.Longitude,
                     request.MobileAppLocation.Accuracy, request.MobileAppLocation.IsCached);
-                _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE -> TANK Distance: {Distance:F1} meters",
+                _logger.LogDebug("?? [LocationDebug] ?? MOBILE -> TANK Distance: {Distance:F1} meters",
                     mobileDistance);
 
                 // Get PTS device settings for context
@@ -1316,22 +1316,22 @@ public partial class LocationValidationService : ILocationValidationService
                     var effectiveRadius = mobileRadius + gracePeriod;
 
                     var wouldPass = mobileDistance <= effectiveRadius;
-                    var status = wouldPass ? "✅ WOULD PASS" : "❌ WOULD FAIL";
+                    var status = wouldPass ? "? WOULD PASS" : "? WOULD FAIL";
 
-                    _logger.LogDebug("📍 [LocationDebug] 📱 MOBILE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
+                    _logger.LogDebug("?? [LocationDebug] ?? MOBILE Proximity Check: {Status} (Distance: {Distance:F1}m, Allowed: {Radius}m + {Grace}m grace = {Effective}m)",
                         status, mobileDistance, mobileRadius, gracePeriod, effectiveRadius);
                 }
             }
             else
             {
-                _logger.LogDebug("📍 [LocationDebug] 📱 No mobile location provided");
+                _logger.LogDebug("?? [LocationDebug] ?? No mobile location provided");
             }
 
-            _logger.LogDebug("📍 [LocationDebug] ================================================================");
+            _logger.LogDebug("?? [LocationDebug] ================================================================");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "📍 [LocationDebug] Error calculating debug distances");
+            _logger.LogWarning(ex, "?? [LocationDebug] Error calculating debug distances");
         }
     }
 

@@ -17,6 +17,6 @@ public enum DeviceCategory
     /// <summary>Fueling devices (e.g. Technotrade PTS pumps and tank sensors).</summary>
     Fueling = 2,
 
-    /// <summary>Automatic Tank Gauge persistence sinks (e.g. Nafta ATG schema).</summary>
+    /// <summary>Automatic Tank Gauge persistence sinks.</summary>
     Atg = 3,
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Features.ATG;
+using FMS.Application.ModelsDTOs.PTS;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.LocationValidation;
 using FMS.Persistence.DataAccess;
