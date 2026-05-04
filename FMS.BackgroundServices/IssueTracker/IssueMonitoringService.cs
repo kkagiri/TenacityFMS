@@ -251,7 +251,7 @@ namespace FMS.BackgroundServices.IssueTracker
             try
             {
                 // Get all vehicles that have a GPS provider mapping (i.e. they have GPS installed)
-                var gpsVehicles = await context.VehicleProviderMappings
+                var gpsVehicles = await context.DeviceProviderMappings
                     .Include(m => m.Vehicle)
                     .Where(m => m.IsActive && m.Vehicle != null && m.Vehicle.IsActive.HasValue && m.Vehicle.IsActive.Value == 1)
                     .ToListAsync(cancellationToken);
@@ -422,7 +422,7 @@ namespace FMS.BackgroundServices.IssueTracker
             try
             {
                 // Get vehicles with GPS mappings (GPS-equipped vehicles only)
-                var gpsVehicles = await context.VehicleProviderMappings
+                var gpsVehicles = await context.DeviceProviderMappings
                     .Include(m => m.Vehicle)
                     .Where(m => m.IsActive && m.Vehicle != null
                              && m.Vehicle.IsActive.HasValue && m.Vehicle.IsActive.Value == 1)

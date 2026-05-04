@@ -152,6 +152,24 @@ const ICON_PATHS = {
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </>
   ),
+  card: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 9h18" />
+      <path d="M7 15h4" />
+      <path d="M15 15h2" />
+    </>
+  ),
+  gps: (
+    <>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3" />
+      <path d="M12 19v3" />
+      <path d="M2 12h3" />
+      <path d="M19 12h3" />
+      <circle cx="12" cy="12" r="8" />
+    </>
+  ),
   zap: (
     <>
       <polygon points="13 2 4 14 11 14 11 22 20 10 13 10 13 2" />

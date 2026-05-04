@@ -97,7 +97,8 @@ public sealed class GpsGateDeviceProvider : ITrackingProviderMarker
         CancellationToken cancellationToken = default)
     {
         var response = await _legacyProvider.GetAllVehicleLocationsAsync(onlineOnly, gpsEnabledOnly);
-        var locations = response.Data?.Select(MapLocation).ToList() ?? new List<TrackingVehicleLocation>();
+        IReadOnlyList<TrackingVehicleLocation> locations = response.Data?.Select(MapLocation).ToList()
+            ?? new List<TrackingVehicleLocation>();
         return MapResponse(response, locations);
     }
 
@@ -121,7 +122,8 @@ public sealed class GpsGateDeviceProvider : ITrackingProviderMarker
         CancellationToken cancellationToken = default)
     {
         var response = await _legacyProvider.GetAllDevicesAsync();
-        var devices = response.Data?.Select(MapDevice).ToList() ?? new List<TrackingDevice>();
+        IReadOnlyList<TrackingDevice> devices = response.Data?.Select(MapDevice).ToList()
+            ?? new List<TrackingDevice>();
         return MapResponse(response, devices);
     }
 
@@ -132,7 +134,8 @@ public sealed class GpsGateDeviceProvider : ITrackingProviderMarker
         CancellationToken cancellationToken = default)
     {
         var response = await _legacyProvider.GetVehicleHistoryAsync(vehicleId, fromUtc, toUtc);
-        var points = response.Data?.Select(MapHistoryPoint).ToList() ?? new List<TrackingHistoryPoint>();
+        IReadOnlyList<TrackingHistoryPoint> points = response.Data?.Select(MapHistoryPoint).ToList()
+            ?? new List<TrackingHistoryPoint>();
         return MapResponse(response, points);
     }
 
@@ -140,7 +143,8 @@ public sealed class GpsGateDeviceProvider : ITrackingProviderMarker
         CancellationToken cancellationToken = default)
     {
         var response = await _legacyProvider.GetGeofencesAsync();
-        var geofences = response.Data?.Select(MapGeofence).ToList() ?? new List<TrackingGeofence>();
+        IReadOnlyList<TrackingGeofence> geofences = response.Data?.Select(MapGeofence).ToList()
+            ?? new List<TrackingGeofence>();
         return MapResponse(response, geofences);
     }
 

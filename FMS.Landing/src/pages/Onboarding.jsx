@@ -1,442 +1,663 @@
-import React, { Fragment, useMemo, useState } from "react";
+/**
+ * File:          Onboarding.jsx
+ * Purpose:       Three-step demo booking workflow.
+ * Dependencies:  React, Icon component, Layout navigation helper
+ * Last Modified: 2026-05-04
+ *
+ * Flow:
+ *   Step 1 - Who do you fuel?            (sell / fleet / both)
+ *   Step 2 - What do you want to manage? (path-specific modules, all pre-checked)
+ *   Step 3 - Book your demo              (contact form)
+ *   Done   - Confirmation + what happens next
+ */
+import React, { useMemo, useState } from "react";
 import { Icon } from "../components/Icon.jsx";
 import { navigate } from "../components/Layout.jsx";
 
-const INDUSTRIES = [
-  "Logistics & Transport",
-  "Mining",
-  "Construction",
-  "Retail Fuel",
-  "Public Sector",
-  "Agriculture",
-  "Other",
-];
-const COUNTRIES = [
-  "South Africa",
-  "Kenya",
-  "Nigeria",
-  "Ghana",
-  "United Kingdom",
-  "United States",
-  "Australia",
-  "United Arab Emirates",
-  "India",
-  "Other",
-];
-const FLEET_SIZES = ["1 – 10", "11 – 50", "51 – 200", "201 – 500", "500+"];
-const SITE_COUNTS = ["1", "2 – 5", "6 – 20", "21 – 50", "50+"];
-const PLAN_CHOICES = [
-  { code: "free", name: "Free Trial", price: "Free for 14 days" },
-  { code: "starter", name: "Starter", price: "$249/mo" },
-  { code: "growth", name: "Growth", price: "$649/mo", featured: true },
-  { code: "pro", name: "Pro", price: "$1,490/mo" },
+const FUELING_TYPES = [
+  {
+    code: "sell",
+    name: "Sell fuel to others",
+    description: "I run stations that dispense fuel to external customers.",
+    icon: "fuel",
+  },
+  {
+    code: "fleet",
+    name: "Fuel my own fleet",
+    description: "I run stations that fuel only my own vehicles and equipment.",
+    icon: "truck",
+  },
+  {
+    code: "both",
+    name: "Both",
+    description: "I sell fuel to customers and also fuel my own fleet.",
+    icon: "layers",
+  },
 ];
 
-function Stepper({ step }) {
-  const labels = ["Company", "Plan", "Contact"];
+const MODULES_BY_TYPE = {
+  sell: [
+    {
+      code: "track-dispensed",
+      name: "Track fuel dispensed",
+      description: "Every transaction at the pump, by customer and product.",
+      icon: "gauge",
+    },
+    {
+      code: "track-stock",
+      name: "Track stock",
+      description: "Tank levels, deliveries, and reconciliation.",
+      icon: "tank",
+    },
+    {
+      code: "loyalty",
+      name: "Loyalty & discounts",
+      description: "Bonus, rewards, and discount cards for customers.",
+      icon: "card",
+    },
+  ],
+  fleet: [
+    {
+      code: "control-dispensing",
+      name: "Control fuel dispensing",
+      description: "Authorize who, what vehicle, and how much at the pump.",
+      icon: "lock",
+    },
+    {
+      code: "track-stock",
+      name: "Track stock",
+      description: "Tank levels, deliveries, and reconciliation.",
+      icon: "tank",
+    },
+    {
+      code: "track-fleet",
+      name: "Track vehicle fleet",
+      description: "GPS, consumption, and trip history per vehicle.",
+      icon: "gps",
+    },
+  ],
+  both: [
+    {
+      code: "track-dispensed",
+      name: "Track fuel dispensed",
+      description: "Customer transactions at the pump.",
+      icon: "gauge",
+    },
+    {
+      code: "control-dispensing",
+      name: "Control fuel dispensing",
+      description: "Authorize own fleet at the pump.",
+      icon: "lock",
+    },
+    {
+      code: "track-stock",
+      name: "Track stock",
+      description: "Tank levels, deliveries, and reconciliation.",
+      icon: "tank",
+    },
+    {
+      code: "loyalty",
+      name: "Loyalty & discounts",
+      description: "Bonus, rewards, and discount cards for customers.",
+      icon: "card",
+    },
+    {
+      code: "track-fleet",
+      name: "Track vehicle fleet",
+      description: "GPS, consumption, and trip history per vehicle.",
+      icon: "gps",
+    },
+  ],
+};
+
+const COUNTRIES = [
+  { code: "KE", name: "Kenya", dial: "+254" },
+  { code: "UG", name: "Uganda", dial: "+256" },
+  { code: "TZ", name: "Tanzania", dial: "+255" },
+  { code: "RW", name: "Rwanda", dial: "+250" },
+  { code: "ET", name: "Ethiopia", dial: "+251" },
+  { code: "SS", name: "South Sudan", dial: "+211" },
+  { code: "ZA", name: "South Africa", dial: "+27" },
+  { code: "NG", name: "Nigeria", dial: "+234" },
+  { code: "GH", name: "Ghana", dial: "+233" },
+  { code: "OTHER", name: "Other", dial: "+" },
+];
+
+const STEPS = [
+  { num: 1, label: "Operation" },
+  { num: 2, label: "Modules" },
+  { num: 3, label: "Book demo" },
+];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function FieldError({ message }) {
+  if (!message) return null;
+
   return (
-    <div className="row gap-2 center" style={{ marginBottom: 40 }}>
-      {labels.map((l, i) => {
-        const idx = i + 1;
-        const done = step > idx;
-        const current = step === idx;
+    <div className="err" style={{ marginTop: 6 }}>
+      <Icon name="x" size={12} />
+      {message}
+    </div>
+  );
+}
+
+function StepIndicator({ current }) {
+  return (
+    <div
+      className="row gap-3 center"
+      style={{ justifyContent: "center", marginBottom: 28, flexWrap: "wrap" }}
+    >
+      {STEPS.map((step, index) => {
+        const done = current > step.num;
+        const active = current === step.num;
+
         return (
-          <Fragment key={l}>
+          <React.Fragment key={step.num}>
             <div className="row gap-2 center">
-              <div
+              <span
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
                   background: done
                     ? "var(--success)"
-                    : current
+                    : active
                       ? "var(--primary)"
                       : "var(--surface-3)",
-                  color: done || current ? "#fff" : "var(--text-3)",
+                  color: done || active ? "#fff" : "var(--text-3)",
                   display: "grid",
                   placeItems: "center",
                   fontSize: 13,
-                  fontWeight: 700,
-                  transition: "all 200ms",
+                  fontWeight: 600,
                 }}
               >
-                {done ? <Icon name="check" size={14} /> : idx}
-              </div>
-              <div
+                {done ? <Icon name="check" size={14} /> : step.num}
+              </span>
+              <span
                 style={{
                   fontSize: 13,
-                  fontWeight: current ? 600 : 500,
-                  color: current ? "var(--text)" : "var(--text-2)",
+                  fontWeight: active ? 600 : 500,
+                  color: active ? "var(--text)" : "var(--text-2)",
                 }}
               >
-                {l}
-              </div>
+                {step.label}
+              </span>
             </div>
-            {i < labels.length - 1 && (
-              <div
-                style={{
-                  width: 48,
-                  height: 1,
-                  background: done ? "var(--success)" : "var(--border-strong)",
-                }}
+            {index < STEPS.length - 1 && (
+              <span
+                style={{ width: 32, height: 1, background: "var(--border)" }}
               />
             )}
-          </Fragment>
+          </React.Fragment>
         );
       })}
     </div>
   );
 }
 
-function Field({ label, hint, error, required, children }) {
+function TextField({
+  label,
+  type = "text",
+  value,
+  onChange,
+  error,
+  placeholder,
+  optional,
+  children,
+}) {
   return (
-    <div className="field">
-      <label>
+    <div>
+      <label
+        style={{
+          display: "block",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "var(--text)",
+          marginBottom: 6,
+        }}
+      >
         {label}
-        {required && (
-          <span style={{ color: "var(--danger)", marginLeft: 2 }}>*</span>
+        {optional && (
+          <span className="muted" style={{ fontWeight: 400, marginLeft: 6 }}>
+            (optional)
+          </span>
         )}
       </label>
-      {children}
-      {error ? (
-        <div className="err">
-          <Icon name="x" size={12} />
-          {error}
-        </div>
-      ) : hint ? (
-        <div className="hint">{hint}</div>
-      ) : null}
+      {children || (
+        <input
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          style={{
+            width: "100%",
+            height: 38,
+            padding: "0 12px",
+            border: error
+              ? "1px solid var(--danger)"
+              : "1px solid var(--border-strong)",
+            borderRadius: 6,
+            fontSize: 14,
+            color: "var(--text)",
+            background: "#fff",
+            fontFamily: "inherit",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+      )}
+      <FieldError message={error} />
     </div>
   );
 }
 
-function Step1Company({ data, set, errors }) {
+function FuelingTypeCard({ option, selected, onSelect }) {
   return (
-    <div>
-      <h2 style={{ fontSize: 28, marginBottom: 8 }}>
-        Tell us about your company
-      </h2>
-      <p className="muted" style={{ marginBottom: 32 }}>
-        So we can pre-configure the right modules for your trial.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <Field label="Company name" required error={errors.companyName}>
-          <input
-            className={"input" + (errors.companyName ? " invalid" : "")}
-            value={data.companyName || ""}
-            onChange={(e) => set("companyName", e.target.value)}
-            placeholder="e.g. Norden Group"
-          />
-        </Field>
-        <Field label="Industry" required error={errors.industry}>
-          <select
-            className={"select" + (errors.industry ? " invalid" : "")}
-            value={data.industry || ""}
-            onChange={(e) => set("industry", e.target.value)}
-          >
-            <option value="">Select industry…</option>
-            {INDUSTRIES.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Country" required error={errors.country}>
-          <select
-            className={"select" + (errors.country ? " invalid" : "")}
-            value={data.country || ""}
-            onChange={(e) => set("country", e.target.value)}
-          >
-            <option value="">Select country…</option>
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Fleet size" required error={errors.fleetSize}>
-          <select
-            className={"select" + (errors.fleetSize ? " invalid" : "")}
-            value={data.fleetSize || ""}
-            onChange={(e) => set("fleetSize", e.target.value)}
-          >
-            <option value="">Select fleet size…</option>
-            {FLEET_SIZES.map((c) => (
-              <option key={c} value={c}>
-                {c} vehicles
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Number of sites" required error={errors.siteCount}>
-          <select
-            className={"select" + (errors.siteCount ? " invalid" : "")}
-            value={data.siteCount || ""}
-            onChange={(e) => set("siteCount", e.target.value)}
-          >
-            <option value="">Select…</option>
-            {SITE_COUNTS.map((c) => (
-              <option key={c} value={c}>
-                {c} sites
-              </option>
-            ))}
-          </select>
-        </Field>
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      style={{
+        width: "100%",
+        minHeight: 132,
+        textAlign: "left",
+        display: "flex",
+        gap: 16,
+        padding: 18,
+        border: selected
+          ? "2px solid var(--primary)"
+          : "1px solid var(--border-strong)",
+        borderRadius: 8,
+        background: selected ? "var(--primary-tint-2)" : "#fff",
+        color: "var(--text)",
+        cursor: "pointer",
+        transition: "border-color 120ms ease, background 120ms ease",
+      }}
+    >
+      <span
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 6,
+          background: selected ? "#fff" : "var(--surface-3)",
+          color: "var(--primary)",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <Icon name={option.icon} size={22} />
+      </span>
+      <span style={{ flex: 1 }}>
+        <span
+          className="row between center"
+          style={{ marginBottom: 6, gap: 12 }}
+        >
+          <span style={{ fontSize: 16, fontWeight: 600 }}>{option.name}</span>
+          {selected && (
+            <span className="badge badge-success" style={{ flexShrink: 0 }}>
+              Selected
+            </span>
+          )}
+        </span>
+        <span
+          style={{
+            display: "block",
+            fontSize: 13,
+            color: "var(--text-2)",
+            lineHeight: 1.45,
+          }}
+        >
+          {option.description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function ModuleCard({ option, selected, onToggle }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        display: "flex",
+        gap: 14,
+        padding: 16,
+        border: selected
+          ? "2px solid var(--primary)"
+          : "1px solid var(--border-strong)",
+        borderRadius: 8,
+        background: selected ? "var(--primary-tint-2)" : "#fff",
+        color: "var(--text)",
+        cursor: "pointer",
+        transition: "border-color 120ms ease, background 120ms ease",
+      }}
+    >
+      <span
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 4,
+          border: selected
+            ? "2px solid var(--primary)"
+            : "1.5px solid var(--border-strong)",
+          background: selected ? "var(--primary)" : "#fff",
+          color: "#fff",
+          display: "grid",
+          placeItems: "center",
+          flexShrink: 0,
+          marginTop: 2,
+        }}
+      >
+        {selected && <Icon name="check" size={14} strokeWidth={3} />}
+      </span>
+      <span style={{ flex: 1 }}>
+        <span className="row gap-2 center" style={{ marginBottom: 4 }}>
+          <Icon name={option.icon} size={15} />
+          <span style={{ fontSize: 15, fontWeight: 600 }}>{option.name}</span>
+        </span>
+        <span
+          style={{
+            display: "block",
+            fontSize: 13,
+            color: "var(--text-2)",
+            lineHeight: 1.45,
+          }}
+        >
+          {option.description}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function StepOne({ selected, onSelect, error }) {
+  return (
+    <>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 28, marginBottom: 8 }}>Who do you fuel?</h2>
+        <p className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>
+          Pick the option that matches how fuel moves through your business.
+        </p>
       </div>
-    </div>
-  );
-}
-
-function Step2Plan({ data, set, errors }) {
-  return (
-    <div>
-      <h2 style={{ fontSize: 28, marginBottom: 8 }}>
-        Choose your starting plan
-      </h2>
-      <p className="muted" style={{ marginBottom: 32 }}>
-        You can switch any time. Trials never auto-charge.
-      </p>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: 12,
-          marginBottom: 28,
         }}
       >
-        {PLAN_CHOICES.map((p) => (
-          <label
-            key={p.code}
-            style={{
-              display: "flex",
-              gap: 14,
-              padding: 18,
-              border:
-                data.plan === p.code
-                  ? "2px solid var(--primary)"
-                  : "1px solid var(--border-strong)",
-              borderRadius: 8,
-              cursor: "pointer",
-              background:
-                data.plan === p.code ? "var(--primary-tint-2)" : "#fff",
-              position: "relative",
-            }}
-          >
-            <input
-              type="radio"
-              name="plan"
-              value={p.code}
-              checked={data.plan === p.code}
-              onChange={() => set("plan", p.code)}
-              style={{ marginTop: 2, accentColor: "var(--primary)" }}
-            />
-            <div style={{ flex: 1 }}>
-              <div className="row between center" style={{ marginBottom: 4 }}>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</div>
-                {p.featured && (
-                  <span className="badge" style={{ fontSize: 10 }}>
-                    Recommended
-                  </span>
-                )}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--text-2)" }}>
-                {p.price}
-              </div>
-            </div>
-          </label>
+        {FUELING_TYPES.map((option) => (
+          <FuelingTypeCard
+            key={option.code}
+            option={option}
+            selected={selected === option.code}
+            onSelect={() => onSelect(option.code)}
+          />
         ))}
       </div>
-      {errors.plan && (
-        <div className="err" style={{ marginBottom: 20 }}>
-          <Icon name="x" size={12} />
-          {errors.plan}
-        </div>
-      )}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 20,
-          marginBottom: 20,
-        }}
-      >
-        <Field label="Billing currency" required>
-          <select
-            className="select"
-            value={data.currency || "USD"}
-            onChange={(e) => set("currency", e.target.value)}
-          >
-            {["USD", "EUR", "GBP", "ZAR", "KES", "AUD"].map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Billing cycle" required>
-          <select
-            className="select"
-            value={data.cycle || "annual"}
-            onChange={(e) => set("cycle", e.target.value)}
-          >
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual (save 18%)</option>
-          </select>
-        </Field>
-      </div>
-      <Field
-        label="Notes for our team"
-        hint="Anything specific we should know about your operation? (optional)"
-      >
-        <textarea
-          className="textarea"
-          rows={3}
-          value={data.notes || ""}
-          onChange={(e) => set("notes", e.target.value)}
-          placeholder="e.g. We run depot fuel at 6 sites and need PTS configured for RFID at days 1."
-          maxLength={1000}
-        />
-      </Field>
-    </div>
+      <FieldError message={error} />
+    </>
   );
 }
 
-function Step3Contact({ data, set, errors }) {
+function StepTwo({ modules, selectedModules, onToggle, error }) {
   return (
-    <div>
-      <h2 style={{ fontSize: 28, marginBottom: 8 }}>
-        Last step — who should we contact?
-      </h2>
-      <p className="muted" style={{ marginBottom: 32 }}>
-        Sales follows up within 1 business day.
-      </p>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 20,
-          marginBottom: 20,
-        }}
-      >
-        <Field label="Full name" required error={errors.fullName}>
-          <input
-            className={"input" + (errors.fullName ? " invalid" : "")}
-            value={data.fullName || ""}
-            onChange={(e) => set("fullName", e.target.value)}
-            placeholder="Jane Doe"
-          />
-        </Field>
-        <Field label="Job title" error={errors.jobTitle}>
-          <input
-            className={"input" + (errors.jobTitle ? " invalid" : "")}
-            value={data.jobTitle || ""}
-            onChange={(e) => set("jobTitle", e.target.value)}
-            placeholder="Operations Manager"
-          />
-        </Field>
-        <Field label="Work email" required error={errors.email}>
-          <input
-            className={"input" + (errors.email ? " invalid" : "")}
-            type="email"
-            value={data.email || ""}
-            onChange={(e) => set("email", e.target.value)}
-            placeholder="jane@company.com"
-          />
-        </Field>
-        <Field label="Phone" hint="Optional — include country code">
-          <input
-            className="input"
-            value={data.phone || ""}
-            onChange={(e) => set("phone", e.target.value)}
-            placeholder="+27 82 555 1234"
-          />
-        </Field>
+    <>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 28, marginBottom: 8 }}>
+          What do you want to manage?
+        </h2>
+        <p className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>
+          Everything is pre-selected. Deselect anything that isn&apos;t relevant
+          to your operation.
+        </p>
       </div>
-      <div
-        style={{
-          marginTop: 10,
-          padding: 16,
-          background: "var(--surface-2)",
-          borderRadius: 6,
-          marginBottom: 16,
-        }}
-      >
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={!!data.consent}
-            onChange={(e) => set("consent", e.target.checked)}
+      <div className="col gap-3">
+        {modules.map((option) => (
+          <ModuleCard
+            key={option.code}
+            option={option}
+            selected={selectedModules.includes(option.code)}
+            onToggle={() => onToggle(option.code)}
           />
-          <span>
-            I agree to be contacted by Tenacy FMS about my trial and related
-            products. I can unsubscribe anytime.{" "}
-            <a href="#" style={{ color: "var(--primary)" }}>
-              Privacy policy
-            </a>
-            .
-          </span>
-        </label>
-        {errors.consent && (
-          <div className="err" style={{ marginTop: 8 }}>
-            <Icon name="x" size={12} />
-            {errors.consent}
+        ))}
+      </div>
+      <FieldError message={error} />
+    </>
+  );
+}
+
+function StepThree({ contact, errors, onChange }) {
+  const country = COUNTRIES.find((item) => item.code === contact.country);
+
+  return (
+    <>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontSize: 28, marginBottom: 8 }}>Book your demo</h2>
+        <p className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>
+          Share your details and our team will reach out within 24 hours to set
+          up a live demo tailored to your operation.
+        </p>
+      </div>
+
+      <div className="col gap-4">
+        <TextField
+          label="Full name"
+          value={contact.name}
+          onChange={(value) => onChange("name", value)}
+          error={errors.name}
+          placeholder="Jane Doe"
+        />
+
+        <TextField
+          label="Work email"
+          type="email"
+          value={contact.email}
+          onChange={(value) => onChange("email", value)}
+          error={errors.email}
+          placeholder="jane@company.com"
+        />
+
+        <TextField label="Phone" error={errors.phone}>
+          <div className="row gap-2 center">
+            <span
+              style={{
+                height: 38,
+                padding: "0 12px",
+                background: "var(--surface-3)",
+                border: "1px solid var(--border-strong)",
+                borderRadius: 6,
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--text)",
+                minWidth: 70,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {country?.dial || "+"}
+            </span>
+            <input
+              type="tel"
+              value={contact.phone}
+              onChange={(event) => onChange("phone", event.target.value)}
+              placeholder="712 345 678"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: 38,
+                padding: "0 12px",
+                border: errors.phone
+                  ? "1px solid var(--danger)"
+                  : "1px solid var(--border-strong)",
+                borderRadius: 6,
+                fontSize: 14,
+                color: "var(--text)",
+                background: "#fff",
+                fontFamily: "inherit",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
           </div>
-        )}
+        </TextField>
+
+        <TextField
+          label="Company"
+          value={contact.company}
+          onChange={(value) => onChange("company", value)}
+          error={errors.company}
+          placeholder="Company Ltd."
+        />
+
+        <TextField label="Country" error={errors.country}>
+          <select
+            value={contact.country}
+            onChange={(event) => onChange("country", event.target.value)}
+            style={{
+              width: "100%",
+              height: 38,
+              padding: "0 12px",
+              border: "1px solid var(--border-strong)",
+              borderRadius: 6,
+              fontSize: 14,
+              color: "var(--text)",
+              background: "#fff",
+              fontFamily: "inherit",
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          >
+            {COUNTRIES.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </TextField>
+
+        <TextField
+          label="Role"
+          optional
+          value={contact.role}
+          onChange={(value) => onChange("role", value)}
+          placeholder="Operations Manager"
+        />
       </div>
-      {/* honeypot */}
-      <input
-        type="text"
-        name="company_url"
-        style={{ position: "absolute", left: "-9999px" }}
-        tabIndex={-1}
-        aria-hidden="true"
-        autoComplete="off"
-      />
-    </div>
+    </>
   );
 }
 
 function SuccessState({ data }) {
+  const fuelingType = FUELING_TYPES.find(
+    (option) => option.code === data.fuelingType,
+  );
+  const allModules = MODULES_BY_TYPE[data.fuelingType] || [];
+  const pickedModules = allModules.filter((module) =>
+    data.modules.includes(module.code),
+  );
+  const firstName = data.contact.name.trim().split(" ")[0] || "there";
+
   return (
-    <div style={{ textAlign: "center", padding: "var(--s-9) 0" }}>
-      <div
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: "50%",
-          background: "var(--success-tint)",
-          color: "var(--success)",
-          display: "grid",
-          placeItems: "center",
-          margin: "0 auto var(--s-5)",
-        }}
-      >
-        <Icon name="check" size={36} strokeWidth={2} />
+    <div style={{ padding: "var(--s-7) 0" }}>
+      <div style={{ textAlign: "center", marginBottom: 36 }}>
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: "50%",
+            background: "var(--success-tint)",
+            color: "var(--success)",
+            display: "grid",
+            placeItems: "center",
+            margin: "0 auto var(--s-5)",
+          }}
+        >
+          <Icon name="check" size={36} strokeWidth={2} />
+        </div>
+        <h2 style={{ fontSize: 32, marginBottom: 12 }}>
+          Demo request received
+        </h2>
+        <p
+          style={{
+            fontSize: 15,
+            color: "var(--text-2)",
+            maxWidth: 520,
+            margin: "0 auto",
+            lineHeight: 1.55,
+          }}
+        >
+          Thank you, {firstName}. Our team will reach out to{" "}
+          <strong>{data.contact.email}</strong> within 24 hours.
+        </p>
       </div>
-      <h2 style={{ fontSize: 32, marginBottom: 12 }}>You&apos;re in.</h2>
-      <p
-        style={{
-          fontSize: 16,
-          color: "var(--text-2)",
-          maxWidth: 480,
-          margin: "0 auto var(--s-7)",
-        }}
+
+      <div
+        className="card"
+        style={{ maxWidth: 540, margin: "0 auto var(--s-7)", padding: 24 }}
       >
-        Thanks {data.fullName?.split(" ")[0] || "—"}. Sales will be in touch
-        within 1 business day at <strong>{data.email}</strong> to spin up your{" "}
-        {PLAN_CHOICES.find((p) => p.code === data.plan)?.name || "Tenacy"}{" "}
-        environment.
-      </p>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--text-3)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 14,
+            fontWeight: 600,
+          }}
+        >
+          What happens next
+        </div>
+        <ol
+          className="col gap-3"
+          style={{ paddingLeft: 0, listStyle: "none", margin: 0 }}
+        >
+          {[
+            "A short call from our team to confirm your demo time.",
+            "Live demo walking through your selected modules with sample data shaped to your operation.",
+            "Pilot setup discussion if it is a fit.",
+          ].map((line, index) => (
+            <li
+              key={line}
+              className="row gap-3"
+              style={{ alignItems: "flex-start" }}
+            >
+              <span
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: "50%",
+                  background: "var(--primary-tint)",
+                  color: "var(--primary)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                {index + 1}
+              </span>
+              <span style={{ fontSize: 14, lineHeight: 1.5 }}>{line}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
       <div
         className="card"
         style={{
-          maxWidth: 440,
+          maxWidth: 540,
           margin: "0 auto var(--s-7)",
-          textAlign: "left",
           padding: 20,
+          background: "var(--surface-2)",
         }}
       >
         <div
@@ -449,50 +670,31 @@ function SuccessState({ data }) {
             fontWeight: 600,
           }}
         >
-          Request reference
+          Your demo focus
         </div>
-        <div
-          className="mono"
-          style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}
-        >
-          OB-2026-{Math.floor(Math.random() * 90000 + 10000)}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            fontSize: 13,
-          }}
-        >
-          <div className="row between">
-            <span className="muted">Plan</span>
-            <span style={{ fontWeight: 600 }}>
-              {PLAN_CHOICES.find((p) => p.code === data.plan)?.name}
+        <div className="col gap-2" style={{ fontSize: 14 }}>
+          <div className="row between center">
+            <span className="muted">Fueling model</span>
+            <span style={{ fontWeight: 600 }}>{fuelingType?.name}</span>
+          </div>
+          <div className="row between" style={{ alignItems: "flex-start" }}>
+            <span className="muted">Modules</span>
+            <span
+              style={{ fontWeight: 600, textAlign: "right", maxWidth: "70%" }}
+            >
+              {pickedModules.map((module) => module.name).join(", ") || "-"}
             </span>
-          </div>
-          <div className="row between">
-            <span className="muted">Company</span>
-            <span style={{ fontWeight: 600 }}>{data.companyName}</span>
-          </div>
-          <div className="row between">
-            <span className="muted">Country</span>
-            <span style={{ fontWeight: 600 }}>{data.country}</span>
           </div>
         </div>
       </div>
+
       <div className="row gap-3" style={{ justifyContent: "center" }}>
         <button
+          type="button"
           className="btn btn-primary btn-lg"
           onClick={() => navigate("home")}
         >
           Back to home
-        </button>
-        <button
-          className="btn btn-secondary btn-lg"
-          onClick={() => alert("Sign in → existing /login")}
-        >
-          Already have an account? Sign in
         </button>
       </div>
     </div>
@@ -500,58 +702,94 @@ function SuccessState({ data }) {
 }
 
 export default function OnboardingPage() {
-  const initialPlan = useMemo(() => {
-    const m = window.location.hash.match(/plan=([a-z]+)/);
-    return m ? m[1] : "growth";
-  }, []);
   const [step, setStep] = useState(1);
+  const [submitted, setSubmitted] = useState(false);
   const [data, setData] = useState({
-    plan: initialPlan,
-    currency: "USD",
-    cycle: "annual",
+    fuelingType: null,
+    modules: [],
+    contact: {
+      name: "",
+      email: "",
+      phone: "",
+      company: "",
+      country: "KE",
+      role: "",
+    },
   });
   const [errors, setErrors] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  const set = (k, v) => {
-    setData((d) => ({ ...d, [k]: v }));
-    setErrors((e) => ({ ...e, [k]: undefined }));
+  const availableModules = useMemo(
+    () => (data.fuelingType ? MODULES_BY_TYPE[data.fuelingType] : []),
+    [data.fuelingType],
+  );
+
+  const selectFuelingType = (code) => {
+    setData((current) => ({
+      ...current,
+      fuelingType: code,
+      modules: MODULES_BY_TYPE[code].map((module) => module.code),
+    }));
+    setErrors((current) => ({ ...current, fuelingType: undefined }));
+  };
+
+  const toggleModule = (code) => {
+    setData((current) => ({
+      ...current,
+      modules: current.modules.includes(code)
+        ? current.modules.filter((moduleCode) => moduleCode !== code)
+        : [...current.modules, code],
+    }));
+    setErrors((current) => ({ ...current, modules: undefined }));
+  };
+
+  const updateContact = (key, value) => {
+    setData((current) => ({
+      ...current,
+      contact: { ...current.contact, [key]: value },
+    }));
+    setErrors((current) => ({ ...current, [key]: undefined }));
   };
 
   const validateStep = () => {
-    const e = {};
-    if (step === 1) {
-      if (!data.companyName?.trim()) e.companyName = "Required";
-      if (!data.industry) e.industry = "Required";
-      if (!data.country) e.country = "Required";
-      if (!data.fleetSize) e.fleetSize = "Required";
-      if (!data.siteCount) e.siteCount = "Required";
-    } else if (step === 2) {
-      if (!data.plan) e.plan = "Choose a plan to continue";
-    } else if (step === 3) {
-      if (!data.fullName?.trim()) e.fullName = "Required";
-      if (!data.email?.trim()) e.email = "Required";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
-        e.email = "Enter a valid email";
-      if (!data.consent) e.consent = "Please confirm to continue";
+    const nextErrors = {};
+
+    if (step === 1 && !data.fuelingType) {
+      nextErrors.fuelingType = "Pick the option that matches your operation.";
     }
-    setErrors(e);
-    return Object.keys(e).length === 0;
+
+    if (step === 2 && data.modules.length === 0) {
+      nextErrors.modules = "Select at least one module to focus the demo.";
+    }
+
+    if (step === 3) {
+      const contact = data.contact;
+
+      if (!contact.name.trim()) nextErrors.name = "Required.";
+      if (!contact.email.trim()) nextErrors.email = "Required.";
+      else if (!EMAIL_RE.test(contact.email)) {
+        nextErrors.email = "Enter a valid email.";
+      }
+      if (!contact.phone.trim()) nextErrors.phone = "Required.";
+      if (!contact.company.trim()) nextErrors.company = "Required.";
+      if (!contact.country) nextErrors.country = "Required.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const next = () => {
     if (!validateStep()) return;
-    if (step < 3) setStep(step + 1);
-    else submit();
+
+    if (step < 3) {
+      setStep(step + 1);
+      return;
+    }
+
+    setSubmitted(true);
   };
-  const submit = () => {
-    setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setSubmitted(true);
-    }, 700);
-  };
+
+  const back = () => setStep((current) => Math.max(1, current - 1));
 
   return (
     <main
@@ -567,80 +805,77 @@ export default function OnboardingPage() {
         }}
       >
         <div className="container" style={{ maxWidth: 760 }}>
+          {!submitted && <StepIndicator current={step} />}
           <div
             className="card card-glow"
-            style={{ padding: "var(--s-9)", background: "#fff" }}
+            style={{ padding: "var(--s-8)", background: "#fff" }}
           >
             {submitted ? (
               <SuccessState data={data} />
             ) : (
               <>
-                <Stepper step={step} />
                 {step === 1 && (
-                  <Step1Company data={data} set={set} errors={errors} />
+                  <StepOne
+                    selected={data.fuelingType}
+                    onSelect={selectFuelingType}
+                    error={errors.fuelingType}
+                  />
                 )}
                 {step === 2 && (
-                  <Step2Plan data={data} set={set} errors={errors} />
+                  <StepTwo
+                    modules={availableModules}
+                    selectedModules={data.modules}
+                    onToggle={toggleModule}
+                    error={errors.modules}
+                  />
                 )}
                 {step === 3 && (
-                  <Step3Contact data={data} set={set} errors={errors} />
+                  <StepThree
+                    contact={data.contact}
+                    errors={errors}
+                    onChange={updateContact}
+                  />
                 )}
+
                 <div
                   className="row between center"
                   style={{
-                    marginTop: 40,
-                    paddingTop: 24,
+                    marginTop: 32,
+                    paddingTop: 20,
                     borderTop: "1px solid var(--border)",
                   }}
                 >
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() =>
-                      step > 1 ? setStep(step - 1) : navigate("home")
-                    }
-                  >
-                    <Icon name="chevron_left" size={14} />
-                    {step === 1 ? "Cancel" : "Back"}
-                  </button>
-                  <div className="row gap-3 center">
-                    <span style={{ fontSize: 13, color: "var(--text-3)" }}>
-                      Step {step} of 3
-                    </span>
+                  {step === 1 ? (
                     <button
-                      className="btn btn-primary btn-lg"
-                      onClick={next}
-                      disabled={submitting}
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => navigate("home")}
                     >
-                      {submitting
-                        ? "Submitting…"
-                        : step === 3
-                          ? "Submit"
-                          : "Continue"}
-                      {!submitting && <Icon name="arrow_right" size={14} />}
+                      <Icon name="chevron_left" size={14} />
+                      Cancel
                     </button>
-                  </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={back}
+                    >
+                      <Icon name="chevron_left" size={14} />
+                      Back
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-lg"
+                    onClick={next}
+                  >
+                    {step === 3 ? "Submit" : "Next"}{" "}
+                    <Icon name="arrow_right" size={14} />
+                  </button>
                 </div>
               </>
             )}
           </div>
-          {!submitted && (
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: 24,
-                fontSize: 13,
-                color: "var(--text-3)",
-              }}
-            >
-              <Icon
-                name="lock"
-                size={12}
-                style={{ verticalAlign: "middle", marginRight: 6 }}
-              />
-              Your information is encrypted in transit. We never share with
-              third parties.
-            </div>
-          )}
         </div>
       </section>
     </main>
