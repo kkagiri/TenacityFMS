@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Validation" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Forms" title="Validation" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Forms" title="Validation" }}
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Custom styles Validation</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form id="tailwindValidationForm" class="grid md:grid-cols-12 grid-cols-1 gap-base" novalidate>
+                                        <div class="md:col-span-4">
+                                            <label class="form-label">First Name</label>
+
+                                            <div class="relative">
+                                                <input type="text" id="firstName" value="John" required class="input-field form-input" />
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="valid-msg mt-1 hidden text-sm text-success">Looks great!</p>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please provide your first name.</p>
+                                        </div>
+
+                                        <div class="md:col-span-4">
+                                            <label class="form-label">Last Name</label>
+
+                                            <div class="relative">
+                                                <input type="text" id="lastName" value="Doe" required class="input-field form-input" />
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="valid-msg mt-1 hidden text-sm text-success">Looks great!</p>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please provide your last name.</p>
+                                        </div>
+
+                                        <div class="md:col-span-4">
+                                            <label class="form-label">Username</label>
+
+                                            <div class="relative input-group">
+                                                <span class="input-group-text">&#64;</span>
+                                                <input type="text" id="username" placeholder="johndoe123" required class="input-field form-input" />
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please choose a valid username.</p>
+                                        </div>
+
+                                        <div class="md:col-span-6">
+                                            <label class="form-label">City</label>
+
+                                            <div class="relative">
+                                                <input type="text" id="city" placeholder="San Francisco" required class="input-field form-input" />
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please provide a valid city name.</p>
+                                        </div>
+
+                                        <div class="md:col-span-3">
+                                            <label class="form-label">State</label>
+
+                                            <div class="relative">
+                                                <select id="state" required class="input-field form-input">
+                                                    <option value="">Choose...</option>
+                                                    <option>California</option>
+                                                    <option>Texas</option>
+                                                    <option>New York</option>
+                                                    <option>Florida</option>
+                                                </select>
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-9 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-9 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please select your state.</p>
+                                        </div>
+
+                                        <div class="md:col-span-3">
+                                            <label class="form-label">Zip Code</label>
+
+                                            <div class="relative">
+                                                <input type="text" id="zip" placeholder="94107" required class="input-field form-input" />
+
+                                                <i class="iconify tabler--check valid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-success"></i>
+                                                <i class="iconify tabler--alert-circle invalid-icon absolute top-1/2 right-3 hidden -translate-y-1/2 text-danger"></i>
+                                            </div>
+                                            <p class="invalid-msg mt-1 hidden text-sm text-danger">Please enter a valid zip code.</p>
+                                        </div>
+
+                                        <div class="md:col-span-12">
+                                            <div class="flex flex-wrap items-center">
+                                                <input id="terms" type="checkbox" required class="form-checkbox" />
+                                                <label for="terms" class="ms-2 text-sm text-default-700">I agree to the terms and conditions</label>
+                                                <p class="invalid-msg mt-2 hidden w-full text-sm text-danger">You must agree before submitting.</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="md:col-span-12">
+                                            <button type="submit" class="btn bg-primary text-white hover:bg-primary-hover">Submit Form</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Server-side</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form id="serverForm" class="grid grid-cols-1 md:grid-cols-12 gap-base" novalidate>
+                                        <div class="md:col-span-4">
+                                            <label for="firstName" class="form-label">First name</label>
+                                            <div class="relative">
+                                                <input type="text" id="firstName" value="Mark" required class="form-input border-success!" />
+                                                <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
+                                                    <i class="iconify tabler--check text-success text-base"></i>
+                                                </div>
+                                            </div>
+                                            <p class="text-success mt-1 text-2xs">Looks good!</p>
+                                        </div>
+
+                                        <div class="md:col-span-4">
+                                            <label for="lastName" class="form-label">Last name</label>
+                                            <div class="relative">
+                                                <input type="text" id="lastName" value="Otto" required class="form-input border-success!" />
+                                                <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
+                                                    <i class="iconify tabler--check text-success text-base"></i>
+                                                </div>
+                                            </div>
+                                            <p class="text-success mt-1 text-2xs">Looks good!</p>
+                                        </div>
+
+                                        <div class="md:col-span-4">
+                                            <label for="username" class="form-label">Username</label>
+                                            <div class="relative flex rounded-md">
+                                                <span class="border-default-300 bg-default-100 text-default-600 inline-flex items-center rounded-s-md border px-3 text-sm">&#64;</span>
+                                                <input type="text" id="username" name="username" class="form-input border-danger! rounded-s-none!" placeholder="johndoe123" required />
+                                                <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
+                                                    <span data-icon="info" class="text-danger text-base"></span>
+                                                </div>
+                                            </div>
+                                            <p class="text-danger mt-1 text-2xs">Please choose a username.</p>
+                                        </div>
+
+                                        <div class="md:col-span-6">
+                                            <label for="city" class="form-label">City</label>
+                                            <div class="relative">
+                                                <input type="text" id="city" required placeholder="Enter city" class="form-input border-danger!" />
+                                                <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
+                                                    <span data-icon="info" class="text-danger text-base"></span>
+                                                </div>
+                                            </div>
+                                            <p class="text-danger mt-1 text-2xs">Please provide a valid city.</p>
+                                        </div>
+
+                                        <div class="md:col-span-3">
+                                            <label for="state" class="form-label">State</label>
+                                            <div class="relative">
+                                                <select id="state" required class="form-input border-danger!">
+                                                    <option value="">Choose...</option>
+                                                    <option>California</option>
+                                                    <option>Texas</option>
+                                                    <option>Florida</option>
+                                                </select>
+                                                <div class="pointer-events-none absolute inset-y-0 end-6 flex items-center pe-3">
+                                                    <span data-icon="info" class="text-danger text-base"></span>
+                                                </div>
+                                            </div>
+                                            <p class="text-danger mt-1 text-2xs">Please select a valid state.</p>
+                                        </div>
+
+                                        <div class="md:col-span-3">
+                                            <label for="zip" class="form-label">Zip</label>
+                                            <div class="relative">
+                                                <input type="text" id="zip" required placeholder="Zip code" class="form-input border-danger!" />
+                                                <div class="pointer-events-none absolute inset-y-0 end-0 flex items-center pe-3">
+                                                    <span data-icon="info" class="text-danger text-base"></span>
+                                                </div>
+                                            </div>
+                                            <p class="text-danger mt-1 text-2xs">Please provide a valid zip.</p>
+                                        </div>
+
+                                        <div class="md:col-span-12">
+                                            <label class="flex items-center space-x-2">
+                                                <input type="checkbox" id="terms" required class="form-checkbox checked:bg-danger!" />
+                                                <span class="text-danger">Agree to terms and conditions</span>
+                                            </label>
+                                            <p class="text-danger mt-1 text-2xs">You must agree before submitting.</p>
+                                        </div>
+
+                                        <div class="md:col-span-12">
+                                            <button type="submit" class="btn bg-primary hover:bg-primary-hover text-white">Submit form</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Supported Elements</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form class="space-y-6" novalidate>
+                                        <div>
+                                            <label for="validationTextarea" class="form-label">Textarea</label>
+                                            <textarea id="validationTextarea" placeholder="Required example textarea" required class="form-textarea border-danger!"></textarea>
+                                            <p class="text-danger mt-1 text-2xs">Please enter a message in the textarea.</p>
+                                        </div>
+
+                                        <div class="flex items-start gap-2">
+                                            <input id="validationFormCheck1" type="checkbox" required class="form-checkbox checked:bg-danger! border-danger! mt-0.5" />
+                                            <div>
+                                                <label for="validationFormCheck1" class="text-danger">Check this checkbox</label>
+                                                <p class="text-danger mt-1 text-2xs">Example invalid feedback text</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <div class="flex items-center gap-2">
+                                                <input id="validationFormCheck2" type="radio" name="radio-stacked" required class="form-radio checked:bg-danger! border-danger!" />
+                                                <label for="validationFormCheck2" class="text-danger">Toggle this radio</label>
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <input id="validationFormCheck3" type="radio" name="radio-stacked" required class="form-radio checked:bg-danger! border-danger!" />
+                                                <label for="validationFormCheck3" class="text-danger">Or toggle this other radio</label>
+                                                <p class="text-danger mt-1 text-2xs">More example invalid feedback text</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <select required class="form-input border-success!">
+                                                <option value="">Open this select menu</option>
+                                                <option value="1">One</option>
+                                                <option value="2">Two</option>
+                                                <option value="3">Three</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <input type="file" required class="form-input block w-full text-sm" />
+                                            <p class="text-danger mt-1 text-2xs">Example invalid form file feedback</p>
+                                        </div>
+
+                                        <div>
+                                            <button type="submit" disabled class="btn bg-primary hover:bg-primary-hover cursor-not-allowed text-white">Submit form</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Browser Defaults</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form action="">
+                                        <div class="grid md:grid-cols-3 grid-cols-1 gap-base mb-base">
+                                            <div>
+                                                <label for="validationDefault01" class="form-label">First name</label>
+                                                <input type="text" class="form-input" id="validationDefault01" value="Mark" required="" />
+                                            </div>
+
+                                            <div>
+                                                <label for="validationDefault02" class="form-label">Last name</label>
+                                                <input type="text" class="form-input" id="validationDefault02" value="Otto" required="" />
+                                            </div>
+
+                                            <div>
+                                                <label for="validationDefaultUsername" class="form-label">Username</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text" id="inputGroupPrepend2">&#64;</span>
+                                                    <input type="text" class="form-input" id="validationDefaultUsername" aria-describedby="inputGroupPrepend2" required="" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid md:grid-cols-4 grid-cols-1 gap-base mb-base">
+                                            <div class="md:col-span-2 col-span-1">
+                                                <label for="validationDefault03" class="form-label">City</label>
+                                                <input type="text" class="form-input" id="validationDefault03" required="" />
+                                            </div>
+
+                                            <div>
+                                                <label for="validationDefault04" class="form-label">State</label>
+                                                <select class="form-input" id="validationDefault04" required="">
+                                                    <option selected="" disabled="" value="">Choose...</option>
+                                                    <option>...</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label for="validationDefault05" class="form-label">Zip</label>
+                                                <input type="text" class="form-input" id="validationDefault05" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="flex items-center space-x-2">
+                                                <input type="checkbox" id="invalidCheck2" required class="form-checkbox" />
+                                                <span class="text-default-700">Agree to terms and conditions</span>
+                                            </label>
+                                        </div>
+
+                                        <div class="mt-5">
+                                            <button class="btn bg-primary text-white hover:bg-primary-hover" type="submit">Submit form</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/form-validation.js"></script>
+    </body>
+</html>

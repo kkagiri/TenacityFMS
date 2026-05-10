@@ -2,7 +2,7 @@
  * File: ProviderManagementController.cs
  * Purpose: Manages tracking-provider configuration, health, and vehicle mapping operations.
  * Dependencies: MediatR, provider services, SignalR hub, JWT claims.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-05-10
  *
  * Key Actions:
  * - BulkAssignVehiclesToProvider(): Starts bulk provider assignment jobs.
@@ -41,7 +41,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [ApiController]
     [Route("api/v1/providers")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Device)]
+    [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
     public class ProviderManagementController(
         IMediator mediator,
         IVehicleTrackingService trackingService,
@@ -246,6 +246,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Update request</param>
         /// <returns>Updated configuration</returns>
         [HttpPut("{providerId}")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> UpdateProvider(int providerId, [FromBody] UpdateProviderRequest request)
         {
             try
@@ -310,6 +311,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="providerName">Provider name</param>
         /// <returns>Connection test result</returns>
         [HttpPost("{providerName}/test")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> TestProviderConnection(string providerName)
         {
             try
@@ -553,6 +555,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// </summary>
         /// <returns>Reload result</returns>
         [HttpPost("reload")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> ReloadProviders()
         {
             try
@@ -617,6 +620,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Bulk assignment request</param>
         /// <returns>Job initiation result with job ID</returns>
         [HttpPost("mappings/bulk")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> BulkAssignVehiclesToProvider([FromBody] BulkAssignmentRequestDTO request)
         {
             try
@@ -668,6 +672,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Bulk unassignment request</param>
         /// <returns>Job initiation result with job ID</returns>
         [HttpPost("mappings/bulk/unassign")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> BulkUnassignVehiclesFromProvider([FromBody] BulkVehicleUnassignmentRequest request)
         {
             try
@@ -717,6 +722,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Device mapping request</param>
         /// <returns>Assignment result</returns>
         [HttpPost("mappings/device")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> MapVehicleToDevice([FromBody] DeviceMappingRequest request)
         {
             try
@@ -776,6 +782,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Assignment request</param>
         /// <returns>Assignment result</returns>
         [HttpPost("mappings")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> AssignVehicleToProvider([FromBody] VehicleProviderAssignmentRequest request)
         {
             try

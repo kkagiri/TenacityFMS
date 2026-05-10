@@ -65,6 +65,12 @@ FMS supports two device families today — fueling (Technotrade PTS) and vehicle
 | Field tech        | Installs PTS/ATG/GPS devices.                                |
 | Support           | Diagnoses connection issues per provider via dedicated logs. |
 
+Audience mapping follows the 3-audience multi-tenancy model:
+
+- **Platform operator** (`TenantKind.System`, `_platform` tenant): may inspect and support provider configurations across tenants only through `[AllowCrossTenant]` operator endpoints with platform permissions.
+- **Client tenant admin** (`TenantKind.Client`): may configure provider credentials and map devices for the current client tenant only.
+- **Customer tenant user** (`TenantKind.Customer`): has no provider-configuration or device-command access; customer-facing screens are read-only views over the customer's own data.
+
 ---
 
 ## 5. Functional Requirements
@@ -79,7 +85,7 @@ Every external device or telemetry source is a Provider plugin: `IVehicleTrackin
 - `device_provider_mappings.TenantId` (non-nullable `uuid`, FK to `tenants`).
 - All reads go through `IProviderConfigRepository` / `IDeviceMappingRepository` which apply `WHERE TenantId = ITenantScope.TenantId` automatically.
 - In `FMS.WebClient`, `ITenantScope` is bridged onto the existing `ITenantContext` per request.
-- Cross-tenant access requires explicit `IBypassTenancy` (admin-only, audited).
+- Cross-tenant access requires explicit `[AllowCrossTenant]` / `ITenantContext.EnterCrossTenantScope()` and is restricted to `_platform` system-tenant operators. Client tenants may only access their own rows unless a feature explicitly implements descendant read-through; customer tenants never get provider-management write access.
 
 ### FR-3 Canonical message contract
 
@@ -99,12 +105,19 @@ Provider-specific shapes (`PTSMessage`, GPSGate JSON) are mapped to canonical `D
 
 ### FR-6 Provisioning UX
 
-New admin page `/admin/device-providers`:
+Device-provider provisioning is split by audience:
+
+- `FMS.Admin` operator portal: platform support can view and support provider configurations across tenants through `/api/v1/operator/device-providers` endpoints protected by `[AllowCrossTenant]` and platform permissions.
+- `fms.frontend` Client view: client admins use `/admin/device-providers` to list, add, edit, and map provider configurations for their current tenant only.
+- `fms.frontend` Customer view: provider configuration, mapping, and device-command routes are hidden and backend-protected.
+
+Client admin page `/admin/device-providers`:
 
 - List providers, status (active/disabled), category badge, last health check.
 - Add/edit credentials per tenant (Settings JSON encrypted at rest).
 - Map devices: vehicleId or fueling deviceId → providerConfigId + externalDeviceId + IMEI.
 - Permissions: `_Read_DeviceProvider`, `_Manage_DeviceProvider`.
+- Operator permissions: `_Platform_Read_DeviceProvider`, `_Platform_Manage_DeviceProvider` for cross-tenant support in `FMS.Admin`.
 - M365 Fluent design (per `.agents/skills/design/SKILL.md`).
 
 ### FR-7 Logging
@@ -143,7 +156,8 @@ FMS.Devices.Abstractions/        contracts only
 FMS.Devices.Core/                runtime services
 ├── Registry/                    ProviderRegistry, ProviderFactory, [Provider] scanner
 ├── Routing/                     DeviceMessageRouter
-├── Tenancy/                     TenantScopedProviderResolver, IBypassTenancy
+├── Tenancy/                     TenantScopedProviderResolver, ITenantScope bridge,
+│                                platform-only cross-tenant scope
 ├── Health/                      ProviderHealthMonitor
 ├── Repositories/                IProviderConfigRepository, IDeviceMappingRepository
 └── DependencyInjection/         AddDeviceCore(), AddProviderRegistry()
@@ -176,7 +190,7 @@ FMS.Application/Features/Devices/
 
 - ADD `TenantId UUID NOT NULL` (FK to `tenants.Id`).
 - ADD `DeviceCategory VARCHAR(40) NOT NULL` (`Fueling`, `Tracking`, `Atg`).
-- Backfill: existing rows → `TenantId = '00000000-0000-0000-0000-000000000000'` (system tenant) until each tenant gets its own row.
+- Backfill: existing rows → the real `_platform` system tenant (`11111111-1111-1111-1111-111111111111`) only as a migration holding state; each production provider row must then be reassigned to its owning client tenant. `Guid.Empty` is allowed only as a temporary legacy sentinel during migration review, not as the long-term system tenant.
 
 ### `vehicle_provider_mappings` → rename to `device_provider_mappings`
 
@@ -190,10 +204,14 @@ FMS.Application/Features/Devices/
 
 - `_Read_DeviceProvider`
 - `_Manage_DeviceProvider`
+- `_Platform_Read_DeviceProvider`
+- `_Platform_Manage_DeviceProvider`
 
 ### Navigation
 
-- New entry "Device Providers" under Admin, route `/admin/device-providers`, permission `_Read_DeviceProvider`.
+- Client portal: new entry "Device Providers" under Admin, route `/admin/device-providers`, permission `_Read_DeviceProvider`, visible only in Client view mode.
+- Operator portal: new `FMS.Admin` module for cross-tenant device-provider support, gated by `_Platform_Read_DeviceProvider` and `[AllowCrossTenant]` APIs.
+- Customer portal: no device-provider navigation; backend denies provider configuration, mapping, and command endpoints for Customer tenants.
 
 ---
 
@@ -217,7 +235,7 @@ Create `FMS.Devices.Fueling`. Move PTS transport from `FMS.PTS.WindowsService/In
 
 ### Phase 4 — Application consolidation (1 sprint, depends on P3)
 
-Migrate `Features/PTS`, `Features/PTSDevice`, `Features/PTSService`, `PTSServices/*` into `Features/Devices/`. Delete originals. Add permissions + navigation. Build `/admin/device-providers` page (M365 Fluent).
+Migrate `Features/PTS`, `Features/PTSDevice`, `Features/PTSService`, `PTSServices/*` into `Features/Devices/`. Delete originals. Add client and platform device-provider permissions, Client-only `/admin/device-providers` navigation, `FMS.Admin` operator support navigation, and Customer-view backend/route denial. Build both device-provider surfaces with M365 Fluent styling.
 
 ### Phase 5 — Hosting split (1 sprint, depends on P3+P4)
 
@@ -238,13 +256,13 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 
 ## 10. Risks & Mitigations
 
-| Risk                                         | Mitigation                                                                                                                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Live PTS uploads break during transport move | Dual-host parallel run; per-device cutover; reversible by re-pointing devices.                                                                                              |
-| Tenant filter introduces regressions         | Tenant filter at repository layer only; comprehensive query tests; system tenant `TenantId=00000000-0000-0000-0000-000000000000` retains current behavior during migration. |
-| Mapper rewrite drops a packet type silently  | Conformance test enumerates all mappers and asserts coverage of every known `Packet.Type` from production samples.                                                          |
-| Domain churn                                 | Domain-layer changes limited to two new columns + entity moves; each Domain change requires explicit user approval per `.github/copilot-instructions.md` §1.6.              |
-| Logs land in wrong category                  | Phase 5 verification step grep-tests `({SourceContext})` and folder routing.                                                                                                |
+| Risk                                         | Mitigation                                                                                                                                                                                           |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Live PTS uploads break during transport move | Dual-host parallel run; per-device cutover; reversible by re-pointing devices.                                                                                                                       |
+| Tenant filter introduces regressions         | Tenant filter at repository layer only; comprehensive query tests; `_platform` tenant backfill keeps legacy rows visible during migration review, then rows are reassigned to owning client tenants. |
+| Mapper rewrite drops a packet type silently  | Conformance test enumerates all mappers and asserts coverage of every known `Packet.Type` from production samples.                                                                                   |
+| Domain churn                                 | Domain-layer changes limited to two new columns + entity moves; each Domain change requires explicit user approval per `.github/copilot-instructions.md` §1.6.                                       |
+| Logs land in wrong category                  | Phase 5 verification step grep-tests `({SourceContext})` and folder routing.                                                                                                                         |
 
 ---
 
@@ -276,7 +294,7 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 2. `FMS.Application` has zero references to `Microsoft.AspNetCore.WebSockets` from PTS code paths.
 3. `[PacketType]` and `MessageHandlerRegistry` are deleted (`grep` confirms).
 4. New mappers each have a unit test against a real captured packet sample.
-6. Outbound PTS commands (`PumpAuthorize`, `PumpGetStatus`, `PumpCloseTransaction`, `PumpGetTransactionInformation`, `PumpGetTag`, configuration, diagnostics, and probe calibration commands) are mapped by `FMS.Devices.Fueling/Providers/TechnotradePts/Commands/` and executed through `TechnotradePtsCommandExecutor` in both WebClient and the PTS service.
+5. Outbound PTS commands (`PumpAuthorize`, `PumpGetStatus`, `PumpCloseTransaction`, `PumpGetTransactionInformation`, `PumpGetTag`, configuration, diagnostics, and probe calibration commands) are mapped by `FMS.Devices.Fueling/Providers/TechnotradePts/Commands/` and executed through `TechnotradePtsCommandExecutor` in both WebClient and the PTS service.
 
 ### Phase 4
 
@@ -284,7 +302,7 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 2. `FMS.Application/Features/PTS{,Device,Service}/` folders are gone.
 3. `FMS.Application` references `FMS.Domain.PTSCommon` only via the fueling provider boundary.
 4. End-to-end UI smoke: pump authorize → device executes → DB update → SignalR push.
-5. Permissions `_Read_DeviceProvider`, `_Manage_DeviceProvider` exist; navigation entry visible to authorized roles.
+5. Permissions `_Read_DeviceProvider`, `_Manage_DeviceProvider`, `_Platform_Read_DeviceProvider`, and `_Platform_Manage_DeviceProvider` exist; client navigation is visible only to Client users with device-provider permissions, operator navigation is visible only in `FMS.Admin`, and Customer users cannot access provider configuration or command endpoints.
 
 ### Phase 5
 

@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Product Views" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Ecommerce" title="Product Views" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Ecommerce" title="Product Views" }}
+
+                    <div class="container">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" type="search" placeholder="Search report..." class="form-input" />
+                                    </div>
+                                </div>
+
+                                <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+
+                                <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                    <span class="me-2.5 font-semibold text-nowrap">Filter By:</span>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--trending-up input-icon"></i>
+                                        <select data-table-range-filter="performance" class="form-select">
+                                            <option value="All">Sales Performance</option>
+                                            <option value="1000+">Top Selling</option>
+                                            <option value="1-1000">Low Selling</option>
+                                            <option value="0">No Sales</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <select data-table-set-rows-per-page="" class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="8">8</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th data-table-select-all class="w-[1%]">
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" id="select-all-products" />
+                                            </th>
+                                            <th data-table-sort>Product</th>
+                                            <th data-table-sort>SKU</th>
+                                            <th data-table-sort>Price</th>
+                                            <th data-table-sort="rating">Rating</th>
+                                            <th data-table-sort>Views</th>
+                                            <th data-table-sort data-column="performance">Orders</th>
+                                            <th data-table-sort>Conversation</th>
+                                            <th class="text-start">Report</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base w-full">
+                                                    <div>
+                                                        <img src="/images/products/2.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Smart Fitness Watch</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>FW-54201</td>
+                                            <td>$129.99</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(54)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>45.2k</td>
+                                            <td>820</td>
+                                            <td>7.3%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="bar"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/3.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Portable Bluetooth Speaker</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>BS-20894</td>
+                                            <td>$79.50</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(31)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>28.9k</td>
+                                            <td>410</td>
+                                            <td>5.8%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="line"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/4.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Gaming Mouse</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>GM-77215</td>
+                                            <td>$49.99</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(67)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>22.4k</td>
+                                            <td>340</td>
+                                            <td>6.4%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="bar"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/5.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Noise Cancelling Headphones</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>NC-88321</td>
+                                            <td>$199.00</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(128)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>60.1k</td>
+                                            <td>1500</td>
+                                            <td>9.8%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="line"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/6.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">4K Action Camera</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>AC-90763</td>
+                                            <td>$249.99</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(94)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>18.9k</td>
+                                            <td>610</td>
+                                            <td>6.0%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="bar"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/7.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Wireless Charger Pad</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>WC-23815</td>
+                                            <td>$39.95</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(41)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>12.3k</td>
+                                            <td>220</td>
+                                            <td>4.1%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="line"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/8.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Mechanical Keyboard</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>MK-48519</td>
+                                            <td>$89.00</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(77)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>30.5k</td>
+                                            <td>540</td>
+                                            <td>7.2%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="bar"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/9.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Drone with Camera</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>DR-61208</td>
+                                            <td>$399.00</td>
+                                            <td>
+                                                <div class="flex items-center gap-1">
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <i class="iconify tabler--star-filled text-warning"></i>
+                                                    <span>
+                                                        <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(189)</a>
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td>75.9k</td>
+                                            <td>1900</td>
+                                            <td>10.2%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="line"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/10.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Smart Home Hub</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>SH-30051</td>
+                                            <td>$149.99</td>
+                                            <td>
+                                                <span>
+                                                    <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(58)</a>
+                                                </span>
+                                            </td>
+                                            <td>21.7k</td>
+                                            <td>470</td>
+                                            <td>5.5%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="bar"></div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-base">
+                                                    <div>
+                                                        <img src="/images/products/1.png" alt="Product" class="size-9 rounded" />
+                                                    </div>
+                                                    <h5>
+                                                        <a data-sort="product" href="#!" class="hover:text-primary">Mini Projector</a>
+                                                    </h5>
+                                                </div>
+                                            </td>
+                                            <td>MP-12081</td>
+                                            <td>$219.00</td>
+                                            <td>
+                                                <span>
+                                                    <a data-sort="rating" href="#" class="hover:text-primary font-semibold ms-1">(35)</a>
+                                                </span>
+                                            </td>
+                                            <td>15.9k</td>
+                                            <td>310</td>
+                                            <td>4.7%</td>
+                                            <td>
+                                                <div data-chart="apex" data-chart-type="line"></div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="products"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+
+        <script type="module" src="assets/js/pages/ecommerce-product-views.js"></script>
+    </body>
+</html>

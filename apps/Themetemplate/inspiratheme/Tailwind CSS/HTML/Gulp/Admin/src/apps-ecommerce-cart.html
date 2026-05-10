@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Cart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Ecommerce", "title":"Cart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Ecommerce", "title":"Cart"})
+
+                    <div class="container">
+                        <!-- Free Shipping Progress -->
+                        <div class="bg-info/10 border border-info/25 text-info mb-4 rounded px-4 py-3">
+                            <h6 class="text-xs mb-2.5">Buy <span class="text-warning font-bold">$250</span> more to get <span class="font-semibold">Free Shipping</span></h6>
+
+                            <div class="bg-default-100 h-1 w-full overflow-hidden rounded-full">
+                                <div class="bg-warning h-1 w-[70%] transition-all"></div>
+                            </div>
+                        </div>
+
+                        <!-- Cart Layout -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-base">
+                            <!-- Cart Items -->
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header flex justify-between">
+                                        <h4 class="card-title">Shopping Cart</h4>
+                                        <a href="#" class="text-primary font-medium underline underline-offset-4">Clear cart</a>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <!-- Cart Table -->
+                                        <div class="table-wrapper">
+                                            <table class="table min-w-full border-collapse">
+                                                <thead class="thead-sm bg-light/25 text-2xs uppercase">
+                                                    <tr>
+                                                        <th>Product</th>
+                                                        <th>Price</th>
+                                                        <th>Quantity</th>
+                                                        <th>Total</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+                                                    <!-- Product 1 -->
+                                                    <tr>
+                                                        <td class="flex items-center gap-base">
+                                                            <img src="assets/images/products/1.png" alt="iPhone" class="size-15 rounded" />
+                                                            <div>
+                                                                <h6 class="mb-1.25">Apple iPhone 14 128GB</h6>
+                                                                <small class="text-default-400 block">Color: White</small>
+                                                                <small class="text-default-400 block">Model: 128GB</small>
+                                                            </div>
+                                                        </td>
+                                                        <td>$899.00</td>
+                                                        <td>
+                                                            <div class="input-group max-w-32.5" data-touchspin>
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                                <input type="text" class="form-input" value="1" max="800000" />
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                                            </div>
+                                                        </td>
+                                                        <td class="font-semibold">$899.00</td>
+                                                        <td>
+                                                            <a href="#" class="text-default-400">
+                                                                <i class="iconify tabler--x text-base"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- Product 2 -->
+                                                    <tr>
+                                                        <td class="flex items-center gap-base">
+                                                            <img src="assets/images/products/2.png" alt="iPad" class="size-15 rounded" />
+                                                            <div>
+                                                                <span class="badge bg-danger/15 text-danger mb-1.25">-10%</span>
+                                                                <h6 class="mb-1.25">Tablet Apple iPad Pro M2</h6>
+                                                                <small class="text-default-400 block">Color: Black</small>
+                                                                <small class="text-default-400 block">Model: 256GB</small>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span class="font-semibold">$989.00</span>
+                                                            <br />
+                                                            <small class="text-default-400 line-through">$1,099.00</small>
+                                                        </td>
+                                                        <td>
+                                                            <div class="input-group max-w-32.5" data-touchspin>
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                                <input type="text" class="form-input" value="2" max="800000" />
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                                            </div>
+                                                        </td>
+                                                        <td class="font-semibold">$989.00</td>
+                                                        <td>
+                                                            <a href="#" class="text-default-400">
+                                                                <i class="iconify tabler--x text-base"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+
+                                                    <!-- Product 3 -->
+                                                    <tr>
+                                                        <td class="flex items-center gap-base">
+                                                            <img src="assets/images/products/3.png" alt="Watch" class="size-15 rounded" />
+                                                            <div>
+                                                                <h6 class="mb-1.25">Smart Watch Series 7</h6>
+                                                                <small class="text-default-400 block">Color: White</small>
+                                                                <small class="text-default-400 block">Model: 44mm</small>
+                                                            </div>
+                                                        </td>
+                                                        <td>$429.00</td>
+                                                        <td>
+                                                            <div class="input-group max-w-32.5" data-touchspin>
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                                <input type="text" class="form-input" value="3" max="800000" />
+                                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                                            </div>
+                                                        </td>
+                                                        <td class="font-semibold">$429.00</td>
+                                                        <td>
+                                                            <a href="#" class="text-default-400">
+                                                                <i class="iconify tabler--x text-base"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <!-- Continue Shopping -->
+                                        <div class="border-default-300 border-t pt-7.5">
+                                            <a href="apps-ecommerce-products-grid.html" class="text-primary inline-flex items-center gap-1.5 font-medium">
+                                                <i class="iconify tabler--arrow-left"></i>
+                                                Continue Shopping
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div>
+                                <div class="flex gap-base flex-col">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4 class="card-title">Order Summary</h4>
+                                        </div>
+
+                                        <div class="card-body">
+                                            <ul class="list-unstyled mb-6.5">
+                                                <li class="mb-2.5 flex justify-between">
+                                                    <span class="text-default-400">Subtotal (3 items):</span>
+                                                    <span>$2,427.00</span>
+                                                </li>
+
+                                                <li class="mb-2.5 flex justify-between">
+                                                    <span class="text-default-400">Saving:</span>
+                                                    <span class="text-danger">- $110.00</span>
+                                                </li>
+
+                                                <li class="mb-2.5 flex justify-between">
+                                                    <span class="text-default-400">Tax collected:</span>
+                                                    <span>$73.40</span>
+                                                </li>
+
+                                                <li class="border-default-300 mb-5 flex justify-between border-b pb-base">
+                                                    <span class="text-default-400">Shipping:</span>
+                                                    <span>Calculated at checkout</span>
+                                                </li>
+
+                                                <li class="mb-2.5 flex justify-between">
+                                                    <h6 class="text-default-400 text-xs uppercase">Estimated total:</h6>
+                                                    <h5 class="font-bold">$2,390.40</h5>
+                                                </li>
+                                            </ul>
+
+                                            <a href="apps-ecommerce-checkout.html" class="mb-5 btn btn-lg bg-danger text-base w-full text-white hover:bg-danger-hover">Proceed to Checkout</a>
+                                            <p class="text-default-400 text-center">
+                                                <a href="#" class="text-primary font-semibold">Create an account</a>
+                                                and get 239 bonuses
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Apply Promo Code -->
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h4 class="card-title">Apply Coupon Code</h4>
+                                        </div>
+
+                                        <div class="card-body">
+                                            <div class="rounded bg-warning/15 text-warning mb-4 px-4 py-2.5 text-xs">
+                                                Use
+                                                <span class="font-bold">ADMINPRO</span>
+                                                to get 10% off.
+                                            </div>
+
+                                            <div class="input-group relative">
+                                                <input type="text" class="form-input" placeholder="Enter code" />
+                                                <button class="btn bg-primary absolute inset-y-0 end-0 rounded-s-none text-white hover:bg-primary-hover" type="button">Apply</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

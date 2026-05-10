@@ -20,12 +20,35 @@
   background-color: #ffffff !important;
   width: 100%;
   overflow: visible;
-  min-height: 56px;
+  min-height: 65px;
   position: relative;
   display: flex;
   -webkit-transform: translateZ(0);
   -moz-transform: translateZ(0);
   transform: translateZ(0);
+}
+
+.header-component.app-header {
+  margin-left: 235px;
+  width: calc(100% - 235px);
+  transition:
+    width 0.25s ease-in-out,
+    margin 0.25s ease-in-out;
+}
+
+html[data-sidenav-size="condensed"] .header-component.app-header {
+  margin-left: 75px;
+  width: calc(100% - 75px);
+}
+
+html[data-sidenav-size="offcanvas"] .header-component.app-header,
+html[data-sidenav-size="hidden"] .header-component.app-header {
+  margin-left: 0;
+  width: 100%;
+}
+
+html[data-layout-position="scrollable"] .header-component.app-header {
+  position: static;
 }
 
 .theme-selector-item {
@@ -36,9 +59,9 @@
 .dx-toolbar.header-toolbar {
   padding-left: 12px;
   padding-right: 16px;
-  min-height: 56px;
+  min-height: 65px;
   background-color: #ffffff !important;
-  border-bottom: 1px solid #e7eaec;
+  border-bottom: 1px solid #e7e9eb;
   position: relative;
   display: flex;
   width: 100%;
@@ -57,7 +80,7 @@
     .dx-item-content {
       display: flex;
       align-items: center;
-      min-height: 56px;
+      min-height: 65px;
       white-space: nowrap;
       overflow: visible;
       text-overflow: unset;
@@ -73,7 +96,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 56px;
+      min-height: 65px;
     }
   }
 }
@@ -84,8 +107,8 @@
   margin-left: 2px;
   font-size: 18px;
   font-weight: 600;
-  color: #2f4050;
-  line-height: 56px;
+  color: #313a46;
+  line-height: 65px;
 }
 
 .header-brand {
@@ -105,7 +128,7 @@
 .header-brand__title {
   display: inline-flex;
   align-items: center;
-  color: #2f4050;
+  color: #313a46;
   font-weight: 600;
   font-size: 17px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -181,7 +204,7 @@
     }
 
     &:hover {
-      background-color: #f3f3f4;
+      background-color: #f6f7fb;
     }
   }
 }
@@ -234,7 +257,7 @@
     justify-content: center;
     padding: 0;
     height: 100%;
-    min-height: 56px;
+    min-height: 65px;
   }
 }
 
@@ -305,7 +328,7 @@
   background-color: transparent;
 
   &:hover {
-    background-color: #f3f3f4 !important;
+    background-color: #f6f7fb !important;
 
     .grid-dots span {
       background-color: #1ab394;
@@ -351,6 +374,11 @@
 }
 
 @media (max-width: 768px) {
+  .header-component.app-header {
+    margin-left: 0;
+    width: 100%;
+  }
+}
   .dx-toolbar.header-toolbar {
     padding-right: 8px;
 

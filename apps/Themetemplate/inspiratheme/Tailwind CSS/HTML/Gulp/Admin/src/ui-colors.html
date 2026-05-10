@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Colors"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "UI", "title":"Colors"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "UI", "title":"Colors"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-base mb-base">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-primary rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Primary</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-secondary rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Secondary</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-success rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Success</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-info rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Info</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-warning rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Warning</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-danger rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Danger</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-dark rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Dark</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="bg-light rounded" style="height: 100px"></div>
+                                    <div class="mt-5 text-center">
+                                        <h6>Light</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="my-7.5 text-lg font-bold">Border Colors</h4>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="flex gap-base flex-col">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Additive(Add) Border</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            Use border utilities to
+                                            <b>add</b>
+                                            an element’s borders. Choose from all borders or one at a time.
+                                        </p>
+
+                                        <div class="flex flex-wrap gap-7.5">
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-t"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-e"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-b"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-s"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Border Color</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Change the border color using utilities built on our theme colors.</p>
+
+                                        <div class="flex flex-wrap gap-2.5">
+                                            <div class="text-center">
+                                                <div class="border-primary bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-primary bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-secondary bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-success bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-danger bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-warning bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-info bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-light bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-dark bg-light/50 size-9 border"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Border Width Size</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="flex flex-wrap gap-2.5">
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-2"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-3"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-4"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Border Color opacity</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Change the border color using utilities built on our theme colors.</p>
+
+                                        <div class="flex flex-wrap gap-2.5">
+                                            <div class="text-center">
+                                                <div class="border-primary/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-primary/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-secondary/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-success/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-danger/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-warning/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-info/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-light/15 bg-light/50 size-9 border"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-dark/15 bg-light/50 size-9 border"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex gap-base flex-col">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Subtractive(Remove) Border</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use border utilities to remove an element’s borders. Choose from all borders or one at a time.</p>
+
+                                        <div class="flex flex-wrap gap-7.5">
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border-none"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border border-t-0"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border border-e-0"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border border-b-0"></div>
+                                            </div>
+
+                                            <div class="text-center">
+                                                <div class="border-default-300 bg-light/50 size-9 border border-s-0"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="card-title">Border Opacity</h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            choose from any of the
+                                            <code>.border-opacity</code>
+                                            utilities:
+                                        </p>
+
+                                        <div class="border-primary mb-2.5 border p-2.5">This is default accent border</div>
+                                        <div class="border-primary/75 mb-2.5 border p-2.5">This is 75% opacity accent border</div>
+                                        <div class="border-primary/50 mb-2.5 border p-2.5">This is 50% opacity accent border</div>
+                                        <div class="border-primary/25 mb-2.5 border p-2.5">This is 25% opacity accent border</div>
+                                        <div class="border-primary/10 border p-2.5">This is 10% opacity accent border</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Shop Settings"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Ecommerce", "title":"Shop Settings"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Ecommerce", "title":"Shop Settings"})
+
+                    <div class="container-fluid">
+                        <div class="card">
+                            <div class="card-body">
+                                <div data-hs-stepper>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-base">
+                                        <!-- Vertical Nav -->
+                                        <div data-hs-stepper='{"mode": "non-linear"}'>
+                                            <ul class="relative flex flex-col gap-1.5">
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 1}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="active block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepGeneral"
+                                                                aria-selected="true"
+                                                                data-hs-tab="#shopStep-General"
+                                                                aria-controls="shopStep-General"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--building-store text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">General Info</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Shop basics</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 2}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepStore"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Store"
+                                                                aria-controls="shopStep-Store"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--building text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Store Details</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Business info</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 3}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepBranding"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Branding"
+                                                                aria-controls="shopStep-Branding"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--palette text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Branding</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Logo & colors</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 4}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepCurrency"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Currency"
+                                                                aria-controls="shopStep-Currency"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--pig-money text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Currency & Tax</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Regional setup</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 5}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepShipping"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Shipping"
+                                                                aria-controls="shopStep-Shipping"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--truck text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Shipping</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Delivery setup</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 6}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepPayment"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Payment"
+                                                                aria-controls="shopStep-Payment"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--credit-card text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Payments</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Gateways & modes</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 7}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepNotifications"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Notifications"
+                                                                aria-controls="shopStep-Notifications"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--bell text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Notifications</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Emails & alerts</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 8}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepInvoices"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Invoices"
+                                                                aria-controls="shopStep-Invoices"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--file-text text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Invoices & Receipts</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Billing templates</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 9}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepLegal"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Legal"
+                                                                aria-controls="shopStep-Legal"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--world text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">SEO & Legal</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Policies & SEO</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 10}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepIntegrations"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Integrations"
+                                                                aria-controls="shopStep-Integrations"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--plug text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Integrations</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">3rd-party apps</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 11}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepBackup"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Backup"
+                                                                aria-controls="shopStep-Backup"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--database text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Backup & Restore</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">Data recovery</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+
+                                                <li class="group" data-hs-stepper-nav-item='{"index": 12}'>
+                                                    <span class="group inline-flex w-full">
+                                                        <span class="hs-stepper-active:bg-light/50 hs-stepper-success:border-s-3 hs-stepper-success:border-success hs-stepper-success:bg-success/10 hs-stepper-success:text-success w-full rounded-md">
+                                                            <button
+                                                                type="button"
+                                                                class="hs-tab-active:bg-default-50 block w-full rounded px-4 py-2 disabled:pointer-events-none disabled:opacity-50"
+                                                                id="shopStepAdvanced"
+                                                                aria-selected="false"
+                                                                data-hs-tab="#shopStep-Advanced"
+                                                                aria-controls="shopStep-Advanced"
+                                                                role="tab"
+                                                            >
+                                                                <span class="flex items-center">
+                                                                    <div class="avatar-md">
+                                                                        <span class="btn btn-icon size-9 bg-light rounded hs-stepper-success:bg-success/10">
+                                                                            <i class="iconify tabler--settings text-2xl"></i>
+                                                                        </span>
+                                                                    </div>
+
+                                                                    <span class="ms-2.5">
+                                                                        <span class="block text-start font-semibold mb-0.5">Advanced</span>
+                                                                        <span class="text-default-400 hs-stepper-success:text-success block text-start text-xs font-semibold">System controls</span>
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </span>
+                                                    </span>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <!-- Tab Content -->
+                                        <div class="md:col-span-2 lg:col-span-3">
+                                            <div class="md:p-7.5 p-4.5 border border-default-300 border-dashed">
+                                                <!-- STEP 1: GENERAL INFO -->
+                                                <div data-hs-stepper-content-item='{"index": 1}'>
+                                                    <div class="col-span-1 mb-5 grid lg:grid-cols-2 gap-base">
+                                                        <div>
+                                                            <label class="form-label">Shop Name</label>
+                                                            <input type="text" class="form-input" placeholder="e.g., Vona Store" required />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Support Email</label>
+                                                            <input type="email" class="form-input" placeholder="support&#64;vona.com" required />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Phone</label>
+                                                            <input type="tel" class="form-input" placeholder="+1 234 567 8901" />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Business Hours</label>
+                                                            <input type="text" class="form-input" placeholder="Mon-Fri, 9 AM - 6 PM" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (General Info) -->
+
+                                                <!-- STEP 2: STORE DETAILS -->
+                                                <div data-hs-stepper-content-item='{"index": 2}' style="display: none">
+                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-base mb-base">
+                                                        <div>
+                                                            <label class="form-label">Business Name</label>
+                                                            <input type="text" class="form-input" placeholder="e.g., Acme Retail LLC" />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Registration Number</label>
+                                                            <input type="text" class="form-input" placeholder="e.g., 123456789" />
+                                                        </div>
+
+                                                        <div class="col-span-1 lg:col-span-2">
+                                                            <label class="form-label">Business Address</label>
+                                                            <textarea class="form-textarea" rows="2" placeholder="123 Main Street, City, Country"></textarea>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Store Details) -->
+
+                                                <!-- STEP 3: BRANDING -->
+                                                <div data-hs-stepper-content-item='{"index": 3}' style="display: none">
+                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-base mb-base">
+                                                        <div>
+                                                            <label class="form-label">Logo Upload</label>
+                                                            <input type="file" name="file-input" class="form-input" />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Favicon</label>
+                                                            <input type="file" name="file-input" class="form-input" />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Primary Color</label>
+                                                            <input type="color" class="form-input" value="#4f46e5" />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Accent Color</label>
+                                                            <input type="color" class="form-input" value="#22c55e" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Branding) -->
+
+                                                <!-- STEP 4: CURRENCY & TAX -->
+                                                <div data-hs-stepper-content-item='{"index": 4}' style="display: none">
+                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-base mb-base">
+                                                        <div class="col-span-1">
+                                                            <label class="form-label">Default Currency</label>
+                                                            <select class="form-select">
+                                                                <option>USD</option>
+                                                                <option>EUR</option>
+                                                                <option>GBP</option>
+                                                                <option>INR</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="col-span-1">
+                                                            <label class="form-label">Tax Rate (%)</label>
+                                                            <input type="number" class="form-input" placeholder="e.g., 7.5" />
+                                                        </div>
+
+                                                        <div class="col-span-1 lg:col-span-2">
+                                                            <div class="flex items-center gap-1.5">
+                                                                <input class="form-switch" type="checkbox" checked />
+                                                                <label class="form-check-label">Enable Auto Tax Calculation</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Currency & Tax) -->
+
+                                                <!-- STEP 5: SHIPPING -->
+                                                <div data-hs-stepper-content-item='{"index": 5}' style="display: none">
+                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-base mb-base">
+                                                        <div class="col-span-1">
+                                                            <label class="form-label">Default Origin</label>
+                                                            <input type="text" class="form-input" placeholder="California, USA" />
+                                                        </div>
+
+                                                        <div class="col-span-1">
+                                                            <label class="form-label">Free Shipping Threshold</label>
+                                                            <input type="number" class="form-input" placeholder="e.g., 100" />
+                                                        </div>
+
+                                                        <div class="col-span-1 lg:col-span-2">
+                                                            <label class="form-label">Available Methods</label>
+                                                            <select class="form-input h-auto!" multiple>
+                                                                <option>Standard Delivery</option>
+                                                                <option>Express</option>
+                                                                <option>Pickup</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Shipping) -->
+
+                                                <!-- STEP 6: PAYMENTS -->
+                                                <div data-hs-stepper-content-item='{"index": 6}' style="display: none">
+                                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-base mb-base">
+                                                        <div>
+                                                            <div class="flex items-center gap-1.5">
+                                                                <input class="form-switch" type="checkbox" checked />
+                                                                <label class="form-check-label">Enable Stripe</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <div class="flex items-center gap-1.5">
+                                                                <input class="form-switch" type="checkbox" />
+                                                                <label class="form-check-label">Enable PayPal</label>
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">Stripe Key</label>
+                                                            <input type="text" class="form-input" placeholder="pk_live_..." />
+                                                        </div>
+
+                                                        <div>
+                                                            <label class="form-label">PayPal Client ID</label>
+                                                            <input type="text" class="form-input" placeholder="e.g., Abcd1234" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Payments) -->
+
+                                                <!-- STEP 7: NOTIFICATIONS -->
+                                                <div data-hs-stepper-content-item='{"index": 7}' style="display: none">
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" checked />
+                                                        <label class="form-check-label">Enable Order Emails</label>
+                                                    </div>
+
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" />
+                                                        <label class="form-check-label">Enable Low Stock Alerts</label>
+                                                    </div>
+
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" />
+                                                        <label class="form-check-label">Enable SMS Notifications</label>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Notifications) -->
+
+                                                <!-- STEP 8: INVOICES & RECEIPTS -->
+                                                <div data-hs-stepper-content-item='{"index": 8}' style="display: none">
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Invoice Prefix</label>
+                                                        <input type="text" class="form-input" placeholder="INV-" />
+                                                    </div>
+
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" checked />
+                                                        <label class="form-check-label">Include Tax Breakdown</label>
+                                                    </div>
+
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" />
+                                                        <label class="form-check-label">Enable PDF Download</label>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Invoices) -->
+
+                                                <!-- STEP 9: SEO & LEGAL -->
+                                                <div data-hs-stepper-content-item='{"index": 9}' style="display: none">
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Meta Title</label>
+                                                        <input type="text" class="form-input" placeholder="Your Shop Title" />
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Meta Description</label>
+                                                        <textarea class="form-textarea" rows="2" placeholder="Brief description for SEO"></textarea>
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Privacy Policy URL</label>
+                                                        <input type="url" class="form-input" placeholder="https://example.com/privacy" />
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Terms & Conditions URL</label>
+                                                        <input type="url" class="form-input" placeholder="https://example.com/terms" />
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (SEO & Legal) -->
+
+                                                <!-- STEP 10: INTEGRATIONS -->
+                                                <div data-hs-stepper-content-item='{"index": 10}' style="display: none">
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Google Analytics ID</label>
+                                                        <input type="text" class="form-input" placeholder="UA-XXXXX-Y" />
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Facebook Pixel ID</label>
+                                                        <input type="text" class="form-input" placeholder="1234567890" />
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Mailchimp API Key</label>
+                                                        <input type="text" class="form-input" placeholder="key-xxxxx" />
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Integrations) -->
+
+                                                <!-- STEP 11: BACKUP & RESTORE -->
+                                                <div data-hs-stepper-content-item='{"index": 11}' style="display: none">
+                                                    <div class="mb-3">
+                                                        <button class="btn border-primary text-primary w-full">Create Manual Backup</button>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Restore from File</label>
+                                                        <input type="file" name="file-input" class="form-input" />
+                                                    </div>
+
+                                                    <div class="mb-3 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" />
+                                                        <label class="form-check-label">Enable Auto Backups (Weekly)</label>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Backup & Restore) -->
+
+                                                <!-- STEP 12: ADVANCED -->
+                                                <div data-hs-stepper-content-item='{"index": 12}' style="display: none">
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" for="enable-maintenance-mode" />
+                                                        <label class="form-check-label" id="enable-maintenance-mode">Enable Maintenance Mode</label>
+                                                    </div>
+
+                                                    <div class="mb-5 flex items-center gap-1.5">
+                                                        <input class="form-switch" type="checkbox" />
+                                                        <label class="form-check-label">Debug Mode</label>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Custom Script (Footer)</label>
+                                                        <textarea class="form-textarea" rows="3" placeholder="Paste custom JavaScript here"></textarea>
+                                                    </div>
+                                                </div>
+                                                <!-- /.tab-pane (Advanced) -->
+
+                                                <!-- Button Group -->
+                                                <div class="mt-10 flex flex-wrap items-center justify-between">
+                                                    <button type="button" class="btn bg-secondary text-white hover:bg-secondary-hover" data-hs-stepper-back-btn>
+                                                        <i class="iconify tabler--arrow-left"></i>
+                                                        Back
+                                                    </button>
+
+                                                    <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-hs-stepper-next-btn="">
+                                                        Next
+                                                        <i class="iconify tabler--arrow-right"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

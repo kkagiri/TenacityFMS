@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="i18 Support" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Plugins" title="i18 Support" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Plugins" title="i18 Support" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Example</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="mb-2.5">You can change the language of demo text as well as the menu with simple function fire on buttons click. Try it:</h5>
+
+                                    <div class="flex flex-wrap gap-2.5">
+                                        <button class="btn bg-light text-dark inline-flex items-center gap-1.5" data-translator-lang="en">
+                                            <img src="/images/flags/us.svg" alt="user-image" class="me-1.5 h-4.5 rounded" data-translator-image />
+                                            <span class="align-middle">English</span>
+                                        </button>
+
+                                        <button class="btn bg-light text-dark inline-flex items-center gap-1.5" data-translator-lang="hi">
+                                            <img src="/images/flags/in.svg" alt="user-image" class="me-1.5 h-4.5 rounded" data-translator-image />
+                                            <span class="align-middle">Hindi</span>
+                                        </button>
+
+                                        <button class="btn bg-light text-dark inline-flex items-center gap-1.5" data-translator-lang="it">
+                                            <img src="/images/flags/it.svg" alt="user-image" class="me-1.5 h-4.5 rounded" data-translator-image />
+                                            <span class="align-middle">Italian</span>
+                                        </button>
+
+                                        <button class="btn bg-light text-dark inline-flex items-center gap-1.5" data-translator-lang="es">
+                                            <img src="/images/flags/es.svg" alt="user-image" class="me-1.5 h-4.5 rounded" data-translator-image />
+                                            <span class="align-middle">Spanish</span>
+                                        </button>
+
+                                        <button class="btn bg-light text-dark inline-flex items-center gap-1.5" data-translator-lang="ru">
+                                            <img src="/images/flags/ru.svg" alt="user-image" class="me-1.5 h-4.5 rounded" data-translator-image />
+                                            <span class="align-middle">Russian</span>
+                                        </button>
+                                    </div>
+
+                                    <h5 class="mt-5 mb-2">Example:</h5>
+
+                                    <div class="bg-light/15 border-default-300 rounded-3 border border-dashed p-6" style="height: 85px">
+                                        <p data-lang="demo-text"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">i18support Configuration</h5>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="badge badge-label bg-success/15 text-success mb-2.5 inline-block px-2.75 py-1.5 text-xs font-bold uppercase">Step 1</span>
+                                        <p class="text-default-400 mb-4">To enable i18n support in your application, you need to define all translatable text. The most effective way to do this is by storing the text in an external JSON file. For example:</p>
+                                        <div class="grid md:grid-cols-3 gap-base">
+                                            <div>
+                                                <h5 class="mb-2.5">en.json</h5>
+                                                <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                            <code class="language-javascript">
+                                                {
+                                                    "dashboards": "Dashboards",
+                                                    "dashboard-one": "Dashboard v.1",
+                                                    "dashboard-two": "Dashboard v.2"
+                                                }
+                                            </code>
+                                        </pre>
+                                            </div>
+
+                                            <div>
+                                                <h5 class="mb-2.5">es.json</h5>
+                                                <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                            <code class="language-javascript">
+                                                {
+                                                    "dashboards": "Paneles",
+                                                    "dashboard-one": "Panel v.1",
+                                                    "dashboard-two": "Panel v.2"
+                                                }
+                                            </code>
+                                        </pre>
+                                            </div>
+
+                                            <div>
+                                                <h5 class="mb-2.5">ru.json</h5>
+                                                <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                            <code class="language-javascript">
+                                                {
+                                                    "dashboards": "Панели",
+                                                    "dashboard-one": "Панель v.1",
+                                                    "dashboard-two": "Панель v.2"
+                                                }
+                                            </code>
+                                        </pre>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5">
+                                        <span class="badge badge-label bg-success/15 text-success mb-2.5 inline-block px-2.75 py-1.5 text-xs font-bold uppercase">Step 2</span>
+                                        <p class="text-default-400 mb-4">
+                                            Next you need to add html indicators in all place you want to use
+                                            <code>data-lang</code>
+                                            .
+                                        </p>
+                                        <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                    <code class="language-markup">
+                                    &lt;div&gt;
+                                        &lt;span data-lang="dashboards"&gt; Dashboards &lt;/span&gt;
+                                        &lt;span data-lang="dashboard-one"&gt; Dashboard v.1 &lt;/span&gt;
+                                        &lt;span data-lang="dashboard-two"&gt; Dashboard v.2 &lt;/span&gt;
+                                    &lt;/div&gt;
+                                    </code>
+                                </pre>
+                                    </div>
+
+                                    <div>
+                                        <span class="badge badge-label bg-success/15 text-success mb-2.5 inline-block px-2.75 py-1.5 text-xs font-bold uppercase">Step 3</span>
+                                        <p class="text-default-400 mb-4">
+                                            After that if you want to change the language you just need to add buttons and fire the
+                                            <code>selectedLanguage</code>
+                                            .
+                                        </p>
+
+                                        <div class="flex">
+                                            <div class="md:w-1/2 w-full">
+                                                <h5 class="mb-2.5">HTML Code</h5>
+                                                <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                            <code class="language-markup">
+                                            &lt;a class="btn btn-light" data-translator-lang="en"&gt; Set EN language&lt;/a&gt;
+
+                                            &lt;a class="btn btn-light" data-translator-lang="es"&gt; Set ES language&lt;/a&gt;
+                                            </code>
+                                        </pre>
+
+                                                <h5 class="mt-5 mb-2.5">Javascript Code</h5>
+                                                <pre class="bg-light/15 border-default-300 rounded border border-dashed">
+                                            <code class="language-javascript">
+                                                let selectedLanguage = "en";
+                                            </code>
+                                        </pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

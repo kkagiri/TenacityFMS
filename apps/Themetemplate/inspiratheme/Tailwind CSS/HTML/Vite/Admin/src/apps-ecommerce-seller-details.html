@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Seller Details" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Pages" title="Seller Details" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Pages" title="Seller Details" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-base">
+                            <div>
+                                <div class="card lg:sticky lg:top-22">
+                                    <div class="card-body">
+                                        <div class="bg-light/15 border-light flex items-center justify-between gap-2 rounded border p-2.5">
+                                            <div class="md:flex items-center gap-base">
+                                                <div class="size-12">
+                                                    <img src="/images/sellers/1.png" alt="avatar-store" class="img-fluid rounded-full" />
+                                                </div>
+
+                                                <div>
+                                                    <h4 class="font-bold whitespace-nowrap mb-1.25">MacHub Retailers</h4>
+                                                    <p class="text-default-400 text-sm">Since 2017</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="relative ms-auto">
+                                                <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                    <button type="button" class="hs-dropdown-toggle btn btn-sm btn-icon bg-light text-dark" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                        <i class="iconify tabler--dots text-2xl"></i>
+                                                    </button>
+
+                                                    <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                        <div class="space-y-0.5">
+                                                            <a class="dropdown-item" href="#">Edit profile</a>
+                                                            <a class="dropdown-item text-danger" href="#">Report</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--user text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Owner:
+                                                    <span class="font-semibold">Sophie Martinez</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--briefcase text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Business Type:
+                                                    <span class="font-semibold">Fashion Retail</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--calendar text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Founded:
+                                                    <span class="font-semibold">2015</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--map-pin text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Location:
+                                                    <span class="font-semibold">Los Angeles, USA</span>
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--mail text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Support:
+                                                    <a href="mailto:help&#64;stylehub.com" class="text-primary font-semibold">help&#64;stylehub.com</a>
+                                                </p>
+                                            </div>
+
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="btn btn-icon bg-light size-8">
+                                                    <i class="iconify tabler--world text-default-400 text-lg"></i>
+                                                </div>
+                                                <p class="text-sm">
+                                                    Website:
+                                                    <a href="https://www.stylehub.com" class="text-primary font-semibold">www.stylehub.com</a>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body border-default-300 border-t border-dashed">
+                                        <h5 class="mb-5">Contact Seller</h5>
+                                        <textarea class="form-textarea mb-base" rows="4" id="exampleFormControlTextarea1" placeholder="Enter your messages..."></textarea>
+
+                                        <div class="text-end">
+                                            <button type="submit" class="btn bg-primary text-white hover:bg-primary-hover">Send Messages</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-3">
+                                <div class="grid grid-cols-1 md:grid-cols-4 gap-base mb-base">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="flex items-center justify-between">
+                                                <h5 title="Number of Tasks" class="card-title text-sm">Orders</h5>
+                                            </div>
+
+                                            <div class="mt-5 mb-2.5 flex items-center gap-2.5">
+                                                <div class="size-9 flex items-center justify-center bg-success rounded-full">
+                                                    <i class="iconify tabler--shopping-cart size-5.5 text-white"></i>
+                                                </div>
+                                                <h3 class="text-xl">1,250</h3>
+                                            </div>
+
+                                            <div class="text-default-400 flex items-center justify-between text-sm">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-success flex items-center gap-1">
+                                                        <i class="iconify tabler--circle-filled align-middle"></i>
+                                                    </span>
+                                                    <span>Total Orders</span>
+                                                </div>
+                                                <span class="font-semibold text-default-800">15,320</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="flex items-center justify-between">
+                                                <h5 title="Revenue Earned" class="card-title text-sm">Revenue</h5>
+                                            </div>
+
+                                            <div class="mt-5 mb-2.5 flex items-center gap-2.5">
+                                                <div class="size-9 flex items-center justify-center bg-warning rounded-full">
+                                                    <i class="iconify tabler--currency-dollar size-5.5 text-white"></i>
+                                                </div>
+                                                <h3 class="text-xl">$98.7k</h3>
+                                            </div>
+
+                                            <div class="text-default-400 flex items-center justify-between text-sm">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-primary flex items-center gap-1">
+                                                        <i class="iconify tabler--circle-filled align-middle"></i>
+                                                    </span>
+                                                    <span>Total Revenue</span>
+                                                </div>
+                                                <span class="font-semibold text-default-800">$1.2M</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="flex items-center justify-between">
+                                                <h5 title="Seller Ratings" class="card-title text-sm">Ratings</h5>
+                                            </div>
+
+                                            <div class="mt-5 mb-2.5 flex items-center gap-2.5">
+                                                <div class="size-9 flex items-center justify-center bg-info rounded-full">
+                                                    <i class="iconify tabler--star size-5.5 text-white"></i>
+                                                </div>
+                                                <h3 class="text-xl">4.8</h3>
+                                            </div>
+
+                                            <div class="text-default-400 flex items-center justify-between text-sm">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-info flex items-center gap-1">
+                                                        <i class="iconify tabler--circle-filled align-middle"></i>
+                                                    </span>
+                                                    <span>Average Rating</span>
+                                                </div>
+                                                <span class="font-semibold text-default-800">5k Reviewsk</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="flex items-center justify-between">
+                                                <h5 title="Total Products" class="card-title text-sm">Products</h5>
+                                            </div>
+
+                                            <div class="mt-5 mb-2.5 flex items-center gap-2.5">
+                                                <div class="size-9 flex items-center justify-center bg-secondary rounded-full">
+                                                    <i class="iconify tabler--box size-5.5 text-white"></i>
+                                                </div>
+                                                <h3 class="text-xl">350</h3>
+                                            </div>
+
+                                            <div class="text-default-400 flex items-center justify-between text-sm">
+                                                <div class="flex items-center gap-1">
+                                                    <span class="text-secondary flex items-center gap-1">
+                                                        <i class="iconify tabler--circle-filled align-middle"></i>
+                                                    </span>
+                                                    <span>Total Products</span>
+                                                </div>
+                                                <span class="font-semibold text-default-800">750 Variants</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Seller Overview</h4>
+                                    </div>
+
+                                    <div class="card-body pb-0">
+                                        <div id="seller-revenue"></div>
+                                    </div>
+                                </div>
+
+                                <h4 class="my-7.5 text-lg">My Products</h4>
+
+                                <div data-table data-table-rows-per-page="8" class="card">
+                                    <div class="card-header">
+                                        <div class="flex gap-2.5">
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--search input-icon"></i>
+                                                <input data-table-search type="search" placeholder="Search product name..." class="form-input" />
+                                            </div>
+                                            <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                        </div>
+
+                                        <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                            <select data-table-set-rows-per-page class="form-select">
+                                                <option value="5">5</option>
+                                                <option value="10">10</option>
+                                                <option value="15">15</option>
+                                                <option value="20">20</option>
+                                            </select>
+
+                                            <a href="apps-ecommerce-product-add.html" class="btn bg-danger text-nowrap text-white hover:bg-danger-hover">
+                                                <i class="iconify tabler--plus"></i>
+                                                Add Product
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-wrapper">
+                                        <table class="table table-hover">
+                                            <thead class="thead-sm">
+                                                <tr class="bg-light/25 text-2xs uppercase">
+                                                    <th class="w-[1%]">
+                                                        <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" id="select-all-products" />
+                                                    </th>
+                                                    <th data-table-sort="product">Product</th>
+                                                    <th data-table-sort>Category</th>
+                                                    <th data-table-sort>Stock</th>
+                                                    <th data-table-sort>Price</th>
+                                                    <th data-table-sort>Orders</th>
+                                                    <th data-table-sort>Status</th>
+                                                    <th class="text-center w-[1%]">Actions</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/1.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Gaming Laptop Pro</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Computers</td>
+                                                    <td>
+                                                        <h5>15</h5>
+                                                    </td>
+                                                    <td>$1,299.00</td>
+                                                    <td>45</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/9.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Apple iMac 24" M3</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Computers</td>
+                                                    <td>
+                                                        <h5>18</h5>
+                                                    </td>
+                                                    <td>$1,399.00</td>
+                                                    <td>29</td>
+                                                    <td>
+                                                        <span class="badge text-2xs bg-warning/15 text-warning">Pending</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/6.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Modern Lounge Chair</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Furniture</td>
+                                                    <td>
+                                                        <h5>24</h5>
+                                                    </td>
+                                                    <td>$199.00</td>
+                                                    <td>38</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/8.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">55" Ultra HD Smart TV</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Electronics</td>
+                                                    <td>
+                                                        <h5>64</h5>
+                                                    </td>
+                                                    <td>$499.00</td>
+                                                    <td>142</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/2.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Vintage Leather Wallet</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Accessories</td>
+                                                    <td>
+                                                        <h5>78</h5>
+                                                    </td>
+                                                    <td>$49.95</td>
+                                                    <td>210</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/4.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Fitness Tracker Watch</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Fitness</td>
+                                                    <td>
+                                                        <h5>78</h5>
+                                                    </td>
+                                                    <td>$49.95</td>
+                                                    <td>198</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-danger/15 text-danger">Out of Stock</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/10.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Smart Watch Pro X2</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Wearables</td>
+                                                    <td>
+                                                        <h5>85</h5>
+                                                    </td>
+                                                    <td>$149.50</td>
+                                                    <td>197</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/3.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Men's Running Shoes</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Fashion</td>
+                                                    <td>
+                                                        <h5>120</h5>
+                                                    </td>
+                                                    <td>$89.00</td>
+                                                    <td>231</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/5.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Gaming Mouse RGB</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Gaming</td>
+                                                    <td>
+                                                        1
+                                                        <h5>20</h5>
+                                                    </td>
+                                                    <td>$29.99</td>
+                                                    <td>243</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex items-center gap-base">
+                                                            <img src="/images/products/7.png" alt="Product" class="size-9" />
+
+                                                            <h6>
+                                                                <a data-sort="product" href="#!" class="hover:text-primary">Plush Toy Bear</a>
+                                                            </h6>
+                                                        </div>
+                                                    </td>
+                                                    <td>Toys</td>
+                                                    <td>
+                                                        1
+                                                        <h5>50</h5>
+                                                    </td>
+                                                    <td>$15.99</td>
+                                                    <td>305</td>
+                                                    <td>
+                                                        <span class="badge text-2xs font-semibold bg-success/15 text-success">Published</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a data-table-delete-row href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="card-footer">
+                                        <div data-table-pagination-info="products"></div>
+                                        <div data-table-pagination></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+
+        <script type="module" src="assets/js/pages/ecommerce-seller-details.js"></script>
+    </body>
+</html>

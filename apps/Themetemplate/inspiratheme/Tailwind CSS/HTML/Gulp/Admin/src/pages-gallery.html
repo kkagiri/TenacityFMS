@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Gallery"})
+
+        <!-- glightbox css -->
+        <link href="assets/plugins/glightbox/glightbox.min.css" rel="stylesheet" />
+
+        @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Gallery"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Gallery"})
+
+                    <div class="container-fluid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input type="text" class="form-input" placeholder="Search..." />
+                                    </div>
+                                </div>
+
+                                <div class="filter-buttons button flex items-center gap-1.5">
+                                    <button class="btn btn-sm font-semibold text-sm text-primary hover:bg-primary hover:text-white [.active]:bg-primary/20 [.active]:text-primary active" data-filter="">All</button>
+                                    <button class="btn btn-sm font-semibold text-sm text-primary hover:bg-primary hover:text-white [.active]:bg-primary/20 [.active]:text-primary" data-filter="machine-learning">Machine Learning</button>
+                                    <button class="btn btn-sm font-semibold text-sm text-primary hover:bg-primary hover:text-white [.active]:bg-primary/20 [.active]:text-primary" data-filter="computer-vision">Computer Vision</button>
+                                    <button class="btn btn-sm font-semibold text-sm text-primary hover:bg-primary hover:text-white [.active]:bg-primary/20 [.active]:text-primary" data-filter="nlp">NLP</button>
+                                    <button class="btn btn-sm font-semibold text-sm text-primary hover:bg-primary hover:text-white [.active]:bg-primary/20 [.active]:text-primary" data-filter="robotics">Robotics</button>
+                                </div>
+                            </div>
+
+                            <!-- Masonry Grid -->
+                            <div class="card-body">
+                                <!-- Gallery Grid -->
+                                <div id="grid" class="muuri relative flex flex-wrap md:*:w-1/2 lg:*:w-1/5 -mx-1.5">
+                                    <!-- MACHINE LEARNING ITEMS -->
+                                    <div class="absolute px-1.5 mb-3" data-category="machine-learning">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/1.jpg" alt="Machine Learning" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Machine Learning</span>
+                                                <a href="assets/images/gallery/1.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="machine-learning">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/5.jpg" alt="Machine Learning" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Machine Learning</span>
+                                                <a href="assets/images/gallery/5.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="machine-learning">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/6.jpg" alt="Machine Learning" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Machine Learning</span>
+                                                <a href="assets/images/gallery/6.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="machine-learning">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/11.jpg" alt="Machine Learning" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Machine Learning</span>
+                                                <a href="assets/images/gallery/11.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- COMPUTER VISION ITEMS -->
+                                    <div class="absolute px-1.5 mb-3" data-category="computer-vision">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/2.jpg" alt="Computer Vision" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Computer Vision</span>
+                                                <a href="assets/images/gallery/2.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="computer-vision">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/7.jpg" alt="Computer Vision" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Computer Vision</span>
+                                                <a href="assets/images/gallery/7.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="computer-vision">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/12.jpg" alt="Computer Vision" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Computer Vision</span>
+                                                <a href="assets/images/gallery/12.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- NLP ITEMS -->
+                                    <div class="absolute px-1.5 mb-3" data-category="nlp">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/3.jpg" alt="NLP" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">NLP</span>
+                                                <a href="assets/images/gallery/3.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="nlp">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/8.jpg" alt="NLP" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">NLP</span>
+                                                <a href="assets/images/gallery/8.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="nlp">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/13.jpg" alt="NLP" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">NLP</span>
+                                                <a href="assets/images/gallery/13.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="nlp">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/14.jpg" alt="NLP" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">NLP</span>
+                                                <a href="assets/images/gallery/14.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ROBOTICS ITEMS -->
+                                    <div class="absolute px-1.5 mb-3" data-category="robotics">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/4.jpg" alt="Robotics" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Robotics</span>
+                                                <a href="assets/images/gallery/4.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="robotics">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/9.jpg" alt="Robotics" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Robotics</span>
+                                                <a href="assets/images/gallery/9.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="absolute px-1.5 mb-3" data-category="robotics">
+                                        <div class="group relative overflow-hidden rounded-md">
+                                            <img src="assets/images/gallery/10.jpg" alt="Robotics" class="h-auto w-full rounded-md" />
+                                            <div class="absolute flex items-center justify-center inset-0 bg-black/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                                <span class="badge badge-label bg-dark text-white absolute start-6 top-6 z-40">Robotics</span>
+                                                <a href="assets/images/gallery/10.jpg" class="image-popup btn btn-sm bg-primary text-center text-white">View</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Glightbox Plugin Js -->
+        <script src="assets/plugins/glightbox/glightbox.min.js"></script>
+
+        <!-- Web travels Plugin Js -->
+        <script src="assets/plugins/web-animations/web-animations.min.js"></script>
+
+        <!-- Muuri Plugin Js -->
+        <script src="assets/plugins/muuri/muuri.min.js"></script>
+
+        <!-- Gallery Demo Js -->
+        <script src="assets/js/pages/pages-gallery.js"></script>
+    </body>
+</html>

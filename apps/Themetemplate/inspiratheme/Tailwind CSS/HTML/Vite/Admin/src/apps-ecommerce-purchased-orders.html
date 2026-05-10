@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Purchased Orders" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Ecommerce" title="Purchased Orders" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Ecommerce" title="Purchased Orders" }}
+
+                    <div class="container-fluid">
+                        <div data-table data-table-rows-per-page="10" class="card">
+                            <div class="card-header">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" class="form-input" placeholder="Search..." />
+                                    </div>
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5 lg:flex-nowrap">
+                                    <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                        <div class="items-center gap-2.5 md:flex">
+                                            <span class="font-semibold me-2.5">Filter By:</span>
+
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--credit-card input-icon"></i>
+                                                <select data-table-filter="payment-status" class="form-select">
+                                                    <option value="All">Payment Status</option>
+                                                    <option value="Paid">Paid</option>
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Unpaid">Unpaid</option>
+                                                    <option value="Overdue">Overdue</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--truck input-icon"></i>
+                                            <select data-table-filter="order-status" class="form-select">
+                                                <option value="All">Order Status</option>
+                                                <option value="Completed">Completed</option>
+                                                <option value="Processing">Processing</option>
+                                                <option value="Partially Received">Partially Received</option>
+                                                <option value="Pending Delivery">Pending Delivery</option>
+                                                <option value="Awaiting Delivery">Awaiting Delivery</option>
+                                                <option value="Awaiting Shipment">Awaiting Shipment</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                                <option value="In Progress">In Progress</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="relative">
+                                            <select data-table-set-rows-per-page class="form-select">
+                                                <option value="5">5</option>
+                                                <option value="10">10</option>
+                                                <option value="15">15</option>
+                                                <option value="20">20</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a href="#addPurchaseOrderModal" class="btn bg-danger text-white hover:bg-danger-hover" aria-haspopup="dialog" aria-expanded="false" aria-controls="addPurchaseOrderModal" data-hs-overlay="#addPurchaseOrderModal">
+                                    <i class="iconify tabler--plus"></i>
+                                    Add New
+                                </a>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-select table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-orders" />
+                                            </th>
+                                            <th data-table-sort>PO Number</th>
+                                            <th data-table-sort>Supplier</th>
+                                            <th data-table-sort>Items</th>
+                                            <th data-table-sort>Order Date</th>
+                                            <th data-table-sort>Delivery Date</th>
+                                            <th data-table-sort>Total Amount</th>
+                                            <th data-table-sort data-column="payment-status">Payment Status</th>
+                                            <th data-table-sort data-column="order-status">Order Status</th>
+                                            <th class="text-center w-[1%]">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0148</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>TechVision Supplies</h6>
+                                                    <p class="text-default-400 text-xs">techvision&#64;email.com</p>
+                                                </div>
+                                            </td>
+                                            <td>12 Items</td>
+                                            <td>
+                                                05 Oct, 2025
+                                                <small class="text-default-400 text-2xs">09:15 AM</small>
+                                            </td>
+                                            <td>
+                                                10 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$3,480.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-primary/15 text-primary">Received</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0149</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>Global Stationers</h6>
+                                                    <p class="text-default-400 text-xs">orders&#64;globalstationers.com</p>
+                                                </div>
+                                            </td>
+                                            <td>8 Items</td>
+                                            <td>
+                                                06 Oct, 2025
+                                                <small class="text-default-400 text-2xs">02:45 PM</small>
+                                            </td>
+                                            <td>
+                                                12 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$1,260.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-info/15 text-info">Processing</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0150</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>NextGen Components</h6>
+                                                    <p class="text-default-400 text-xs">support&#64;nextgen.com</p>
+                                                </div>
+                                            </td>
+                                            <td>25 Items</td>
+                                            <td>
+                                                02 Oct, 2025
+                                                <small class="text-default-400 text-2xs">11:05 AM</small>
+                                            </td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$7,920.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-warning/15 text-warning">Partially Received</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0151</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>EcoHome Essentials</h6>
+                                                    <p class="text-default-400 text-xs">contact&#64;ecohome.com</p>
+                                                </div>
+                                            </td>
+                                            <td>5 Items</td>
+                                            <td>
+                                                04 Oct, 2025
+                                                <small class="text-default-400 text-2xs">03:30 PM</small>
+                                            </td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Delivered</small>
+                                            </td>
+                                            <td>
+                                                <h5>$980.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-danger/15 text-danger">Unpaid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Completed</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0152</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>BrightLine Textiles</h6>
+                                                    <p class="text-default-400 text-xs">info&#64;brightline.com</p>
+                                                </div>
+                                            </td>
+                                            <td>16 Items</td>
+                                            <td>
+                                                07 Oct, 2025
+                                                <small class="text-default-400 text-2xs">08:20 AM</small>
+                                            </td>
+                                            <td>
+                                                14 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$4,250.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-warning/15 text-warning">Pending Delivery</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0153</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>Urban Office Supplies</h6>
+                                                    <p class="text-default-400 text-xs">sales&#64;urbanoffice.com</p>
+                                                </div>
+                                            </td>
+                                            <td>9 Items</td>
+                                            <td>
+                                                03 Oct, 2025
+                                                <small class="text-default-400 text-2xs">01:10 PM</small>
+                                            </td>
+                                            <td>
+                                                07 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Delivered</small>
+                                            </td>
+                                            <td>
+                                                <h5>$2,340.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-danger/15 text-danger">Overdue</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-danger/15 text-danger">Cancelled</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0154</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>Northway Electronics</h6>
+                                                    <p class="text-default-400 text-xs">contact&#64;northway.com</p>
+                                                </div>
+                                            </td>
+                                            <td>14 Items</td>
+                                            <td>
+                                                08 Oct, 2025
+                                                <small class="text-default-400 text-2xs">10:00 AM</small>
+                                            </td>
+                                            <td>
+                                                15 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$5,610.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-info/15 text-info">In Progress</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0155</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>Apex Industrial Tools</h6>
+                                                    <p class="text-default-400 text-xs">sales&#64;apextools.com</p>
+                                                </div>
+                                            </td>
+                                            <td>20 Items</td>
+                                            <td>
+                                                01 Oct, 2025
+                                                <small class="text-default-400 text-2xs">04:30 PM</small>
+                                            </td>
+                                            <td>
+                                                06 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Delivered</small>
+                                            </td>
+                                            <td>
+                                                <h5>$9,875.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Completed</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0156</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>GreenLeaf Packaging</h6>
+                                                    <p class="text-default-400 text-xs">hello&#64;greenleafpack.com</p>
+                                                </div>
+                                            </td>
+                                            <td>7 Items</td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-2xs">11:50 AM</small>
+                                            </td>
+                                            <td>
+                                                15 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$2,120.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-secondary/15 text-secondary">Awaiting Shipment</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0157</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>BlueSky Furnishings</h6>
+                                                    <p class="text-default-400 text-xs">orders&#64;bluesky.com</p>
+                                                </div>
+                                            </td>
+                                            <td>10 Items</td>
+                                            <td>
+                                                06 Oct, 2025
+                                                <small class="text-default-400 text-2xs">09:40 AM</small>
+                                            </td>
+                                            <td>
+                                                11 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$3,950.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-info/15 text-info">Awaiting Delivery</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <a href="#!" class="hover:text-primary font-semibold">PO-2025-0158</a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <h6>PrimeTech Hardware</h6>
+                                                    <p class="text-default-400 text-xs">info&#64;primetech.com</p>
+                                                </div>
+                                            </td>
+                                            <td>18 Items</td>
+                                            <td>
+                                                05 Oct, 2025
+                                                <small class="text-default-400 text-2xs">05:25 PM</small>
+                                            </td>
+                                            <td>
+                                                13 Oct, 2025
+                                                <small class="text-default-400 text-2xs">Expected</small>
+                                            </td>
+                                            <td>
+                                                <h5>$6,730.00</h5>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-danger/15 text-danger">Overdue</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge py-0.5 font-semibold text-2xs badge-label bg-danger/15 text-danger">Cancelled</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="orders"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+
+                <div id="addPurchaseOrderModal" class="hs-overlay pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto" role="dialog" tabindex="-1" aria-labelledby="addPurchaseOrderModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-2xl lg:max-w-3xl">
+                        <div class="card pointer-events-auto flex w-full flex-col">
+                            <div class="card-header p-5">
+                                <h3 id="addPurchaseOrderModalLabel" class="flex items-center font-semibold">
+                                    <i class="iconify tabler--file-text text-danger me-2.5"></i>
+                                    Add New Purchase Order
+                                </h3>
+
+                                <button type="button" aria-label="Close" data-hs-overlay="#addPurchaseOrderModal">
+                                    <i class="iconify tabler--x text-2xl align-middle text-default-600"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <label for="poNumber" class="form-label">PO Number</label>
+                                        <input type="text" id="poNumber" class="form-input" placeholder="PO-2025-0149" />
+                                    </div>
+
+                                    <div>
+                                        <label for="supplierName" class="form-label">Supplier Name</label>
+                                        <input type="text" id="supplierName" class="form-input" placeholder="Global Tech Supplies" />
+                                    </div>
+
+                                    <div>
+                                        <label for="supplierEmail" class="form-label">Supplier Email</label>
+                                        <input type="email" id="supplierEmail" class="form-input" placeholder="globaltech&#64;email.com" />
+                                    </div>
+
+                                    <div>
+                                        <label for="poItems" class="form-label">Items Count</label>
+                                        <input type="number" id="poItems" class="form-input" placeholder="10" />
+                                    </div>
+
+                                    <div>
+                                        <label for="orderDate" class="form-label">Order Date</label>
+                                        <input id="orderDate" type="date" class="form-input" data-provider="flatpickr" data-date-format="d M, Y" value="2025-10-05" />
+                                    </div>
+
+                                    <div>
+                                        <label for="deliveryDate" class="form-label">Delivery Date</label>
+                                        <input id="deliveryDate" type="date" class="form-input" data-provider="flatpickr" data-date-format="d M, Y" value="2025-10-10" />
+                                    </div>
+
+                                    <div>
+                                        <label for="totalAmount" class="form-label">Total Amount</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" id="totalAmount" class="form-input" placeholder="3480.00" step="0.01" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label for="paymentStatus" class="form-label">Payment Status</label>
+                                        <select id="paymentStatus" class="form-input">
+                                            <option selected>Paid</option>
+                                            <option>Pending</option>
+                                            <option>Partially Paid</option>
+                                            <option>Unpaid</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="orderStatus" class="form-label">Order Status</label>
+                                        <select id="orderStatus" class="form-input">
+                                            <option selected>Received</option>
+                                            <option>Processing</option>
+                                            <option>Dispatched</option>
+                                            <option>Cancelled</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-span-1 md:col-span-2">
+                                        <label for="poNotes" class="form-label">Additional Notes</label>
+                                        <textarea id="poNotes" class="form-textarea" rows="2" placeholder="Add any special instructions or remarks here..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-default-300 flex items-center justify-end gap-2 border-t p-5">
+                                <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#addPurchaseOrderModal">Close</button>
+                                <button type="button" class="btn bg-danger text-white hover:bg-danger-hover">
+                                    <i class="iconify tabler--check"></i>
+                                    Save Purchase Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Admin Dashboard Documentation</title>
+
+        <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
+        <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="https://unpkg.com/lucide@latest"></script>
+
+        <style>
+            .page-section {
+                display: none;
+                animation: fadeIn 0.3s ease-in-out;
+            }
+
+            .page-section.active {
+                display: block;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .tree-item {
+                position: relative;
+            }
+
+            .tree-item::before {
+                content: "";
+                position: absolute;
+                top: 1.1rem;
+                left: -1.5rem;
+                width: 1rem;
+                height: 1px;
+                background-color: rgb(var(--bc) / 0.25);
+            }
+        </style>
+    </head>
+
+    <body class="bg-base-200 h-screen overflow-hidden flex flex-col font-sans">
+        <!-- Top Navigation Bar -->
+        <div class="navbar bg-base-100 border-b border-base-300 z-50 h-16 shrink-0 md:px-6">
+            <div class="flex-none">
+                <label for="menu-drawer-toggle" class="btn btn-square btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block size-6 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                </label>
+            </div>
+            <div class="flex-1 px-2 mx-2">
+                <div class="flex items-center gap-3 select-none">
+                    <div id="name-prefix" class="size-8 rounded-lg bg-primary text-primary-content flex items-center justify-center font-bold text-xl"></div>
+                    <span class="text-lg font-bold">Inspinia Docs</span>
+                    <span class="badge badge-outline badge-accent hidden lg:block">v<span class="capitalize">5.0.0</span></span>
+                    <span class="badge badge-outline badge-secondary capitalize hidden lg:block">react</span>
+                    <span class="badge badge-outline badge-info capitalize hidden lg:block">bootstrap</span>
+                </div>
+            </div>
+            <div class="gap-2">
+                <!-- Theme Toggle -->
+                <label class="swap swap-rotate">
+                    <input type="checkbox" id="themeToggle" />
+                    <i data-lucide="sun" class="swap-on size-6"></i>
+                    <i data-lucide="moon" class="swap-off size-6"></i>
+                </label>
+                <a href="https://wrapmarket.com/shop/WebAppLayers/message" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm hidden min-[480px]:flex">Support</a>
+                <a href="https://wrapmarket.com/item/inspinia-multipurpose-admin-dashboard-template-WB0R5L90S?via=webapp" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Buy Now</a>
+            </div>
+        </div>
+
+        <!-- Main Content Wrapper with Sidebar -->
+        <div class="drawer lg:drawer-open flex-1 overflow-hidden">
+            <input id="menu-drawer-toggle" type="checkbox" class="drawer-toggle" />
+
+            <div class="drawer-content flex flex-col overflow-hidden bg-base-200">
+                <!-- Page Content -->
+                <main class="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 scroll-smooth" id="main-scroll">
+                    <div class="max-w-4xl mx-auto pb-20">
+                        <!-- Breadcrumbs -->
+                        <div class="text-sm breadcrumbs mb-6 text-base-content/60">
+                            <ul>
+                                <li>Docs</li>
+                                <li id="breadcrumb-current">Introduction</li>
+                            </ul>
+                        </div>
+
+                        <div id="introduction-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Introduction</h1>
+                            <div id="introduction-content" class="prose"></div>
+                        </div>
+
+                        <div id="folder-structure-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Folder Structure</h1>
+                            <p class="mb-6 opacity-70">The underlying structure of the project.</p>
+
+                            <div class="mockup-code bg-neutral text-neutral-content">
+                                <div id="folder-structure-content" class="prose max-w-full"></div>
+                            </div>
+                        </div>
+
+                        <section id="getting-started-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Getting Started</h1>
+                            <div id="getting-started-content" class="prose"></div>
+                        </section>
+
+                        <section id="customization-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Customization</h1>
+                            <div id="customization-content" class="prose"></div>
+                        </section>
+
+                        <section id="layout-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Layout</h1>
+                            <div id="layout-content" class="prose"></div>
+                        </section>
+
+                        <section id="html-structure-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Structure</h1>
+                            <div id="html-structure-content" class="prose"></div>
+                        </section>
+
+                        <section id="starter-kit-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Starter Kit</h1>
+                            <div id="starter-kit-content" class="prose"></div>
+                        </section>
+
+                        <section id="sources-and-credits-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Sources and Credits</h1>
+                            <div id="sources-and-credits-content" class="prose"></div>
+                        </section>
+
+                        <section id="changelog-section" class="page-section">
+                            <h1 class="text-4xl font-bold mb-6 text-base-content">Changelog</h1>
+                            <div id="changelog-content" class="prose"></div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Sidebar Menu -->
+            <div class="drawer-side z-40">
+                <label for="menu-drawer-toggle" aria-label="close sidebar" class="drawer-overlay"></label>
+                <aside class="bg-base-100 w-72 h-full border-r border-base-300 flex flex-col">
+                    <div class="p-4 border-b border-base-300 block lg:hidden">
+                        <span class="text-lg font-bold">AdminDocs</span>
+                    </div>
+
+                    <div class="overflow-y-auto flex-1">
+                        <ul class="menu w-full gap-1 p-4" id="sidebar-menu">
+                            <li class="menu-title uppercase text-xs font-bold tracking-wider mb-2 mt-2">Menu</li>
+
+                            <li>
+                                <a data-menu-item="introduction" onclick="changeSection('introduction', this)"><i data-lucide="file-text" class="size-4"></i> Introduction</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="folder-structure" onclick="changeSection('folder-structure', this)"><i data-lucide="folder" class="size-4"></i> Folder Structure</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="getting-started" onclick="changeSection('getting-started', this)"><i data-lucide="play" class="size-4"></i> Getting Started</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="customization" onclick="changeSection('customization', this)"><i data-lucide="settings" class="size-4"></i> Customization</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="html-structure" onclick="changeSection('html-structure', this)"><i data-lucide="code" class="size-4"></i> Html Structure</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="starter-kit" onclick="changeSection('starter-kit', this)"><i data-lucide="package" class="size-4"></i> Starter Kit</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="layout" onclick="changeSection('layout', this)"><i data-lucide="layout" class="size-4"></i> Layout</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="sources-and-credits" onclick="changeSection('sources-and-credits', this)"><i data-lucide="heart" class="size-4"></i> Sources And Credits</a>
+                            </li>
+                            <li>
+                                <a data-menu-item="changelog" onclick="changeSection('changelog', this)"><i data-lucide="history" class="size-4"></i> Changelog</a>
+                            </li>
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <script>
+            // icons
+            lucide.createIcons()
+
+            // toggling theme
+            const toggle = document.getElementById("themeToggle")
+            const savedTheme = sessionStorage.getItem("theme")
+            if (savedTheme === "dark") {
+                document.documentElement.setAttribute("data-theme", "dark")
+                toggle.checked = true
+            } else {
+                document.documentElement.setAttribute("data-theme", "light")
+            }
+            toggle.addEventListener("change", () => {
+                if (toggle.checked) {
+                    document.documentElement.setAttribute("data-theme", "dark")
+                    sessionStorage.setItem("theme", "dark")
+                } else {
+                    document.documentElement.setAttribute("data-theme", "light")
+                    sessionStorage.setItem("theme", "light")
+                }
+            })
+
+            // Initialize default active section on page load
+            function initializeDefaultSection() {
+                const savedSectionId = sessionStorage.getItem("lastSelectedSection")
+                const defaultSectionId = savedSectionId || "introduction"
+                const defaultLink = document.querySelector(`a[data-menu-item="${defaultSectionId}"]`)
+
+                if (defaultLink) {
+                    changeSection(defaultSectionId, defaultLink)
+                }
+            }
+
+            // Call this when DOM is ready
+            document.addEventListener("DOMContentLoaded", initializeDefaultSection)
+
+            // Updated changeSection function
+            function changeSection(sectionId, element) {
+                // Hide all sections
+                const sections = document.querySelectorAll(".page-section")
+                sections.forEach((section) => {
+                    section.classList.remove("active")
+                })
+
+                // Show target section
+                const targetSection = document.getElementById(`${sectionId}-section`)
+                if (targetSection) {
+                    targetSection.classList.add("active")
+                } else {
+                    // Fallback to introduction if not found
+                    if (sectionId === "components") {
+                        document.getElementById("introduction-section").classList.add("active")
+                    }
+                }
+
+                sessionStorage.setItem("lastSelectedSection", sectionId)
+
+                // Update breadcrumb
+                if (element) {
+                    const sectionTitle = element.innerText.trim()
+                    document.getElementById("breadcrumb-current").innerText = sectionTitle
+                }
+
+                // Scroll to top
+                document.getElementById("main-scroll").scrollTop = 0
+
+                // Update active state in sidebar
+                const links = document.querySelectorAll("#sidebar-menu a")
+                links.forEach((link) => link.classList.remove("active"))
+
+                // Add active class to clicked link
+                if (element) element.classList.add("active")
+
+                // Close drawer on mobile
+                document.getElementById("menu-drawer-toggle").checked = false
+            }
+
+            document.getElementById("name-prefix").innerText = "Inspinia".charAt(0).toUpperCase()
+
+            const uiLibFile = "bootstrap" === "bootstrap" ? "scss" : "css"
+
+            document.querySelectorAll(".ui-lib-file").forEach((el) => {
+                el.innerText = uiLibFile
+            })
+
+            window.docs = window.docs || {}
+            window.docs.name = "Inspinia"
+            window.docs.title = "INSPINIA - Responsive Bootstrap 5 Admin Dashboard Template"
+            window.docs.description = "Inspinia is the #1 best-selling admin dashboard template on Wrapmarket. Perfect for building CRM, CMS, project management tools, and custom web apps with clean UI, responsive design, and powerful features."
+            window.docs.author = "WebAppLayers"
+            window.docs.username = "Damian D."
+            window.docs.keywords = "Inspinia, admin dashboard, Wrapmarket, Wrapbootstrap, HTML template, Bootstrap admin, CRM template, CMS template, responsive admin, web app UI, admin theme, best admin template"
+            window.docs.version = "5.0.0"
+            window.docs.buyUrl = "https://wrapmarket.com/item/inspinia-multipurpose-admin-dashboard-template-WB0R5L90S?via=webapp"
+            window.docs.supportUrl = "https://wrapmarket.com/shop/WebAppLayers/message"
+            window.docs.uiLibrary = "bootstrap"
+            window.docs.framework = "react"
+            window.docs.pipeline = "gulp"
+
+            for (let key in window?.docs) {
+                if (window?.docs?.hasOwnProperty(key)) {
+                    const originalValue = window?.docs[key]
+                    window.docs[key.toUpperCase()] = originalValue.charAt(0).toUpperCase() + originalValue.slice(1)
+                }
+            }
+
+            function markdownPostProcessor(content) {
+                // return content
+                return content
+                    .replace(/<table>/g, '<table class="table table-zebra bg-base-100 border-base-content/5 rounded-box">')
+                    .replace(/<th>/g, '<th class="p-3">')
+                    .replace(/<td>/g, '<td class="p-3">')
+            }
+        </script>
+
+        <script>
+            const introductionMarkdownContent = `
+## ${window.docs.NAME}: Premium Admin Dashboard & Multipurpose UI System
+
+**${window.docs.NAME}** is a high-performance UI system specifically engineered for modern SaaS products, admin panels, CRM, ERP, analytics, finance, and enterprise back-office applications. Designed with a scalable, developer-friendly architecture, ${window.docs.NAME} empowers teams to accelerate development, customize with ease, and maintain UI consistency across complex ecosystems.
+
+---
+
+## 🛠 Key Features & Customization
+${window.docs.NAME} is a production-ready solution that balances aesthetic polish with deep functionality:
+
+* **Visual Variety:** 11 ready-to-use themes with **Light & Dark** modes.
+* **Global Readiness:** Full **LTR & RTL** support and multi-language compatibility.
+* **Layout Flexibility:** Multiple layout and sidebar variations to fit any use case.
+* **Pre-built Assets:** 218 pre-built pages including authentication flows and fully designed apps.
+
+---
+
+## 💼 Built for Scale
+Whether you are a startup, a digital agency, or an enterprise team, ${window.docs.NAME} provides a reliable, multi-framework foundation. It offers **one product for many technologies**, ensuring a consistent and scalable design system for growing applications.
+`
+
+            const folderStructureMarkdownContent = `
+\`\`\`
+
+  ├── public/
+  ├── src/
+  │   ├── views/
+  │   │   ├── admin/
+  │   │   ├── other/
+  │   │   ├── auth/
+  │   │   └── error/
+  │   ├── assets/
+  │   │   ├── images/
+  │   │   └── scss/          // Global & component styles
+  │   │       └── app.scss
+  │   ├── components/
+  │   ├── config/
+  │   ├── context/
+  │   ├── hooks/
+  │   ├── layouts/           // Core layout structure components
+  │   ├── routes/
+  │   ├── types/
+  │   ├── utils/
+  │   ├── app.tsx
+  │   └── main.tsx
+  ├── eslint.config.js
+  ├── index.html
+  ├── package.json
+  ├── tsconfig.app.json
+  ├── tsconfig.json
+  └── vite.config.ts
+\`\`\`
+`
+
+            const gettingStartedMarkdownContent = `
+### Prerequisites:
+
+Please follow the below steps to install and setup all prerequisites:
+
+**Nodejs** we're using nodejs as Javascript runtime
+  - Make sure to have **Node.js** installed on your machine. If its version is greater than v22, you can skip this step. We suggest using the LTS version.
+  - If you don't have Node.js installed, you can download it from [here](https://nodejs.org/en/download).
+
+**Bun** we're using bun as Package manager
+
+If you have Bun installed
+
+\`bun upgrade\` to upgrade to the latest stable release
+
+If you don’t have Bun installed globally, you can run:
+
+\`npm i -g bun\`
+or
+\`sudo npm i -g bun\` *(Linux/Mac users may need to use \`sudo\`)*
+
+After finishing the above steps, run the following commands from the project root directory (\`Inspinia/html\`):
+
+### Installation
+
+Follow the steps below to set up the project:
+
+| Command         | Description                                                        |
+|-----------------|--------------------------------------------------------------------|
+| \`bun i\`         | Installs all required dependencies into the \`node_modules\` folder. |
+| \`bun run dev\`   | Compiles all resources inside the assets folder.                   |
+| \`bun run build\` | Bundles the project for production use.                            |
+`
+
+            const customizationMarkdownContent = `
+${window.docs.uiLibrary === "bootstrap" ? "If you do not want to use SASS then you can use \`/dist\` folder. You can directly change the \`app.css\` file." : ""} We suggest you not make any changes in app or other ${uiLibFile} files instead make custom.${uiLibFile} to avoid breaking anything during updates.
+
+### ${uiLibFile}
+- **app.css** — all the theme's related css are define in this file.
+- **vendor.css** - all the plugins merged css
+
+---
+
+## ${uiLibFile.toUpperCase()} Structure
+
+Inspinia has managed the ${uiLibFile} file in the \`src/assets/${uiLibFile}\` folder. Add your \`custom.${uiLibFile}\` in \`src/assets/${uiLibFile}/custom.${uiLibFile}\` instead of modifying \`app.${uiLibFile}\`.
+
+### ${uiLibFile}
+${window.docs.uiLibrary === "bootstrap" ? "- **bootstrap**" : ""}
+${window.docs.uiLibrary === "bootstrap" ? "- **components** — The components ${uiLibFile} files are here. " : " - **custom** — The components ${uiLibFile} files are here."}
+- **config** — The themes ${uiLibFile} files are here.
+- **pages** — The pages ${uiLibFile} files are here.
+- **plugins** — The plugins ${uiLibFile} files are here.
+- **structure**
+  - _footer.${uiLibFile}
+  - _horizontal.${uiLibFile}
+  - _layouts.${uiLibFile}
+  - _sidenav.${uiLibFile}
+  - _topbar.${uiLibFile}
+  - app.${uiLibFile}
+  ${window.docs.uiLibrary === "bootstrap" ? "- _variables-dark.${uiLibFile}" : ""}
+  ${window.docs.uiLibrary === "bootstrap" ? "- _variables.${uiLibFile}" : ""}
+
+---
+
+## Variables Structure
+
+We have defined all the variables in the \`src/assets/${uiLibFile}\` folder.
+
+${window.docs.uiLibrary === "bootstrap" ? "**_variables.scss**" : "- **/config/_root.css**"}
+All variables are defined in this file.
+
+---
+
+## Layout Structure
+
+We have defined all the variables in the \`src/assets/${uiLibFile}/structure\` folder.
+
+- **_footer.${uiLibFile}** — Footer-related ${uiLibFile} define in this file.
+- **_horizontal.${uiLibFile}** — Horizontal layout ${uiLibFile} managed in this file.
+- **_layout.${uiLibFile}** — Manage Boxed layout ${uiLibFile} in this file.
+- **_topbar.${uiLibFile}** — Topbar ${uiLibFile} in this file.
+- **_sidenav.${uiLibFile}** — Sidenav ${uiLibFile} in this file.
+`
+
+            const htmlStructureMarkdownContent = `
+## Layout Structure
+
+\`\`\`jsx
+<div className="wrapper">
+    <Sidenav />
+    <TopBar />
+
+    <div className="content-page">
+        <Container fluid>
+            {children}  // Your page content will be rendered here 
+        </Container>
+
+        <Footer />
+    </div>
+</div>
+
+<Customizer />
+\`\`\`
+
+### Structure Explanation
+
+- **Sidenav** : Sidebar navigation component.
+- **TopBar** : Top navigation bar component.
+- **Container (fluid)** : Main page content wrapper.
+- **Footer** : Footer section component.
+- **Customizer** : Theme customization sidebar component.
+- **{children}** : Dynamic page content rendered inside layout.
+`
+
+            const starterKitMarkdownContent = `
+> **Starter kit** is a simplified and minimal version of an admin template. It provides the basic structure, essential components, and foundational code for building an application. This gives developers a good starting point. A starter kit is ideal for developers who want to build a custom admin panel from scratch and integrate additional components as needed.
+
+You can leverage these features of the Starter Kit:
+- **Production-Ready Foundation**: Pre-configured with essential settings and tools to jumpstart your real-world application development.
+- **Lightweight & Fast**: Includes only the core files and necessary dependencies, ensuring a smaller bundle size and improved performance.
+- **Clean Architecture**: A clutter-free starting point that removes complex demo features and example content for a focused workflow.
+- **Developer-Centric Design**: Streamlined to help you focus on your unique business logic without the distraction of unnecessary boilerplate.
+- **Highly Customizable**: Built as a flexible base that allows you to integrate additional components and features incrementally as your project grows.
+
+We have provided all the below pages in the Starter Kit with all the packages so it gets easier for you to get started with basic necessity.
+
+- Dashboard
+- Authentication pages
+- Error
+- Blank pages
+- Layouts
+`
+
+            const layoutMarkdownContent = `
+You can set the default layout in the \`defaultConfig\` object.
+
+\`\`\`js
+const defaultConfig = {
+  dir: "ltr",
+skin: "default",
+theme: "light",
+width: "fluid",
+position: "fixed",
+orientation: "vertical",
+sidenavSize: "default",
+sidenavUser: "undefined",
+topbarColor: "light",
+sidenavColor: "dark",
+}
+\`\`\`
+### Config Options
+
+| key | available options |
+|-----|-------------------|
+| dir | "ltr" , "rtl" |
+| skin | "default" , "minimal" , "modern" , "material" , "saas" , "flat" , "galaxy" , "luxe" , "retro" , "neon" , "pixel" |
+| theme | "light" , "dark" , "system" |
+| width | "fluid" , "boxed" |
+| position | "fixed" , "scrollable" |
+| orientation | "vertical" , "horizontal" |
+| sidenav-size | "default" , "compact" , "condensed" , "on-hover" , "on-hover-active" , "offcanvas" |
+| sidenav-user | true , false |
+| topbar-color | "light" , "dark" , "gray" , "gradient" |
+| sidenav-color | "light" , "dark" , "gray" , "gradient" , "image" |
+
+---
+
+### Dark Mode Setting
+
+Simply set the attribute \`${window.docs.uiLibrary === "bootstrap" ? 'data-bs-theme="dark"' : 'data-theme="dark"'}\` to the html tag. It will update the layout mode to Dark mode. No need to change any css or js files.
+
+\`\`\`html
+<html ${window.docs.uiLibrary === "bootstrap" ? 'data-bs-theme="dark"' : 'data-theme="dark"'}>
+\`\`\`
+
+---
+
+### RTL Mode Setting
+
+Simply set the attribute \`dir="rtl"\` to the html tag. It will update the layout mode to RTL mode. No need to change any css or js files.
+
+\`\`\`html
+<html dir="rtl">
+\`\`\`
+
+`
+
+            const sourcesAndCreditsMarkdownContent = `
+Special thanks to the following plugins and libraries which made this template possible
+
+| NAME | URL |
+|------|-----|
+| react | <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer">https://github.com/facebook/react</a> |
+| react-dom | <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer">https://github.com/facebook/react</a> |
+| @vitejs/plugin-react | <a href="https://github.com/vitejs/vite-plugin-react" target="_blank" rel="noopener noreferrer">https://github.com/vitejs/vite-plugin-react</a> |
+| eslint | <a href="https://github.com/eslint/eslint" target="_blank" rel="noopener noreferrer">https://github.com/eslint/eslint</a> |
+| @eslint/js | <a href="https://github.com/eslint/eslint" target="_blank" rel="noopener noreferrer">https://github.com/eslint/eslint</a> |
+| eslint-plugin-react-hooks | <a href="https://github.com/facebook/react" target="_blank" rel="noopener noreferrer">https://github.com/facebook/react</a> |
+| eslint-plugin-react-refresh | <a href="https://github.com/ArnaudBarre/eslint-plugin-react-refresh" target="_blank" rel="noopener noreferrer">https://github.com/ArnaudBarre/eslint-plugin-react-refresh</a> |
+| globals | <a href="https://github.com/sindresorhus/globals" target="_blank" rel="noopener noreferrer">https://github.com/sindresorhus/globals</a> |
+| typescript | <a href="https://github.com/microsoft/TypeScript" target="_blank" rel="noopener noreferrer">https://github.com/microsoft/TypeScript</a> |
+| typescript-eslint | <a href="https://github.com/typescript-eslint/typescript-eslint" target="_blank" rel="noopener noreferrer">https://github.com/typescript-eslint/typescript-eslint</a> |
+| vite | <a href="https://github.com/vitejs/vite" target="_blank" rel="noopener noreferrer">https://github.com/vitejs/vite</a> |
+| react-bootstrap | <a href="https://github.com/react-bootstrap/react-bootstrap" target="_blank" rel="noopener noreferrer">https://github.com/react-bootstrap/react-bootstrap</a> |
+| react-router | <a href="https://github.com/remix-run/react-router" target="_blank" rel="noopener noreferrer">https://github.com/remix-run/react-router</a> |
+| bootstrap | <a href="https://github.com/twbs/bootstrap" target="_blank" rel="noopener noreferrer">https://github.com/twbs/bootstrap</a> |
+| sass | <a href="https://github.com/sass/dart-sass" target="_blank" rel="noopener noreferrer">https://github.com/sass/dart-sass</a> |
+| simplebar-react | <a href="https://github.com/grsmto/simplebar" target="_blank" rel="noopener noreferrer">https://github.com/grsmto/simplebar</a> |
+| usehooks-ts | <a href="https://github.com/juliencrn/usehooks-ts" target="_blank" rel="noopener noreferrer">https://github.com/juliencrn/usehooks-ts</a> |
+| @iconify/react | <a href="https://github.com/iconify/iconify" target="_blank" rel="noopener noreferrer">https://github.com/iconify/iconify</a> |
+| clsx | <a href="https://github.com/lukeed/clsx" target="_blank" rel="noopener noreferrer">https://github.com/lukeed/clsx</a> |
+| react-apexcharts | <a href="https://github.com/apexcharts/react-apexcharts" target="_blank" rel="noopener noreferrer">https://github.com/apexcharts/react-apexcharts</a> |
+| apexcharts | <a href="https://github.com/apexcharts/apexcharts.js" target="_blank" rel="noopener noreferrer">https://github.com/apexcharts/apexcharts.js</a> |
+| @tanstack/react-table | <a href="https://github.com/TanStack/table" target="_blank" rel="noopener noreferrer">https://github.com/TanStack/table</a> |
+| react-countup | <a href="https://github.com/glennreyes/react-countup" target="_blank" rel="noopener noreferrer">https://github.com/glennreyes/react-countup</a> |
+| react-flatpickr | <a href="https://github.com/haoxins/react-flatpickr" target="_blank" rel="noopener noreferrer">https://github.com/haoxins/react-flatpickr</a> |
+| flatpickr | <a href="https://github.com/chmln/flatpickr" target="_blank" rel="noopener noreferrer">https://github.com/chmln/flatpickr</a> |
+| echarts | <a href="https://github.com/apache/echarts" target="_blank" rel="noopener noreferrer">https://github.com/apache/echarts</a> |
+| echarts-for-react | <a href="https://github.com/hustcc/echarts-for-react" target="_blank" rel="noopener noreferrer">https://github.com/hustcc/echarts-for-react</a> |
+| jsvectormap | <a href="https://github.com/themustafaomar/jsvectormap" target="_blank" rel="noopener noreferrer">https://github.com/themustafaomar/jsvectormap</a> |
+| react-photo-album | <a href="https://github.com/igordanchenko/react-photo-album" target="_blank" rel="noopener noreferrer">https://github.com/igordanchenko/react-photo-album</a> |
+| yet-another-react-lightbox | <a href="https://github.com/igordanchenko/yet-another-react-lightbox" target="_blank" rel="noopener noreferrer">https://github.com/igordanchenko/yet-another-react-lightbox</a> |
+| react-markdown | <a href="https://github.com/remarkjs/react-markdown" target="_blank" rel="noopener noreferrer">https://github.com/remarkjs/react-markdown</a> |
+| remark-gfm | <a href="https://github.com/remarkjs/remark-gfm" target="_blank" rel="noopener noreferrer">https://github.com/remarkjs/remark-gfm</a> |
+| react-quill-new | <a href="https://github.com/VaguelySerious/react-quill" target="_blank" rel="noopener noreferrer">https://github.com/VaguelySerious/react-quill</a> |
+| quill | <a href="https://github.com/slab/quill" target="_blank" rel="noopener noreferrer">https://github.com/slab/quill</a> |
+| @fullcalendar/core | <a href="https://github.com/fullcalendar/fullcalendar" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar</a> |
+| @fullcalendar/daygrid | <a href="https://github.com/fullcalendar/fullcalendar" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar</a> |
+| @fullcalendar/interaction | <a href="https://github.com/fullcalendar/fullcalendar" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar</a> |
+| @fullcalendar/list | <a href="https://github.com/fullcalendar/fullcalendar" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar</a> |
+| @fullcalendar/react | <a href="https://github.com/fullcalendar/fullcalendar-react" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar-react</a> |
+| @fullcalendar/timegrid | <a href="https://github.com/fullcalendar/fullcalendar" target="_blank" rel="noopener noreferrer">https://github.com/fullcalendar/fullcalendar</a> |
+| masonic | <a href="https://github.com/jaredLunde/masonic" target="_blank" rel="noopener noreferrer">https://github.com/jaredLunde/masonic</a> |
+| date-fns | <a href="https://github.com/date-fns/date-fns" target="_blank" rel="noopener noreferrer">https://github.com/date-fns/date-fns</a> |
+| @hello-pangea/dnd | <a href="https://github.com/hello-pangea/dnd" target="_blank" rel="noopener noreferrer">https://github.com/hello-pangea/dnd</a> |
+| react-hook-form | <a href="https://github.com/react-hook-form/react-hook-form" target="_blank" rel="noopener noreferrer">https://github.com/react-hook-form/react-hook-form</a> |
+| @hookform/resolvers | <a href="https://github.com/react-hook-form/resolvers" target="_blank" rel="noopener noreferrer">https://github.com/react-hook-form/resolvers</a> |
+| yup | <a href="https://github.com/jquense/yup" target="_blank" rel="noopener noreferrer">https://github.com/jquense/yup</a> |
+| react-use-wizard | <a href="https://github.com/devrnt/react-use-wizard" target="_blank" rel="noopener noreferrer">https://github.com/devrnt/react-use-wizard</a> |
+| react-number-format | <a href="https://github.com/s-yadav/react-number-format" target="_blank" rel="noopener noreferrer">https://github.com/s-yadav/react-number-format</a> |
+| react-dropzone | <a href="https://github.com/react-dropzone/react-dropzone" target="_blank" rel="noopener noreferrer">https://github.com/react-dropzone/react-dropzone</a> |
+| react-range | <a href="https://github.com/tajo/react-range" target="_blank" rel="noopener noreferrer">https://github.com/tajo/react-range</a> |
+| @rc-component/tour | <a href="https://github.com/react-component/tour" target="_blank" rel="noopener noreferrer">https://github.com/react-component/tour</a> |
+| react-sortablejs | <a href="https://github.com/SortableJS/react-sortablejs" target="_blank" rel="noopener noreferrer">https://github.com/SortableJS/react-sortablejs</a> |
+| animate.css | <a href="https://github.com/animate-css/animate.css" target="_blank" rel="noopener noreferrer">https://github.com/animate-css/animate.css</a> |
+| diff | <a href="https://github.com/kpdecker/jsdiff" target="_blank" rel="noopener noreferrer">https://github.com/kpdecker/jsdiff</a> |
+| react-arborist | <a href="https://github.com/brimdata/react-arborist" target="_blank" rel="noopener noreferrer">https://github.com/brimdata/react-arborist</a> |
+| react-idle-timer | <a href="https://github.com/supremetechnopriest/react-idle-timer" target="_blank" rel="noopener noreferrer">https://github.com/supremetechnopriest/react-idle-timer</a> |
+| react-password-checklist | <a href="https://github.com/sators/react-password-checklist" target="_blank" rel="noopener noreferrer">https://github.com/sators/react-password-checklist</a> |
+| react-pdf | <a href="https://github.com/wojtekmaj/react-pdf" target="_blank" rel="noopener noreferrer">https://github.com/wojtekmaj/react-pdf</a> |
+| sweetalert2 | <a href="https://github.com/sweetalert2/sweetalert2" target="_blank" rel="noopener noreferrer">https://github.com/sweetalert2/sweetalert2</a> |
+| sweetalert2-react-content | <a href="https://github.com/sweetalert2/sweetalert2-react-content" target="_blank" rel="noopener noreferrer">https://github.com/sweetalert2/sweetalert2-react-content</a> |
+| react-player | <a href="https://github.com/cookpete/react-player" target="_blank" rel="noopener noreferrer">https://github.com/cookpete/react-player</a> |
+| ladda | <a href="https://github.com/hakimel/Ladda" target="_blank" rel="noopener noreferrer">https://github.com/hakimel/Ladda</a> |
+| moment | <a href="https://github.com/moment/moment" target="_blank" rel="noopener noreferrer">https://github.com/moment/moment</a> |
+| dayjs | <a href="https://github.com/iamkun/dayjs" target="_blank" rel="noopener noreferrer">https://github.com/iamkun/dayjs</a> |
+| filepond | <a href="https://github.com/pqina/filepond" target="_blank" rel="noopener noreferrer">https://github.com/pqina/filepond</a> |
+| react-filepond | <a href="https://github.com/pqina/react-filepond" target="_blank" rel="noopener noreferrer">https://github.com/pqina/react-filepond</a> |
+| filepond-plugin-image-exif-orientation | <a href="https://github.com/pqina/filepond-plugin-image-exif-orientation" target="_blank" rel="noopener noreferrer">https://github.com/pqina/filepond-plugin-image-exif-orientation</a> |
+| filepond-plugin-image-preview | <a href="https://github.com/pqina/filepond-plugin-image-preview" target="_blank" rel="noopener noreferrer">https://github.com/pqina/filepond-plugin-image-preview</a> |
+| react-bootstrap-typeahead | <a href="https://github.com/ericgio/react-bootstrap-typeahead" target="_blank" rel="noopener noreferrer">https://github.com/ericgio/react-bootstrap-typeahead</a> |
+| react-colorful | <a href="https://github.com/omgovich/react-colorful" target="_blank" rel="noopener noreferrer">https://github.com/omgovich/react-colorful</a> |
+| react-datepicker | <a href="https://github.com/Hacker0x01/react-datepicker" target="_blank" rel="noopener noreferrer">https://github.com/Hacker0x01/react-datepicker</a> |
+| react-select | <a href="https://github.com/JedWatson/react-select.git#master" target="_blank" rel="noopener noreferrer">https://github.com/JedWatson/react-select.git#master</a> |
+| quill | <a href="https://github.com/slab/quill" target="_blank" rel="noopener noreferrer">https://github.com/slab/quill</a> |
+| @vis.gl/react-google-maps | <a href="https://github.com/visgl/react-google-maps" target="_blank" rel="noopener noreferrer">https://github.com/visgl/react-google-maps</a> |
+| react-leaflet | <a href="https://github.com/PaulLeCam/react-leaflet" target="_blank" rel="noopener noreferrer">https://github.com/PaulLeCam/react-leaflet</a> |
+| leaflet | <a href="https://github.com/Leaflet/Leaflet" target="_blank" rel="noopener noreferrer">https://github.com/Leaflet/Leaflet</a> |
+| datatables.net | <a href="https://github.com/DataTables/Dist-DataTables" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables</a> |
+| datatables.net-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Bootstrap5</a> |
+| datatables.net-buttons | <a href="https://github.com/DataTables/Dist-DataTables-Buttons" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Buttons</a> |
+| datatables.net-buttons-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-Buttons-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Buttons-Bootstrap5</a> |
+| datatables.net-fixedcolumns | <a href="https://github.com/DataTables/Dist-DataTables-FixedColumns" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-FixedColumns</a> |
+| datatables.net-fixedcolumns-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-FixedColumns-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-FixedColumns-Bootstrap5</a> |
+| datatables.net-fixedheader | <a href="https://github.com/DataTables/Dist-DataTables-FixedHeader" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-FixedHeader</a> |
+| datatables.net-fixedheader-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-FixedHeader-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-FixedHeader-Bootstrap5</a> |
+| datatables.net-responsive | <a href="https://github.com/DataTables/Dist-DataTables-Responsive" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Responsive</a> |
+| datatables.net-responsive-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-Responsive-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Responsive-Bootstrap5</a> |
+| datatables.net-select | <a href="https://github.com/DataTables/Dist-DataTables-Select" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Select</a> |
+| datatables.net-select-bs5 | <a href="https://github.com/DataTables/Dist-DataTables-Select-Bootstrap5" target="_blank" rel="noopener noreferrer">https://github.com/DataTables/Dist-DataTables-Select-Bootstrap5</a> |
+| jszip | <a href="https://github.com/Stuk/jszip" target="_blank" rel="noopener noreferrer">https://github.com/Stuk/jszip</a> |
+| pdfmake | <a href="https://github.com/bpampuch/pdfmake" target="_blank" rel="noopener noreferrer">https://github.com/bpampuch/pdfmake</a> |
+| spinkit | <a href="https://github.com/tobiasahlin/SpinKit" target="_blank" rel="noopener noreferrer">https://github.com/tobiasahlin/SpinKit</a> |
+`
+
+            const changelogMarkdownContent = `
+### v5.0.0
+
+- Added support for **Tailwind CSS v4** across all frameworks.
+- Introduced **FastAPI**, **Yii3**, and **AIOHTTP** frameworks.
+- Added **Galaxy**, **Luxe**, **Retro**, **Neon**, and **Pixel** skins.
+- Added several new pre-designed pages.
+- Bumped up core libraries to their latest versions.
+- General bug fixes and improved overall system compatibility.
+`
+
+            document.getElementById("introduction-content").innerHTML = markdownPostProcessor(marked.parse(introductionMarkdownContent))
+
+            document.getElementById("folder-structure-content").innerHTML = markdownPostProcessor(marked.parse(folderStructureMarkdownContent))
+
+            document.getElementById("getting-started-content").innerHTML = markdownPostProcessor(marked.parse(gettingStartedMarkdownContent))
+
+            document.getElementById("customization-content").innerHTML = markdownPostProcessor(marked.parse(customizationMarkdownContent))
+
+            document.getElementById("html-structure-content").innerHTML = markdownPostProcessor(marked.parse(htmlStructureMarkdownContent))
+
+            document.getElementById("starter-kit-content").innerHTML = markdownPostProcessor(marked.parse(starterKitMarkdownContent))
+
+            document.getElementById("layout-content").innerHTML = markdownPostProcessor(marked.parse(layoutMarkdownContent))
+
+            document.getElementById("sources-and-credits-content").innerHTML = markdownPostProcessor(marked.parse(sourcesAndCreditsMarkdownContent))
+
+            document.getElementById("changelog-content").innerHTML = markdownPostProcessor(marked.parse(changelogMarkdownContent))
+        </script>
+    </body>
+</html>

@@ -1,0 +1,526 @@
+<aside id="app-menu" class="app-menu">
+    <!-- Sidenav Menu Brand Logo -->
+    <a href="index.html" class="logo-box">
+        <!-- Light Brand Logo -->
+        <span class="logo logo-light">
+            <span class="logo-lg">
+                <img src="/images/logo.png" alt="logo" />
+            </span>
+            <span class="logo-sm">
+                <img src="/images/logo-sm.png" alt="small logo" />
+            </span>
+        </span>
+
+        <!-- Dark Brand Logo -->
+        <span class="logo logo-dark">
+            <span class="logo-lg">
+                <img src="/images/logo-black.png" alt="dark logo" />
+            </span>
+            <span class="logo-sm">
+                <img src="/images/logo-sm.png" alt="small logo" />
+            </span>
+        </span>
+    </a>
+
+    <!-- Sidenav Menu Toggle Button -->
+    <div class="h-topbar justify absolute end-5 top-0 flex items-center">
+        <button id="button-hover-toggle">
+            <span class="btn-on-hover-icon"></span>
+        </button>
+    </div>
+
+    <!-- Sidenav Menu Item Link -->
+    <div class="relative min-h-0 grow">
+        <div class="size-full" data-simplebar="">
+            <div id="user-profile-settings" class="sidenav-user p-5 bg-[url(/images/user-bg-pattern.svg)]">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <a href="#!" class="link-reset">
+                            <img src="/images/users/user-1.jpg" alt="user-image" class="mb-3 size-9 rounded-full" />
+                            <span class="sidenav-user-name block font-bold text-nowrap">Damian D.</span>
+                            <span class="text-xs font-semibold" data-lang="user-role">Art Director</span>
+                        </a>
+                    </div>
+
+                    <div>
+                        <!-- Profile Dropdown Button -->
+                        <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                            <button class="cursor-pointer" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                <i class="iconify tabler--settings ms-1 size-6 align-middle"></i>
+                            </button>
+
+                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-with-icons">
+                                <!-- Header -->
+                                <div class="py-2 px-3.5">
+                                    <h6 class="text-xs">Welcome back 👋!</h6>
+                                </div>
+
+                                <!-- My Profile -->
+                                <a href="#!" class="dropdown-item">
+                                    <i class="iconify tabler--user-circle me-1 align-middle text-lg"></i>
+                                    <span class="align-middle">Profile</span>
+                                </a>
+
+                                <!-- Settings -->
+                                <a href="javascript:void(0);" class="dropdown-item">
+                                    <i class="iconify tabler--settings-2 me-1 align-middle text-lg"></i>
+                                    <span class="align-middle">Account Settings</span>
+                                </a>
+
+                                <!-- Lock -->
+                                <a href="auth-lock-screen.html" class="dropdown-item">
+                                    <i class="iconify tabler--lock me-1 align-middle text-lg"></i>
+                                    <span class="align-middle">Lock Screen</span>
+                                </a>
+
+                                <!-- Logout -->
+                                <a href="javascript:void(0);" class="dropdown-item text-danger">
+                                    <i class="iconify tabler--logout me-1 align-middle text-lg"></i>
+                                    <span class="align-middle">Log Out</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sidenav-menu">
+                <ul class="side-nav hs-accordion-group px-2.5 pb-16.5">
+                    <li class="menu-title mt-0!" data-lang="main">
+                        <span>Main</span>
+                    </li>
+                    <li class="menu-item">
+                        <a href="index.html" class="menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--dashboard"></i></span>
+                            <span class="menu-text" data-lang="dashboard-projects">Projects</span>
+                        </a>
+                    </li>
+                    <li class="menu-title mt-0!" data-lang="custom-pages">
+                        <span>Custom Pages</span>
+                    </li>
+                    <li class="menu-item">
+                        <a href="pages-empty.html" class="menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--files"></i></span>
+                            <span class="menu-text" data-lang="pages-empty">Empty Page</span>
+                        </a>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="authentication" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--password-user"></i></span>
+                            <span class="menu-text" data-lang="authentication">Authentication</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item hs-accordion">
+                                <a href="javascript:void(0)" aria-expanded="false" aria-controls="auth-basic" class="hs-accordion-toggle menu-link">
+                                    <span class="menu-text" data-lang="auth-basic">Basic</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                    <li class="menu-item">
+                                        <a href="auth-sign-in.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-sign-in">Sign In</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-sign-up.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-sign-up">Sign Up</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-reset-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-reset-pass">Reset Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-new-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-new-pass">New Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-two-factor.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-two-factor">Two Factor</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-lock-screen.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-lock-screen">Lock Screen</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-success-mail.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-success-mail">Success Mail</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-login-pin.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-login-pin">Login with PIN</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-delete-account.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-delete-account">Delete Account</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="menu-item hs-accordion">
+                                <a href="javascript:void(0)" aria-expanded="false" aria-controls="auth-card" class="hs-accordion-toggle menu-link">
+                                    <span class="menu-text" data-lang="auth-card">Card</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                    <li class="menu-item">
+                                        <a href="auth-card-sign-in.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-sign-in">Sign In</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-sign-up.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-sign-up">Sign Up</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-reset-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-reset-pass">Reset Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-new-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-new-pass">New Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-two-factor.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-two-factor">Two Factor</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-lock-screen.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-lock-screen">Lock Screen</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-success-mail.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-success-mail">Success Mail</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-login-pin.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-login-pin">Login with PIN</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-card-delete-account.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-card-delete-account">Delete Account</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="menu-item hs-accordion">
+                                <a href="javascript:void(0)" aria-expanded="false" aria-controls="auth-split" class="hs-accordion-toggle menu-link">
+                                    <span class="menu-text" data-lang="auth-split">Split</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                    <li class="menu-item">
+                                        <a href="auth-split-sign-in.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-sign-in">Sign In</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-sign-up.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-sign-up">Sign Up</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-reset-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-reset-pass">Reset Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-new-pass.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-new-pass">New Password</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-two-factor.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-two-factor">Two Factor</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-lock-screen.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-lock-screen">Lock Screen</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-success-mail.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-success-mail">Success Mail</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-login-pin.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-login-pin">Login with PIN</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="auth-split-delete-account.html" class="menu-link">
+                                            <span class="menu-text" data-lang="auth-split-delete-account">Delete Account</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="error-pages" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--alert-triangle"></i></span>
+                            <span class="menu-text" data-lang="error-pages">Error Pages</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item">
+                                <a href="error-400.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-400">400 Bad Request</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-401.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-401">401 Unauthorized</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-403.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-403">403 Forbidden</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-404.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-404">404 Not Found</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-408.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-408">408 Request Timeout</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-500.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-500">500 Internal Server</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="error-maintenance.html" class="menu-link">
+                                    <span class="menu-text" data-lang="error-maintenance">Maintenance</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-title mt-0!" data-lang="layouts">
+                        <span>Layouts</span>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="layout-options" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--layout"></i></span>
+                            <span class="menu-text" data-lang="layout-options">Layout Options</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item">
+                                <a href="layouts-scrollable.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-scrollable">Scrollable</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-compact.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-compact">Compact</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-boxed.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-boxed">Boxed</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-horizontal.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-horizontal">Horizontal</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-preloader.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-preloader">Preloader</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="sidebars" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--layout-sidebar-inactive"></i></span>
+                            <span class="menu-text" data-lang="sidebars">Sidebars</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-light.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-light">Light Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-gradient.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-gradient">Gradient Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-gray.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-gray">Gray Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-image.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-image">Image Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-compact.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-compact">Compact Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-on-hover.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-on-hover">On Hover Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-on-hover-active.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-on-hover-active">On Hover Active</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-offcanvas.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-offcanvas">Offcanvas Menu</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-no-icons.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-no-icons">No Icons with Lines</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-sidebar-with-lines.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-with-lines">Sidebar with Lines</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="topbar" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--layout-bottombar"></i></span>
+                            <span class="menu-text" data-lang="topbar">Topbar</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item">
+                                <a href="layouts-topbar-dark.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-dark">Dark Topbar</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-topbar-gray.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-gray">Gray Topbar</span>
+                                </a>
+                            </li>
+                            <li class="menu-item">
+                                <a href="layouts-topbar-gradient.html" class="menu-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-gradient">Gradient Topbar</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-title mt-0!" data-lang="components">
+                        <span>Components</span>
+                    </li>
+                    <li class="menu-item">
+                        <a href="icons-tabler.html" class="menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--icons"></i></span>
+                            <span class="menu-text" data-lang="icons-tabler">Tabler</span>
+                        </a>
+                    </li>
+                    <li class="menu-title mt-0!" data-lang="menu-items">
+                        <span>Menu Items</span>
+                    </li>
+                    <li class="menu-item hs-accordion">
+                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="menu-levels" class="hs-accordion-toggle menu-link">
+                            <span class="menu-icon"><i class="iconify tabler--sitemap"></i></span>
+                            <span class="menu-text" data-lang="menu-levels">Menu Levels</span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                            <li class="menu-item hs-accordion">
+                                <a href="javascript:void(0)" aria-expanded="false" aria-controls="second-level" class="hs-accordion-toggle menu-link">
+                                    <span class="menu-text" data-lang="second-level">Second Level</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                    <li class="menu-item">
+                                        <a href="#" class="menu-link">
+                                            <span class="menu-text" data-lang="menu-item-1">Item 2.1</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item">
+                                        <a href="#" class="menu-link">
+                                            <span class="menu-text" data-lang="menu-item-2">Item 2.2</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="menu-item hs-accordion">
+                                <a href="javascript:void(0)" aria-expanded="false" aria-controls="second-level-2" class="hs-accordion-toggle menu-link">
+                                    <span class="menu-text" data-lang="second-level-2">Second Level</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                    <li class="menu-item">
+                                        <a href="#" class="menu-link">
+                                            <span class="menu-text" data-lang="menu-item-3">Item 2.1</span>
+                                        </a>
+                                    </li>
+                                    <li class="menu-item hs-accordion">
+                                        <a href="javascript:void(0)" aria-expanded="false" aria-controls="menu-item-4" class="hs-accordion-toggle menu-link">
+                                            <span class="menu-text" data-lang="menu-item-4">Item 2.2</span>
+                                            <span class="menu-arrow"></span>
+                                        </a>
+                                        <ul class="sub-menu hs-accordion-content hs-accordion-group hidden">
+                                            <li class="menu-item">
+                                                <a href="#" class="menu-link">
+                                                    <span class="menu-text" data-lang="menu-item-5">Item 3.1</span>
+                                                </a>
+                                            </li>
+                                            <li class="menu-item">
+                                                <a href="#" class="menu-link">
+                                                    <span class="menu-text" data-lang="menu-item-6">Item 3.2</span>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" class="menu-link pointer-events-none opacity-50">
+                            <span class="menu-icon"><i class="iconify tabler--ban"></i></span>
+                            <span class="menu-text" data-lang="disabled-menu">Disabled Menu</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" class="menu-link !bg-primary !text-white">
+                            <span class="menu-icon"><i class="iconify tabler--star"></i></span>
+                            <span class="menu-text !bg-inherit" data-lang="special-menu">Special Menu</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>
+<!-- End Sidebar -->

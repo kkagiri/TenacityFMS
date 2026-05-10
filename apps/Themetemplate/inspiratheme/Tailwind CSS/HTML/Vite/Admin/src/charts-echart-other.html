@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Other Echart" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Other Echart" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Other Echart" }}
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header border-none">
+                                    <h4 class="card-title">Pictorialbar Dotted Chart</h4>
+                                </div>
+                                <div class="card-body p-3 pt-0">
+                                    <div id="echart-pictorialbar-dotted" class="rounded-md overflow-hidden" style="min-height: 400px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Sunburst Chart</h4>
+                                </div>
+                                <div class="card-body p-2 pt-0">
+                                    <div id="echar-basic-sunburst" style="min-height: 399px"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Nested Pie Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-pie-nest" style="min-height: 600px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/chart-echart-other.js"></script>
+    </body>
+</html>

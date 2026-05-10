@@ -103,6 +103,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\packages\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\packages\FMS.Reporting\FMS.Reporting.csproj" />
     <ProjectReference Include="..\..\services\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Devices.Core\FMS.Devices.Core.csproj" />

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-sidenav-size="on-hover-active">
+    <head>
+        {{> title-meta title="On Hover Active" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="On Hover Active" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layouts" title="On Hover Active" }}
+
+                    <div class="container-fluid">
+                        <div class="bg-warning/10 text-warning border-s-3 border-warning rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable the full menu on hover after minimizing the sidebar, add
+                                <code>data-sidenav-size="on-hover-active"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag in your layout.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

@@ -33,13 +33,15 @@ using FMS.Application.Configuration;
 using FMS.Application.CommonInterface; // For IPermissionAuthorizationService
 using FMS.Application.Features.GPSGate.DTOs;
 using FMS.Application.Features.GPSGate.Queries;
+using FMS.Reporting.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using FMS.Application.Features.Reporting.Services;
 using StackExchange.Redis;
 using System.Text;
-using FMS.Application.Infrastructure.Services.Authentication;
-using FMS.Application.Infrastructure.Authorization;
+using FMS.Application.Abstractions.Identity;
+using FMS.Infrastructure.Identity;
+using FMS.Infrastructure.Authorization;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
@@ -60,7 +62,7 @@ using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Abstractions.DistCacheTracker;
 using FMS.Application.Features.WarningLetter.Services;
 using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
 using FMS.Devices.Core.DependencyInjection; // AddDeviceCore() for multi-device provider platform
@@ -181,6 +183,8 @@ public static class FmsServiceCollectionExtensions
         {
             options.AssemblyNames = new[] { "FMS.Devices.Tracking" };
         });
+        services.AddScoped<FMS.Application.Features.Geofence.Commands.IGeofenceSyncJobProcessor,
+            FMS.Application.Features.Geofence.Commands.GeofenceSyncJobProcessor>();
 
         // Register DevExpress Reporting services
         RegisterDevExpressReporting(services);
@@ -469,6 +473,7 @@ public static class FmsServiceCollectionExtensions
             services.AddSingleton<IRedisPublisher, RedisPublisher>();
             services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
             services.AddSingleton<RedisCommandService>();
+            services.AddSingleton<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
 
             // Policy Trigger Service for event-driven reconciliation
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService>();
@@ -499,6 +504,7 @@ public static class FmsServiceCollectionExtensions
             services.AddSingleton<IRedisPublisher, RedisPublisher>();
             services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
             services.AddSingleton<RedisCommandService>();
+            services.AddSingleton<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
 
             // Business-level fallback: no-op policy trigger
             services.AddScoped<IPolicyTriggerService, NullPolicyTriggerService>();
@@ -647,7 +653,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.GPSGate.Processors.RefuelingReportProcessor>();
         services.AddSingleton<FMS.Application.Features.GPSGate.Processors.IReportProcessorFactory, FMS.Application.Features.GPSGate.Processors.ReportProcessorFactory>();
         services.AddSingleton<IReportDefinitionService, ReportDefinitionService>();
-        services.AddScoped<IReportGenerationService, ReportGenerationService>();
+        services.AddReportingServices();
 
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
@@ -680,7 +686,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 
         // PTS Services
-        services.AddScoped<IServiceControlService, ServiceControlService>();
+        services.AddScoped<IServiceControlService, FMS.Infrastructure.Services.PTSService.ServiceControlService>();
         services.AddScoped<IPumpService, PumpService>();
         services.AddScoped<IPTSConfigService, PTSConfigService>();
         services.AddScoped<PumpTransactionIntegrationService>();
@@ -700,7 +706,7 @@ public static class FmsServiceCollectionExtensions
 
         // Communication & Tracking Services
         services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
-        services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
+        services.AddScoped<IAuthorizationStateTracker, FMS.Infrastructure.DistCacheTracker.AuthorizationStateTracker>();
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
@@ -762,6 +768,12 @@ public static class FmsServiceCollectionExtensions
         // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
         services.AddHostedService<GPSGateVehicleLocationTagMonitoringService>();
 
+        // Expected Average GPSGate sync worker - drains queued expected-average pushes.
+        services.AddHostedService<FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageGpsGateSyncWorker>();
+
+        // Expected Average drift monitor - opens review workflow items from rolling vehicle-consumption drift.
+        services.AddHostedService<FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageDriftMonitorService>();
+
         // Vehicle Transfer InTransit reminder service - sends daily reminders to receivers
         services.AddHostedService<FMS.BackgroundServices.TransferReminderBackgroundService>();
 
@@ -781,9 +793,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueAttachmentStorageService, FMS.Application.Features.IssueTracker.Services.IssueAttachmentStorageService>();
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IWorkflowBackfillService, FMS.Application.Features.IssueTracker.Services.WorkflowBackfillService>();
         // Push notification service for mobile/web push
-        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
+        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Infrastructure.Notification.PushNotificationService>();
         // Real-time notification abstraction
-        services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
+            services.AddScoped<FMS.Application.Abstractions.Communication.SignalR.ISignalRNotificationService, FMS.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
         services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
@@ -796,7 +808,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
+        services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAssignmentResolver, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAssignmentResolver>();
         services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
+        services.AddSingleton<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedAverageSyncQueue, FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageSyncQueue>();
         // Alert Configuration Service â€” cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()

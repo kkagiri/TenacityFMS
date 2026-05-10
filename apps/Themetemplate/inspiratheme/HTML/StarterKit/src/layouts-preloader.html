@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("./partials/title-meta.html", {"title": "Preloader Layout"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Begin page -->
+        <div class="wrapper">
+            @@include('./partials/topbar.html') @@include('./partials/sidenav.html')
+
+            <!-- ============================================================== -->
+            <!-- Start Main Content -->
+            <!-- ============================================================== -->
+
+            <div class="content-page">
+                <div class="container-fluid">
+                    @@include("./partials/page-title.html", {"subtitle": "Layouts","title":"Preloader"})
+
+                    <!-- Preloader -->
+                    <div id="preloader">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <h4 class="m-0">Your custom content here</h4>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                        <!-- end col-->
+                    </div>
+                    <!-- end row-->
+                </div>
+                <!-- container -->
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- End of Main Content -->
+            <!-- ============================================================== -->
+        </div>
+        <!-- END wrapper -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

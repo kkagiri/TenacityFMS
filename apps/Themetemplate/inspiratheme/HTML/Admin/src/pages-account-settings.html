@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("./partials/title-meta.html", {"title": "Account Settings"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Begin page -->
+        <div class="wrapper">
+            @@include('./partials/topbar.html') @@include('./partials/sidenav.html')
+
+            <!-- ============================================================== -->
+            <!-- Start Main Content -->
+            <!-- ============================================================== -->
+
+            <div class="content-page">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-12">
+                            <article class="card card-out-of-container border-top-0">
+                                <div class="position-relative card-side-img overflow-hidden" style="height: 250px; background-image: url(assets/images/profile-bg.jpg)">
+                                    <div class="p-4 card-img-overlay rounded-start-0 flex-column gap-2 auth-overlay d-flex align-items-center justify-content-center">
+                                        <h3 class="text-white mb-0 fst-italic">
+                                            "Designing the future, one template at a time"
+                                            <a href="#!"><i class="ti ti-edit"></i></a>
+                                        </h3>
+                                        <button type="button" class="btn btn-sm btn-danger">Change Background</button>
+                                    </div>
+                                </div>
+                            </article>
+
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <form>
+                                                    <!-- Personal Info -->
+                                                    <h5 class="mb-3 text-uppercase bg-light-subtle p-1 border-dashed border rounded border-light d-flex justify-content-center align-items-center gap-1">
+                                                        <i class="ti ti-user-circle fs-lg"></i>
+                                                        Personal Info
+                                                    </h5>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="firstname" class="form-label">First Name</label>
+                                                                <input type="text" class="form-control" id="firstname" placeholder="Enter first name" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="lastname" class="form-label">Last Name</label>
+                                                                <input type="text" class="form-control" id="lastname" placeholder="Enter last name" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="jobtitle" class="form-label">Job Title</label>
+                                                                <input type="text" class="form-control" id="jobtitle" placeholder="e.g. UI Developer, Designer" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="phone" class="form-label">Phone Number</label>
+                                                                <input type="text" class="form-control" id="phone" placeholder="+1 234 567 8901" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mb-3">
+                                                        <label for="userbio" class="form-label">Bio</label>
+                                                        <textarea class="form-control" id="userbio" rows="4" placeholder="Write something about yourself..."></textarea>
+                                                    </div>
+
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="useremail" class="form-label">Email Address</label>
+                                                                <input type="email" class="form-control" id="useremail" placeholder="Enter email" />
+                                                                <span class="form-text fs-xs fst-italic text-muted">
+                                                                    <a href="#" class="link-reset">Click here to change your email</a>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="userpassword" class="form-label">Password</label>
+                                                                <input type="password" class="form-control" id="userpassword" placeholder="Enter new password" />
+                                                                <span class="form-text fs-xs fst-italic text-muted">
+                                                                    <a href="#" class="link-reset">Click here to change your password</a>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mb-4">
+                                                        <label for="profilephoto" class="form-label">Profile Photo</label>
+                                                        <input class="form-control" type="file" id="profilephoto" />
+                                                    </div>
+
+                                                    <!-- Address Info -->
+                                                    <h5 class="mb-3 text-uppercase bg-light-subtle p-1 border-dashed border rounded border-light d-flex justify-content-center align-items-center gap-1">
+                                                        <i class="ti ti-map-pin fs-lg"></i>
+                                                        Address Info
+                                                    </h5>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="address-line1" class="form-label">Address Line 1</label>
+                                                                <input type="text" class="form-control" id="address-line1" placeholder="Street, Apartment, Unit, etc." />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="address-line2" class="form-label">Address Line 2</label>
+                                                                <input type="text" class="form-control" id="address-line2" placeholder="Optional" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <div class="mb-3">
+                                                                <label for="city" class="form-label">City</label>
+                                                                <input type="text" class="form-control" id="city" placeholder="City" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="mb-3">
+                                                                <label for="state" class="form-label">State / Province</label>
+                                                                <input type="text" class="form-control" id="state" placeholder="State or Province" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <div class="mb-3">
+                                                                <label for="zipcode" class="form-label">Postal / ZIP Code</label>
+                                                                <input type="text" class="form-control" id="zipcode" placeholder="Postal Code" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="country" class="form-label">Country</label>
+                                                                <input type="text" class="form-control" id="country" placeholder="Country" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Company Info -->
+                                                    <h5 class="mb-3 text-uppercase bg-light-subtle p-1 border-dashed border rounded border-light d-flex justify-content-center align-items-center gap-1">
+                                                        <i class="ti ti-building fs-lg"></i>
+                                                        Company Info
+                                                    </h5>
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="companyname" class="form-label">Company Name</label>
+                                                                <input type="text" class="form-control" id="companyname" placeholder="Enter company name" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label for="cwebsite" class="form-label">Website</label>
+                                                                <input type="text" class="form-control" id="cwebsite" placeholder="https://yourcompany.com" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Social -->
+                                                    <h5 class="mb-3 text-uppercase bg-light-subtle p-1 border-dashed border rounded border-light d-flex justify-content-center align-items-center gap-1">
+                                                        <i class="ti ti-world fs-lg"></i>
+                                                        Social
+                                                    </h5>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label for="social-fb" class="form-label">Facebook</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-facebook"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3" />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-fb" placeholder="Facebook URL" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="social-tw" class="form-label">Twitter X</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-x"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+                                                                        <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-tw" placeholder="@username" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="social-insta" class="form-label">Instagram</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-instagram"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path d="M4 8a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4z" />
+                                                                        <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+                                                                        <path d="M16.5 7.5v.01" />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-insta" placeholder="Instagram URL" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="social-lin" class="form-label">LinkedIn</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-linkedin"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path d="M8 11v5" />
+                                                                        <path d="M8 8v.01" />
+                                                                        <path d="M12 16v-5" />
+                                                                        <path d="M16 16v-3a2 2 0 1 0 -4 0" />
+                                                                        <path d="M3 7a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v10a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4z" />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-lin" placeholder="LinkedIn Profile" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="social-gh" class="form-label">GitHub</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-github"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path
+                                                                            d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"
+                                                                        />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-gh" placeholder="GitHub Username" />
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label for="social-sky" class="form-label">Dribbble</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        width="16"
+                                                                        height="16"
+                                                                        viewBox="0 0 24 24"
+                                                                        fill="none"
+                                                                        stroke="currentColor"
+                                                                        stroke-width="2"
+                                                                        stroke-linecap="round"
+                                                                        stroke-linejoin="round"
+                                                                        class="icon icon-tabler icons-tabler-outline icon-tabler-brand-dribbble"
+                                                                    >
+                                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                                                        <path d="M9 3.6c5 6 7 10.5 7.5 16.2" />
+                                                                        <path d="M6.4 19c3.5 -3.5 6 -6.5 14.5 -6.4" />
+                                                                        <path d="M3.1 10.75c5 0 9.814 -.38 15.314 -5" />
+                                                                    </svg>
+                                                                </span>
+                                                                <input type="text" class="form-control" id="social-sky" placeholder="@username" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Submit -->
+                                                    <div class="text-end mt-4">
+                                                        <button type="submit" class="btn btn-success">Save Changes</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <!-- end card-body-->
+                                        </div>
+                                        <!-- end card-->
+                                    </div>
+                                    <!-- end col-->
+                                </div>
+                                <!-- end row-->
+                            </div>
+                        </div>
+                        <!-- end col-->
+                    </div>
+                    <!-- end row-->
+                </div>
+                <!-- container -->
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- End of Main Content -->
+            <!-- ============================================================== -->
+        </div>
+        <!-- END wrapper -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

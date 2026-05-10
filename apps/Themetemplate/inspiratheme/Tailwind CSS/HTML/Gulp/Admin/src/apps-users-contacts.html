@@ -1,0 +1,1044 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Contacts"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Contacts"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Contacts"})
+
+                    <div class="container-fluid">
+                        <div class="card mb-base">
+                            <div class="card-body">
+                                <div class="grid xl:grid-cols-3 gap-base">
+                                    <!-- Search Input -->
+                                    <div class="col-span-1 lg:pe-2.5">
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--search input-icon text-default-400"></i>
+                                            <input type="text" class="form-input" placeholder="Search contact name..." />
+                                        </div>
+                                    </div>
+
+                                    <!-- Filters & Controls -->
+                                    <div class="xl:col-span-2 lg:ps-2.5">
+                                        <div class="flex flex-wrap items-center gap-2.5">
+                                            <span class="font-semibold me-2.5">Filter By:</span>
+
+                                            <!-- Designation Filter -->
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--user-check input-icon text-default-400"></i>
+                                                <select class="form-select">
+                                                    <option selected>Designation</option>
+                                                    <option value="Manager">Manager</option>
+                                                    <option value="Developer">Developer</option>
+                                                    <option value="Designer">Designer</option>
+                                                    <option value="Sales">Sales</option>
+                                                    <option value="Support">Support</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Location Filter -->
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--map-pin input-icon text-default-400"></i>
+                                                <select class="form-select">
+                                                    <option selected>Location</option>
+                                                    <option value="USA">USA</option>
+                                                    <option value="UK">UK</option>
+                                                    <option value="Germany">Germany</option>
+                                                    <option value="India">India</option>
+                                                    <option value="Canada">Canada</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Department Filter -->
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--stack-2 input-icon text-default-400"></i>
+                                                <select class="form-select">
+                                                    <option selected>Department</option>
+                                                    <option value="UI/UX">UI/UX</option>
+                                                    <option value="Engineering">Engineering</option>
+                                                    <option value="HR">HR</option>
+                                                    <option value="Marketing">Marketing</option>
+                                                    <option value="Finance">Finance</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Submit Button -->
+                                            <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">Apply</button>
+
+                                            <!-- Layout Toggle Buttons -->
+                                            <div class="ms-auto">
+                                                <nav class="flex items-center gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal">
+                                                    <button
+                                                        type="button"
+                                                        class="hs-tab-active:bg-primary hs-tab-active:text-white bg-primary/15 text-primary btn btn-icon active size-9.25!"
+                                                        id="contact-tab-1"
+                                                        aria-selected="true"
+                                                        data-hs-tab="#tabs-contact-1"
+                                                        aria-controls="tabs-contact-1"
+                                                        role="tab"
+                                                    >
+                                                        <i class="iconify tabler--apps text-lg"></i>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="hs-tab-active:bg-primary hs-tab-active:text-white bg-primary/15 text-primary btn btn-icon size-9.25!"
+                                                        id="contact-tab-2"
+                                                        aria-selected="false"
+                                                        data-hs-tab="#tabs-contact-2"
+                                                        aria-controls="#tabs-contact-2"
+                                                        role="tab"
+                                                    >
+                                                        <i class="iconify tabler--list-check text-lg"></i>
+                                                    </button>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-5.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-warning rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Sophia Carter</a>
+                                                <img src="assets/images/flags/gb.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Lead UI/UX Designer</p>
+                                            <span class="badge bg-light badge-label">Admin</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">sophia&#64;designhub.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+44 7911 123456</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">London, UK</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.sophiacarter.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 30 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-6.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-success rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary"> Marcus Lee</a>
+                                                <img src="assets/images/flags/us.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Senior Developer</p>
+                                            <span class="badge bg-light badge-label">Team Lead</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">marcus@devhub.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+1 408-222-9876</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">Austin, TX</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.devhub.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 1 hour ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-7.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-danger rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Emily Davis</a>
+                                                <img src="assets/images/flags/us.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Marketing Strategist</p>
+                                            <span class="badge bg-light badge-label">Member</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">emily@marketboost.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+1 212-555-7890</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">New York, NY</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.marketboost.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 10 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-8.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-info rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Daniel Smith</a>
+                                                <img src="assets/images/flags/ca.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Data Analyst</p>
+                                            <span class="badge bg-light badge-label">Contributor</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">daniel@analyticspro.io</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+1 987-654-3210</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">Toronto, Canada</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.analyticspro.io</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 45 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-7.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-success rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Daniel Morris</a>
+                                                <img src="assets/images/flags/us.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Project Manager</p>
+                                            <span class="badge bg-light badge-label">Team Lead</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">daniel@projecthub.io</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+1 212 555 7890</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">New York, USA</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.danielmorris.com</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 1 hour ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-4.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-success rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Jessica Chen </a>
+                                                <img src="assets/images/flags/cn.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">UI/UX Designer</p>
+                                            <span class="badge bg-light badge-label">Editor</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">jessica@uxstudio.cn</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+86 10-1234-5678</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">Beijing, China</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.uxstudio.cn</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 20 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <div class="rounded-full shrink-0 flex justify-center items-center overflow-hidden size-18 text-white bg-primary">
+                                                <span class="font-semibold text-[22px]">AP</span>
+                                            </div>
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-warning rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Arjun Patel </a>
+                                                <img src="assets/images/flags/in.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Software Engineer</p>
+                                            <span class="badge bg-light badge-label">Member</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">arjun@techflow.in</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+91 98765-43210</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">Bangalore, India</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.techflow.in</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 10 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="flex items-center mb-7.5">
+                                        <div class="me-5 relative">
+                                            <img src="assets/images/users/user-6.jpg" alt="avatar" class="rounded-full" width="72" height="72" />
+                                            <span class="absolute bottom-0 inset-e-0 badge bg-danger rounded-full p-1.25 text-white" title="Rating 4.8">
+                                                <i class="iconify tabler--star text-white"></i>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="mb-1.25 flex items-center">
+                                                <a href="#!" class="hover:text-primary">Olivia Garcia </a>
+                                                <img src="assets/images/flags/es.svg" alt="UK" class="ms-2.5 rounded-full size-4" />
+                                            </h5>
+                                            <p class="text-default-400 mb-1.25">Content Strategist</p>
+                                            <span class="badge bg-light badge-label">Guest</span>
+                                        </div>
+
+                                        <!-- Dropdown -->
+                                        <div class="relative ms-auto">
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn size-9.25 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--share"></i>
+                                                        Share
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--edit"></i>
+                                                        Edit
+                                                    </a>
+
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="iconify tabler--ban"></i>
+                                                        Block
+                                                    </a>
+
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="iconify tabler--trash"></i>
+                                                        Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="text-default-400 mb-7.5">
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--mail"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">olivia@contentwave.es</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--phone"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="hover:text-primary">+34 912 345 678</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+
+                                        <li class="mb-2.5">
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--map-pin"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">Madrid, Spain</h5>
+                                            </div>
+                                        </li>
+
+                                        <li>
+                                            <div class="flex items-center gap-2.5">
+                                                <div>
+                                                    <span class="size-6 flex justify-center items-center bg-light text-default-800 rounded-full">
+                                                        <i class="iconify tabler--link"></i>
+                                                    </span>
+                                                </div>
+                                                <h5 class="text-sm font-medium">
+                                                    <a href="#" class="text-primary hover:text-primary-hover">www.contentwave.es</a>
+                                                </h5>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-default-400 text-xs flex items-center">
+                                            <i class="iconify tabler--refresh me-1.25"></i>
+                                            Updated 5 min ago
+                                        </span>
+                                        <a href="#!" class="btn bg-primary/15 text-primary btn-sm rounded-full hover:bg-primary hover:text-white">View Profile</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <nav class="mx-auto flex items-center justify-center gap-1.5" aria-label="Pagination">
+                                <button type="button" class="btn btn-icon bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Previous">
+                                    <i class="iconify tabler--chevron-left align-middle text-lg"></i>
+                                </button>
+                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">1</button>
+                                <button type="button" class="btn btn-icon bg-primary rounded-full text-white">2</button>
+                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">3</button>
+                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">4</button>
+                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">5</button>
+                                <button type="button" class="btn btn-icon bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Next">
+                                    <i class="iconify tabler--chevron-right align-middle text-lg"></i>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

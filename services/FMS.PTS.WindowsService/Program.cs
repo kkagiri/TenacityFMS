@@ -12,7 +12,7 @@ using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Handlers;
 using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
-using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Abstractions.DistCacheTracker;
 using FMS.BackgroundServices.FMS;
 // using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
@@ -31,6 +31,7 @@ using FMS.Devices.Fueling.Providers.TechnotradePts.Configuration;
 using FMS.Devices.Fueling.DependencyInjection;
 using FMS.Devices.Fueling.Providers.TechnotradePts.Commands;
 using FMS.Devices.Fueling.Providers.TechnotradePts.Transport;
+using FMS.Reporting.DependencyInjection;
 using FMS.PTS.WindowsService.Infrastructure.Logging;
 using FMS.PTS.WindowsService.Services.Pump;
 using MediatR;
@@ -57,8 +58,9 @@ using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Features.TankManagement.Services;
-using FMS.Application.Infrastructure.Communication.SignalR;
-using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Abstractions.Communication.SignalR;
+using FMS.Application.Abstractions.Identity;
+using FMS.Infrastructure.Identity;
 using FMS.Application.PTSServices.PTSConfigService;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.WidgetFactories;
@@ -338,6 +340,8 @@ namespace FMS.PTS.WindowsService
             try
             {
                 services.AddVehicleTracking();
+                services.AddScoped<FMS.Application.Features.Geofence.Commands.IGeofenceSyncJobProcessor,
+                    FMS.Application.Features.Geofence.Commands.GeofenceSyncJobProcessor>();
                 Log.Information("Vehicle tracking provider infrastructure configured");
             }
             catch (Exception ex)
@@ -401,6 +405,7 @@ namespace FMS.PTS.WindowsService
 
             // Register RedisCommandService if it's not already registered.
             services.AddScoped<RedisCommandService>();
+            services.AddScoped<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
             services.AddFuelingProviders();
 
             //Cursor: Register RedisPTSCommandProcessor hosted service to start Redis subscriptions
@@ -457,7 +462,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<MessageHandlerRegistry>();
 
             services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
-            services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
+            services.AddScoped<IAuthorizationStateTracker, FMS.Infrastructure.DistCacheTracker.AuthorizationStateTracker>();
             services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService>();
             services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); // Required by UploadStatusCommandHandler
             services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusRedisService, FMS.Application.Features.PTS.Services.UploadStatusRedisService>();
@@ -494,10 +499,10 @@ namespace FMS.PTS.WindowsService
 
             // Register push notification service - Required by PushNotificationChannel
             services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService,
-                FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
+                FMS.Infrastructure.Notification.PushNotificationService>();
 
             // Register SignalR notification service
-            services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
+            services.AddScoped<ISignalRNotificationService, FMS.Infrastructure.Communication.SignalR.SignalRNotificationService>();
 
             // Register tank management services
             services.AddScoped<InventoryCostingService>();
@@ -524,7 +529,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<ISystemUserService, SystemUserService>();
 
             // Register the missing services from the exception
-            services.AddScoped<IServiceControlService, ServiceControlService>();
+            services.AddScoped<IServiceControlService, FMS.Infrastructure.Services.PTSService.ServiceControlService>();
             services.AddScoped<IWidgetFactoryService, WidgetFactoryService>();
             services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
             services.AddScoped<ITankVolumeHistoryDeleteCoordinatorService, TankVolumeHistoryDeleteCoordinatorService>();
@@ -565,7 +570,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
             services.AddScoped<OperationalReportPayloadBuilder>();
             services.AddScoped<FMS.Application.Features.Reporting.Services.IReportDefinitionService, FMS.Application.Features.Reporting.Services.ReportDefinitionService>();
-            services.AddScoped<FMS.Application.Features.Reporting.Services.IReportGenerationService, FMS.Application.Features.Reporting.Services.ReportGenerationService>();
+            services.AddReportingServices();
             services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
             services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
             services.AddScoped<FMS.Application.Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService, FMS.Application.Features.FuelTagManagement.FuelingRules.Services.FuelingRuleEvaluationService>();

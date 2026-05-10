@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Inbox (77)" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Email" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main class="pb-0!">
+                    {{> page-title subtitle="Apps" title="Email" }}
+
+                    <div class="container-fluid">
+                        <div class="lg:flex lg:h-[calc(100vh-200px)]">
+                            <div class="card h-full">
+                                <div
+                                    id="emailSidebaroffcanvas"
+                                    class="hs-overlay hs-overlay-open:translate-x-0 fixed rounded start-0 top-0 bottom-0 z-50 hidden bg-card h-full w-56.5 -translate-x-full transform transition-all duration-300 [--auto-close:lg] lg:static lg:end-auto lg:bottom-0 lg:block! lg:translate-x-0"
+                                    role="dialog"
+                                    tabindex="-1"
+                                    aria-label="Sidebar"
+                                >
+                                    <div class="card-body h-full" data-simplebar>
+                                        <a href="apps-email-compose.html" class="btn w-full bg-danger text-white hover:bg-danger-hover">Compose</a>
+
+                                        <div class="mt-5">
+                                            <div class="flex flex-col">
+                                                <a href="apps-email-inbox.html" class="bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--inbox text-base align-middle"></i>
+                                                    <span class="align-middle">Inbox</span>
+                                                    <span class="ms-auto badge text-2xs bg-danger/15 text-danger font-semibold">21</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--send-2 text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Sent</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--star text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Starred</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--clock text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Scheduled</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--pencil text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Drafts</span>
+                                                    <span class="ms-auto badge bg-secondary/15 text-secondary font-semibold text-2xs">9</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--alert-circle text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Important</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--ban text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Spam</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--trash text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Trash</span>
+                                                </a>
+                                            </div>
+
+                                            <div class="mt-2.5">
+                                                <div class="text-default-800 px-3 py-2 text-sm font-medium tracking-wider">Labels</div>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-primary align-middle text-sm"></i>
+                                                    <span class="align-middle">Business</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-secondary align-middle text-sm"></i>
+                                                    <span class="align-middle">Personal</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-info align-middle text-sm"></i>
+                                                    <span class="align-middle">Friends</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-warning align-middle text-sm"></i>
+                                                    <span class="align-middle">Family</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-full min-w-0 flex-1">
+                                <div data-table data-table-rows-per-page="15" class="card rounded-none h-full">
+                                    <div class="card-header lg:hidden">
+                                        <button class="btn btn-icon border-default-300 rounded border">
+                                            <i class="iconify tabler--menu-4 text-default-600 size-6" aria-haspopup="dialog" aria-expanded="false" aria-controls="emailSidebaroffcanvas" aria-label="Toggle navigation" data-hs-overlay="#emailSidebaroffcanvas"></i>
+                                        </button>
+
+                                        <div class="input-icon-group lg:hidden inline-flex">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input data-table-search type="text" class="form-input" placeholder="Search mails..." />
+                                        </div>
+                                    </div>
+
+                                    <div class="card-header">
+                                        <div class="flex flex-wrap items-center gap-1.25">
+                                            <input class="form-checkbox form-checkbox-light size-4.5 me-6" type="checkbox" id="select-all-email" />
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--trash text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Delete</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--mail-opened text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Mark as Read</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--tag text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Tag</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--archive text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Archive</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--folder text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Move to Folder</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--mail-forward text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Forward</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--clock-pause text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Snooze</span
+                                                    >
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-7.75 border-default-300 hover:border-default-400/50 hover:text-primary">
+                                                    <i class="iconify tabler--alert-circle text-base"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity" role="tooltip"
+                                                        >Mark as Important</span
+                                                    >
+                                                </button>
+                                            </span>
+                                        </div>
+
+                                        <div class="input-icon-group hidden lg:inline-flex">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input data-table-search type="text" class="form-input" placeholder="Search mails..." />
+                                        </div>
+                                    </div>
+
+                                    <div class="lg:h-[calc(100vh-275px)] h-[calc(100vh-360px)]" data-simplebar>
+                                        <div class="table-wrapper">
+                                            <table class="table table-hover table-select">
+                                                <tbody>
+                                                    <tr class="relative">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-5.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Amanda Reyes</h5>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Design Review & Feedback</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">I’ve reviewed the updated UI mockups. Great work overall—just a few...</span>
+                                                        </td>
+
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">3</span>
+                                                            </div>
+                                                        </td>
+
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 20, 10:12 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-2.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>George Thomas</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Request for Meeting</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Are you available for a quick sync-up this week regarding the roadmap?</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 19, 4:45 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="avatar-xs">
+                                                                    <span class="btn btn-icon bg-primary/70 size-6! rounded-full font-semibold text-white">L</span>
+                                                                </div>
+                                                                <h5>Lucas Martin</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Q2 Marketing Strategy</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Here's the proposed outline for our Q2 campaign and goals...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">2</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 19, 11:30 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-6.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Sophia Lee</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Final Invoice Attached</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Attached is the invoice for the April sprint deliverables. Let me know...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 18, 6:05 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="avatar-xs">
+                                                                    <span class="btn btn-icon bg-danger/70 size-6! rounded-full font-semibold text-white">D</span>
+                                                                </div>
+                                                                <h5>Daniel Kim</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Team Offsite Agenda</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Here’s a rough outline for the team offsite activities next month...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 18, 1:20 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="avatar-xs">
+                                                                    <span class="btn btn-icon bg-secondary/15 size-6! rounded-full font-semibold text-secondary">C</span>
+                                                                </div>
+                                                                <h5>Chloe Bennett</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Welcome to the Project!</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Excited to have you on board. Let’s have a quick intro call tomorrow...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 17, 9:18 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-6.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>James Carter</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Meeting Follow-up Notes</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Thanks for the insights today. Please find the summary and action points...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 17, 2:45 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-7.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Sophia Allen</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Project Files Delivered</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">The final batch of designs and documentation has been uploaded to the drive...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">2</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 16, 11:05 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-8.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Michael Chen</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Re: Budget Estimate</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">The budget looks good overall, but we might need to adjust the Q3 allocations...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 15, 6:28 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="avatar-xs">
+                                                                    <span class="btn btn-icon bg-dark/70 size-6! rounded-full font-semibold text-white">E</span>
+                                                                </div>
+                                                                <h5>Emma Watson</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Collaboration Opportunity</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">I’d love to chat about a possible partnership on our upcoming launch event...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 14, 3:59 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-10.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Daniel White</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Reschedule Request</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Can we move our call to Friday afternoon instead? Something urgent came up...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 13, 10:20 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-3.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>James Walker</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Monthly Report Submission</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Please find the attached monthly performance report for your review...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 16, 11:42 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-3">
+                                                                <div class="avatar-xs">
+                                                                    <span class="btn btn-icon bg-warning/70 size-6! rounded-full font-semibold text-white">E</span>
+                                                                </div>
+                                                                <h5>Emma Johnson</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Design Assets Update</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">I’ve uploaded the latest illustrations and icons to the shared folder...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 16, 8:09 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-warning">
+                                                                    <i class="iconify tabler--star-filled text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-9.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Noah Patel</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Updated Meeting Schedule</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Please review the adjusted times for next week's client meetings...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">2</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 15, 4:55 PM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75 border-b border-default-200">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-3.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Ava Thompson</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Client Feedback Notes</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Attached is the client feedback from last week’s demo session...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">1</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 15, 9:32 AM</p>
+                                                        </td>
+                                                    </tr>
+
+                                                    <tr class="relative mark-as-read opacity-75">
+                                                        <td class="ps-6 w-[1%]">
+                                                            <div class="flex items-center gap-6">
+                                                                <input class="form-checkbox form-checkbox-light size-4.5 z-10 email-item-check" type="checkbox" />
+                                                                <button class="flex text-default-400">
+                                                                    <i class="iconify tabler--star text-lg"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-2.5">
+                                                                <img src="/images/users/user-1.jpg" alt="user avatar" class="size-6 rounded-full" />
+                                                                <h5>Liam Garcia</h5>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <a href="apps-email-details.html" class="hover:text-primary font-medium after:absolute after:inset-0">Weekly SynDaniel KimMeeting</a>
+                                                            <span class="hidden lg:inline-block">—</span>
+                                                            <span class="text-default-400 hidden lg:inline-block">Let’s discuss blockers and updates on the current sprints in our sync...</span>
+                                                        </td>
+                                                        <td>
+                                                            <div class="flex items-center gap-1.5 opacity-25">
+                                                                <i class="iconify tabler--paperclip"></i>
+                                                                <span class="font-semibold">0</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <p class="text-default-400 pe-3 text-end text-xs">Apr 14, 3:30 PM</p>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div class="flex items-center justify-center gap-2.5 p-5">
+                                            <strong>Loading...</strong>
+                                            <div class="text-danger inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+
+        <script type="module" src="assets/js/pages/apps-email.js"></script>
+    </body>
+</html>

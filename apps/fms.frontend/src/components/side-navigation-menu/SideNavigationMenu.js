@@ -187,10 +187,15 @@ export default function SideNavigationMenu(props) {
 
   return (
     <div
-      className={`dx-swatch-additional side-navigation-menu`}
+      id="app-menu"
+      className={`dx-swatch-additional side-navigation-menu app-menu${compactMode ? " is-condensed" : ""}`}
       ref={getWrapperRef}
     >
       {children}
+      <div className="side-navigation-menu__brand">
+        <div className="side-navigation-menu__brand-mark">F</div>
+        <span className="side-navigation-menu__brand-title">FMS</span>
+      </div>
       <div className={'menu-container'}>
         <TreeView
           ref={treeViewRef}

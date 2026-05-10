@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Sortable" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Plugins" title="Sortable" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Plugins" title="Sortable" }}
+
+                    <div class="container-fluid">
+                        <div class="grid lg:grid-cols-2 grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sortables List</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use
+                                        <code>nested-sortable</code>
+                                        classes on the element to enable drag-and-drop sorting of hierarchical task items.
+                                    </p>
+
+                                    <div class="border-default-300 divide-default-300 nested-sortable divide-y rounded border font-medium">
+                                        <div class="px-4 py-2.5">Design Phase</div>
+                                        <div class="px-4 py-2.5">
+                                            Development Phase
+                                            <div class="border-default-300 divide-default-300 nested-sortable divide-y rounded border">
+                                                <div class="px-4 py-2.5">Frontend Implementation</div>
+                                                <div class="px-4 py-2.5">
+                                                    Backend API Setup
+                                                    <div class="border-default-300 divide-default-300 nested-sortable divide-y rounded border">
+                                                        <div class="px-4 py-2.5">Authentication Module</div>
+                                                        <div class="px-4 py-2.5">Database Schema</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="px-4 py-2.5">
+                                            Testing Phase
+                                            <div class="border-default-300 divide-default-300 nested-sortable divide-y rounded border">
+                                                <div class="px-4 py-2.5">Unit Tests</div>
+                                                <div class="px-4 py-2.5">Integration Tests</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sortables List with Handle</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use
+                                        <code>nested-sortable-handle</code>
+                                        class to class to set a nested list with sortable items.
+                                    </p>
+
+                                    <div class="border-default-300 divide-default-300 nested-sortable-handle divide-y rounded border font-medium">
+                                        <div class="nested-1 px-4 py-2.5">
+                                            <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                            Project Alpha
+                                            <div class="border-default-300 divide-default-300 nested-sortable-handle divide-y rounded border">
+                                                <div class="nested-2 px-4 py-2.5">
+                                                    <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                    Design Phase
+                                                </div>
+                                                <div class="nested-2 px-4 py-2.5">
+                                                    <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                    Development Phase
+                                                    <div class="border-default-300 divide-default-300 nested-sortable-handle divide-y rounded border">
+                                                        <div class="nested-3 px-4 py-2.5">
+                                                            <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                            Frontend Module
+                                                        </div>
+                                                        <div class="nested-3 px-4 py-2.5">
+                                                            <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                            Backend Module
+                                                        </div>
+                                                        <div class="nested-3 px-4 py-2.5">
+                                                            <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                            API Integration
+                                                        </div>
+                                                        <div class="nested-3 px-4 py-2.5">
+                                                            <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                            Unit Testing
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="nested-2 px-4 py-2.5">
+                                                    <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                    QA Review
+                                                </div>
+                                                <div class="nested-2 px-4 py-2.5">
+                                                    <i class="iconify tabler--grip-horizontal sort-handle align-middle"></i>
+                                                    Deployment
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sortable with Icons</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use
+                                        <code>nested-sortable</code>
+                                        class to class to set a nested list with sortable items where icons are given within.
+                                    </p>
+
+                                    <div class="border-default-300 divide-default-300 divide-y divide-dashed rounded border border-dashed">
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--layout-kanban text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Tasks</h5>
+                                                </div>
+                                            </div>
+
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--check text-default-400 me-2.5 text-sm"></i>
+                                                    To Do
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--info-circle text-default-400 me-2.5 text-sm"></i>
+                                                    In Progress
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--circle-check text-default-400 me-2.5 text-sm"></i>
+                                                    Completed
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--flag text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Milestones</h5>
+                                                </div>
+                                            </div>
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    Project Kickoff
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    Phase 1 Completion
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    Final Delivery
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--users text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Teams</h5>
+                                                </div>
+                                            </div>
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    Development Team
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    Design Team
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    QA Team
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sortable with Icons with Labels</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use
+                                        <code>nested-sortable</code>
+                                        class to class to set a nested list with sortable items where icons are given within.
+                                    </p>
+
+                                    <div class="border-default-300 divide-default-300 divide-y divide-dashed rounded border border-dashed">
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--layout-kanban text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Strategy</h5>
+                                                </div>
+                                                <span class="ms-auto badge bg-primary/15 text-primary">Phase A</span>
+                                            </div>
+
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--check text-default-400 me-2.5 text-sm"></i>
+                                                    Research Topics
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--info-circle text-default-400 me-2.5 text-sm"></i>
+                                                    Analysis in Progress
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--circle-check text-default-400 me-2.5 text-sm"></i>
+                                                    Insights Approved
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--flag text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Key Deliverables</h5>
+                                                </div>
+                                                <span class="ms-auto badge bg-info/15 text-info">Phase B</span>
+                                            </div>
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    Initial Draft Release
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    User Testing Round
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--flag text-default-400 me-2.5 text-sm"></i>
+                                                    Final Launch
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="px-4 py-2.5">
+                                            <div class="mb-2.5 flex items-center gap-2.5">
+                                                <div class="bg-default-100 flex size-6 shrink-0 items-center justify-center rounded-full">
+                                                    <i class="iconify tabler--users text-primary text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <h5>Departments</h5>
+                                                </div>
+                                                <span class="ms-auto badge bg-success/15 text-success">Phase c</span>
+                                            </div>
+                                            <div class="nested-sortable">
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    Engineering Unit
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    Creative Studio
+                                                </div>
+                                                <div class="px-4 py-2.5">
+                                                    <i class="iconify tabler--user text-default-400 me-2.5 text-sm"></i>
+                                                    Quality Assurance
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/plugins-nestable.js"></script>
+    </body>
+</html>

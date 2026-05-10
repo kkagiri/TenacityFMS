@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("./partials/title-meta.html", {"title": "Pin Board"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Begin page -->
+        <div class="wrapper">
+            @@include('./partials/topbar.html') @@include('./partials/sidenav.html')
+
+            <!-- ============================================================== -->
+            <!-- Start Main Content -->
+            <!-- ============================================================== -->
+
+            <div class="content-page">
+                <div class="container-fluid">
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Pin Board"})
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card bg-transparent">
+                                <div class="card-body">
+                                    <div class="pin-board d-flex flex-wrap">
+                                        <div class="pin-board-item bg-primary-subtle" id="pin-1">
+                                            <p class="text-end fs-10">14:22:07 08-04-2025</p>
+                                            <h4 class="fs-md">Client feedback summary</h4>
+                                            <p>Positive response on UI, requested dark mode toggle and faster load times.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-1">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-danger-subtle" id="pin-2">
+                                            <p class="text-end fs-10">17:09:33 05-04-2025</p>
+                                            <h4 class="fs-md">Blog content ideas</h4>
+                                            <p>Write about upcoming trends in web design and practical CSS tips.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-2">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-warning-subtle" id="pin-3">
+                                            <p class="text-end fs-10">10:55:10 02-04-2025</p>
+                                            <h4 class="fs-md">Code optimization checklist</h4>
+                                            <p>Refactor JS functions, minimize DOM manipulation, and lazy load assets.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-3">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-info-subtle" id="pin-4">
+                                            <p class="text-end fs-10">09:30:44 30-03-2025</p>
+                                            <h4 class="fs-md">Newsletter draft</h4>
+                                            <p>Focus on April's product update, new feature highlights, and tutorials.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-4">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-dark-subtle" id="pin-5">
+                                            <p class="text-end fs-10">16:47:25 28-03-2025</p>
+                                            <h4 class="fs-md">Bug report log</h4>
+                                            <p>Users reporting login timeout issues on mobile—investigate session handling.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-5">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-light-subtle" id="pin-6">
+                                            <p class="text-end fs-10">11:18:03 26-03-2025</p>
+                                            <h4 class="fs-md">Design review notes</h4>
+                                            <p>Refine hero section spacing and use softer gradients for cards background.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-6">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-purple-subtle" id="pin-7">
+                                            <p class="text-end fs-10">11:18:03 26-03-2025</p>
+                                            <h4 class="fs-md">Design review notes</h4>
+                                            <p>Refine hero section spacing and use softer gradients for cards background.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-7">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item bg-success-subtle" id="pin-8">
+                                            <p class="text-end fs-10">08:45:12 10-04-2025</p>
+                                            <h4 class="fs-md">Team meeting recap</h4>
+                                            <p>Discussed key milestones, delegated tasks, and set deadlines for the next sprint.</p>
+                                            <a href="#" class="pin-board-delete fs-lg" data-dismissible="#pin-8">
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="pin-board-item pin-board-add d-flex align-items-center justify-content-center">
+                                            <a href="#" class="btn btn-icon btn-primary" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+                                                <i class="ti ti-plus"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                        <!-- end col-->
+                    </div>
+                    <!-- end row-->
+
+                    <div class="modal fade" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-md modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="addNoteModalLabel">Add New Note</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+
+                                <form id="addNoteForm">
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Title</label>
+                                            <input type="text" class="form-control" name="noteTitle" placeholder="Enter note title" required />
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Note Content</label>
+                                            <textarea class="form-control" name="noteContent" rows="3" placeholder="Write your note..." required></textarea>
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label fw-semibold">Color Theme</label>
+                                            <select class="form-select" name="noteColor">
+                                                <option value="bg-success-subtle" selected>Green (Success)</option>
+                                                <option value="bg-primary-subtle">Blue (Primary)</option>
+                                                <option value="bg-warning-subtle">Yellow (Warning)</option>
+                                                <option value="bg-danger-subtle">Red (Danger)</option>
+                                                <option value="bg-light">Light</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Add Note</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- end modal-->
+                </div>
+                <!-- container -->
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- End of Main Content -->
+            <!-- ============================================================== -->
+        </div>
+        <!-- END wrapper -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

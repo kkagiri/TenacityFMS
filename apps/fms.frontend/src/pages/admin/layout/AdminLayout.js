@@ -7,7 +7,7 @@
  * Key Components:
  * - AdminLayout: Renders admin sidebar groups and hosts routed admin content.
  */
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { adminRoutes, isActiveRoute } from "../utils/navigationHelper";
 import "./AdminLayout.scss";
@@ -235,6 +235,36 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const isNotificationActive = currentPath.includes("/notification");
   const isFuelingRulesActive = currentPath.includes("/fueling-rules");
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const layoutAttributes = {
+      "data-layout": "basic-left",
+      "data-menu-color": "dark",
+      "data-topbar-color": "light",
+      "data-layout-position": "fixed",
+      "data-layout-width": "fluid",
+      "data-footer-position": "scrollable",
+    };
+
+    Object.entries(layoutAttributes).forEach(([attribute, value]) => {
+      root.setAttribute(attribute, value);
+    });
+
+    return () => {
+      Object.keys(layoutAttributes).forEach((attribute) => {
+        root.removeAttribute(attribute);
+      });
+      root.removeAttribute("data-sidenav-size");
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-sidenav-size",
+      sidebarCollapsed ? "condensed" : "default"
+    );
+  }, [sidebarCollapsed]);
+
   const handleToggleNotifications = useCallback(() => {
     if (sidebarCollapsed) {
       navigate(adminRoutes.notificationDashboard);
@@ -355,13 +385,13 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   };
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout wrapper">
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
+      <aside id="app-menu" className={`admin-sidebar app-menu ${sidebarCollapsed ? "collapsed" : ""}`}>
         {/* Header */}
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <i className="fa-light fa-gears tw-text-blue-400"></i>
+            <i className="fa-light fa-gears"></i>
             {!sidebarCollapsed && (
               <span className="tw-text-lg tw-font-semibold tw-ml-2">
                 Administration
@@ -391,12 +421,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             <nav className="nav-menu">
               {navigationItems.map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
-                // Temporary debug logging
-                if (item.id === "dashboard" || item.id === "roles") {
-                  console.log(
-                    `Admin Navigation - ${item.id}: currentPath=${currentPath}, targetPath=${item.path}, isActive=${isActive}`
-                  );
-                }
                 return (
                   <div
                     key={item.id}
@@ -572,9 +596,9 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="admin-main">
+      <main className="admin-main page-content">
         {/* Header */}
-        <header className="main-header">
+        <header className="main-header app-header">
           {/* Title on LEFT - Single line compact header */}
           <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
             {/* Title Section - LEFT (Compact, no subtitle) */}

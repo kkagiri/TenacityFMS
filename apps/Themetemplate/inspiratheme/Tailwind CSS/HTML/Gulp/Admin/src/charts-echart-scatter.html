@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Scatter Echart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Scatter Echart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Scatter Echart"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Scatter Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="echart-scatter-basic" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Bubble Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="echart-bubble-chart" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Quartet Scatter Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="echart-quartet-scatter" style="min-height: 600px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end col -->
+
+                            <div class="col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Single Axis Scatter chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="echart-single-axis-scatter" style="min-height: 450px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- E Charts Demo js -->
+        <script src="assets/js/pages/chart-echart-scatter.js"></script>
+    </body>
+</html>

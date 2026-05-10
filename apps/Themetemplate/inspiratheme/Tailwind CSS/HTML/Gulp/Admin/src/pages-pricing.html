@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Pricing"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Pricing"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Pricing"})
+
+                    <div class="container">
+                        <div class="text-center">
+                            <h3 class="font-bold text-xl mt-7.5 mb-2">Find the Perfect Fit</h3>
+                            <div class="text-primary flex justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M15.874 13C15.4299 14.7252 13.8638 16 12 16C10.1362 16 8.57006 14.7252 8.12602 13H3V11H8.12602C8.57006 9.27477 10.1362 8 12 8C13.8638 8 15.4299 9.27477 15.874 11H21V13H15.874ZM12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z"
+                                    ></path>
+                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                    <path
+                                        d="M15.874 13C15.4299 14.7252 13.8638 16 12 16C10.1362 16 8.57006 14.7252 8.12602 13H3V11H8.12602C8.57006 9.27477 10.1362 8 12 8C13.8638 8 15.4299 9.27477 15.874 11H21V13H15.874ZM12 14C13.1046 14 14 13.1046 14 12C14 10.8954 13.1046 10 12 10C10.8954 10 10 10.8954 10 12C10 13.1046 10.8954 14 12 14Z"
+                                    ></path>
+                                </svg>
+                            </div>
+                            <p class="italic mb-4 text-md">Not sure which plan suits you best? Check out our Pricing Guide for detailed insights.</p>
+                        </div>
+
+                        <div class="my-15 xl:px-7.5">
+                            <div class="grid grid-cols-1 xl:grid-cols-3 gap-base">
+                                <div class="card h-full rounded-xl">
+                                    <div class="card-body lg:px-7.5 p-15 pb-2.5 text-center">
+                                        <div class="text-center">
+                                            <h3 class="font-bold mb-1.25 text-xl">Free Plan</h3>
+                                            <p class="text-default-400">Great for solo developers trying things out</p>
+                                        </div>
+                                        <div class="my-7.5">
+                                            <h1 class="lg:text-[40px] md:text-[33px] text-[27px] font-bold">$0</h1>
+                                            <small class="block text-default-400 text-sm font-medium">No credit card required</small>
+                                            <small class="block text-default-400 text-sm font-medium">Free forever</small>
+                                        </div>
+
+                                        <ul class="text-start text-sm font-medium">
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                1 user license
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Access to basic components
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Community support only
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Limited documentation
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--x text-danger me-2 fs-5"></i>
+                                                No commercial use
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--x text-danger me-2 fs-5"></i>
+                                                No Figma/design files
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-0 px-15 pb-7.5">
+                                        <a href="#!" class="btn bg-dark text-white w-full py-2.5 font-semibold rounded-full">Start Free</a>
+                                    </div>
+                                </div>
+
+                                <div class="card h-full border-success border-2 rounded-xl">
+                                    <div class="card-body lg:px-7.5 p-15 pb-2.5 text-center">
+                                        <div class="text-center">
+                                            <h3 class="font-bold mb-1.25 text-xl">Pro Plan</h3>
+                                            <p class="text-default-400">Ideal for freelancers and small teams with commercial needs</p>
+                                        </div>
+                                        <div class="my-7.5">
+                                            <h1 class="lg:text-[40px] md:text-[33px] text-[27px] font-bold">$129</h1>
+                                            <small class="block text-default-400 text-sm font-medium">One-time payment</small>
+                                            <small class="block text-default-400 text-sm font-medium">Plus applicable taxes</small>
+                                        </div>
+
+                                        <ul class="list-unstyled text-start fs-sm fw-medium mb-0">
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                3 user licenses
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Full component access
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Commercial project rights
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Email support
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Lifetime updates
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Figma design files
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-0 px-15 pb-7.5">
+                                        <a href="#!" class="btn bg-primary text-white w-full py-2.5 font-semibold rounded-full hover:bg-primary-hover">Upgrade Now</a>
+                                    </div>
+                                    <span class="absolute text-xs top-0 inset-s-1/2 -translate-x-1/2 left-1/2 badge bg-primary/15 text-primary rounded-full px-3 py-1.5 mt-5 leading-normal">Popular Choice</span>
+                                </div>
+
+                                <div class="card h-full rounded-xl">
+                                    <div class="card-body lg:px-7.5 p-15 pb-2.5 text-center">
+                                        <div class="text-center">
+                                            <h3 class="font-bold mb-1.25 text-xl">Enterprise Plan</h3>
+                                            <p class="text-default-400">Best for companies with scaling teams and critical projects</p>
+                                        </div>
+                                        <div class="my-7.5">
+                                            <h1 class="lg:text-[40px] md:text-[33px] text-[27px] font-bold">$499</h1>
+                                            <small class="block text-default-400 text-sm font-medium">One-time payment</small>
+                                            <small class="block text-default-400 text-sm font-medium">Includes extended support</small>
+                                        </div>
+
+                                        <ul class="list-unstyled text-start fs-sm fw-medium mb-0">
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Unlimited users
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                All premium components & layouts
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Commercial & SaaS usage rights
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Dedicated support & onboarding
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Custom Figma UI kits
+                                            </li>
+                                            <li class="mb-2.5">
+                                                <i class="iconify tabler--check text-success me-2.5"></i>
+                                                Priority feature requests
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-0 px-15 pb-7.5">
+                                        <a href="#!" class="btn bg-dark text-white w-full py-2.5 font-semibold rounded-full">Contact Sales</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

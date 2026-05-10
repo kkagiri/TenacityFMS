@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Cards"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Cards"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Cards"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-base mb-base">
+                            <!-- Simple card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="mb-4">Some quick example text to build on the card title and make up the bulk of the card's content. Some quick example text to build on the card title and make up.</p>
+
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <!-- Simple card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5">Basic Card with Title</h5>
+                                    <p class="mb-4">Some quick example text to build on the card title and make up the bulk of the card's content. Some quick example text to build on the card title and make up.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <!-- Simple card -->
+                            <div class="card bg-primary!">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5 text-white">Card with Background Color</h5>
+                                    <p class="mb-4 text-white">Some quick example text to build on the card title and make up the bulk of the card's content. Some quick example text to build on the card title and make up.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-default-50 hover:text-primary">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <!-- Simple card -->
+                            <div class="card bg-success!">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5 text-white">Card with Background Gradient</h5>
+                                    <p class="mb-4 text-white">Some quick example text to build on the card title and make up the bulk of the card's content. Some quick example text to build on the card title and make up.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-default-50 hover:text-primary">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-base mb-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Card with Header</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5">Special title treatment</h5>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header block border-dashed">
+                                    <h4 class="card-title mb-1.25">Card with Sub Header</h4>
+                                    <h6 class="text-default-400 text-2xs">Card subtitle</h6>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="mb-4">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer posuere erat a ante.</p>
+                                    <p>Someone famous in Source Title</p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">Featured Card Title</div>
+
+                                <div class="card-body">
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                </div>
+                                <!-- end card-body-->
+
+                                <div class="card-footer text-default-400">2 days ago</div>
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Advanced Card</h4>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-base mb-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Card with Action Tools</h4>
+                                    <div class="flex gap-1">
+                                        <button class="btn size-6 rounded-full bg-light text-default-700 hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+
+                                        <button class="btn size-6 rounded-full bg-light text-default-700 hover:text-primary" data-action="card-refresh">
+                                            <i class="iconify tabler--refresh text-base"></i>
+                                        </button>
+
+                                        <button class="btn size-6 rounded-full bg-light text-default-700 hover:text-primary" data-action="card-close">
+                                            <i class="iconify tabler--x text-base"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card bg-info!">
+                                <div class="card-header border-dashed">
+                                    <h4 class="card-title text-white">Card with Action Tools & Background Colors</h4>
+                                    <div class="flex gap-1">
+                                        <button class="btn size-6 rounded-full bg-white/25 text-white/75 hover:text-white" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+
+                                        <button class="btn size-6 rounded-full bg-white/25 text-white/75 hover:text-white" data-action="card-refresh">
+                                            <i class="iconify tabler--refresh text-base"></i>
+                                        </button>
+
+                                        <button class="btn size-6 rounded-full bg-white/25 text-white/75 hover:text-white" data-action="card-close">
+                                            <i class="iconify tabler--x text-base"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="mb-4 text-white">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm hover:text-primary bg-white">Go somewhere</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Card with Action Tools</h4>
+                                    <div class="flex gap-1">
+                                        <button class="btn size-6 rounded-full bg-light text-default-700 hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+
+                                        <button class="btn size-6 rounded-full bg-light text-default-700 hover:text-primary" data-action="code-collapse">
+                                            <i class="iconify tabler--code text-base"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                </div>
+                                <!-- end card-body-->
+                                <div class="code-body hidden">
+                                    <pre>
+                                    <code class="language-markup">
+                                        &lt;nav aria-label=&quot;breadcrumb&quot;&gt;
+                                            &lt;ol class=&quot;breadcrumb bg-light bg-opacity-50 p-2 mb-2&quot;&gt;
+                                                &lt;li class=&quot;breadcrumb-item active&quot; aria-current=&quot;page&quot;&gt;Home&lt;/li&gt;
+                                            &lt;/ol&gt;
+                                        &lt;/nav&gt;
+                                    </code>
+                                </pre>
+                                    <!-- end highlight-->
+                                </div>
+                                <!-- end preview code-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Bordered Card</h4>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-base mb-base">
+                            <div class="card border-primary border">
+                                <div class="card-body">
+                                    <h4 class="card-title mb-2.5">Card with Colored Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card border-primary border border-dashed">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary mb-3">Card with Simple Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card border-primary border-2">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary mb-3">Card with Double Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card border-dark border-s-3">
+                                <div class="card-body">
+                                    <h4 class="card-title text-dark mb-3">Card with Double Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-dark hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card border-primary border-s-3">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary mb-3">Card with Colored Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card border-info border-s-3">
+                                <div class="card-body">
+                                    <h4 class="card-title mb-2.5">Card with Colored Border</h4>
+                                    <p class="mb-4">With supporting text below as a natural lead-in to additional content.</p>
+                                    <a href="javascript: void(0);" class="btn btn-sm bg-info hover:bg-primary-hover text-white">Button</a>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Horizontal Card</h4>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base mb-base">
+                            <div class="card">
+                                <div class="grid grid-cols-1 items-center md:grid-cols-3">
+                                    <div>
+                                        <img src="assets/images/stock/small-1.jpg" class="rounded-s-sm" alt="..." />
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div class="card-body">
+                                            <h5 class="card-title mb-2.5">Card with Horizontal Mode</h5>
+                                            <p class="mb-4">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                                            <p>
+                                                <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="grid grid-cols-1 items-center md:grid-cols-3">
+                                    <div class="col-span-2">
+                                        <div class="card-body">
+                                            <h5 class="card-title mb-2.5">Card with Horizontal Mode</h5>
+                                            <p class="mb-4">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                                            <p>
+                                                <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <img src="assets/images/stock/small-2.jpg" class="rounded-e-sm" alt="..." />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Stretched Link</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-base mb-base">
+                            <div class="card group">
+                                <a href="#">
+                                    <img src="assets/images/stock/small-3.jpg" class="rounded-t-sm" alt="..." />
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-2.5">Card with stretched link</h5>
+                                        <a href="#" class="btn btn-sm bg-primary group-hover:bg-primary-hover mt-3 text-white">Button</a>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div class="card">
+                                <a href="#">
+                                    <img src="assets/images/stock/small-4.jpg" class="rounded-t-sm" alt="..." />
+                                    <div class="card-body">
+                                        <h5 class="card-title text-primary mb-3">Card with stretched link</h5>
+                                        <p>Some quick example text to build on the card up the bulk of the card's content.</p>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div class="card group">
+                                <a href="#">
+                                    <img src="assets/images/stock/small-5.jpg" class="rounded-t-sm" alt="..." />
+                                    <div class="card-body">
+                                        <h5 class="card-title mb-2.5">Card with stretched link</h5>
+                                        <a href="#" class="btn btn-sm bg-primary group-hover:bg-primary-hover mt-3 text-white">Button</a>
+                                    </div>
+                                </a>
+                            </div>
+
+                            <div class="card">
+                                <a href="#">
+                                    <img src="assets/images/stock/small-6.jpg" class="rounded-t-sm" alt="..." />
+                                    <div class="card-body">
+                                        <h5 class="card-title text-primary mb-3">Card with stretched link</h5>
+                                        <p>Some quick example text to build on the card up the bulk of the card's content.</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Card Group</h4>
+
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-0 mb-base">
+                            <div class="card h-full md:rounded-s-sm md:rounded-e-none">
+                                <img class="card-img-top" src="assets/images/stock/small-8.jpg" alt="Card image cap" />
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p class="mb-4">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card h-full md:rounded-none">
+                                <img class="card-img-top" src="assets/images/stock/small-9.jpg" alt="Card image cap" />
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p class="mb-4">This card has supporting text below as a natural lead-in to additional content.</p>
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card h-full md:rounded-s-none md:rounded-e-sm">
+                                <img class="card-img-top" src="assets/images/stock/small-10.jpg" alt="Card image cap" />
+                                <div class="card-body">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p class="mb-4">This is a wider card with supporting text below as a natural lead-in to additional content. This card has even longer content than the first to show that equal height action.</p>
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3 rounded md:grid-cols-3 md:gap-0 mb-base">
+                            <div class="card h-full md:rounded-s-sm md:rounded-e-none">
+                                <div class="card-body flex-1">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p>This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                                </div>
+
+                                <div class="card-footer">
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card h-full md:rounded-none">
+                                <div class="card-body flex-1">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p>This card has supporting text below as a natural lead-in to additional content.</p>
+                                </div>
+
+                                <div class="card-footer">
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card h-full md:rounded-s-none md:rounded-e-sm">
+                                <div class="card-body flex-1">
+                                    <h5 class="card-title mb-2.5">Card title</h5>
+                                    <p>This is a wider card with supporting text below as a natural lead-in to additional content. This card has even longer content than the first to show that equal height action.</p>
+                                </div>
+
+                                <div class="card-footer">
+                                    <p>
+                                        <small class="text-default-400 text-2xs">Last updated 3 mins ago</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 class="mb-5 mt-4 text-base">Navigation with Card</h4>
+
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header border-dashed pb-0">
+                                    <nav class="flex">
+                                        <a href="#" class="text-primary border-default-300 rounded-t-lg border border-b-0 px-4 py-2 text-center text-sm font-medium">Active</a>
+
+                                        <a href="#" class="text-default-600 px-4 py-2 font-medium">Link</a>
+
+                                        <a href="#" class="px-4 py-2 font-medium" disabled>Disabled</a>
+                                    </nav>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="text-md mb-2 text-center">Special title treatment</h5>
+                                    <p class="mb-4 text-center">With supporting text below as a natural lead-in to additional content.</p>
+                                    <div class="text-center">
+                                        <a href="#" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <nav class="flex">
+                                        <a href="#" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Active</a>
+                                        <a href="#" class="text-default-600 px-4 py-2 font-medium">Link</a>
+                                        <a hrf="#" class="px-4 py-2 font-medium" disabled>Disabled</a>
+                                    </nav>
+                                </div>
+
+                                <div class="card-body">
+                                    <h5 class="text-md mb-2 text-center">Special title treatment</h5>
+                                    <p class="mb-4 text-center">With supporting text below as a natural lead-in to additional content.</p>
+
+                                    <div class="text-center">
+                                        <a href="#" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

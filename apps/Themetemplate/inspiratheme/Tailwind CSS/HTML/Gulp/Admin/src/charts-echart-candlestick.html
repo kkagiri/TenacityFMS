@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Candlestick Echart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Candlestick Echart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Candlestick Echart"})
+
+                    <div class="container-fluid">
+                        <div class="space-y-5">
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Basic Candlestick Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-basic-candlestick" style="min-height: 400px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end col -->
+
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Mixed Candlestick Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-mixed-candlestick" style="min-height: 400px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- E Charts Demo js -->
+        <script src="assets/js/pages/chart-echart-candlestick.js"></script>
+    </body>
+</html>

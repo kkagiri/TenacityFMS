@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Account Settings"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Account Settings"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Account Settings"})
+
+                    <div class="container-fluid">
+                        <div class="mb-5">
+                            <div class="relative h-62.5 overflow-hidden rounded bg-[url('../images/profile-bg.jpg')] bg-cover bg-center" style="min-height: 300px">
+                                <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-linear-to-t from-[#313A46] via-[#313a46cc] to-[#313a4680] p-7.5 text-center">
+                                    <h3 class="text-2xl text-white italic">
+                                        "Designing the future, one template at a time"
+                                        <a href="#!" class="text-primary inline-block">
+                                            <i class="iconify tabler--edit text-primary"></i>
+                                        </a>
+                                    </h3>
+
+                                    <button type="button" class="btn bg-danger text-white hover:bg-danger-hover">Change Background</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="container">
+                            <div class="card -mt-12">
+                                <div class="card-body">
+                                    <h5 class="bg-light/15 border-default-300 mb-5 flex items-center justify-center gap-1.5 rounded border border-dashed p-1.25 text-sm uppercase">
+                                        <i class="iconify tabler--user-circle text-base"></i>
+                                        Personal Info
+                                    </h5>
+
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-base gap-y-5 mb-base">
+                                        <div>
+                                            <label for="firstname" class="form-label">First Name</label>
+                                            <input type="text" class="form-input" id="firstname" placeholder="Enter first name" />
+                                        </div>
+
+                                        <div>
+                                            <label for="lastname" class="form-label">Last Name</label>
+                                            <input type="text" class="form-input" id="lastname" placeholder="Enter last name" />
+                                        </div>
+
+                                        <div>
+                                            <label for="jobtitle" class="form-label">Job Title</label>
+                                            <input type="text" class="form-input" id="jobtitle" placeholder="e.g. UI Developer, Designer" />
+                                        </div>
+
+                                        <div>
+                                            <label for="phone" class="form-label">Phone Number</label>
+                                            <input type="text" class="form-input" id="phone" placeholder="+1 234 567 8901" />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-2">
+                                            <label for="userbio" class="form-label">Bio</label>
+                                            <textarea rows="4" class="form-textarea" id="userbio" placeholder="Write something about yourself..."></textarea>
+                                        </div>
+
+                                        <div>
+                                            <label for="useremail" class="form-label">Email Address</label>
+                                            <input type="email" class="form-input" id="useremail" placeholder="Enter email" />
+                                            <span class="text-default-400 text-xs italic">
+                                                <a href="#" class="hover:text-primary">Click here to change your email</a>
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <label for="userpassword" class="form-label">Password</label>
+                                            <input type="password" class="form-input" id="userpassword" placeholder="Enter new password" />
+                                            <span class="text-default-400 text-xs italic">
+                                                <a href="#" class="hover:text-primary">Click here to change your email</a>
+                                            </span>
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-2">
+                                            <label for="profilephoto" class="form-label">Password</label>
+                                            <input type="file" name="file-input" id="profilephoto" class="form-input" />
+                                        </div>
+                                    </div>
+
+                                    <h5 class="bg-light/15 border-default-300 mb-5 flex items-center justify-center gap-1.5 rounded border border-dashed p-1.25 text-sm uppercase">
+                                        <i class="iconify tabler--map-pin text-base"></i>
+                                        Address Info
+                                    </h5>
+
+                                    <div class="mb-5 grid grid-cols-1 lg:grid-cols-6 gap-x-base gap-y-5">
+                                        <div class="col-span-1 lg:col-span-3">
+                                            <label for="address-line1" class="form-label">Address Line 1</label>
+                                            <input type="text" class="form-input" id="address-line1" placeholder="Street, Apartment, Unit, etc." />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-3">
+                                            <label for="address-line2" class="form-label">Address Line 2</label>
+                                            <input type="text" class="form-input" id="address-line2" placeholder="Optional" />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-2">
+                                            <label for="city" class="form-label">City</label>
+                                            <input type="text" class="form-input" id="city" placeholder="City" />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-2">
+                                            <label for="state" class="form-label">State / Province</label>
+                                            <input type="text" class="form-input" id="state" placeholder="State or Province" />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-4">
+                                            <label for="zipcode" class="form-label">Postal / ZIP Code</label>
+                                            <input type="text" class="form-input" id="zipcode" placeholder="Postal Code" />
+                                        </div>
+
+                                        <div class="col-span-1 lg:col-span-6">
+                                            <label for="country" class="form-label">Country</label>
+                                            <input type="text" class="form-input" id="country" placeholder="Country" />
+                                        </div>
+                                    </div>
+
+                                    <h5 class="bg-light/15 border-default-300 mb-5 flex items-center justify-center gap-1.5 rounded border border-dashed p-1.25 text-sm uppercase">
+                                        <i class="iconify tabler--building text-base"></i>
+                                        Company Info
+                                    </h5>
+
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-base gap-y-5 mb-base">
+                                        <div>
+                                            <label for="companyname" class="form-label">Company Name</label>
+                                            <input type="text" class="form-input" id="companyname" placeholder="Enter company name" />
+                                        </div>
+
+                                        <div>
+                                            <label for="cwebsite" class="form-label">Website</label>
+                                            <input type="text" class="form-input" id="cwebsite" placeholder="https://yourcompany.com" />
+                                        </div>
+                                    </div>
+
+                                    <h5 class="bg-light/15 border-default-300 mb-5 flex items-center justify-center gap-1.5 rounded border border-dashed p-1.25 text-sm uppercase">
+                                        <i class="iconify tabler--world text-base"></i>
+                                        Social
+                                    </h5>
+
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-base gap-y-5 mb-base">
+                                        <div>
+                                            <label for="social-fb" class="form-label">Facebook</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3" />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-fb" type="text" class="form-input rounded-s-none!" placeholder="Facebook URL" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label for="social-tw" class="form-label">Twitter X</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path d="M4 4l11.733 16h4.267l-11.733 -16z" />
+                                                        <path d="M4 20l6.768 -6.768m2.46 -2.46l6.772 -6.772" />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-tw" type="text" class="form-input rounded-s-none!" placeholder="&#64;username" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label for="social-insta" class="form-label">Instagram</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path d="M4 8a4 4 0 0 1 4 -4h8a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4z" />
+                                                        <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
+                                                        <path d="M16.5 7.5v.01" />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-insta" type="text" class="form-input rounded-s-none!" placeholder="Instagram URL" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label for="social-lin" class="form-label">LinkedIn</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path d="M8 11v5" />
+                                                        <path d="M8 8v.01" />
+                                                        <path d="M12 16v-5" />
+                                                        <path d="M16 16v-3a2 2 0 1 0 -4 0" />
+                                                        <path d="M3 7a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v10a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4z" />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-lin" type="text" class="form-input rounded-s-none!" placeholder="LinkedIn Profile" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label for="social-gh" class="form-label">GitHub</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path
+                                                            d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5"
+                                                        />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-gh" type="text" class="form-input rounded-s-none!" placeholder="GitHub Username" required="" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label for="social-sky" class="form-label">Dribbble</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">
+                                                    <svg class="text-default-800 text-base" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+                                                        <path d="M9 3.6c5 6 7 10.5 7.5 16.2" />
+                                                        <path d="M6.4 19c3.5 -3.5 6 -6.5 14.5 -6.4" />
+                                                        <path d="M3.1 10.75c5 0 9.814 -.38 15.314 -5" />
+                                                    </svg>
+                                                </span>
+                                                <input id="social-sky" type="text" class="form-input rounded-s-none!" placeholder="&#64;username" required="" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-7.5 text-end">
+                                        <button type="submit" class="btn bg-success text-white hover:bg-success-hover">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

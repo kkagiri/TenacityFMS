@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Loading Buttons" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Plugins" title="Loading Buttons" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Plugins" title="Loading Buttons" }}
+
+                    <div class="container">
+                        <div class="card">
+                            <div class="card-header block">
+                                <h4 class="card-title mb-1">Ladda</h4>
+                                <p class="text-default-400">
+                                    A UI concept which merges loading indicators into the action that invoked them. Primarily intended for use with forms where it gives users immediate feedback upon submit rather than leaving them wondering while the browser does its thing.
+                                </p>
+                            </div>
+
+                            <div class="card-body">
+                                <div id="loading-btn-alert" class="hs-removing:translate-x-5 hs-removing:opacity-0 transition duration-300 bg-warning/10 text-sm text-warning rounded-lg p-3 mb-4" role="alert" tabindex="-1" aria-labelledby="loading-btn-label">
+                                    <div class="flex items-center">
+                                        <div id="loading-btn-label">
+                                            <strong>Note:</strong>
+                                            This is a jQuery-based plugin, so you need to include jQuery for it to work.
+                                        </div>
+                                        <div class="ps-3 ms-auto text-default-400">
+                                            <button type="button" data-hs-remove-element="#loading-btn-alert">
+                                                <span class="sr-only">Dismiss</span>
+                                                <i class="iconify tabler--x text-2xl"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="table-responsive-sm">
+                                    <table class="table">
+                                        <tbody>
+                                            <tr>
+                                                <td style="width: 50%">
+                                                    <h5>Expand Left</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-primary hover:bg-primary-hover text-white" data-style="expand-left">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Expand Right</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-primary hover:bg-primary-hover text-white" data-style="expand-right">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Expand Up</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-primary hover:bg-primary-hover text-white" data-style="expand-up">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Expand Down</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-primary hover:bg-primary-hover text-white" data-style="expand-down">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Contract</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-warning hover:bg-warning-hover text-white" data-style="contract">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Zoom In</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-warning hover:bg-warning-hover text-white" data-style="zoom-in">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Zoom Out</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-warning hover:bg-warning-hover text-white" data-style="zoom-out">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Slide Left</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-info hover:bg-info-hover text-white" data-style="slide-left">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Slide Right</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-info hover:bg-info-hover text-white" data-style="slide-right">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Slide Up</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-info hover:bg-info-hover text-white" data-style="slide-up">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Slide Down</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-info hover:bg-info-hover text-white" data-style="slide-down">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Expand Right (Progress)</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-danger hover:bg-danger-hover text-white" data-style="expand-right">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Contract (Progress)</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-danger hover:bg-danger-hover text-white" data-style="contract">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Contract Overlay</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button btn bg-danger hover:bg-danger-hover text-white" data-style="contract-overlay" style="z-index: 1000">Submit</button>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <h5>Zoom In (API demo)</h5>
+                                                </td>
+                                                <td>
+                                                    <button class="ladda-button ladda-button-demo btn bg-primary hover:bg-primary-hover text-white" data-style="zoom-in">Submit</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/plugins-loading-button.js"></script>
+    </body>
+</html>

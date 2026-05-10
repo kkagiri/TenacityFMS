@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Forum"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Forum"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Forum"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-base">
+                            <div class="lg:col-span-3">
+                                <div class="grid grid-cols-1">
+                                    <div class="space-y-1.25">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">Development Talk</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">What's the best JavaScript framework in 2025?</a>
+                                                </h4>
+                                                <p class="text-default-400">With so many frameworks available, developers often debate which one offers the best balance of performance, scalability, and ease of use. Share your thoughts!</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-5.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">James Milton</a>
+                                                            <p class="text-xs">1 hour ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 45</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 3 days</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 732</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-success text-white">New</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">AI & Ethics</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">Should AI tools be regulated by governments?</a>
+                                                </h4>
+                                                <p class="text-default-400">As AI becomes more powerful, discussions around ethics and control are growing. What’s your take on government involvement?</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-8.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">Amira Lee</a>
+                                                            <p class="text-xs">2 hours ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 62</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 4 days</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 894</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-warning text-white">23</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">Product Design</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">Is minimalism still relevant in modern UI design?</a>
+                                                </h4>
+                                                <p class="text-default-400">Clean interfaces have been a trend for years, but some argue they now lack innovation. What’s your opinion?</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-2.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">Liam Carter</a>
+                                                            <p class="text-xs">3 hours ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 31</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 2 days</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 410</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-primary text-white hover:bg-primary-hover">8</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">Career Growth</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">What’s better for growth: startups or large companies?</a>
+                                                </h4>
+                                                <p class="text-default-400">Both have pros and cons—startups offer agility, while big companies provide stability. Which helped your career most?</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-6.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">Noah Bennett</a>
+                                                            <p class="text-xs">5 hours ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 50</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 1 day</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 612</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-primary text-white hover:bg-primary-hover">12</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">DevOps</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">CI/CD or traditional release cycles: what works better?</a>
+                                                </h4>
+                                                <p class="text-default-400">Continuous deployment speeds up delivery, but some teams prefer slower, stable releases. What’s your team's approach?</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-4.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">Sofia Kim</a>
+                                                            <p class="text-xs">8 hours ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 76</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 6 days</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 1,005</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-secondary text-white">18</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <p class="text-default-400 mb-2.5 text-sm font-semibold uppercase">Open Source</p>
+                                                <h4 class="mb-2.5 text-base">
+                                                    <a href="apps-forum-post.html" class="hover:text-primary">What’s the best way to start contributing to open source?</a>
+                                                </h4>
+                                                <p class="text-default-400">Many developers want to join the open-source movement but don’t know where to begin. What advice would you give?</p>
+                                            </div>
+
+                                            <div class="card-footer block border-0">
+                                                <div class="text-default-400 flex flex-wrap justify-between items-center gap-base">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="assets/images/users/user-1.jpg" alt="avatar-5" class="size-8 rounded" />
+                                                        <div>
+                                                            <a href="#!" class="text-dark font-semibold">Daniel Reed</a>
+                                                            <p class="text-xs">12 minutes ago</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--messages text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Answers: 39</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--clock text-default-400"></i>
+                                                        <span class="font-semibold">Ends in: 7 days</span>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <i class="iconify tabler--users text-default-400"></i>
+                                                        <a href="#!" class="hover:text-primary">Votes: 558</a>
+                                                    </div>
+
+                                                    <div class="flex items-center gap-1.25">
+                                                        <span class="badge bg-dark text-white">7</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-5">
+                                            <nav class="mx-auto flex items-center justify-center gap-1.5" aria-label="Pagination">
+                                                <button type="button" class="btn btn-icon bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Previous">
+                                                    <span>«</span>
+                                                </button>
+                                                <button type="button" class="btn btn-icon bg-primary rounded-full text-white">1</button>
+                                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">2</button>
+                                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">3</button>
+                                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">4</button>
+                                                <button type="button" class="btn btn-icon bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">5</button>
+                                                <button type="button" class="btn btn-icon bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Next">
+                                                    <span>»</span>
+                                                </button>
+                                            </nav>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-1">
+                                <button class="btn btn-lg w-full text-base bg-primary text-white hover:bg-primary-hover mb-base">Ask Question</button>
+
+                                <div class="card">
+                                    <div class="card-body border-default-300 border-b border-dashed">
+                                        <h5 class="mb-5 font-bold uppercase">Search</h5>
+
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input type="search" placeholder="Search issues..." class="form-input bg-light/20" />
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body border-default-300 border-b border-dashed">
+                                        <h5 class="mb-5 font-bold uppercase">Category:</h5>
+                                        <ul class="text-sm">
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Development Talk</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">AI & Ethics</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Product Design</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Career Growth</a>
+                                            </li>
+                                            <li class="py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Open Source</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="card-body border-default-300 border-b border-dashed">
+                                        <h5 class="mb-5 font-bold uppercase">Popular Questions:</h5>
+
+                                        <ul class="text-sm">
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Unlocking the Secrets of Modern UI Design</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">How to Build a Portfolio with Tailwind CSS</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Boost Productivity with These Web Dev Tools</a>
+                                            </li>
+                                            <li class="border-default-300 border-b py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">The Future of Frontend: Trends to Watch in 2025</a>
+                                            </li>
+                                            <li class="py-3">
+                                                <a href="#" class="hover:text-primary transition-colors">Essential Tips for Clean and Maintainable Code</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h5 class="mb-5 font-bold uppercase">Popular Tags:</h5>
+
+                                        <div class="flex flex-wrap items-center gap-1.5">
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Web Design</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Frontend</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Tailwind CSS</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">JavaScript</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">React</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Startup</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">DevTools</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Open Source</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">Performance</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">UX/UI</a>
+                                            <a href="#" class="btn btn-sm bg-light hover:text-primary transition-colors">SEO</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

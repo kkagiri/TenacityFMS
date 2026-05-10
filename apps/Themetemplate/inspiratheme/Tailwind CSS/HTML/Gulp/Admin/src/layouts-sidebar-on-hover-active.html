@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-sidenav-size="on-hover-active">
+    <head>
+        @@include("partials/title-meta.html", {"title": "On Hover Active"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Layouts", "title":"On Hover Active"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Layouts", "title":"On Hover Active"})
+
+                    <div class="container-fluid">
+                        <div class="bg-warning/10 text-warning border-s-3 border-warning rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable the full menu on hover after minimizing the sidebar, add
+                                <code>data-sidenav-size="on-hover-active"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag in your layout.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                            <!-- end card-body-->
+                        </div>
+                        <!-- end card-->
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

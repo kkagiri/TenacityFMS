@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-layout-position="scrollable">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Scrollable"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Layouts", "title":"Scrollable"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Layouts", "title":"Scrollable"})
+
+                    <div class="container-fluid">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable full scrolling and view all content, please add
+                                <code>data-layout-position="scrollable"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag.
+                            </div>
+                        </div>
+
+                        <div style="min-height: 100vh"></div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

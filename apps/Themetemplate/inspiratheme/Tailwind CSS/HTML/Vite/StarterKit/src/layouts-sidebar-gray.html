@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-menu-color="gray">
+    <head>
+        {{> title-meta title="Gray Menu" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="Gray Menu" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layouts" title="Gray Menu" }}
+
+                    <div class="container-fluid">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To switch to a gray sidebar, add
+                                <code>data-menu-color="gray"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag in your layout.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

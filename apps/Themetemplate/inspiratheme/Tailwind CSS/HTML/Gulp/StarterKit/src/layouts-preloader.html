@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en" data-layout="preloader">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Preloader"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Layouts", "title":"Preloader"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Layouts", "title":"Preloader"})
+
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-white animate-[preloader_1s_ease_forwards]">
+                        <div class="size-8 animate-spin rounded-full border-3 border-primary border-t-transparent"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h4 class="text-lg">Your custom content here</h4>
+                        </div>
+                        <!-- end card-body-->
+                    </div>
+                    <!-- end card-->
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

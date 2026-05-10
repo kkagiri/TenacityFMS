@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Dropdowns" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Base UI" title="Dropdowns" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Base UI" title="Dropdowns" }}
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Single Button Dropdowns</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">You can turn any button or link into a dropdown toggle with minimal markup changes, using the appropriate toggle class and menu structure.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-light text-dark" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Choose Option
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Profile Settings</a>
+                                                <a class="dropdown-item" href="#">Notifications</a>
+                                                <a class="dropdown-item" href="#">Logout</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <a class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white" href="#" role="button" id="dropdownMenuLink" aria-haspopup="true" aria-expanded="false">
+                                                Quick Actions
+                                                <i class="iconify tabler--chevron-down hs-dropdown-open:rotate-180 transition-transform text-base"></i>
+                                            </a>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Create New</a>
+                                                <a class="dropdown-item" href="#">Upload File</a>
+                                                <a class="dropdown-item" href="#">View Reports</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex [--trigger:hover]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-light text-dark" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Hover Me
+                                                <i class="iconify tabler--chevron-down hs-dropdown-open:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="hover-dropdown">
+                                                <a class="dropdown-item" href="#">Profile Settings</a>
+                                                <a class="dropdown-item" href="#">Notifications</a>
+                                                <a class="dropdown-item" href="#">Logout</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Menu Alignment</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>[--placement:bottom-right]</code>
+                                        class to position the dropdown menu on the right side of the element.
+                                    </p>
+
+                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                        <button type="button" class="hs-dropdown-toggle btn bg-light text-dark" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                            Right-aligned menu
+                                            <i class="iconify tabler--chevron-down text-base"></i>
+                                        </button>
+
+                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                            <a class="dropdown-item" href="#">Action</a>
+                                            <a class="dropdown-item" href="#">Another action</a>
+                                            <a class="dropdown-item" href="#">Something else here</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Custom Dropdown Arrow</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Dropdown buttons can be customized to include or exclude icons, allowing you to create clean text-only toggles or visually enhanced ones with custom icons.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">Without Arrow</button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Download Report</a>
+                                                <a class="dropdown-item" href="#">View Analytics</a>
+                                                <a class="dropdown-item" href="#">Export Data</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn border-primary hover:bg-primary text-primary flex items-center border hover:text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Custom Icon
+                                                <i class="iconify tabler--edit text-sm"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Edit Profile</a>
+                                                <a class="dropdown-item" href="#">Account Settings</a>
+                                                <a class="dropdown-item" href="#">Sign Out</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Split Button Dropdowns</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Create split button dropdowns by pairing a regular button with a separate toggle. This layout provides quick actions on the main button and additional options in the dropdown.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn bg-primary hover:bg-primary-hover rounded-e-none text-white">Primary</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn bg-primary/90 hover:bg-primary-hover rounded-s-none px-2 text-white">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn bg-light hover:text-primary text-default-700 rounded-s-sm rounded-e-none">Secondary</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn bg-light hover:text-primary rounded-s-none px-2">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn bg-success/15 text-success hover:bg-success rounded-s-sm rounded-e-none hover:text-white">Success</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn bg-success/15 text-success hover:bg-success rounded-s-none px-2 hover:text-white">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn bg-info hover:bg-info-hover rounded-s-sm rounded-e-none text-white">Info</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn bg-info/85 hover:bg-info-hover rounded-s-none px-2 text-white">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Variant</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Dropdown menus can be used with any button variant, allowing you to match different colors or styles such as primary, secondary, or success buttons.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white disabled:pointer-events-none disabled:opacity-50" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Primary
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Create New</a>
+                                                <a class="dropdown-item" href="#">Save Changes</a>
+                                                <a class="dropdown-item" href="#">Publish Now</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">View Drafts</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-light text-default-700" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Secondary
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Settings</a>
+                                                <a class="dropdown-item" href="#">Preferences</a>
+                                                <a class="dropdown-item" href="#">Account Info</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Logout</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-success hover:bg-info-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Success
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Mark as Complete</a>
+                                                <a class="dropdown-item" href="#">Download Report</a>
+                                                <a class="dropdown-item" href="#">Submit Review</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Archive Task</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sizing</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Dropdown menus can be paired with buttons of any size, including large, small, or split button variations for flexible design options.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-light text-default-700 px-6 py-2 text-lg" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Large Button
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Another action</a>
+                                                <a class="dropdown-item" href="#">Something else here</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Separated link</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="bg-light hover:text-primary text-default-700 relative rounded-s-sm px-6 py-2 text-lg">Large button</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle bg-light hover:text-primary relative flex items-center justify-center rounded-e-sm px-4 py-2">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn btn-sm bg-light text-default-700" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Small Button
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Another action</a>
+                                                <a class="dropdown-item" href="#">Something else here</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Separated link</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn btn-sm bg-light text-default-700 hover:text-primary rounded-e-none">Small Button</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn btn-sm bg-light text-default-700 hover:text-primary rounded-s-none px-2">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dropup Variation</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>[--placement:top]</code>
+                                        or
+                                        <code>[--placement:top-left]</code>
+                                        class on the parent element to display the dropdown menu above the toggle button.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:top]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-light text-default-700" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Dropup
+                                                <i class="iconify tabler--chevron-up text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Another action</a>
+                                                <a class="dropdown-item" href="#">Something else here</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Separated link</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="btn bg-light text-default-700 hover:text-primary rounded-e-none">Split Dropup</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:top-left]">
+                                                <button type="button" class="hs-dropdown-toggle btn bg-light/90 text-default-700 hover:text-primary rounded-s-none px-2">
+                                                    <i class="iconify tabler--chevron-down text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">New Task</a>
+                                                    <a class="dropdown-item" href="#">Assign User</a>
+                                                    <a class="dropdown-item" href="#">Set Deadline</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Project Settings</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dropstart Variation</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>[--placement:left-start]</code>
+                                        class on the parent element to position the dropdown menu on the left side of the toggle button.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:left-start]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                <i class="iconify tabler--chevron-left text-base"></i>
+                                                Dropstart
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Another action</a>
+                                                <a class="dropdown-item" href="#">Something else here</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Separated link</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <div class="hs-dropdown relative inline-flex [--placement:left-start]">
+                                                <button type="button" class="hs-dropdown-toggle btn sky-700 bg-secondary/90 hover:bg-secondary-hover rounded-e-none px-2 text-white">
+                                                    <i class="iconify tabler--chevron-left text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+
+                                            <button type="button" class="btn bg-secondary hover:bg-secondary-hover rounded-s-none text-white">Split dropstart</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dropend Variation</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>[--placement:right-end]</code>
+                                        class on the parent element to display the dropdown menu on the right side of the toggle button.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:right-end]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Dropend
+                                                <i class="iconify tabler--chevron-right text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">View Profile</a>
+                                                <a class="dropdown-item" href="#">Message User</a>
+                                                <a class="dropdown-item" href="#">Report Issue</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Block User</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="inline-flex">
+                                            <button type="button" class="bg-primary hover:bg-primary-hover relative rounded-s-sm px-4 py-2 font-medium text-white">Split dropstart</button>
+
+                                            <div class="hs-dropdown relative inline-flex [--placement:right-end]">
+                                                <button type="button" class="hs-dropdown-toggle bg-primary/90 hover:bg-primary-hover relative flex items-center justify-center rounded-e-sm px-2 py-2 text-white">
+                                                    <i class="iconify tabler--chevron-right text-base"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Another action</a>
+                                                    <a class="dropdown-item" href="#">Something else here</a>
+                                                    <hr class="dropdown-divider" />
+                                                    <a class="dropdown-item" href="#">Separated link</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Active Item</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>.active</code>
+                                        class on a dropdown item to highlight it as the currently selected or active option.
+                                    </p>
+
+                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-end]">
+                                        <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                            Active Item
+                                            <i class="iconify tabler--chevron-down text-base"></i>
+                                        </button>
+
+                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                            <a class="dropdown-item" href="#">Regular link</a>
+                                            <a class="dropdown-item active" href="#">Active link</a>
+                                            <a class="dropdown-item" href="#">Another link</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Disabled Item</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>.disabled</code>
+                                        class on dropdown items to indicate unavailable or inactive options within the menu.
+                                    </p>
+
+                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-end]">
+                                        <button type="button" class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                            Disabled
+                                            <i class="iconify tabler--chevron-down text-base"></i>
+                                        </button>
+
+                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                            <a class="dropdown-item" href="#">Regular link</a>
+                                            <a class="dropdown-item active" href="#" disabled>Disabled link</a>
+                                            <a class="dropdown-item" href="#">Another link</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Headers</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Add a header inside the dropdown menu to group or label related menu items clearly.</p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:bottom-end]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-primary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Header
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <h6 class="px-2.75 py-2">Dropdown header</h6>
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Another Action</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dark Dropdowns</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Apply a dark theme to your dropdown menu by adding
+                                        <code>data-theme="dark"</code>
+                                        to the menu element. This helps match dark navbars or layouts without changing individual items.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:bottom-end]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-dark text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Dark Dropdown
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div data-theme="dark" class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Dashboard</a>
+                                                <a class="dropdown-item" href="#">My Orders</a>
+                                                <a class="dropdown-item" href="#">Billing Settings</a>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">Logout</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Centered Dropdowns</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>[--placement:bottom]</code>
+                                        or
+                                        <code>[--placement:top]</code>
+                                        class to position the dropdown menu centered below or above the toggle button.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--placement:bottom]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Centered dropdown
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <div class="space-y-0.5">
+                                                    <a class="dropdown-item" href="#">Action</a>
+                                                    <a class="dropdown-item" href="#">Action two</a>
+                                                    <a class="dropdown-item" href="#">Action three</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex [--placement:top]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Centered dropdowup
+                                                <i class="iconify tabler--chevron-up text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Action</a>
+                                                <a class="dropdown-item" href="#">Action two</a>
+                                                <a class="dropdown-item" href="#">Action three</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Auto Close Behavior</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        By default, the dropdown menu is closed when clicking inside or outside the dropdown menu. You can use the
+                                        <code>autoClose</code>
+                                        option to change this behavior of the dropdown.
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Default dropdown
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex [--auto-close:inside]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Clickable inside
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex [--auto-close:outside]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Clickable outside
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-dropdown relative inline-flex [--auto-close:false]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Manual close
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                                <a class="dropdown-item" href="#">Menu item</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Text</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Place any freeform text within a dropdown menu with text and use spacing utilities. Note that you’ll likely need additional sizing styles to constrain the menu width.</p>
+                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-end]">
+                                        <button type="button" class="hs-dropdown-toggle btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                            Text Dropdown
+                                            <i class="iconify tabler--chevron-down text-base"></i>
+                                        </button>
+
+                                        <div class="hs-dropdown-menu w-44 p-4" role="menu" aria-orientation="vertical">
+                                            <span class="text-default-400 mb-4">Some example text that's free-flowing within the dropdown menu.</span>
+                                            <p class="text-default-400">And this is more example text.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Forms</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Put a form within a dropdown menu, or make it into a dropdown menu, and use margin or padding utilities to give it the negative space you require.</p>
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <div class="hs-dropdown relative inline-flex [--auto-close:inside] [--placement:bottom-end]">
+                                            <button type="button" class="hs-dropdown-toggle btn bg-secondary hover:bg-secondary-hover text-white" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                Form
+                                                <i class="iconify tabler--chevron-down text-base"></i>
+                                            </button>
+
+                                            <div class="hs-dropdown-menu min-w-44" role="menu" aria-orientation="forms-dropdown-menu">
+                                                <form class="px-7.5 py-5">
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Email address</label>
+                                                        <input class="form-input text-sm" type="email" placeholder="email&#64;example.com" />
+                                                    </div>
+
+                                                    <div class="mb-5">
+                                                        <label class="form-label">Password</label>
+                                                        <input class="form-input text-sm" type="password" placeholder="Password" />
+                                                    </div>
+
+                                                    <div class="mb-4 flex items-center gap-2.5">
+                                                        <input type="checkbox" class="form-checkbox shrink-0" id="dropdownCheck" />
+                                                        <label for="dropdownCheck" class="text-default-500 ms-1 text-sm">Remember me</label>
+                                                    </div>
+
+                                                    <button type="submit" class="btn bg-primary text-white hover:bg-primary-hover">Sign in</button>
+                                                </form>
+                                                <hr class="dropdown-divider" />
+                                                <a class="dropdown-item" href="#">New around here? Sign up</a>
+                                                <a class="dropdown-item" href="#">Forgot password?</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Form Wizard"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Ecommerce", "title":"Form Wizard"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Ecommerce", "title":"Form Wizard"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Wizard</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div data-hs-stepper="">
+                                        <ul class="relative flex flex-wrap gap-1.25">
+                                            <li class="group active items-center gap-x-2" data-hs-stepper-nav-item='{"index": 1}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--user-circle size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Student Info</span>
+                                                            <span class="text-2xs">Personal details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 2}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--map-pin size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Address Info</span>
+                                                            <span class="text-2xs">Where you live</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 3}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--book size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Course Info</span>
+                                                            <span class="text-2xs">Select your course</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 4}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--users size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Parent Info</span>
+                                                            <span class="text-2xs">Guardian details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 5}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--folder-open size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Documents</span>
+                                                            <span class="text-2xs">Upload certificates</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+                                        </ul>
+
+                                        <div class="pt-6">
+                                            <div data-hs-stepper-content-item='{"index": 1}'>
+                                                <div class="grid md:grid-cols-2 gap-base pb-base">
+                                                    <div>
+                                                        <label class="form-label">Full Name</label>
+                                                        <input type="text" class="form-input" placeholder="Enter your full name" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Email</label>
+                                                        <input type="email" class="form-input" placeholder="Enter your email" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Phone Number</label>
+                                                        <input type="phone" class="form-input" placeholder="Enter your phone number" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Date of Birth</label>
+                                                        <input type="date" class="form-input" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 2}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Street Address</label>
+                                                        <input type="text" class="form-input" placeholder="123 Main St" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">City</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., New York" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">State</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., California" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Zip Code</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., 10001" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 3}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Choose Course</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select</option>
+                                                            <option value="Engineering">Engineering</option>
+                                                            <option value="Medical">Medical</option>
+                                                            <option value="Business">Business</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Enrollment Type</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select</option>
+                                                            <option value="Full Time">Full Time</option>
+                                                            <option value="Part Time">Part Time</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Preferred Batch Time</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select Time</option>
+                                                            <option value="Morning">Morning (8am – 12pm)</option>
+                                                            <option value="Afternoon">Afternoon (1pm – 5pm)</option>
+                                                            <option value="Evening">Evening (6pm – 9pm)</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Mode of Study</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select Mode</option>
+                                                            <option value="Offline">Offline</option>
+                                                            <option value="Online">Online</option>
+                                                            <option value="Hybrid">Hybrid</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 4}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Parent/Guardian Name</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., John Doe" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Relation</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., Father, Mother" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Phone</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., +1 555 123 4567" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Email</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., parent&#64;example.com" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 5}' style="display: none">
+                                                <div class="grid grid-cols-1 gap-base pb-base">
+                                                    <div>
+                                                        <label class="form-label">Upload ID Proof</label>
+                                                        <input type="file" name="file-input" class="form-input" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Upload Previous Marksheet</label>
+                                                        <input type="file" name="file-input" class="form-input" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+                                                <button type="button" class="btn bg-secondary w-full text-white md:w-auto" data-hs-stepper-back-btn="">← Back</button>
+
+                                                <button type="button" class="btn bg-primary w-full text-white md:w-auto" data-hs-stepper-next-btn="">Next →</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Validation Support</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="hs-stepper-validation" data-hs-stepper='{"mode": "linear"}'>
+                                        <ul class="relative flex flex-wrap gap-1.25">
+                                            <li class="group active items-center gap-x-2" data-hs-stepper-nav-item='{"index": 1}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--user-circle size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Student Info</span>
+                                                            <span class="text-2xs">Personal details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 2}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--map-pin size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Address Info</span>
+                                                            <span class="text-2xs">Where you live</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 3}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--book size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Course Info</span>
+                                                            <span class="text-2xs">Select your course</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 4}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--users size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Parent Info</span>
+                                                            <span class="text-2xs">Guardian details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 5}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--folder-open size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Documents</span>
+                                                            <span class="text-2xs">Upload certificates</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+                                        </ul>
+
+                                        <div class="pt-6">
+                                            <div data-hs-stepper-content-item='{"index": 1}'>
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 grid-cols-1 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Full Name</label>
+                                                        <input type="text" class="form-input" placeholder="Enter your full name" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Email</label>
+                                                        <input type="email" class="form-input" placeholder="Enter your email" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Phone Number</label>
+                                                        <input type="phone" class="form-input" placeholder="Enter your phone number" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Date of Birth</label>
+                                                        <input type="date" class="form-input" required />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 2}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Street Address</label>
+                                                        <input type="text" class="form-input" placeholder="123 Main St" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">City</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., New York" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">State</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., California" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Zip Code</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., 10001" required />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 3}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Choose Course</label>
+                                                        <select class="form-select" required>
+                                                            <option value="">Select</option>
+                                                            <option value="Engineering">Engineering</option>
+                                                            <option value="Medical">Medical</option>
+                                                            <option value="Business">Business</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Enrollment Type</label>
+                                                        <select class="form-select" required>
+                                                            <option value="">Select</option>
+                                                            <option value="Full Time">Full Time</option>
+                                                            <option value="Part Time">Part Time</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Preferred Batch Time</label>
+                                                        <select class="form-select" required>
+                                                            <option value="">Select Time</option>
+                                                            <option value="Morning">Morning (8am – 12pm)</option>
+                                                            <option value="Afternoon">Afternoon (1pm – 5pm)</option>
+                                                            <option value="Evening">Evening (6pm – 9pm)</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Mode of Study</label>
+                                                        <select class="form-select" required>
+                                                            <option value="">Select Mode</option>
+                                                            <option value="Offline">Offline</option>
+                                                            <option value="Online">Online</option>
+                                                            <option value="Hybrid">Hybrid</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 4}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Parent/Guardian Name</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., John Doe" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Relation</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., Father, Mother" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Phone</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., +1 555 123 4567" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Email</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., parent&#64;example.com" required />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 5}' style="display: none">
+                                                <div class="grid grid-cols-1 pb-base gap-base">
+                                                    <div>
+                                                        <label class="form-label">Upload ID Proof</label>
+                                                        <input type="file" name="file-input" class="form-input" required />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Upload Previous Marksheet</label>
+                                                        <input type="file" name="file-input" class="form-input" required />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+                                                <button type="button" class="btn bg-secondary w-full text-white md:w-auto" data-hs-stepper-back-btn="">← Back</button>
+
+                                                <button type="button" class="btn bg-primary w-full text-white md:w-auto" data-hs-stepper-next-btn="">Next →</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Progressbar Support</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="hs-stepper-progress" data-hs-stepper="">
+                                        <div class="mb-5">
+                                            <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-default-200 dark:bg-default-100">
+                                                <div class="hs-stepper-progress-bar bg-primary flex flex-col justify-center overflow-hidden whitespace-nowrap text-center text-xs text-white transition duration-500" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+
+                                        <ul class="relative flex flex-wrap gap-1.25">
+                                            <li class="group active items-center gap-x-2" data-hs-stepper-nav-item='{"index": 1}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--user-circle size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Student Info</span>
+                                                            <span class="text-2xs">Personal details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 2}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--map-pin size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Address Info</span>
+                                                            <span class="text-2xs">Where you live</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 3}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--book size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Course Info</span>
+                                                            <span class="text-2xs">Select your course</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 4}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--users size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Parent Info</span>
+                                                            <span class="text-2xs">Guardian details</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+
+                                            <li class="group items-center gap-x-2" data-hs-stepper-nav-item='{"index": 5}'>
+                                                <span class="group inline-flex items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                    <span
+                                                        class="border-default-300 hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex shrink-0 items-center justify-center gap-3 rounded border border-dashed px-4 py-2 font-medium"
+                                                    >
+                                                        <i class="iconify tabler--folder-open size-8"></i>
+                                                        <div>
+                                                            <span class="block text-sm font-semibold">Documents</span>
+                                                            <span class="text-2xs">Upload certificates</span>
+                                                        </div>
+                                                    </span>
+                                                </span>
+                                            </li>
+                                        </ul>
+
+                                        <div class="pt-6">
+                                            <div data-hs-stepper-content-item='{"index": 1}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 grid-cols-1 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Full Name</label>
+                                                        <input type="text" class="form-input" placeholder="Enter your full name" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Email</label>
+                                                        <input type="email" class="form-input" placeholder="Enter your email" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Phone Number</label>
+                                                        <input type="phone" class="form-input" placeholder="Enter your phone number" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Date of Birth</label>
+                                                        <input type="date" class="form-input" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 2}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Street Address</label>
+                                                        <input type="text" class="form-input" placeholder="123 Main St" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">City</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., New York" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">State</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., California" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Zip Code</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., 10001" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 3}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Choose Course</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select</option>
+                                                            <option value="Engineering">Engineering</option>
+                                                            <option value="Medical">Medical</option>
+                                                            <option value="Business">Business</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Enrollment Type</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select</option>
+                                                            <option value="Full Time">Full Time</option>
+                                                            <option value="Part Time">Part Time</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Preferred Batch Time</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select Time</option>
+                                                            <option value="Morning">Morning (8am – 12pm)</option>
+                                                            <option value="Afternoon">Afternoon (1pm – 5pm)</option>
+                                                            <option value="Evening">Evening (6pm – 9pm)</option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Mode of Study</label>
+                                                        <select class="form-select">
+                                                            <option value="">Select Mode</option>
+                                                            <option value="Offline">Offline</option>
+                                                            <option value="Online">Online</option>
+                                                            <option value="Hybrid">Hybrid</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 4}' style="display: none">
+                                                <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                    <div>
+                                                        <label class="form-label">Parent/Guardian Name</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., John Doe" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Relation</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., Father, Mother" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Phone</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., +1 555 123 4567" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Parent Email</label>
+                                                        <input type="text" class="form-input" placeholder="e.g., parent&#64;example.com" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div data-hs-stepper-content-item='{"index": 5}' style="display: none">
+                                                <div class="grid grid-cols-1 pb-base gap-base">
+                                                    <div>
+                                                        <label class="form-label">Upload ID Proof</label>
+                                                        <input type="file" name="file-input" class="form-input" />
+                                                    </div>
+
+                                                    <div>
+                                                        <label class="form-label">Upload Previous Marksheet</label>
+                                                        <input type="file" name="file-input" class="form-input" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+                                                <button type="button" class="btn bg-secondary w-full text-white md:w-auto" data-hs-stepper-back-btn="">← Back: Course Info</button>
+
+                                                <button type="button" class="btn bg-primary w-full text-white md:w-auto" data-hs-stepper-next-btn="">Next: Documents info →</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Vertical Wizard</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div data-hs-stepper="">
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-base">
+                                            <div>
+                                                <ul class="relative flex flex-col gap-1.25">
+                                                    <li class="group active flex w-full flex-1 shrink basis-0 items-center gap-x-2" data-hs-stepper-nav-item='{"index": 1}'>
+                                                        <span class="group inline-flex w-full items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                            <span
+                                                                class="hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success hs-stepper-success:border-s-3 flex w-full shrink-0 items-center gap-2 rounded px-4 py-3 font-medium"
+                                                            >
+                                                                <i class="iconify tabler--user-circle size-8"></i>
+                                                                <div>
+                                                                    <span class="block text-sm font-semibold">Student Info</span>
+                                                                    <span class="text-2xs">Personal details</span>
+                                                                </div>
+                                                            </span>
+                                                        </span>
+                                                    </li>
+
+                                                    <li class="group flex w-full flex-1 shrink basis-0 items-center gap-x-2" data-hs-stepper-nav-item='{"index": 2}'>
+                                                        <span class="group inline-flex w-full items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                            <span
+                                                                class="hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success hs-stepper-success:border-s-3 flex w-full shrink-0 items-center gap-2 rounded px-4 py-3 font-medium"
+                                                            >
+                                                                <i class="iconify tabler--map-pin size-8"></i>
+                                                                <div>
+                                                                    <span class="block text-sm font-semibold">Address Info</span>
+                                                                    <span class="text-2xs">Where you live</span>
+                                                                </div>
+                                                            </span>
+                                                        </span>
+                                                    </li>
+
+                                                    <li class="group flex w-full flex-1 shrink basis-0 items-center gap-x-2" data-hs-stepper-nav-item='{"index": 3}'>
+                                                        <span class="group inline-flex w-full items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                            <span
+                                                                class="hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success hs-stepper-success:border-s-3 flex w-full shrink-0 items-center gap-2 rounded px-4 py-3 font-medium"
+                                                            >
+                                                                <i class="iconify tabler--book size-8"></i>
+                                                                <div>
+                                                                    <span class="block text-sm font-semibold">Course Info</span>
+                                                                    <span class="text-2xs">Select your course</span>
+                                                                </div>
+                                                            </span>
+                                                        </span>
+                                                    </li>
+
+                                                    <li class="group flex w-full flex-1 shrink basis-0 items-center gap-x-2" data-hs-stepper-nav-item='{"index": 4}'>
+                                                        <span class="group inline-flex w-full items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                            <span
+                                                                class="hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success hs-stepper-success:border-s-3 flex w-full shrink-0 items-center gap-2 rounded px-4 py-3 font-medium"
+                                                            >
+                                                                <i class="iconify tabler--users size-8"></i>
+                                                                <div>
+                                                                    <span class="block text-sm font-semibold">Parent Info</span>
+                                                                    <span class="text-2xs">Guardian details</span>
+                                                                </div>
+                                                            </span>
+                                                        </span>
+                                                    </li>
+
+                                                    <li class="group flex w-full flex-1 shrink basis-0 items-center gap-x-2" data-hs-stepper-nav-item='{"index": 5}'>
+                                                        <span class="group inline-flex w-full items-center align-middle text-xs focus:outline-hidden disabled:pointer-events-none disabled:opacity-50">
+                                                            <span
+                                                                class="hs-stepper-active:bg-default-50 hs-stepper-active:text-default-700 hs-stepper-success:bg-success/10 hs-stepper-success:border-success hs-stepper-success:text-success flex w-full shrink-0 items-center gap-2 rounded px-4 py-3 font-medium"
+                                                            >
+                                                                <i class="iconify tabler--folder-open size-8"></i>
+                                                                <div>
+                                                                    <span class="block text-sm font-semibold">Documents</span>
+                                                                    <span class="text-2xs">Upload certificates</span>
+                                                                </div>
+                                                            </span>
+                                                        </span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            <div class="border-default-300 col-span-1 rounded border border-dashed p-7.5 md:col-span-2">
+                                                <div>
+                                                    <div data-hs-stepper-content-item='{"index": 1}'>
+                                                        <div class="col-span-1 grid pb-base md:grid-cols-2 grid-cols-1 gap-base">
+                                                            <div>
+                                                                <label class="form-label">Full Name</label>
+                                                                <input type="text" class="form-input" placeholder="Enter your full name" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Email</label>
+                                                                <input type="email" class="form-input" placeholder="Enter your email" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Phone Number</label>
+                                                                <input type="phone" class="form-input" placeholder="Enter your phone number" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Date of Birth</label>
+                                                                <input type="date" class="form-input" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div data-hs-stepper-content-item='{"index": 2}' style="display: none">
+                                                        <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                            <div>
+                                                                <label class="form-label">Street Address</label>
+                                                                <input type="text" class="form-input" placeholder="123 Main St" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">City</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., New York" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">State</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., California" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Zip Code</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., 10001" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div data-hs-stepper-content-item='{"index": 3}' style="display: none">
+                                                        <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                            <div>
+                                                                <label class="form-label">Choose Course</label>
+                                                                <select class="form-select">
+                                                                    <option value="">Select</option>
+                                                                    <option value="Engineering">Engineering</option>
+                                                                    <option value="Medical">Medical</option>
+                                                                    <option value="Business">Business</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Enrollment Type</label>
+                                                                <select class="form-select">
+                                                                    <option value="">Select</option>
+                                                                    <option value="Full Time">Full Time</option>
+                                                                    <option value="Part Time">Part Time</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Preferred Batch Time</label>
+                                                                <select class="form-select">
+                                                                    <option value="">Select Time</option>
+                                                                    <option value="Morning">Morning (8am – 12pm)</option>
+                                                                    <option value="Afternoon">Afternoon (1pm – 5pm)</option>
+                                                                    <option value="Evening">Evening (6pm – 9pm)</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Mode of Study</label>
+                                                                <select class="form-select">
+                                                                    <option value="">Select Mode</option>
+                                                                    <option value="Offline">Offline</option>
+                                                                    <option value="Online">Online</option>
+                                                                    <option value="Hybrid">Hybrid</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div data-hs-stepper-content-item='{"index": 4}' style="display: none">
+                                                        <div class="col-span-1 grid pb-base md:grid-cols-2 gap-base">
+                                                            <div>
+                                                                <label class="form-label">Parent/Guardian Name</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., John Doe" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Relation</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., Father, Mother" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Parent Phone</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., +1 555 123 4567" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Parent Email</label>
+                                                                <input type="text" class="form-input" placeholder="e.g., parent&#64;example.com" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div data-hs-stepper-content-item='{"index": 5}' style="display: none">
+                                                        <div class="grid grid-cols-1 pb-base gap-base">
+                                                            <div>
+                                                                <label class="form-label">Upload ID Proof</label>
+                                                                <input type="file" name="file-input" class="form-input" />
+                                                            </div>
+
+                                                            <div>
+                                                                <label class="form-label">Upload Previous Marksheet</label>
+                                                                <input type="file" name="file-input" class="form-input" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="mt-5 flex flex-wrap items-center justify-between gap-2">
+                                                        <button type="button" class="btn bg-secondary w-full text-white md:w-auto" data-hs-stepper-back-btn="">← Back</button>
+
+                                                        <button type="button" class="btn bg-primary w-full text-white md:w-auto" data-hs-stepper-next-btn="">Next →</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <script type="module" src="assets/js/pages/form-wizard.js"></script>
+    </body>
+</html>

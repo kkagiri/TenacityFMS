@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Links" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Base UI" title="Links" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Base UI" title="Links" }}
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Colored Links</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        You can apply different colors to links to match your design and highlight important actions. These links include built-in hover and focus states to improve usability and visual feedback. Lighter-colored links should be used on dark
+                                        backgrounds to ensure proper contrast and accessibility.
+                                    </p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover">Primary link</a>
+                                        <a href="#" class="text-secondary hover:text-secondary-hover">Secondary link</a>
+                                        <a href="#" class="text-success hover:text-success-hover">Success link</a>
+                                        <a href="#" class="text-danger hover:text-danger-hover">Danger link</a>
+                                        <a href="#" class="text-warning hover:text-warning-hover">Warning link</a>
+                                        <a href="#" class="text-info hover:text-info-hover">Info link</a>
+                                        <a href="#" class="text-light hover:text-light-hover">Light link</a>
+                                        <a href="#" class="text-dark hover:text-dark-hover">Dark link</a>
+                                        <a href="#" class="text-default-700 hover:text-default-500">Emphasis link</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Link Utilities</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Colored link helpers have been updated to work seamlessly with our link utilities. Use these utilities to control link opacity, underline opacity, and underline offset.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover underline">Primary link</a>
+                                        <a href="#" class="text-secondary hover:text-secondary-hover underline">Secondary link</a>
+                                        <a href="#" class="text-success hover:text-success-hover underline">Success link</a>
+                                        <a href="#" class="text-danger hover:text-danger-hover underline">Danger link</a>
+                                        <a href="#" class="text-warning hover:text-warning-hover underline">Warning link</a>
+                                        <a href="#" class="text-info hover:text-info-hover underline">Info link</a>
+                                        <a href="#" class="text-light hover:text-light-hover underline">Light link</a>
+                                        <a href="#" class="text-dark hover:text-dark-hover underline">Dark link</a>
+                                        <a href="#" class="text-default-700 hover:text-default-500 underline">Emphasis link</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Link Opacity</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">You can adjust the transparency of link colors using utility options. Keep in mind that reducing opacity may result in links with insufficient contrast.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover opacity-10">Link opacity 10</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover opacity-25">Link opacity 25</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover opacity-50">Link opacity 50</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover opacity-75">Link opacity 75</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover opacity-100">Link opacity 100</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Link Hover Opacity</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">You can even change the opacity level on hover.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:opacity-10">Link opacity 10</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:opacity-25">Link opacity 25</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:opacity-50">Link opacity 50</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:opacity-75">Link opacity 75</a>
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:opacity-100">Link opacity 100</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Underline Color</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Change the underline’s color independent of the link text color.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="decoration-primary text-primary hover:text-primary-hover underline">Primary underline</a>
+                                        <a href="#" class="decoration-secondary text-primary hover:text-primary-hover underline">Secondary underline</a>
+                                        <a href="#" class="decoration-success text-primary hover:text-primary-hover underline">Success underline</a>
+                                        <a href="#" class="decoration-danger text-primary hover:text-primary-hover underline">Danger underline</a>
+                                        <a href="#" class="decoration-warning text-primary hover:text-primary-hover underline">Warning underline</a>
+                                        <a href="#" class="decoration-info text-primary hover:text-primary-hover underline">Info underline</a>
+                                        <a href="#" class="decoration-light text-primary hover:text-primary-hover underline">Light underline</a>
+                                        <a href="#" class="decoration-dark text-primary hover:text-primary-hover underline">Dark underline</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Underline Opacity</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Adjust the underline’s transparency to better match your design. Make sure an underline style is applied first so the opacity changes are visible.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="decoration-primary/0 text-primary hover:text-primary-hover underline">Underline opacity 0</a>
+                                        <a href="#" class="decoration-primary/15 text-primary hover:text-primary-hover underline">Underline opacity 10</a>
+                                        <a href="#" class="decoration-primary/25 text-primary hover:text-primary-hover underline">Underline opacity 25</a>
+                                        <a href="#" class="decoration-primary/50 text-primary hover:text-primary-hover underline">Underline opacity 50</a>
+                                        <a href="#" class="decoration-primary/75 text-primary hover:text-primary-hover underline">Underline opacity 75</a>
+                                        <a href="#" class="decoration-primary text-primary hover:text-primary-hover underline">Underline opacity 100</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Underline Offset</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Change the underline’s opacity to control its visual emphasis. An underline must be applied first so that opacity adjustments can take effect.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover">Default link</a>
+
+                                        <a href="#" class="text-primary hover:text-primary-hover underline">Offset 1 link</a>
+
+                                        <a href="#" class="text-primary hover:text-primary-hover underline">Offset 2 link</a>
+
+                                        <a href="#" class="text-primary hover:text-primary-hover underline">Offset 3 link</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Hover Variants</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">These link styling options also include hover states by default. Feel free to combine different settings to create unique and expressive link styles.</p>
+
+                                    <div class="flex flex-col gap-4">
+                                        <a href="#" class="text-primary hover:text-primary-hover hover:underline">Underline opacity 0</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

@@ -1,19 +1,22 @@
 .side-nav-outer-toolbar {
+  --sidenav-width: 235px;
+  --sidenav-width-sm: 75px;
+  --topbar-height: 65px;
   height: 100vh;
   width: 100%;
-  background: #f3f3f4;
+  background: #f6f7fb;
 
   .drawer {
-    height: calc(100vh - 56px);
+    height: calc(100vh - var(--topbar-height));
 
     .dx-drawer-panel-content {
-      background: linear-gradient(180deg, #2f4050 0%, #293846 100%);
-      border-right: 0;
-      box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+      background: #23303c;
+      border-right: 1px solid #23303c;
+      box-shadow: none;
     }
 
     .dx-drawer-content {
-      background: #f3f3f4;
+      background: #f6f7fb;
     }
   }
 
@@ -21,13 +24,13 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #f3f3f4;
+    background: #f6f7fb;
   }
 
   .layout-body {
     flex: 1;
     height: 100%;
-    background: #f3f3f4;
+    background: #f6f7fb;
   }
 
   .layout-body.with-footer {
@@ -38,22 +41,40 @@
       flex: 1;
       padding: 24px;
       overflow-y: auto;
-      background: #f3f3f4;
+      background: #f6f7fb;
     }
 
     .content-block {
       margin-top: auto;
       padding: 10px 24px 16px;
-      background: #f3f3f4;
+      background: #f6f7fb;
     }
   }
 
   .footer {
-    border-top: 1px solid #e7eaec;
-    color: #676a6c;
+    border-top: 1px solid #e7e9eb;
+    color: #6c757d;
     font-size: 12px;
     background: transparent;
     padding-top: 12px;
+  }
+}
+
+html[data-layout-width="boxed"] .side-nav-outer-toolbar {
+  max-width: 1340px;
+  margin: 0 auto;
+  box-shadow: 0 0 24px rgba(49, 58, 70, 0.12);
+}
+
+html[data-footer-position="fixed"] .side-nav-outer-toolbar {
+  .layout-body.with-footer {
+    .content-block {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      border-top: 1px solid #e7e9eb;
+      background: #ffffff;
+    }
   }
 }
 
@@ -64,7 +85,7 @@
 @media (max-width: 768px) {
   .side-nav-outer-toolbar {
     .drawer {
-      height: calc(100vh - 56px);
+      height: calc(100vh - var(--topbar-height));
     }
 
     .layout-body.with-footer {

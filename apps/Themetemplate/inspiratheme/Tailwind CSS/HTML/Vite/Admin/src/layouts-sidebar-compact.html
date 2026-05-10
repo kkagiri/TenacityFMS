@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-sidenav-size="compact">
+    <head>
+        {{> title-meta title="Compact Sidebar" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layout" title="Compact Sidebar" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layout" title="Compact Sidebar" }}
+
+                    <div class="container-fluid">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable the medium-sized (compact) sidebar, add
+                                <code>data-sidenav-size="compact"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag.
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

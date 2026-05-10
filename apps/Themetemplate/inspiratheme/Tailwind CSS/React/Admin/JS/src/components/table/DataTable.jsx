@@ -1,0 +1,58 @@
+import { cn } from '@/utils/helpers'
+import { flexRender } from '@tanstack/react-table'
+import clsx from 'clsx'
+import Icon from '../wrappers/Icon'
+const DataTable = ({ table, className = '', emptyMessage = 'Nothing found.', showHeaders = true }) => {
+  'use no memo'
+
+  const columns = table.getAllColumns()
+  return (
+    <div className={clsx('table-wrapper', className)}>
+      <table className="table table-hover">
+        {showHeaders && (
+          <thead className="thead-sm">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="bg-light/25 text-2xs uppercase">
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} onClick={header.column.getToggleSortingHandler()} className={cn('select-none', header.column.getCanSort() ? 'cursor-pointer' : 'cursor-default')}>
+                    <div
+                      className={cn('flex items-center', {
+                        'justify-center': header.column.columnDef.header === 'Actions',
+                      })}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanSort() &&
+                        ({
+                          asc: <Icon icon="arrow-up" className="ms-1" />,
+                          desc: <Icon icon="arrow-down" className="ms-1" />,
+                        }[header.column.getIsSorted()] ??
+                          null)}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+        )}
+        <tbody>
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={columns.length} className="text-center text-default-400 py-3">
+                {emptyMessage}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+export default DataTable

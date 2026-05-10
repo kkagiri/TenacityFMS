@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Vector Maps"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Maps", "title":"Vector"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Maps", "title":"Vector"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">World Vector Map</h4>
+                                    <p class="text-default-400">A global map showing countries with interactive markers.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="world-map-markers" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">World Vector Map</h4>
+                                    <p class="text-default-400">Live dynamic vector representation of the world with real-time features.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="world-map-markers-line" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">India Vector Map</h4>
+                                    <p class="text-default-400">Interactive vector map of the United States with state-level details.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="india-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">Canada Vector Map</h4>
+                                    <p class="text-default-400">Detailed vector map of India with region highlights.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="canada-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">Russia Vector Map</h4>
+                                    <p class="text-default-400">Vector visualization of Iraq highlighting provinces and regions.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="russia-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">US Vector Map</h4>
+                                    <p class="text-default-400">Geographical map of Spain with region-based interaction.</p>
+                                </div>
+                                <div class="card-body">
+                                    <div id="usa-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">Iraq Vector Map</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="iraq-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.75">Spain Vector Map</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="spain-vector-map" style="height: 360px"></div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- card end -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Vector Map Js -->
+        <script src="assets/plugins/jsvectormap/jsvectormap.min.js"></script>
+        <script src="assets/js/maps/world-merc.js"></script>
+        <script src="assets/js/maps/world.js"></script>
+
+        <script src="assets/js/maps/in-mill-en.js"></script>
+        <script src="assets/js/maps/canada.js"></script>
+        <script src="assets/js/maps/iraq.js"></script>
+        <script src="assets/js/maps/russia.js"></script>
+        <script src="assets/js/maps/spain.js"></script>
+        <script src="assets/js/maps/us-aea-en.js"></script>
+        <script src="assets/js/maps/us-lcc-en.js"></script>
+        <script src="assets/js/maps/us-mill-en.js"></script>
+
+        <!-- Vector Map Demo js-->
+        <script src="assets/js/pages/maps-vector.js"></script>
+    </body>
+</html>

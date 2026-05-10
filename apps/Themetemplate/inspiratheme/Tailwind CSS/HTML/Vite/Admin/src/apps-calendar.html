@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Calendar" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Calendar" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Apps" title="Calendar" }}
+
+                    <div class="container-fluid">
+                        <div class="flex lg:h-[calc(100vh-192px)]">
+                            <div class="card hidden lg:flex h-full">
+                                <div class="card-body">
+                                    <button class="btn bg-primary w-full text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="event-modal" data-hs-overlay="#event-modal">
+                                        <i class="iconify tabler--plus align-middle"></i>
+                                        Create New Event
+                                    </button>
+
+                                    <div id="external-events">
+                                        <p class="text-default-400 mt-2.5 mb-5 text-xs italic">Drag and drop your event or click in the calendar</p>
+
+                                        <div data-class="!text-primary" class="text-primary external-event fc-event bg-primary/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Design Review
+                                        </div>
+
+                                        <div data-class="!text-secondary" class="text-secondary external-event fc-event bg-secondary/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Marketing Strategy
+                                        </div>
+
+                                        <div data-class="!text-success" class="text-success external-event fc-event bg-success/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Sales Demo
+                                        </div>
+
+                                        <div data-class="!text-danger" class="text-danger external-event fc-event bg-danger/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Deadline Submission
+                                        </div>
+
+                                        <div data-class="!text-info" class="text-info external-event fc-event bg-info/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Training Session
+                                        </div>
+
+                                        <div data-class="!text-warning" class="text-warning external-event fc-event bg-warning/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Budget Review
+                                        </div>
+
+                                        <div data-class="!text-dark" class="text-dark external-event fc-event bg-dark/10 my-1.5 rounded px-4 py-2 font-semibold">
+                                            <i class="iconify tabler--circle-filled me-2"></i>
+                                            Board Meeting
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card flex-1 h-full">
+                                <div class="card-header inline-flex lg:hidden">
+                                    <button class="btn bg-primary w-full text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="event-modal" data-hs-overlay="#event-modal">
+                                        <i class="iconify tabler--plus align-middle"></i>
+                                        Create New Event
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="calendar"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+
+                <div id="event-modal" class="hs-overlay hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="event-modal-label">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 scale-95 opacity-0 ease-in-out transition-all duration-200 sm:max-w-lg sm:w-full m-3 sm:mx-auto min-h-[calc(100%-56px)] flex items-center">
+                        <div class="card w-full flex flex-col border border-default-200 shadow-2xs pointer-events-auto">
+                            <div class="card-header p-5">
+                                <h3 id="modal-title" class="font-semibold text-base text-default-800 dark:text-white">Create Event</h3>
+                                <button type="button" class="size-5 text-default-800" aria-label="Close" data-hs-overlay="#event-modal">
+                                    <span class="sr-only">Close</span>
+                                    <span data-icon="x" class="text-xl"></span>
+                                </button>
+                            </div>
+
+                            <form class="needs-validation" name="event-form" id="form-event" autocomplete="off">
+                                <div class="card-body">
+                                    <div class="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <label for="event-title" class="form-label">Event Name</label>
+                                            <input type="text" id="event-title" class="form-input" placeholder="Insert Event Name" required />
+                                        </div>
+
+                                        <div>
+                                            <label for="event-category" class="form-label">Category</label>
+                                            <select class="form-input flex items-center" name="event-category" id="event-category" required>
+                                                <option>Select Category</option>
+                                                <option selected value="!text-primary">Primary</option>
+                                                <option value="!text-success">Success</option>
+                                                <option value="!text-info">Info</option>
+                                                <option value="!text-warning">Warning</option>
+                                                <option value="!text-danger">Danger</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer flex gap-2 md:justify-end">
+                                    <button type="button" data-hs-overlay="#event-modal" id="btn-delete-event" class="btn bg-light hover:text-primary">Cancel</button>
+
+                                    <button type="submit" id="btn-save-event" class="btn bg-primary text-white hover:bg-primary-hover">Save</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/apps-calendar.js"></script>
+    </body>
+</html>

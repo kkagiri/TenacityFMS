@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Area Apexchart" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Area Apexchart" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Area Apexchart" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Area Chart</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-area" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Spline Area</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="spline-area" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Area Chart - Datetime X-axis</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="toolbar apex-toolbar">
+                                        <button data-range="1M" class="btn btn-sm bg-default-100 [.active]:bg-primary [.active]:text-white">1M</button>
+                                        <button data-range="6M" class="btn btn-sm bg-default-100 [.active]:bg-primary [.active]:text-white">6M</button>
+                                        <button data-range="1Y" class="btn btn-sm bg-default-100 active [.active]:bg-primary [.active]:text-white">1Y</button>
+                                        <button data-range="YTD" class="btn btn-sm bg-default-100 [.active]:bg-primary [.active]:text-white">YTD</button>
+                                        <button data-range="ALL" class="btn btn-sm bg-default-100 [.active]:bg-primary [.active]:text-white">ALL</button>
+                                    </div>
+                                    <div dir="ltr">
+                                        <div id="area-chart-datetime" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Area with Negative Values</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="area-chart-negative" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Selection - Github Style</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="area-chart-github" class="apex-charts"></div>
+                                        <div class="pt-2 pb-1">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <img src="/images/logo-sm.png" class="size-8 rounded" alt="file-image" />
+                                                <a href="javascript:void(0);" class="text-default-400 text-base font-bold">Inspinia</a>
+                                            </div>
+                                        </div>
+                                        <div id="area-chart-github2" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Stacked Area</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="stacked-area" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Irregular TimeSeries</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="area-timeSeries" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Area Chart with Null values</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="area-chart-nullvalues" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="https://apexcharts.com/samples/assets/github-data.js"></script>
+        <script type="module" src="https://apexcharts.com/samples/assets/irregular-data-series.js"></script>
+
+        <script type="module" src="assets/js/pages/chart-apex-area.js"></script>
+    </body>
+</html>

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Password Meter"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Plugins", "title":"Password Meter"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Plugins", "title":"Password Meter"})
+
+                    <div class="container">
+                        <div class="grid lg:grid-cols-2 gap-base">
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Progress Bar</h4>
+
+                                        <div>
+                                            <a href="#!" class="size-6 flex justify-center items-center rounded-full bg-light" data-action="card-toggle">
+                                                <i class="iconify tabler--chevron-up align-middle"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- end card header -->
+
+                                    <div class="card-body">
+                                        <!-- HTML -->
+                                        <input type="password" class="form-input mb-3" placeholder="Password" />
+                                        <div class="password-bar mb-3"></div>
+
+                                        <p class="text-default-400 text-2xs">Use 8 or more characters with a mix of letters, numbers & symbols.</p>
+                                    </div>
+                                </div>
+                                <!-- end card-body -->
+                            </div>
+                            <!-- end card -->
+
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Password Condition</h4>
+                                        <div>
+                                            <a href="#!" class="size-6 flex justify-center items-center rounded-full bg-light" data-action="card-toggle">
+                                                <i class="iconify tabler--chevron-up align-middle"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- end card header -->
+
+                                    <div class="card-body">
+                                        <!-- HTML -->
+                                        <div>
+                                            <label class="form-label hs-collapse-toggle" for="password-input" id="password-collapse-toggle" data-hs-collapse="#passwordBox">Magic Password ✨ (Click Here)</label>
+                                            <input type="password" class="form-input hs-collapse-toggle" placeholder="Enter password" id="password-input" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}" data-hs-collapse="#passwordBox" />
+
+                                            <div class="text-default-400 mt-1 text-2xs">Use 8 or more characters with a mix of letters, numbers & symbols.</div>
+
+                                            <div class="password-box hs-collapse hidden w-full overflow-hidden transition-[height] duration-300" id="passwordBox">
+                                                <div class="p-3">
+                                                    <h5 class="mb-2 text-sm">Password Recipe:</h5>
+                                                    <p id="pass-length" class="invalid fs-xs mb-2">
+                                                        Minimum
+                                                        <b>8 characters</b>
+                                                    </p>
+                                                    <p id="pass-lower" class="invalid fs-xs mb-2">
+                                                        At
+                                                        <b>lowercase</b>
+                                                        letter (a-z)
+                                                    </p>
+                                                    <p id="pass-upper" class="invalid fs-xs mb-2">
+                                                        At least
+                                                        <b>uppercase</b>
+                                                        letter (A-Z)
+                                                    </p>
+                                                    <p id="pass-number" class="invalid fs-xs">
+                                                        A least
+                                                        <b>number</b>
+                                                        (0-9)
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card -->
+                            </div>
+                            <!-- end col -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Passwod Meter Plugin Js -->
+        <script src="assets/js/pages/plugins-pass-meter.js"></script>
+    </body>
+</html>

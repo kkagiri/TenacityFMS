@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Timeline"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Timeline"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Timeline"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Timeline</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div>
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Just Now</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-3 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-primary ms-0.5 size-3.25 rounded-full"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Weekly Stand-Up Meeting</h5>
+                                                <p class="text-default-400 mb-1.25">Team members shared updates, discussed blockers, and aligned on weekly goals.</p>
+                                                <span class="text-primary font-semibold">By Olivia Rodriguez</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">10:00 AM, Tuesday</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-danger ms-0.5 size-3.25 rounded-full"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Project Kickoff</h5>
+                                                <p class="text-default-400 mb-1.25">Introduced project scope, goals, and assigned initial roles to team members.</p>
+                                                <span class="text-primary font-semibold">By Isabella Cooper</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Yesterday, 3:15 PM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-warning ms-0.5 size-3.25 rounded-full"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Design Review</h5>
+                                                <p class="text-default-400 mb-1.25">Reviewed initial UI mockups and gathered feedback for the next design iteration.</p>
+                                                <span class="text-primary font-semibold">By Ethan Murphy</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Monday, 1:00 PM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-info ms-0.5 size-3.25 rounded-full"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Client Feedback Session</h5>
+                                                <p class="text-default-400 mb-1.25">Discussed client feedback and agreed on key changes for the next sprint.</p>
+                                                <span class="text-primary font-semibold">By Liam Chen</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Last Friday, 4:30 PM</span>
+                                            </div>
+
+                                            <div>
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-secondary ms-0.5 size-3.25 rounded-full"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1">
+                                                <h5 class="mb-1.25">Code Deployment</h5>
+                                                <p class="text-default-400 mb-1.25">Successfully deployed the latest build to the staging environment.</p>
+                                                <span class="text-primary font-semibold">By Ava Thompson</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Timeline with Icons</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div>
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">5 mins ago</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-primary flex size-7.5 items-center justify-center rounded-full">
+                                                        <i class="iconify tabler--bug text-lg text-white"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Bug Fix Deployed</h5>
+                                                <p class="text-default-400 mb-1.25">Resolved a critical login issue affecting mobile users.</p>
+                                                <span class="text-primary font-semibold">By Marcus Bell</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Today, 9:00 AM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="flex size-7.5 items-center justify-center rounded-full bg-red-100">
+                                                        <i class="iconify tabler--phone-call text-danger text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Marketing Strategy Call</h5>
+                                                <p class="text-default-400 mb-1.25">Outlined Q2 goals and content plan for the product launch campaign.</p>
+                                                <span class="text-primary font-semibold">By Emily Davis</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Yesterday, 4:45 PM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-warning flex size-7.5 items-center justify-center rounded-full">
+                                                        <i class="iconify tabler--copy text-lg text-white"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Feature Planning Session</h5>
+                                                <p class="text-default-400 mb-1.25">Prioritized new features for the upcoming release based on user feedback.</p>
+                                                <span class="text-primary font-semibold">By Daniel Kim</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Tuesday, 11:30 AM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-0 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="flex size-7.5 items-center justify-center rounded-full bg-sky-100">
+                                                        <i class="iconify tabler--dashboard text-info text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">UI Enhancements Pushed</h5>
+                                                <p class="text-default-400 mb-1.25">Improved dashboard responsiveness and added dark mode support.</p>
+                                                <span class="text-primary font-semibold">By Sofia Martinez</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Last Thursday, 2:20 PM</span>
+                                            </div>
+
+                                            <div>
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="bg-secondary flex size-7.5 items-center justify-center rounded-full">
+                                                        <i class="iconify tabler--shield-lock text-lg text-white"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1">
+                                                <h5 class="mb-1.25">Security Audit Completed</h5>
+                                                <p class="text-default-400 mb-1.25">Reviewed backend API endpoints and applied new encryption standards.</p>
+                                                <span class="text-primary font-semibold">By Jonathan Lee</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Timeline with Border</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div>
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">10 mins ago</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="border-default-300 flex size-7.5 items-center justify-center rounded-full border border-dashed">
+                                                        <i class="iconify tabler--rocket text-default-400 text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">New Feature Released</h5>
+                                                <p class="text-default-400 mb-1.25">Launched the real-time chat feature across all user accounts.</p>
+                                                <span class="text-primary font-semibold">By Natalie Brooks</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Today, 11:15 AM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="border-default-300 flex size-7.5 items-center justify-center rounded-full border border-dashed">
+                                                        <i class="iconify tabler--calendar-event text-default-400 text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Team Sync-Up</h5>
+                                                <p class="text-default-400 mb-1.25">Reviewed sprint progress and discussed remaining tasks.</p>
+                                                <span class="text-primary font-semibold">By Oliver Grant</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Yesterday, 2:40 PM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="border-default-300 flex size-7.5 items-center justify-center rounded-full border border-dashed">
+                                                        <i class="iconify tabler--palette text-default-400 text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">UI Design Review</h5>
+                                                <p class="text-default-400 mb-1.25">Refined component spacing and color scheme for better accessibility.</p>
+                                                <span class="text-primary font-semibold">By Clara Jensen</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Tuesday, 3:30 PM</span>
+                                            </div>
+
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="border-default-300 flex size-7.5 items-center justify-center rounded-full border border-dashed">
+                                                        <i class="iconify tabler--database text-default-400 text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Database Optimization</h5>
+                                                <p class="text-default-400 mb-1.25">Refactored queries to reduce API response times by 35%.</p>
+                                                <span class="text-primary font-semibold">By Leo Armstrong</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="w-15 text-end md:w-25">
+                                                <span class="text-default-400">Last Thursday, 5:00 PM</span>
+                                            </div>
+
+                                            <div>
+                                                <div class="relative z-10 flex items-center justify-center">
+                                                    <div class="border-default-300 flex size-7.5 items-center justify-center rounded-full border border-dashed">
+                                                        <i class="iconify tabler--lock text-default-400 text-lg"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1">
+                                                <h5 class="mb-1.25">Compliance Check Passed</h5>
+                                                <p class="text-default-400 mb-1.25">Successfully passed GDPR compliance audit with zero violations.</p>
+                                                <span class="text-primary font-semibold">By Mia Thompson</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Timeline with Users</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div>
+                                        <div class="flex gap-x-base">
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10">
+                                                    <img src="assets/images/users/user-1.jpg" alt="avatar-1" class="size-7.5 rounded-full" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Dashboard Revamp Completed</h5>
+                                                <p class="text-default-400 mb-1.25">The new layout and theme for the analytics dashboard have been deployed.</p>
+                                                <span class="text-primary font-semibold">By Emma Carter</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10">
+                                                    <img src="assets/images/users/user-2.jpg" alt="avatar-2" class="size-7.5 rounded-full" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Onboarding Guide Published</h5>
+                                                <p class="text-default-400 mb-1.25">Uploaded the latest documentation to help new users get started quickly.</p>
+                                                <span class="text-primary font-semibold">By Noah Mitchell</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10">
+                                                    <img src="assets/images/users/user-3.jpg" alt="avatar-3" class="size-7.5 rounded-full" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Performance Improvements</h5>
+                                                <p class="text-default-400 mb-1.25">Reduced page load time by optimizing image assets and scripts.</p>
+                                                <span class="text-primary font-semibold">By Ava Morgan</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-8 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                <div class="relative z-10">
+                                                    <img src="assets/images/users/user-4.jpg" alt="avatar-4" class="size-7.5 rounded-full" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1 pb-7.5">
+                                                <h5 class="mb-1.25">Security Patch Released</h5>
+                                                <p class="text-default-400 mb-1.25">Patched a vulnerability related to token expiration in the API.</p>
+                                                <span class="text-primary font-semibold">By James Parker</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex gap-x-base">
+                                            <div>
+                                                <div class="relative z-10">
+                                                    <img src="assets/images/users/user-5.jpg" alt="avatar-5" class="size-7.5 rounded-full" />
+                                                </div>
+                                            </div>
+
+                                            <div class="flex-1">
+                                                <h5 class="mb-1.25">Client Training Session</h5>
+                                                <p class="text-default-400 mb-1.25">Hosted a live training session with 30+ clients on the new reporting tools.</p>
+                                                <span class="text-primary font-semibold">By Sophia Bennett</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

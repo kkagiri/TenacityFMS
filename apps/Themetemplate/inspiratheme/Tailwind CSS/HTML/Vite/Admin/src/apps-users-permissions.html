@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Permissions" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Pages" title="Permissions" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Pages" title="Permissions" }}
+
+                    <div class="container">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <div class="input-icon-group">
+                                    <i class="iconify tabler--search input-icon"></i>
+                                    <input type="search" placeholder="Search permissions..." class="form-input" />
+                                </div>
+
+                                <div>
+                                    <select data-table-set-rows-per-page class="form-select">
+                                        <option value="5">5</option>
+                                        <option value="8">8</option>
+                                        <option value="10">10</option>
+                                        <option value="15">15</option>
+                                        <option value="20">20</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="thead-sm bg-light/25 text-2xs uppercase">
+                                            <th data-table-sort>Name</th>
+                                            <th>Assign To</th>
+                                            <th data-table-sort>Created Date</th>
+                                            <th data-table-sort>Users</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>User Management</td>
+                                            <td>
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                            </td>
+                                            <td>
+                                                24 Jun 2025,
+                                                <small class="text-default-400 text-sm">6:43 am</small>
+                                            </td>
+                                            <td>12</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Content Management</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-danger/15 text-danger">Developer</span>
+                                                <span class="badge badge-label bg-primary/15 text-primary">Analyst</span>
+                                                <span class="badge badge-label bg-secondary/15 text-secondary">Support</span>
+                                                <span class="badge badge-label bg-warning/15 text-warning">Trial</span>
+                                            </td>
+                                            <td>
+                                                21 Feb 2025,
+                                                <small class="text-default-400 text-sm">11:05 am</small>
+                                            </td>
+                                            <td>5</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Financial Management</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-info/15 text-info">Analyst</span>
+                                            </td>
+                                            <td>
+                                                24 Jun 2025,
+                                                <small class="text-default-400 text-sm">5:30 pm</small>
+                                            </td>
+                                            <td>8</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Reporting</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-info/15 text-info">Analyst</span>
+                                            </td>
+                                            <td>
+                                                21 Feb 2025,
+                                                <small class="text-default-400 text-sm">5:20 pm</small>
+                                            </td>
+                                            <td>6</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Payroll</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-info/15 text-info">Analyst</span>
+                                            </td>
+                                            <td>
+                                                20 Jun 2025,
+                                                <small class="text-default-400 text-sm">6:05 pm</small>
+                                            </td>
+                                            <td>4</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Disputes Management</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-danger/15 text-danger">Developer</span>
+                                                <span class="badge badge-label bg-secondary/15 text-secondary">Support</span>
+                                            </td>
+                                            <td>
+                                                24 Jun 2025,
+                                                <small class="text-default-400 text-sm">5:20 pm</small>
+                                            </td>
+                                            <td>7</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Audit Logs</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                            </td>
+                                            <td>
+                                                23 Jun 2025,
+                                                <small class="text-default-400 text-sm">4:00 pm</small>
+                                            </td>
+                                            <td>9</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>API Access</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-warning/15 text-warning">Trial</span>
+                                                <span class="badge badge-label bg-info/15 text-info">DevOps</span>
+                                            </td>
+                                            <td>
+                                                22 Jun 2025,
+                                                <small class="text-default-400 text-sm">2:35 pm</small>
+                                            </td>
+                                            <td>3</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Notification Center</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-info/15 text-info">Support</span>
+                                            </td>
+                                            <td>
+                                                22 Jun 2025,
+                                                <small class="text-default-400 text-sm">8:45 am</small>
+                                            </td>
+                                            <td>2</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>Access Logs</td>
+                                            <td class="space-x-1 px-2.25 py-3">
+                                                <span class="badge badge-label bg-primary/15 text-primary">Administrator</span>
+                                                <span class="badge badge-label bg-secondary/15 text-secondary">Support</span>
+                                            </td>
+                                            <td>
+                                                19 Jun 2025,
+                                                <small class="text-default-400 text-sm">6:10 pm</small>
+                                            </td>
+                                            <td>5</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="permissions"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

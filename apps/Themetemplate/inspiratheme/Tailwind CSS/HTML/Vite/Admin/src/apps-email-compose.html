@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="New Email (Compose)" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="New Email (Compose)" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main class="pb-0!">
+                    {{> page-title subtitle="Apps" title="New Email (Compose)" }}
+
+                    <div class="container-fluid">
+                        <div class="lg:flex lg:h-[calc(100vh-190px)]">
+                            <div class="card h-full">
+                                <div
+                                    id="emailSidebaroffcanvas"
+                                    class="hs-overlay hs-overlay-open:translate-x-0 rounded fixed start-0 top-0 bottom-0 z-50 hidden bg-card h-full w-56.5 -translate-x-full transform transition-all duration-300 [--auto-close:lg] lg:static lg:end-auto lg:bottom-0 lg:block! lg:translate-x-0"
+                                    role="dialog"
+                                    tabindex="-1"
+                                    aria-label="Sidebar"
+                                >
+                                    <div class="card-body h-full" data-simplebar>
+                                        <a href="apps-email-compose.html" class="btn w-full bg-danger text-white hover:bg-danger-hover">Back to Inbox</a>
+
+                                        <div class="mt-5">
+                                            <div class="flex flex-col">
+                                                <a href="apps-email-inbox.html" class="bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--inbox text-base align-middle"></i>
+                                                    <span class="align-middle">Inbox</span>
+                                                    <span class="ms-auto badge text-2xs bg-danger/15 text-danger font-semibold">21</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--send-2 text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Sent</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--star text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Starred</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--clock text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Scheduled</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--pencil text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Drafts</span>
+                                                    <span class="ms-auto badge bg-secondary/15 text-secondary font-semibold text-2xs">9</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--alert-circle text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Important</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--ban text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Spam</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--trash text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Trash</span>
+                                                </a>
+                                            </div>
+
+                                            <div class="mt-2.5">
+                                                <div class="text-default-800 px-3 py-2 text-sm font-medium tracking-wider">Labels</div>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-primary align-middle text-sm"></i>
+                                                    <span class="align-middle">Business</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-secondary align-middle text-sm"></i>
+                                                    <span class="align-middle">Personal</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-info align-middle text-sm"></i>
+                                                    <span class="align-middle">Friends</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-warning align-middle text-sm"></i>
+                                                    <span class="align-middle">Family</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-full min-w-0 flex-1">
+                                <div class="card h-full rounded-none">
+                                    <div class="card-header lg:hidden">
+                                        <button class="btn btn-icon border-default-300 rounded border">
+                                            <i class="iconify tabler--menu-4 text-default-600 size-6" aria-haspopup="dialog" aria-expanded="false" aria-controls="emailSidebaroffcanvas" aria-label="Toggle navigation" data-hs-overlay="#emailSidebaroffcanvas"></i>
+                                        </button>
+
+                                        <div class="input-icon-group lg:hidden inline-flex">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input data-table-search type="text" class="form-input" placeholder="Search mails..." />
+                                        </div>
+                                    </div>
+
+                                    <div class="card-header">
+                                        <h4 class="card-title">Compose Message</h4>
+                                    </div>
+
+                                    <div class="lg:h-[calc(100vh-270px)] h-[calc(100vh-360px)]" data-simplebar data-simplebar-md>
+                                        <div class="card-body border-default-300 border-b border-dashed py-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <span class="text-sm font-semibold">To:</span>
+                                                    <input type="text" class="form-input border-0! focus:border-0!" placeholder="Enter emails.." />
+                                                </div>
+
+                                                <div class="flex gap-4">
+                                                    <button type="button" class="hs-collapse-toggle underline disabled:pointer-events-none disabled:opacity-50" id="email-cc" aria-expanded="false" aria-controls="email-cc-heading" data-hs-collapse="#email-cc-heading">Cc</button>
+
+                                                    <button type="button" class="hs-collapse-toggle underline disabled:pointer-events-none disabled:opacity-50" id="email-bcc" aria-expanded="false" aria-controls="email-bcc-heading" data-hs-collapse="#email-bcc-heading">
+                                                        Bcc
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-between">
+                                            <div id="email-cc-heading" class="hs-collapse card-body border-default-300 hidden w-full overflow-hidden border-b border-dashed py-4! transition-[height] duration-300" aria-labelledby="email-cc">
+                                                <div class="flex items-center">
+                                                    <span class="text-sm font-semibold">Cc:</span>
+                                                    <input type="text" class="form-input border-0! py-3 focus:border-0!" placeholder="Enter emails.." />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-between">
+                                            <div id="email-bcc-heading" class="hs-collapse card-body border-default-300 hidden w-full overflow-hidden border-b border-dashed py-4! transition-[height] duration-300" aria-labelledby="email-bcc">
+                                                <div class="flex items-center">
+                                                    <span class="text-sm font-semibold">Bcc:</span>
+                                                    <input type="text" class="form-input border-0! py-3 focus:border-0!" placeholder="Enter emails.." />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-body py-3 border-default-300 border-b border-dashed">
+                                            <div class="flex items-center justify-start">
+                                                <input type="text" class="form-input border-0! focus:border-0! font-semibold ps-0" placeholder="Subject" />
+                                            </div>
+                                        </div>
+
+                                        <div class="email-editor">
+                                            <div id="snow-editor">
+                                                <p>
+                                                    Hi
+                                                    <strong>
+                                                        <em>James</em>
+                                                    </strong>
+                                                    ,
+                                                </p>
+
+                                                <p>I hope you're doing well.</p>
+                                                <p>I'm reaching out regarding the latest updates on our project. Please find the summary below:</p>
+                                                <ul>
+                                                    <li>All UI components have been reviewed and finalized.</li>
+                                                    <li>The mobile responsiveness is now optimized across all breakpoints.</li>
+                                                    <li>We’re awaiting final client feedback before deployment.</li>
+                                                </ul>
+                                                <p>Let me know if you need anything else or if there's anything you'd like us to adjust.</p>
+                                                <p><br /></p>
+                                                <p>Best regards,</p>
+                                                <p><em>Damian</em></p>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-light/15 border-light border-b p-2.5">
+                                            <div class="flex items-center justify-between gap-1.25">
+                                                <div class="inline-flex">
+                                                    <button type="button" class="btn bg-primary hover:bg-primary-hover relative rounded-e-none! text-white">
+                                                        <i class="iconify tabler--send-2 text-base"></i>
+                                                        Send
+                                                    </button>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-left]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon bg-primary/85 hover:bg-primary-hover relative rounded-s-none! text-white">
+                                                            <i class="iconify tabler--chevron-down text-base"></i>
+                                                        </button>
+
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <a class="dropdown-item" href="#">Send & Archive</a>
+                                                            <a class="dropdown-item" href="#">Schedule Send</a>
+                                                            <a class="dropdown-item" href="#">Save as Draft</a>
+                                                            <hr class="dropdown-divider" />
+                                                            <a class="dropdown-item" href="#">Discard</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex gap-1.25">
+                                                    <span class="hs-tooltip inline-block [--placement:top]">
+                                                        <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-200 size-7.75!">
+                                                            <i class="iconify tabler--settings text-sm"></i>
+                                                            <span
+                                                                class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity"
+                                                                role="tooltip"
+                                                                >Settings</span
+                                                            >
+                                                        </button>
+                                                    </span>
+
+                                                    <span class="hs-tooltip inline-block [--placement:top]">
+                                                        <button type="button" class="hs-tooltip-toggle btn btn-icon bg-danger/15 text-danger hover:bg-danger size-7.75! hover:text-white">
+                                                            <i class="iconify tabler--trash text-sm"></i>
+                                                            <span
+                                                                class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded px-2 py-1 text-xs font-medium text-white opacity-0 transition-opacity"
+                                                                role="tooltip"
+                                                                >Delete</span
+                                                            >
+                                                        </button>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/apps-email-compose.js"></script>
+    </body>
+</html>

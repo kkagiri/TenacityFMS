@@ -48,6 +48,7 @@
     <ProjectReference Include="..\..\packages\FMS.Application\FMS.Application.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Domain\FMS.Domain.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\packages\FMS.Reporting\FMS.Reporting.csproj" />
     <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Devices.Fueling\FMS.Devices.Fueling.csproj" />
   </ItemGroup>

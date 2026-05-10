@@ -1,0 +1,177 @@
+import product1 from '@/assets/images/products/1.png'
+import product10 from '@/assets/images/products/10.png'
+import product2 from '@/assets/images/products/2.png'
+import product3 from '@/assets/images/products/3.png'
+import product4 from '@/assets/images/products/4.png'
+import product5 from '@/assets/images/products/5.png'
+import product6 from '@/assets/images/products/6.png'
+import product7 from '@/assets/images/products/7.png'
+import product8 from '@/assets/images/products/8.png'
+import product9 from '@/assets/images/products/9.png'
+export const productStockData = [
+  {
+    product: {
+      name: 'Smart LED TV 55"',
+      supplier: 'VisionTech',
+      image: product1,
+    },
+    sku: 'STK-1001',
+    category: 'Electronics',
+    availableStock: 320,
+    lowStock: 24,
+    price: '$749.0',
+    status: 'in-stock',
+    date: '08 Oct, 2025',
+    time: '10:30 AM',
+  },
+  {
+    product: {
+      name: 'Wireless Noise Cancel Headphones',
+      supplier: 'SoundMax',
+      image: product2,
+    },
+    sku: 'STK-1002',
+    category: 'Audio',
+    availableStock: 220,
+    lowStock: 15,
+    price: '$199.0',
+    status: 'in-stock',
+    date: '07 Oct, 2025',
+    time: '02:45 PM',
+  },
+  {
+    product: {
+      name: 'Ergonomic Office Chair',
+      supplier: 'ComfortLine',
+      image: product3,
+    },
+    sku: 'STK-1003',
+    category: 'Furniture',
+    availableStock: 0,
+    lowStock: 0,
+    price: '$249.0',
+    status: 'out-of-stock',
+    date: '06 Oct, 2025',
+    time: '09:10 AM',
+  },
+  {
+    product: {
+      name: 'Smartphone 12 Pro',
+      supplier: 'TechNova',
+      image: product4,
+    },
+    sku: 'STK-1004',
+    category: 'Mobiles',
+    availableStock: 510,
+    lowStock: 30,
+    price: '$999.0',
+    status: 'in-stock',
+    date: '05 Oct, 2025',
+    time: '04:00 PM',
+  },
+  {
+    product: {
+      name: 'Bluetooth Speaker Mini',
+      supplier: 'AudioPro',
+      image: product5,
+    },
+    sku: 'STK-1005',
+    category: 'Audio',
+    availableStock: 420,
+    lowStock: 25,
+    price: '$79.0',
+    status: 'in-stock',
+    date: '04 Oct, 2025',
+    time: '01:20 PM',
+  },
+  {
+    product: {
+      name: 'Portable Air Cooler',
+      supplier: 'CoolWave',
+      image: product6,
+    },
+    sku: 'STK-1006',
+    category: 'Appliances',
+    availableStock: 85,
+    lowStock: 8,
+    price: '$129.0',
+    status: 'low-stock',
+    date: '03 Oct, 2025',
+    time: '11:05 AM',
+  },
+  {
+    product: {
+      name: 'Gaming Laptop GTX 4070',
+      supplier: 'ByteForce',
+      image: product7,
+    },
+    sku: 'STK-1007',
+    category: 'Computers',
+    availableStock: 90,
+    lowStock: 6,
+    price: '$1899.0',
+    status: 'in-stock',
+    date: '02 Oct, 2025',
+    time: '05:15 PM',
+  },
+  {
+    product: {
+      name: 'Wireless Mouse Pro',
+      supplier: 'ClickTech',
+      image: product8,
+    },
+    sku: 'STK-1008',
+    category: 'Accessories',
+    availableStock: 410,
+    lowStock: 20,
+    price: '$49.0',
+    status: 'in-stock',
+    date: '01 Oct, 2025',
+    time: '03:40 PM',
+  },
+  {
+    product: {
+      name: '4K Action Camera',
+      supplier: 'VisionGo',
+      image: product9,
+    },
+    sku: 'STK-1009',
+    category: 'Cameras',
+    availableStock: 155,
+    lowStock: 12,
+    price: '$349.0',
+    status: 'in-stock',
+    date: '30 Sep, 2025',
+    time: '01:20 PM',
+  },
+  {
+    product: {
+      name: 'Smart Fitness Watch',
+      supplier: 'FitLife',
+      image: product10,
+    },
+    sku: 'STK-1010',
+    category: 'Wearables',
+    availableStock: 240,
+    lowStock: 18,
+    price: '$149.0',
+    status: 'in-stock',
+    date: '29 Sep, 2025',
+    time: '10:45 AM',
+  },
+  {
+    product: {
+      name: 'Cordless Vacuum Cleaner',
+      supplier: 'CleanHome',
+      image: product3,
+    },
+    sku: 'STK-1011',
+    category: 'Home Appliances',
+    availableStock: 25,
+    lowStock: 5,
+    price: '$249.0',
+    status: 'low-stock',
+    date: '28 Sep, 2025',
+    time: '09:30 AM',
+  },
+]

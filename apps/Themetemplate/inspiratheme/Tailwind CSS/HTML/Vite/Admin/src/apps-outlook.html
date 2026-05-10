@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Outlook View" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Outlook View" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main class="pb-0!">
+                    {{> page-title subtitle="Apps" title="Outlook View" }}
+
+                    <div class="container-fluid">
+                        <div class="flex lg:gap-1.25 h-[calc(100vh-200px)]">
+                            <div
+                                id="outlookSidebaroffcanvas"
+                                class="hs-overlay hs-overlay-open:translate-x-0 fixed start-0 top-0 bottom-0 z-70 h-full w-70 -translate-x-full transform transition-all duration-300 [--auto-close:lg] lg:static lg:end-auto lg:bottom-0 lg:block! lg:translate-x-0"
+                                role="dialog"
+                                tabindex="-1"
+                                aria-label="Sidebar"
+                            >
+                                <div class="card lg:h-[calc(100vh-200px)] h-full rounded-none" data-simplebar>
+                                    <nav class="divide-default-300 flex flex-col divide-y" aria-label="Tabs" role="tablist" aria-orientation="vertical">
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-1" aria-selected="true" data-hs-tab="#outlook-tab-1" aria-controls="outlook-tab-1" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Emily Carter</span>
+                                                <small class="text-default-400 float-end text-2xs">12.04.2025</small>
+                                            </span>
+                                            <span class="text-default-400 mb-2.5 block text-xs">Completed your project milestone and uploaded the final report to the shared folder.</span>
+                                            <span class="flex justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map-pin"></i>
+                                                    New Haven, CT
+                                                </span>
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 active p-5" id="outlook-view-2" aria-selected="true" data-hs-tab="#outlook-tab-2" aria-controls="outlook-tab-2" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Marcus Lee</span>
+                                                <small class="text-default-400 float-end text-2xs">10.04.2025</small>
+                                            </span>
+                                            <span class="text-default-400 mb-2.5 block text-xs">Scheduled a team sync for next Monday to review current backlog and sprint goals.</span>
+                                            <span class="flex justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map"></i>
+                                                    San Francisco, CA
+                                                </span>
+                                                <button class="badge badge-label font-semibold bg-primary text-white">Special</button>
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-3" aria-selected="false" data-hs-tab="#outlook-tab-3" aria-controls="outlook-tab-3" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Natalie Brooks</span>
+                                                <small class="text-default-400 text-2xs">08.04.2025</small>
+                                            </span>
+
+                                            <span class="text-default-400 mb-2.5 block text-xs">Sent over the feedback for your design proposal. Waiting on final tweaks.</span>
+
+                                            <span class="flex items-center gap-1">
+                                                <i class="iconify tabler--map"></i>
+                                                Austin, TX
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-4" aria-selected="false" data-hs-tab="#outlook-tab-4" aria-controls="outlook-tab-4" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Daniel Kim</span>
+                                                <small class="text-default-400 text-2xs">07.04.2025</small>
+                                            </span>
+
+                                            <span class="text-default-400 mb-2.5 block text-xs">Submitted the final invoice for Q1 deliverables. Let me know if anything's missing.</span>
+
+                                            <span class="flex justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map-pin"></i>
+                                                    Seattle, WA
+                                                </span>
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-5" aria-selected="false" data-hs-tab="#outlook-tab-5" aria-controls="outlook-tab-5" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Amelia Ross</span>
+                                                <small class="text-default-400 text-2xs">06.04.2025</small>
+                                            </span>
+
+                                            <span class="text-default-400 mb-2.5 block text-xs">Your access to the internal beta environment has been approved. Welcome aboard!</span>
+
+                                            <span class="flex justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map"></i>
+                                                    Denver, CO
+                                                </span>
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-6" aria-selected="false" data-hs-tab="#outlook-tab-6" aria-controls="#outlook-tab-6" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Jason Park</span>
+                                                <small class="text-default-400 text-2xs">05.04.2025</small>
+                                            </span>
+
+                                            <span class="text-default-400 mb-2.5 block text-xs">Please review the attached contract and let me know if you'd like to make edits.</span>
+
+                                            <span class="flex justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map-pin"></i>
+                                                    Boston, MA
+                                                </span>
+                                            </span>
+                                        </a>
+
+                                        <a href="#" class="hs-tab-active:bg-light/45 p-5" id="outlook-view-7" aria-selected="false" data-hs-tab="#outlook-tab-7" aria-controls="outlook-tab-7" role="tab">
+                                            <span class="flex items-center justify-between mb-1.25">
+                                                <span class="text-sm font-semibold">Sophia White</span>
+                                                <small class="text-default-400 text-2xs">03.04.2025</small>
+                                            </span>
+
+                                            <span class="text-default-400 mb-2.5 block text-xs">Reminder: Your subscription will renew in 3 days. Update billing details if needed.</span>
+
+                                            <span class="flex items-center justify-between">
+                                                <span class="flex items-center gap-1">
+                                                    <i class="iconify tabler--map"></i>
+                                                    Miami, FL
+                                                </span>
+
+                                                <span class="badge badge-label font-semibold bg-warning text-white">Reminder</span>
+                                            </span>
+                                        </a>
+                                    </nav>
+                                </div>
+                            </div>
+
+                            <div class="card h-full min-w-0 flex-1">
+                                <div class="card-header lg:hidden">
+                                    <div class="text-start">
+                                        <button class="btn btn-sm btn-icon border-default-300" aria-haspopup="dialog" aria-expanded="false" aria-controls="outlookSidebaroffcanvas" aria-label="Toggle navigation" data-hs-overlay="#outlookSidebaroffcanvas">
+                                            <i class="iconify tabler--menu-4 text-default-600 text-2xl"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="card-body h-[calc(100vh-200px)]" data-simplebar>
+                                    <div id="outlook-tab-1" role="tabpanel" class="hidden" aria-labelledby="outlook-view-1">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Tuesday, 16 April 2025, 11:48 AM
+                                                </div>
+                                                <h2 class="mb-5 text-lg">Potential Partnership Opportunity</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400 text-sm">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Hello Maria,</p>
+
+                                        <p class="mb-4">I hope you're well. I'm reaching out to explore a potential partnership between our teams. We've been following your recent product launches and believe there's strong synergy between our platforms.</p>
+
+                                        <p class="mb-4">We'd love to schedule a quick 30-minute call next week to discuss how we might collaborate on upcoming campaigns. Please let me know what your availability looks like.</p>
+
+                                        <p class="mb-4">Looking forward to your thoughts.</p>
+
+                                        <p class="italic">
+                                            <strong>
+                                                Best,
+                                                <br />
+                                                David Lee
+                                            </strong>
+                                            <br />
+                                            Business Development Lead
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" id="form-control-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-2" role="tabpanel" aria-labelledby="outlook-view-2">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Thursday, 18 April 2025, 2:15 PM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">Project Feedback & Next Steps</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Hi Jason,</p>
+
+                                        <p class="mb-4">
+                                            Thank you for sharing the latest draft of the landing page. The new layout looks clean and intuitive, especially the improvements made to the hero section and the pricing table. I also appreciated how responsive the mobile version
+                                            feels.
+                                        </p>
+
+                                        <p class="mb-4">Here are a few suggestions to consider before we proceed with deployment:</p>
+
+                                        <ul class="ms-8 mb-4 list-disc">
+                                            <li>Update the CTA button color to match our brand palette (#3A86FF).</li>
+                                            <li>Replace the placeholder text in the testimonial section with actual client feedback.</li>
+                                            <li>Add a subtle animation to the "Features" icons on hover.</li>
+                                        </ul>
+
+                                        <p class="mb-4">Once these changes are in place, we can finalize the QA pass and move on to staging. Let me know if you need any additional assets or approvals on my end.</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Best regards,
+                                                <br />
+                                                Stephanie Harris
+                                            </strong>
+                                            <br />
+                                            Senior Product Manager
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-3" role="tabpanel" class="hidden" aria-labelledby="outlook-view-3">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Friday, 19 April 2025, 9:22 AM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">Invoice #INV-1043 Due Soon</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Dear Ms. Patel,</p>
+
+                                        <p class="mb-4">
+                                            This is a gentle reminder that invoice
+                                            <strong>#INV-1043</strong>
+                                            for your March 2025 subscription will be due on
+                                            <strong>April 22, 2025</strong>
+                                            .
+                                        </p>
+
+                                        <p class="mb-4">Kindly ensure the payment is processed before the due date to avoid any disruption of services. You can view and pay the invoice via your account dashboard.</p>
+
+                                        <p class="mb-4">If you've already made the payment, please disregard this email.</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Kind regards,
+                                                <br />
+                                                Emily Zhang
+                                            </strong>
+                                            <br />
+                                            Finance Team – CloudCore Solutions
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-4" role="tabpanel" class="hidden" aria-labelledby="outlook-view-4">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Wednesday, 17 April 2025, 3:15 PM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">We'd love your feedback!</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Hi Jordan,</p>
+
+                                        <p class="mb-4">We hope you're enjoying your experience with TaskFlow Pro. We'd really appreciate it if you could take 2 minutes to share your thoughts with us.</p>
+
+                                        <p class="mb-4">Your feedback helps us make TaskFlow better for everyone. Let us know what features you love and what we could improve.</p>
+
+                                        <p class="mb-4">Thanks for being part of our community!</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Cheers,
+                                                <br />
+                                                Nicole Ray
+                                            </strong>
+                                            <br />
+                                            Customer Experience – TaskFlow Pro
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-5" role="tabpanel" class="hidden" aria-labelledby="outlook-view-5">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Saturday, 20 April 2025, 5:42 PM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">Your support ticket #45782 has been resolved</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Hello Elias,</p>
+
+                                        <p class="mb-4">We're pleased to inform you that your support ticket (#45782) regarding API rate limits has been resolved.</p>
+
+                                        <p class="mb-4">The issue was caused by a misconfigured webhook, which we've now fixed on our end. Please feel free to test your integration again.</p>
+
+                                        <p class="mb-4">If you experience any further issues, don't hesitate to reach out.</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Best regards,
+                                                <br />
+                                                Technical Support Team
+                                            </strong>
+                                            <br />
+                                            Apex Cloud Systems
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-6" role="tabpanel" class="hidden" aria-labelledby="outlook-view-6">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Friday, 19 April 2025, 9:15 AM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">Please review the attached contract</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Hi Elias,</p>
+
+                                        <p class="mb-4">I’ve attached the revised version of the partnership agreement we discussed during last week’s call. Please take a moment to review and let me know if you'd like to propose any changes.</p>
+
+                                        <p class="mb-4">Once approved, we can move forward with signatures and onboarding.</p>
+
+                                        <p class="mb-4">Looking forward to your feedback.</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Best,
+                                                <br />
+                                                Jason Park
+                                            </strong>
+                                            <br />
+                                            Contracts & Legal Affairs
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div id="outlook-tab-7" role="tabpanel" class="hidden" aria-labelledby="outlook-view-7">
+                                        <div class="mb-5 flex flex-wrap items-start justify-between md:mb-0">
+                                            <div>
+                                                <div class="text-default-400 mb-2.5">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    Wednesday, 17 April 2025, 2:10 PM
+                                                </div>
+
+                                                <h2 class="mb-5 text-lg">Upcoming Subscription Renewal Notice</h2>
+                                            </div>
+
+                                            <div class="flex items-center gap-1">
+                                                <div class="hs-tooltip flex [--placement:left]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-sm border-default-300 text-default-800 hover:border-default-400">
+                                                            <i class="iconify tabler--plug"></i>
+                                                            Plug it
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Plug this message</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--eye"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as read</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--alert-circle"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Mark as important</span>
+                                                    </button>
+                                                </div>
+
+                                                <div class="hs-tooltip flex [--placement:top]">
+                                                    <button class="hs-tooltip-toggle">
+                                                        <div class="btn btn-icon border-default-300 text-default-800 hover:border-default-400 size-7.75">
+                                                            <i class="iconify tabler--trash"></i>
+                                                        </div>
+                                                        <span class="hs-tooltip-content hs-tooltip-shown:visible hs-tooltip-shown:opacity-100 bg-default-800 text-default-50 invisible absolute z-10 rounded-md px-3 py-1.5 text-xs opacity-0">Move to trash</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p class="mb-4">Dear Elias,</p>
+
+                                        <p class="mb-4">This is a reminder that your premium subscription to InsightPro will automatically renew on 20 April 2025.</p>
+
+                                        <p class="mb-4">If you wish to make changes to your billing or cancel your subscription, please visit your account settings before the renewal date.</p>
+
+                                        <p class="mb-4">We appreciate your continued support.</p>
+
+                                        <p class="mb-5 italic">
+                                            <strong>
+                                                Warm regards,
+                                                <br />
+                                                Sophia White
+                                            </strong>
+                                            <br />
+                                            Billing Department
+                                            <br />
+                                            InsightPro Services
+                                        </p>
+
+                                        <form action="#" class="my-5">
+                                            <div class="mb-5">
+                                                <textarea class="form-textarea" rows="4" placeholder="Enter your reply..."></textarea>
+                                            </div>
+                                            <div class="text-end">
+                                                <button type="submit" class="btn bg-secondary text-white hover:bg-secondary-hover">
+                                                    Submit
+                                                    <i class="iconify tabler--send-2"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

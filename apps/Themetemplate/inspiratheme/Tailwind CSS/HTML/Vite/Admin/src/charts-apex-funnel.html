@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Funnel Apexcharts" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Funnel Apexcharts" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Funnel Apexcharts" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Funnel</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-funnel" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Pyramid Funnel</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="pyramid-funnel" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/chart-apex-funnel.js"></script>
+    </body>
+</html>

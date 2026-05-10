@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Compact" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="Compact" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layouts" title="Compact" }}
+
+                    <div class="container">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To use the compact layout, follow this structure: wrap your page title in
+                                <code>&lt;div class="container-fluid"&gt;</code>
+                                and place your main content inside
+                                <code>&lt;div class="container-xl"&gt;</code>
+                                . This ensures proper spacing and alignment.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

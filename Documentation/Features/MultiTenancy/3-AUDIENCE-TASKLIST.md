@@ -71,29 +71,29 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ### 2.1 App Scaffold
 
-- [ ] **2.1.1** `[L]` Create `FMS.Admin/` directory with Vite + React 18 + TypeScript scaffold
-- [ ] **2.1.2** Configure routing (`react-router-dom`), state management (Redux Toolkit or Zustand — match existing fms.frontend choice), API client (`axios`)
-- [ ] **2.1.3** Add Tailwind CSS or Fluent UI (decide based on `Documentation/Frontend/UI-Patterns/` conventions)
-- [ ] **2.1.4** Set up build/deploy script and add to root `package.json` workspaces (or top-level scripts)
-- [ ] **2.1.5** Document local dev URL and port (separate from `fms.frontend`)
+- [x] **2.1.1** `[L]` Create `FMS.Admin/` directory with Vite + React 18 + TypeScript scaffold — `apps/FMS.Admin/`
+- [x] **2.1.2** Configure routing (`react-router-dom`), state management (Redux Toolkit to match `fms.frontend`), API client (`axios`)
+- [x] **2.1.3** Add Tailwind CSS with `tw-` prefix + SCSS using the M365 Admin Center flat design tokens
+- [x] **2.1.4** Set up build/deploy scripts via root `package.json`: `start:admin`, `build:admin`, `preview:admin`
+- [x] **2.1.5** Document local dev URL and port in `apps/FMS.Admin/README.md` (`http://localhost:5181`, preview `4174`)
 
 ### 2.2 Operator Authentication
 
-- [ ] **2.2.1** Backend: add `POST /api/v1/operator/login` endpoint that authenticates against `_platform` tenant only; rejects non-operator users
-- [ ] **2.2.2** Backend: ensure `is_platform_operator: true` claim emitted only for `_platform` tenant users
-- [ ] **2.2.3** `FMS.Admin`: build login page, JWT storage (httpOnly cookie preferred or localStorage with refresh handling matching fms.frontend pattern)
-- [ ] **2.2.4** `FMS.Admin`: protected route HOC requiring `is_platform_operator = true`
+- [x] **2.2.1** Backend: add `POST /api/v1/operator/login` endpoint that authenticates against `_platform` tenant only; rejects non-operator users — `OperatorAuthController`
+- [x] **2.2.2** Backend: ensure `is_platform_operator: true` claim emitted only for `_platform` tenant users — login + refresh token flows now check `TenantKind.System` and `Code = "_platform"`
+- [x] **2.2.3** `FMS.Admin`: build login page, JWT storage (localStorage matching current `fms.frontend` pattern; ready for `/api/v1/operator/login`)
+- [x] **2.2.4** `FMS.Admin`: protected route HOC requiring `tenant_kind=system` and `is_platform_operator = true`
 - [ ] **2.2.5** Integration test: Client user JWT cannot reach any `FMS.Admin` API
 
 ### 2.3 Tenants Module
 
-- [ ] **2.3.1** Backend: `GET /api/v1/operator/tenants` (list, paginated, search) — `[AllowCrossTenant]`
-- [ ] **2.3.2** Backend: `GET /api/v1/operator/tenants/{id}` (detail with hierarchy + counts)
-- [ ] **2.3.3** Backend: `POST /api/v1/operator/tenants` (create new top-level Client tenant)
-- [ ] **2.3.4** Backend: `PATCH /api/v1/operator/tenants/{id}` (activate/deactivate/suspend)
-- [ ] **2.3.5** `FMS.Admin`: Tenants list page (table with filters by kind, status, search)
-- [ ] **2.3.6** `FMS.Admin`: Tenant detail page with hierarchy tree (parent → children)
-- [ ] **2.3.7** `FMS.Admin`: Create-Tenant form
+- [x] **2.3.1** Backend: `GET /api/v1/operator/tenants` (list, paginated, search) — `[AllowCrossTenant]` + `_Platform_Read_Tenant`
+- [x] **2.3.2** Backend: `GET /api/v1/operator/tenants/{id}` (detail with hierarchy + counts) — `[AllowCrossTenant]` + `_Platform_Read_Tenant`
+- [x] **2.3.3** Backend: `POST /api/v1/operator/tenants` (create new top-level Client tenant) — `[AllowCrossTenant]` + `_Platform_Manage_Tenant`
+- [x] **2.3.4** Backend: `PATCH /api/v1/operator/tenants/{id}` (activate/deactivate/suspend) — maps `active` to `IsActive=true`, `inactive/suspended` to `IsActive=false`
+- [x] **2.3.5** `FMS.Admin`: Tenants list page (table with filters by kind, status, search) — wired to `/api/v1/operator/tenants`
+- [x] **2.3.6** `FMS.Admin`: Tenant detail page with hierarchy tree (parent → children) — `/tenants/:tenantId`
+- [x] **2.3.7** `FMS.Admin`: Create-Tenant form — inline M365 form on Tenants page, posts `/api/v1/operator/tenants`
 
 ### 2.4 Subscriptions & Billing Module
 
@@ -178,6 +178,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - [ ] **T-2** Backend tests for `[AllowCrossTenant]` filter (positive + negative)
 - [ ] **T-3** Frontend smoke test for ViewMode routing
 - [ ] **T-4** Regression suite green on `fms.frontend` for both Client and Customer view modes
+- [ ] **T-5** Device-provider tenancy tests: Client users see only own provider configs/mappings; Customer users cannot access provider config, mapping, or command endpoints; `_platform` operators can use cross-tenant device-provider APIs only through `[AllowCrossTenant]`
 
 ### Security review
 
@@ -185,6 +186,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - [ ] **S-2** Confirm `FMS.Admin` is unreachable from client/customer-facing origin in production
 - [ ] **S-3** JWT review: ensure new claims do not leak parent-tenant info to unrelated tenants
 - [ ] **S-4** Permission audit: every new endpoint has `[Authorize(Permission)]` attribute
+- [ ] **S-5** Device-provider permission audit: `_Read_DeviceProvider` / `_Manage_DeviceProvider` are client-scoped, `_Platform_Read_DeviceProvider` / `_Platform_Manage_DeviceProvider` are operator-only, and no Customer route exposes provider credentials or device commands
 
 ### Documentation
 
@@ -201,4 +203,5 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - **1.2 → 2.2**: Operator authentication depends on `is_platform_operator` claim being emitted.
 - **2.x → 3.3**: Cross-tenant reports require operator login working.
 - **1.1 → 3.1**: Sub-customer provisioning requires `ParentTenantId` column in place.
+- **Device platform T4.7–T4.9 → Customer rollout**: device-provider permissions and navigation must be split by audience before Customer view is considered production-ready.
 - Phase 1 is the only phase with frontend impact on every existing user. Phases 2–4 are additive and can ship independently after Phase 1 stabilises.

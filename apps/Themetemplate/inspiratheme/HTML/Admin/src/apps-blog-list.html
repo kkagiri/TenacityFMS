@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("./partials/title-meta.html", {"title": "Blog List"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Begin page -->
+        <div class="wrapper">
+            @@include('./partials/topbar.html') @@include('./partials/sidenav.html')
+
+            <!-- ============================================================== -->
+            <!-- Start Main Content -->
+            <!-- ============================================================== -->
+
+            <div class="content-page">
+                <div class="container-fluid">
+                    @@include("./partials/page-title.html", {"subtitle": "Blog", "title":"List"})
+
+                    <div class="row justify-content-center">
+                        <div class="col-xxl-10">
+                            <div class="card">
+                                <div class="card-body p-4">
+                                    <div class="row g-5">
+                                        <!-- Main content START -->
+                                        <div class="col-lg-8">
+                                            <article class="card flex-md-row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="position-relative h-100 overflow-hidden rounded-start">
+                                                        <div class="badge text-bg-dark badge-label position-absolute top-0 start-0 m-3">Development</div>
+                                                        <img src="assets/images/blog/blog-1.jpg" class="w-100 h-100 object-fit-cover" alt="Building APIs" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- Card Body (Right) -->
+                                                <div class="col-md-8 d-flex flex-column">
+                                                    <div class="card-body">
+                                                        <!-- Title -->
+                                                        <h6 class="card-title fs-lg lh-base mb-2">
+                                                            <a href="apps-blog-article.html" class="link-reset">Building REST APIs with Node.js</a>
+                                                        </h6>
+                                                        <p class="mb-3 text-muted">Learn how to design and build scalable REST APIs with Node.js and Express in this step-by-step tutorial.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label badge-default">Node.js</a>
+                                                            <a href="#!" class="badge badge-label badge-default">API</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Tutorial</a>
+                                                        </div>
+
+                                                        <p class="d-flex flex-wrap gap-3 text-muted mb-0 mt-3 align-items-center fs-base">
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-calendar fs-md"></i>
+                                                                Feb 2, 2025
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-message-circle fs-md"></i>
+                                                                <a href="#!" class="link-reset">16</a>
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-eye fs-md"></i>
+                                                                8,974
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <!-- Card Footer -->
+                                                    <div class="card-footer bg-transparent border-top mt-auto d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xs">
+                                                                <img src="assets/images/users/user-3.jpg" alt="avatar-3" class="img-fluid rounded-circle" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="text-nowrap fs-base mb-0 lh-base">
+                                                                    <a href="#!" class="link-reset">John Doe</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="link-primary fw-semibold d-flex align-items-center gap-1" href="apps-blog-article.html"> Read more <i class="ti ti-arrow-right"></i> </a>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <!-- Article 2 -->
+                                            <article class="card flex-md-row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="position-relative h-100 overflow-hidden rounded-start">
+                                                        <div class="badge text-bg-primary badge-label position-absolute top-0 start-0 m-3">Design</div>
+                                                        <img src="assets/images/blog/blog-2.jpg" class="w-100 h-100 object-fit-cover" alt="UI Design Tips" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- Card Body (Right) -->
+                                                <div class="col-md-8 d-flex flex-column">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title fs-lg lh-base mb-2">
+                                                            <a href="apps-blog-article.html" class="link-reset">10 Essential UI Design Tips for Better User Experience</a>
+                                                        </h6>
+                                                        <p class="mb-3 text-muted">Discover key principles and practical tips to enhance usability, accessibility, and aesthetics in your web design.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label badge-default">Design</a>
+                                                            <a href="#!" class="badge badge-label badge-default">UI/UX</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Tips</a>
+                                                        </div>
+
+                                                        <p class="d-flex flex-wrap gap-3 text-muted mb-0 mt-3 align-items-center fs-base">
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-calendar fs-md"></i>
+                                                                Mar 10, 2025
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-message-circle fs-md"></i>
+                                                                <a href="#!" class="link-reset">24</a>
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-eye fs-md"></i>
+                                                                12,346
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer bg-transparent border-top mt-auto d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xs">
+                                                                <img src="assets/images/users/user-5.jpg" alt="avatar-5" class="img-fluid rounded-circle" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="text-nowrap fs-base mb-0 lh-base">
+                                                                    <a href="#!" class="link-reset">Sarah Lee</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="link-primary fw-semibold d-flex align-items-center gap-1" href="apps-blog-article.html"> Read more <i class="ti ti-arrow-right"></i> </a>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <!-- Article 3 -->
+                                            <article class="card flex-md-row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="position-relative h-100 overflow-hidden rounded-start">
+                                                        <div class="badge text-bg-success badge-label position-absolute top-0 start-0 m-3">Technology</div>
+                                                        <img src="assets/images/blog/blog-3.jpg" class="w-100 h-100 object-fit-cover" alt="AI in Web Development" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- Card Body (Right) -->
+                                                <div class="col-md-8 d-flex flex-column">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title fs-lg lh-base mb-2">
+                                                            <a href="apps-blog-article.html" class="link-reset">How AI is Transforming Modern Web Development</a>
+                                                        </h6>
+                                                        <p class="mb-3 text-muted">Explore how artificial intelligence is revolutionizing the way developers build, test, and deploy web applications.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label badge-default">AI</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Web</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Technology</a>
+                                                        </div>
+
+                                                        <p class="d-flex flex-wrap gap-3 text-muted mb-0 mt-3 align-items-center fs-base">
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-calendar fs-md"></i>
+                                                                Apr 5, 2025
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-message-circle fs-md"></i>
+                                                                <a href="#!" class="link-reset">32</a>
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-eye fs-md"></i>
+                                                                15,478
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer bg-transparent border-top mt-auto d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xs">
+                                                                <img src="assets/images/users/user-7.jpg" alt="avatar-7" class="img-fluid rounded-circle" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="text-nowrap fs-base mb-0 lh-base">
+                                                                    <a href="#!" class="link-reset">Michael Brown</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="link-primary fw-semibold d-flex align-items-center gap-1" href="apps-blog-article.html"> Read more <i class="ti ti-arrow-right"></i> </a>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <!-- Article 4 -->
+                                            <article class="card flex-md-row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="position-relative h-100 overflow-hidden rounded-start">
+                                                        <div class="badge text-bg-warning badge-label position-absolute top-0 start-0 m-3">Marketing</div>
+                                                        <img src="assets/images/blog/blog-4.jpg" class="w-100 h-100 object-fit-cover" alt="Content Marketing Strategies" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-8 d-flex flex-column">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title fs-lg lh-base mb-2">
+                                                            <a href="apps-blog-article.html" class="link-reset">Top 5 Content Marketing Strategies That Work in 2025</a>
+                                                        </h6>
+                                                        <p class="mb-3 text-muted">Learn how to build a strong content plan, leverage social media trends, and boost engagement with your target audience.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label badge-default">Marketing</a>
+                                                            <a href="#!" class="badge badge-label badge-default">SEO</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Strategy</a>
+                                                        </div>
+
+                                                        <p class="d-flex flex-wrap gap-3 text-muted mb-0 mt-3 align-items-center fs-base">
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-calendar fs-md"></i>
+                                                                May 18, 2025
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-message-circle fs-md"></i>
+                                                                <a href="#!" class="link-reset">19</a>
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-eye fs-md"></i>
+                                                                9,812
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer bg-transparent border-top mt-auto d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xs">
+                                                                <img src="assets/images/users/user-8.jpg" alt="avatar-8" class="img-fluid rounded-circle" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="text-nowrap fs-base mb-0 lh-base">
+                                                                    <a href="#!" class="link-reset">Emily Carter</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="link-primary fw-semibold d-flex align-items-center gap-1" href="apps-blog-article.html"> Read more <i class="ti ti-arrow-right"></i> </a>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <!-- Article 5 -->
+                                            <article class="card flex-md-row mb-3">
+                                                <div class="col-md-4">
+                                                    <div class="position-relative h-100 overflow-hidden rounded-start">
+                                                        <div class="badge text-bg-info badge-label position-absolute top-0 start-0 m-3">Startup</div>
+                                                        <img src="assets/images/blog/blog-5.jpg" class="w-100 h-100 object-fit-cover" alt="Startup Growth" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-8 d-flex flex-column">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title fs-lg lh-base mb-2">
+                                                            <a href="apps-blog-article.html" class="link-reset">Scaling Your Startup: Lessons from Successful Founders</a>
+                                                        </h6>
+                                                        <p class="mb-3 text-muted">Explore actionable insights from entrepreneurs on managing growth, funding rounds, and building strong company culture.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label badge-default">Startup</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Growth</a>
+                                                            <a href="#!" class="badge badge-label badge-default">Business</a>
+                                                        </div>
+
+                                                        <p class="d-flex flex-wrap gap-3 text-muted mb-0 mt-3 align-items-center fs-base">
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-calendar fs-md"></i>
+                                                                Jun 9, 2025
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-message-circle fs-md"></i>
+                                                                <a href="#!" class="link-reset">27</a>
+                                                            </span>
+                                                            <span class="d-flex align-items-center gap-1">
+                                                                <i class="ti ti-eye fs-md"></i>
+                                                                14,532
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer bg-transparent border-top mt-auto d-flex justify-content-between align-items-center">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="avatar avatar-xs">
+                                                                <img src="assets/images/users/user-9.jpg" alt="avatar-9" class="img-fluid rounded-circle" />
+                                                            </div>
+                                                            <div>
+                                                                <h5 class="text-nowrap fs-base mb-0 lh-base">
+                                                                    <a href="#!" class="link-reset">David Wilson</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="link-primary fw-semibold d-flex align-items-center gap-1" href="apps-blog-article.html"> Read more <i class="ti ti-arrow-right"></i> </a>
+                                                    </div>
+                                                </div>
+                                            </article>
+
+                                            <ul class="pagination pagination-rounded pagination-boxed justify-content-center mb-0 mt-4">
+                                                <li class="page-item previous disabled">
+                                                    <a href="#" class="page-link">
+                                                        <i class="ti ti-chevron-left"></i>
+                                                    </a>
+                                                </li>
+                                                <li class="page-item active">
+                                                    <a href="#" class="page-link">1</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a href="#" class="page-link">2</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a href="#" class="page-link">3</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a href="#" class="page-link">...</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a href="#" class="page-link">5</a>
+                                                </li>
+                                                <li class="page-item">
+                                                    <a href="#" class="page-link">6</a>
+                                                </li>
+                                                <li class="page-item next">
+                                                    <a href="#" class="page-link">
+                                                        <i class="ti ti-chevron-right"></i>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <!-- Main content END -->
+
+                                        <!-- Sidebar START -->
+                                        <div class="col-lg-4">
+                                            <!-- Add New Article Button -->
+                                            <div class="d-grid mb-4">
+                                                <a href="apps-blog-add.html" class="btn btn-primary btn-lg fs-base d-flex align-items-center justify-content-center gap-2"> <i class="ti ti-circle-dashed-plus"></i> Add New Article </a>
+                                            </div>
+
+                                            <!-- Search -->
+                                            <h5 class="mb-3 text-uppercase fw-bold">Search</h5>
+                                            <div class="app-search mb-5">
+                                                <input type="text" class="form-control bg-light-subtle border-light" placeholder="Search post..." />
+                                                <i class="ti ti-search app-search-icon text-muted"></i>
+                                            </div>
+
+                                            <!-- Categories -->
+                                            <div class="mb-5">
+                                                <h5 class="mb-3 text-uppercase fw-bold">Categories</h5>
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item ps-0 d-flex justify-content-between align-items-center">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-folder me-2"></i>Development</a>
+                                                        <span class="badge text-bg-light">12</span>
+                                                    </li>
+                                                    <li class="list-group-item ps-0 d-flex justify-content-between align-items-center">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-folder me-2"></i>Design</a>
+                                                        <span class="badge text-bg-light">8</span>
+                                                    </li>
+                                                    <li class="list-group-item ps-0 d-flex justify-content-between align-items-center">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-folder me-2"></i>Marketing</a>
+                                                        <span class="badge text-bg-light">5</span>
+                                                    </li>
+                                                    <li class="list-group-item ps-0 d-flex justify-content-between align-items-center">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-folder me-2"></i>Technology</a>
+                                                        <span class="badge text-bg-light">9</span>
+                                                    </li>
+                                                    <li class="list-group-item ps-0 d-flex justify-content-between align-items-center">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-folder me-2"></i>Startup</a>
+                                                        <span class="badge text-bg-light">6</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            <!-- Popular Post -->
+                                            <div class="mb-5">
+                                                <h5 class="mb-3 text-uppercase fw-bold">Popular Posts</h5>
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item ps-0">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-article me-2"></i>Unlocking the Secrets of Modern UI Design</a>
+                                                    </li>
+                                                    <li class="list-group-item ps-0">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-article me-2"></i>How to Build a Portfolio with Tailwind CSS</a>
+                                                    </li>
+                                                    <li class="list-group-item ps-0">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-article me-2"></i>Boost Productivity with These Web Dev Tools</a>
+                                                    </li>
+                                                    <li class="list-group-item ps-0">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-article me-2"></i>The Future of Frontend: Trends to Watch in 2025</a>
+                                                    </li>
+                                                    <li class="list-group-item ps-0">
+                                                        <a href="#" class="link-reset fw-medium"><i class="ti ti-article me-2"></i>Essential Tips for Clean and Maintainable Code</a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            <!-- Popular Tags -->
+                                            <div class="mb-5">
+                                                <h5 class="mb-3 text-uppercase fw-bold">Popular Tags</h5>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    <a class="btn btn-light btn-sm" href="#">Web Design</a>
+                                                    <a class="btn btn-light btn-sm" href="#">Frontend</a>
+                                                    <a class="btn btn-light btn-sm" href="#">Tailwind CSS</a>
+                                                    <a class="btn btn-light btn-sm" href="#">JavaScript</a>
+                                                    <a class="btn btn-light btn-sm" href="#">React</a>
+                                                    <a class="btn btn-light btn-sm" href="#">Startup</a>
+                                                    <a class="btn btn-light btn-sm" href="#">DevTools</a>
+                                                    <a class="btn btn-light btn-sm" href="#">Open Source</a>
+                                                    <a class="btn btn-light btn-sm" href="#">Performance</a>
+                                                    <a class="btn btn-light btn-sm" href="#">UX/UI</a>
+                                                    <a class="btn btn-light btn-sm" href="#">SEO</a>
+                                                </div>
+                                            </div>
+
+                                            <!-- Newsletter -->
+                                            <div class="p-4 bg-light-subtle rounded-3 border">
+                                                <h5 class="text-uppercase fw-bold mb-3">Subscribe to Newsletter</h5>
+                                                <p class="text-muted fs-sm mb-3">Get the latest articles and updates directly to your inbox.</p>
+                                                <form action="#">
+                                                    <div class="input-group">
+                                                        <input type="email" class="form-control" placeholder="Your email address" />
+                                                        <button class="btn btn-dark" type="submit"><i class="ti ti-send-2"></i></button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <!-- Sidebar END -->
+                                    </div>
+                                    <!-- Row END -->
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                        <!-- end col-->
+                    </div>
+                    <!-- end row-->
+                </div>
+                <!-- container -->
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- ============================================================== -->
+            <!-- End of Main Content -->
+            <!-- ============================================================== -->
+        </div>
+        <!-- END wrapper -->
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

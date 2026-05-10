@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Tooltips" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Base UI" title="Tooltips" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Base UI" title="Tooltips" }}
+
+                    <div class="container">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="space-y-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Basic</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Hover over the links below to see tooltips.</p>
+                                        <p>
+                                            Powerful admin features like
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle text-primary">
+                                                    custom dashboards
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Manage your dashboard easily</span
+                                                    >
+                                                </button>
+                                            </span>
+                                            and UI components help you build scalable web applications efficiently. This template includes pre-built pages, clean layouts, and reusable code blocks to boost your development workflow. From user management to analytics and settings,
+                                            everything is modular and developer-friendly. Create modern admin panels with
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle text-primary">
+                                                    responsive design
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Built with TailwindCSS 4</span
+                                                    >
+                                                </button>
+                                            </span>
+                                            and seamless UX. Get started quickly with a professional-grade
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle text-primary">
+                                                    UI toolkit
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Tailored for developers</span
+                                                    >
+                                                </button>
+                                            </span>
+                                            and supercharge your app with
+                                            <span class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle text-primary">
+                                                    powerful components
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Includes charts, tables, forms and more</span
+                                                    >
+                                                </button>
+                                            </span>
+                                            and flexible layouts.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Disabled Elements</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            Elements with the
+                                            <code>disabled</code>
+                                            attribute aren’t interactive, meaning users cannot focus, hover, or click them to trigger a tooltip (or popover). As a workaround, you’ll want to trigger the tooltip from a wrapper
+                                            <code>&lt;div&gt;</code>
+                                            or
+                                            <code>&lt;span&gt;</code>
+                                            , ideally made keyboard-focusable using
+                                            <code>tabindex="0"</code>
+                                            , and override the
+                                            <code>pointer-events</code>
+                                            on the disabled element.
+                                        </p>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn bg-primary text-white hover:bg-primary-hover" disabled>
+                                                Disabled Button
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >Disabled tooltip</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Hover Elements</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            Elements with the
+                                            <code>disabled</code>
+                                            attribute aren’t interactive, meaning users cannot focus, hover, or click them to trigger a tooltip (or popover). As a workaround, you’ll want to trigger the tooltip from a wrapper
+                                            <code>&lt;div&gt;</code>
+                                            or
+                                            <code>&lt;span&gt;</code>
+                                            , ideally made keyboard-focusable using
+                                            <code>tabindex="0"</code>
+                                            , and override the
+                                            <code>pointer-events</code>
+                                            on the disabled element.
+                                        </p>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn bg-primary hover:bg-primary-hover text-white">
+                                                Hover to See Info
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >Tooltip appears on hover only</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Four Directions</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            Hover over the buttons below to see the four tooltip directions: top, right, bottom, and left. Remove the
+                                            <br />
+                                            <code>[--placement:*]</code>
+                                            option to enable automatic positioning.
+                                        </p>
+
+                                        <div class="flex flex-wrap items-center gap-2.5">
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-info hover:bg-info-hover text-white">
+                                                    Tooltip on top
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Tooltip on top</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:bottom]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-info hover:bg-info-hover text-white">
+                                                    Tooltip on bottom
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Tooltip on bottom</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:left]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-info hover:bg-info-hover text-white">
+                                                    Tooltip on left
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Tooltip on left</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:right]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-info hover:bg-info-hover text-white">
+                                                    Tooltip on right
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >Tooltip on right</span
+                                                    >
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">HTML Tags</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">And with custom HTML added:</p>
+                                        <div class="flex flex-wrap items-center gap-2.5">
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-secondary hover:bg-secondary-hover text-white">
+                                                    Tooltip with HTML
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                    >
+                                                        <em>New</em>
+                                                        <u>Tooltip</u>
+                                                        <b>with</b>
+                                                        <i>HTML</i>
+                                                        <br />
+                                                        Custom message here!
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Color Tooltips</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use color tooltips to match your theme and highlight elements with a custom background color.</p>
+
+                                        <div class="flex flex-wrap items-center gap-2.5">
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-primary hover:bg-primary-hover text-white">
+                                                    Primary tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-primary invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a primary tooltip with a custom style.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-danger hover:bg-danger-hover text-white">
+                                                    Danger tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-danger invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a danger tooltip with a custom warning message.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-info hover:bg-info-hover text-white">
+                                                    Info tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-info invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a primary tooltip with a custom style.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-success hover:bg-info-hover text-white">
+                                                    Success tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-success invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a success tooltip to indicate completion.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-secondary hover:bg-secondary-hover text-white">
+                                                    Secondary tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-secondary invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a secondary tooltip that gives additional information.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-warning hover:bg-warning-hover text-white">
+                                                    Warning tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-warning invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a warning tooltip to alert you.</span
+                                                    >
+                                                </button>
+                                            </div>
+
+                                            <div class="hs-tooltip inline-block [--placement:top]">
+                                                <button type="button" class="hs-tooltip-toggle btn bg-dark text-white">
+                                                    Dark tooltip
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-dark invisible absolute z-10 inline-block w-46 rounded py-2 px-3 text-sm font-medium text-white opacity-0 shadow-2xs transition-opacity"
+                                                        role="tooltip"
+                                                        >This is a dark tooltip with important information.</span
+                                                    >
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

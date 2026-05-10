@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Placeholders"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Placeholders"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Placeholders"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Placeholders</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">In the example below, we take a typical card component and recreate it with placeholders applied to create a “loading card”. Size and proportions are the same between the two.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-base xl:grid-cols-12">
+                                        <div class="xl:col-span-5">
+                                            <div class="card border-default-300 border">
+                                                <img src="assets/images/stock/small-1.jpg" alt="..." />
+
+                                                <div class="card-body">
+                                                    <h5 class="card-title mb-2.5">Card Title</h5>
+                                                    <p class="mb-4">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+                                                    <a href="#" class="btn btn-sm bg-primary hover:bg-primary-hover text-white">Go somewhere</a>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="xl:col-span-5">
+                                            <div class="card border-default-300 border">
+                                                <svg width="100%" style="aspect-ratio: 16 / 10" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder" preserveAspectRatio="xMidYMid slice" viewBox="0 0 16 10">
+                                                    <title>Placeholder</title>
+                                                    <rect width="16" height="10" fill="#20c997"></rect>
+                                                </svg>
+
+                                                <div class="card-body">
+                                                    <h5 class="card-title mb-2.5 grid grid-cols-2">
+                                                        <span class="bg-default-300 block h-5.5 animate-pulse cursor-wait">&nbsp;</span>
+                                                    </h5>
+
+                                                    <p class="card-text mb-4 grid grid-cols-12 gap-3">
+                                                        <span class="bg-default-300 col-span-7 block h-3.25 animate-pulse cursor-wait"></span>
+                                                        <span class="bg-default-300 col-span-4 block h-3.25 animate-pulse cursor-wait"></span>
+                                                        <span class="bg-default-300 col-span-4 block h-3.25 animate-pulse cursor-wait"></span>
+                                                        <span class="bg-default-300 col-span-6 block h-3.25 animate-pulse cursor-wait"></span>
+                                                        <span class="bg-default-300 col-span-3 block h-3.25 animate-pulse cursor-wait"></span>
+                                                    </p>
+
+                                                    <div class="grid grid-cols-2">
+                                                        <a class="btn bg-primary disabled col-span-1" aria-disabled="true">
+                                                            <span class="invisible">Read Only</span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Color</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">By default, the placeholder uses color. This can be overriden with a custom color or utility class.</p>
+                                    <div class="flex flex-col gap-2">
+                                        <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-primary/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-secondary/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-success/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-danger/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-warning/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-info/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-light/60 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-dark/60 block h-3.5 cursor-wait"></span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Width</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">You can change the width through grid column classes, width utilities, or inline styles.</p>
+
+                                    <div class="grid grid-cols-12 gap-2">
+                                        <div class="col-span-6">
+                                            <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        </div>
+
+                                        <div class="col-span-9">
+                                            <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        </div>
+
+                                        <div class="col-span-4">
+                                            <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        </div>
+
+                                        <div class="col-span-1">
+                                            <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Sizing</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">The size of .placeholders are based on the typographic style of the parent element. Customize them with sizing modifiers: .placeholder-lg, .placeholder-sm, or .placeholder-xs.</p>
+
+                                    <div class="flex flex-col gap-2">
+                                        <span class="bg-default-400 block h-4 cursor-wait"></span>
+                                        <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        <span class="bg-default-400 block h-2.75 cursor-wait"></span>
+                                        <span class="bg-default-400 block h-2 cursor-wait"></span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">How it works</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Create placeholders with the .placeholder class and a grid column class to set the width . They can replace the text inside an element or as be added as a modifier class to an existing component.</p>
+
+                                    <div class="mb-4 grid grid-cols-2">
+                                        <div class="col-span-1">
+                                            <span class="bg-default-400 block h-3.5 cursor-wait"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-3">
+                                        <div class="col-span-1">
+                                            <a href="#" class="btn bg-primary disabled w-full" aria-hidden="true"></a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Animation</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Animate placehodlers with
+                                        <code>.animate-pulse</code>
+                                        or
+                                        <code>.animate-ping</code>
+                                        to better convey the perception of something being
+                                        <em>actively</em>
+                                        loaded.
+                                    </p>
+                                    <!-- Glow animation -->
+                                    <p class="mb-4">
+                                        <span class="bg-default-400 block h-3.5 w-full animate-pulse"></span>
+                                    </p>
+
+                                    <p class="relative overflow-hidden">
+                                        <span class="bg-default-400 relative block h-3.5 w-full overflow-hidden">
+                                            <span class="from-default-400 via-default-300 animate-ping to-default-300 absolute inset-0 bg-linear-to-r"></span>
+                                        </span>
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

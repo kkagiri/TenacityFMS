@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Lock Screen" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="flex min-h-screen items-center p-12.5">
+            <div class="container">
+                <div class="flex justify-center px-2.5">
+                    <div class="2xl:w-4/10 md:w-1/2 sm:w-2/3 w-full">
+                        <div class="mb-3 flex flex-col items-center justify-center text-center">
+                            <a href="index.html" class="auth-logo">
+                                <img src="/images/logo-black.png" alt="logo" class="flex dark:hidden" />
+                                <img src="/images/logo.png" alt="dark logo" class="hidden dark:flex" />
+                            </a>
+
+                            <h4 class="font-bold text-base text-dark mt-5 mb-2">Lock Screen!</h4>
+                            <p class="text-default-400 mx-auto w-full lg:w-3/4 mb-4">This screen is locked. Enter your password to continue</p>
+                        </div>
+                        <div class="card p-7.5 rounded-2xl">
+                            <form action="index.html">
+                                <div class="mb-9 text-center">
+                                    <div class="border-default-300 mx-auto mb-3 size-20 rounded-full border-4">
+                                        <img src="/images/users/user-1.jpg" class="size-18 rounded-full" alt="thumbnail" />
+                                    </div>
+                                    <h5 class="text-base mb-2 font-semibold">Damian D.</h5>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label for="userPassword" class="form-label">
+                                        Password
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-input" id="userPassword" placeholder="••••••••" required />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <button type="submit" class="btn bg-primary w-full py-3 font-semibold text-white hover:bg-primary-hover">Unlock</button>
+                                </div>
+                            </form>
+
+                            <p class="text-default-400 mt-7.5 text-center">
+                                Not you? Return to
+                                <a href="auth-sign-in.html" class="text-primary font-semibol underline underline-offset-3">Sign in</a>
+                            </p>
+                        </div>
+
+                        <p class="text-default-400 mt-7.5 text-center">
+                            &copy;
+                            <script>
+                                document.write(new Date().getFullYear())
+                            </script>
+                            Inspinia - by
+                            <span>WebAppLayers</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

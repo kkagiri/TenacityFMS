@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Issue List" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Issue List" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Apps" title="Issue List" }}
+
+                    <div class="container-fluid">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <div class="input-icon-group">
+                                    <i class="iconify tabler--search input-icon"></i>
+                                    <input data-table-search type="text" type="search" placeholder="Search issues..." class="form-input" />
+                                </div>
+
+                                <div>
+                                    <button class="btn bg-success text-white hover:bg-success-hover">Add New Issues</button>
+                                </div>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="table-wrapper">
+                                    <table class="table table-hover">
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-warning text-white">In Progress</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal" class="hover:text-primary text-sm font-semibold uppercase">ISSUE-104</a>
+                                                    <p class="text-default-400">User profile update not saving on mobile devices</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-3.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Jason Lee</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        10.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        15.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a href="#!" class="badge font-semibold badge-label border border-default-300">Mobile</a>
+                                                        <a href="#!" class="badge font-semibold badge-label border border-default-300">UI</a>
+                                                        <a href="#!" class="badge font-semibold badge-label border border-default-300">Urgent</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-warning h-1.5 rounded-s-full" role="progressbar" style="width: 60%" aria-valuenow="9.85" aria-valuemin="0" aria-valuemax="100"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">60% Complete</small>
+                                                </td>
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        12 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        3 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-danger text-white hover:bg-danger-hover">Open</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal" class="hover:text-primary text-sm font-semibold uppercase">ISSUE-105</a>
+                                                    <p class="text-default-400">Payment gateway fails to respond on checkout</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-4.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Sophia Mendes</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        08.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        14.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Payments</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Critical</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-danger h-1.5 rounded-s-full" style="width: 25%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">25% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        8 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        2 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-success text-white">Resolved</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" class="hover:text-primary text-sm font-semibold uppercase" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal">ISSUE-106</a>
+                                                    <p class="text-default-400">Dark mode breaks UI on dashboard view</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-2.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Mason Clark</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        03.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Resolved:</span>
+                                                        07.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-1">
+                                                        <a class="badge font-semibold badge-label border border-default-300">UI</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Enhancement</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-success h-1.5 rounded-s-full" style="width: 100%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">100% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        15 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        1 file
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-info text-white">Review</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" class="hover:text-primary text-sm font-semibold uppercase" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal">ISSUE-107</a>
+                                                    <p class="text-default-400">Push notifications are delayed by 5–10 minutes</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-5.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Olivia Stone</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        11.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        17.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-1">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Notification</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Backend</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-info h-1.5 rounded-s-full" style="width: 40%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">40% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        5 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        0 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-secondary text-white">Pending</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" class="hover:text-primary text-sm font-semibold uppercase" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal">ISSUE-108</a>
+                                                    <p class="text-default-400">Contact page returns 404 after deployment</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-1.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Daniel Reed</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        09.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        13.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-1">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Deployment</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Routing</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-secondary h-1.5 rounded-s-full" style="width: 10%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">10% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        2 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        1 file
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-warning text-white">In Review</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" class="hover:text-primary text-sm font-semibold uppercase" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal">ISSUE-109</a>
+                                                    <p class="text-default-400">Export to PDF does not include chart section</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-6.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Nathan White</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        12.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        18.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-1">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Export</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Charts</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-warning h-1.5 rounded-s-full" style="width: 50%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">50% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        6 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        2 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-danger text-white hover:bg-danger-hover">Open</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal" class="hover:text-primary text-sm font-semibold uppercase">ISSUE-110</a>
+                                                    <p class="text-default-400">Search bar does not return any results for valid keywords</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-9.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Emma Watson</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        13.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        16.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Search</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Bug</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-danger h-1.5 rounded-s-full" style="width: 20%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">20% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        4 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        0 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-warning text-white">In Progress</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal" class="hover:text-primary text-sm font-semibold uppercase">ISSUE-111</a>
+                                                    <p class="text-default-400">Email verification link expires instantly after signup</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-10.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Ava Johnson</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        10.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        20.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Authentication</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">High Priority</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-warning h-1.5 rounded-s-full" style="width: 45%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">45% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        6 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        1 file
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-info text-white">Review</span>
+                                                </td>
+
+                                                <td>
+                                                    <a href="#!" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal" class="hover:text-primary text-sm font-semibold uppercase">ISSUE-112</a>
+                                                    <p class="text-default-400">Footer links appear broken on Safari browser</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-8.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Liam Gray</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        12.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        19.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a class="badge font-semibold badge-label border border-default-300">UI</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Safari</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Low</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-info h-1.5 rounded-s-full" style="width: 30%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">30% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        3 comments
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        0 files
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td>
+                                                    <span class="badge font-semibold badge-label text-2xs bg-secondary text-white">Pending</span>
+                                                </td>
+
+                                                <td>
+                                                    <a class="hover:text-primary text-sm font-semibold uppercase" aria-haspopup="dialog" aria-expanded="false" aria-controls="taskDetailsModal" data-hs-overlay="#taskDetailsModal">ISSUE-113</a>
+                                                    <p class="text-default-400">Reports are showing times in UTC instead of local timezone</p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-1.jpg" class="size-6 rounded-full" />
+                                                        <h5 class="text-default-800">Noah Mitchell</h5>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span class="font-semibold">Created:</span>
+                                                        14.02.2025
+                                                    </p>
+                                                    <p class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        <span class="font-semibold">Due:</span>
+                                                        22.02.2025
+                                                    </p>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-0.75">
+                                                        <a class="badge font-semibold badge-label border border-default-300">Reports</a>
+                                                        <a class="badge font-semibold badge-label border border-default-300">Timezone</a>
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="bg-default-100 h-1.5 w-full rounded-full">
+                                                        <div class="bg-secondary h-1.5 rounded-s-full" style="width: 15%"></div>
+                                                    </div>
+                                                    <small class="text-default-400 text-xs">15% Complete</small>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--message-circle text-default-400"></i>
+                                                        1 comment
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex items-center gap-2">
+                                                        <i class="iconify tabler--paperclip text-default-400"></i>
+                                                        1 file
+                                                    </div>
+                                                </td>
+
+                                                <td>
+                                                    <div class="flex justify-center gap-1.5">
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--eye text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--edit text-base"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                            <i class="iconify tabler--trash text-base"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="issues"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="taskDetailsModal"
+                        class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto"
+                        role="dialog"
+                        tabindex="-1"
+                        aria-labelledby="taskDetailsModalLabel"
+                    >
+                        <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-2xl lg:max-w-3xl">
+                            <div class="card pointer-events-auto flex w-full flex-col">
+                                <div class="card-header py-5">
+                                    <h3 id="taskDetailsModalLabel" class="text-md">Issue Details</h3>
+                                    <button type="button" aria-label="Close" data-hs-overlay="#taskDetailsModal">
+                                        <i class="iconify tabler--x text-xl"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body overflow-y-auto">
+                                    <div class="flex flex-wrap items-center gap-3 mb-6">
+                                        <span class="badge font-semibold bg-warning/10 text-warning rounded-full py-1.5 px-3 text-xs">In Progress</span>
+                                        <h5 class="font-semibold">ISSUE-104 — User profile update not saving on mobile devices</h5>
+                                    </div>
+
+                                    <div class="flex items-center mb-6">
+                                        <img src="/images/users/user-1.jpg" class="rounded-full me-3" width="40" height="40" alt="User" />
+                                        <div>
+                                            <h5>Jason Lee</h5>
+                                            <small class="text-default-400 text-2xs">Assigned User</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-3 mb-6">
+                                        <div>
+                                            <strong>Created:</strong>
+                                            10 Feb 2025
+                                        </div>
+                                        <div>
+                                            <strong>Due:</strong>
+                                            15 Feb 2025
+                                        </div>
+                                        <div>
+                                            <div class="mb-1.25">
+                                                <span class="badge font-semibold badge-label bg-light">Mobile</span>
+                                                <span class="badge font-semibold badge-label bg-light">UI</span>
+                                                <span class="badge font-semibold bg-light text-danger">Urgent</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p class="text-default-400 mb-4">User profile update is not saving correctly on mobile devices. This issue occurs on iOS Safari and Android Chrome. Needs urgent fix before next release.</p>
+
+                                    <div class="mb-6">
+                                        <div class="flex justify-between">
+                                            <small class="mb-3 uppercase text-2xs">Progress</small>
+                                            <small class="font-bold text-warning text-2xs">60% Complete</small>
+                                        </div>
+
+                                        <div class="h-1.5 w-full rounded bg-default-200">
+                                            <div class="h-full w-[60%] rounded bg-warning"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 text-center mb-6">
+                                        <div>
+                                            <i class="iconify tabler--message me-1.5"></i>
+                                            <strong>12 Comments</strong>
+                                        </div>
+                                        <div>
+                                            <i class="iconify tabler--paperclip me-1.5"></i>
+                                            <strong>3 Files Attached</strong>
+                                        </div>
+                                    </div>
+
+                                    <ul class="list-group mb-6 border border-default-300">
+                                        <li class="py-3 px-5 border-b border-default-300 flex justify-between items-center">
+                                            <span> profile-update-bug.txt </span>
+                                            <a href="#" class="btn btn-sm border border-primary text-primary">Download</a>
+                                        </li>
+                                        <li class="py-3 px-5 flex justify-between items-center">
+                                            <span> screenshot-mobile.png </span>
+                                            <a href="#" class="btn btn-sm border border-primary text-primary">Download</a>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div class="border-default-300 flex items-center justify-end gap-x-2 border-t p-5">
+                                    <button type="button" class="btn bg-default-200 hover:text-primary" data-hs-overlay="#taskDetailsModal">Close</button>
+
+                                    <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">Edit Issue</button>
+
+                                    <button type="button" class="btn bg-danger text-white hover:bg-danger-hover">Delete Issue</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "List Group"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"List Group"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"List Group"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-3 gap-base">
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Basic Example</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">The basic list group starts as a simple unordered list with list items. You can extend it using the options below or customize it further to suit your needs.</p>
+
+                                        <ul class="border-default-300 divide-default-300 divide-y rounded border">
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Dropbox Cloud Storage</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Slack Team Collaboration</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Microsoft Windows OS</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Zendesk Customer Support</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Stripe Payment Integration</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Active Items</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use the active state to highlight the currently selected item in the list.</p>
+
+                                        <ul class="border-default-300 divide-default-300 divide-y rounded border">
+                                            <li class="bg-default-100 flex items-center gap-1.25 px-4 py-2.5">GitHub Repository</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Figma Design Tool</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Notion Workspace</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Trello Task Manager</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">DigitalOcean Cloud</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Disabled Items</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use the disabled state to visually indicate that a list item is unavailable or inactive.</p>
+
+                                        <ul class="border-default-300 divide-default-300 divide-y rounded border">
+                                            <li class="bg-default-100 text-default-400 flex items-center gap-1.25 px-4 py-2.5">Dropbox Cloud Storage</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Slack Team Collaboration</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Microsoft Windows OS</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Zendesk Customer Support</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Stripe Payment Integration</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Links and Buttons</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use interactive elements to create actionable list items that support hover, active, and disabled states.</p>
+
+                                        <div class="border-default-300 divide-default-300 divide-y rounded border">
+                                            <a href="#" class="bg-default-100 flex items-center gap-1.25 px-4 py-2.5">Stripe Payment Integration</a>
+                                            <a href="#" class="hover:bg-default-100 flex items-center gap-1.25 px-4 py-2.5">Dropbox Cloud Service</a>
+                                            <button type="button" class="hover:bg-default-100 focus:bg-default-100 flex w-full items-center gap-1.25 px-4 py-2.5">Slack Communication</button>
+                                            <button type="button" class="hover:bg-default-100 focus:bg-default-100 flex w-full items-center gap-1.25 px-4 py-2.5">Notion Productivity App</button>
+                                            <a href="#" class="bg-default-100 text-default-400 flex items-center gap-1.25 px-4 py-2.5">Zendesk Support Tool</a>
+                                        </div>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Flush</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Remove borders and rounded corners to allow list items to sit flush against the edges of their parent container, such as inside cards.</p>
+
+                                        <ul>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Slack Collaboration Tool</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Dropbox Cloud Storage</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Notion Workspace Organizer</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Zendesk Customer Support</li>
+                                            <li class="flex items-center gap-1.25 px-4 py-2.5">Stripe Payment Processor</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Horizontal</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">You can display list items horizontally instead of vertically. This layout can be applied across all screen sizes or enabled only at specific breakpoints.</p>
+
+                                        <ul class="divide-default-300 border-default-300 mb-5 inline-flex divide-x rounded border">
+                                            <li class="px-4 py-2.5">Slack</li>
+                                            <li class="px-4 py-2.5">Notion</li>
+                                            <li class="px-4 py-2.5">Dropbox</li>
+                                        </ul>
+
+                                        <ul class="divide-default-300 border-default-300 mb-5 inline-flex divide-x rounded border">
+                                            <li class="px-4 py-2.5">Figma</li>
+                                            <li class="px-4 py-2.5">Stripe</li>
+                                            <li class="px-4 py-2.5">Zendesk</li>
+                                        </ul>
+
+                                        <ul class="divide-default-300 border-default-300 inline-flex divide-x rounded border">
+                                            <li class="px-4 py-2.5">Trello</li>
+                                            <li class="px-4 py-2.5">Asana</li>
+                                            <li class="px-4 py-2.5">ClickUp</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Contextual Classes</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use contextual classes to style list items with a stateful background and color.</p>
+
+                                        <ul class="border-default-300 rounded border">
+                                            <li class="border-default-300 border border-t-0 px-4 py-2.5">Dapibus ac facilisis in</li>
+                                            <li class="text-primary bg-primary/15 border-primary border border-t-0 px-4 py-2.5">A simple primary list group item</li>
+                                            <li class="text-secondary bg-secondary/15 border-secondary border border-t-0 px-4 py-2.5">A simple secondary list group item</li>
+                                            <li class="text-success bg-success/15 border-success border border-t-0 px-4 py-2.5">A simple success list group item</li>
+                                            <li class="text-danger bg-danger/15 border-danger border border-t-0 px-4 py-2.5">A simple danger list group ite</li>
+                                            <li class="text-warning bg-warning/15 border-warning border border-t-0 px-4 py-2.5">A simple warning list group item</li>
+                                            <li class="text-info bg-info/15 border-info border border-t-0 px-4 py-2.5">A simple info list group item</li>
+                                            <li class="bg-light/15 text-default-400 border-light border border-t-0 px-4 py-2.5">A simple light list group item</li>
+                                            <li class="text-dark bg-dark/15 border-dark border border-t-0 px-4 py-2.5">A simple dark list group item</li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Contextual Classes with Link</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use contextual classes to style list items with a stateful background and color.</p>
+
+                                        <div class="border-default-300 rounded border">
+                                            <a href="#" class="border-default-300 block border border-t-0 px-4 py-2.5">Dapibus ac facilisis in</a>
+                                            <a href="#" class="hover:bg-primary/40 bg-primary/15 border-primary block border border-t-0 px-4 py-2.5">A simple primary list group item</a>
+                                            <a href="#" class="hover:bg-secondary/40 bg-secondary/15 border-secondary block border border-t-0 px-4 py-2.5">A simple secondary list group item</a>
+                                            <a href="#" class="hover:bg-success/40 bg-success/15 border-success block border border-t-0 px-4 py-2.5">A simple success list group item</a>
+                                            <a href="#" class="hover:bg-danger/40 bg-danger/15 border-danger block border border-t-0 px-4 py-2.5">A simple danger list group ite</a>
+                                            <a href="#" class="hover:bg-warning/40 bg-warning/15 border-warning block border border-t-0 px-4 py-2.5">A simple warning list group item</a>
+                                            <a href="#" class="hover:bg-info/40 bg-info/15 border-info block border border-t-0 px-4 py-2.5">A simple info list group item</a>
+                                            <a href="#" class="hover:bg-light/40 bg-light/15 border-light block border border-t-0 px-4 py-2.5">A simple light list group item</a>
+                                            <a href="#" class="hover:bg-dark/40 bg-dark/15 border-dark block border border-t-0 px-4 py-2.5">A simple dark list group item</a>
+                                        </div>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Custom Content</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Add nearly any HTML within, even for linked list groups like the one below, with the help of flexbox utilities.</p>
+
+                                        <div class="border-default-300 divide-default-300 divide-y rounded border">
+                                            <a href="#" class="bg-default-100 block px-4 py-2.5">
+                                                <div class="flex items-center justify-between">
+                                                    <h5 class="mb-2">List group item heading</h5>
+                                                    <small class="text-2xs">3 days ago</small>
+                                                </div>
+
+                                                <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
+                                                <small class="text-2xs">Donec id elit non mi porta.</small>
+                                            </a>
+
+                                            <a href="#" class="hover:bg-default-100 focus:bg-default-100 block px-4 py-2.5">
+                                                <div class="flex items-center justify-between">
+                                                    <h5 class="mb-2">List group item heading</h5>
+                                                    <small class="text-2xs">3 days ago</small>
+                                                </div>
+
+                                                <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
+                                                <small class="text-2xs">Donec id elit non mi porta.</small>
+                                            </a>
+
+                                            <a href="#" class="hover:bg-default-100 focus:bg-default-100 block px-4 py-2.5">
+                                                <div class="flex items-center justify-between">
+                                                    <h5 class="mb-2">List group item heading</h5>
+                                                    <small class="text-2xs">3 days ago</small>
+                                                </div>
+
+                                                <p class="mb-1">Donec id elit non mi porta gravida at eget metus. Maecenas sed diam eget risus varius blandit.</p>
+                                                <small class="text-2xs">Donec id elit non mi porta.</small>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">With Badges</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Add badges to any list group item to show unread counts, activity, and more with the help of some utilities.</p>
+
+                                        <ul class="divide-default-300 border-default-300 divide-y rounded border">
+                                            <li class="flex items-center justify-between gap-1.25 px-4 py-2.5">
+                                                Gmail Notifications
+                                                <span class="badge bg-primary text-white rounded-full">14</span>
+                                            </li>
+
+                                            <li class="flex items-center justify-between gap-1.25 px-4 py-2.5">
+                                                Unprocessed Orders
+                                                <span class="badge bg-success text-white rounded-full">2</span>
+                                            </li>
+
+                                            <li class="flex items-center justify-between gap-1.25 px-4 py-2.5">
+                                                Urgent Tickets
+                                                <span class="badge bg-danger text-white rounded-full">99+</span>
+                                            </li>
+
+                                            <li class="flex items-center justify-between gap-1.25 px-4 py-2.5">
+                                                Completed Transactions
+                                                <span class="badge bg-success text-white rounded-full">20+</span>
+                                            </li>
+
+                                            <li class="flex items-center justify-between gap-1.25 px-4 py-2.5">
+                                                Invoices Awaiting Approval
+                                                <span class="badge bg-warning text-white rounded-full">12</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Checkboxes and Radios</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">You can place checkboxes and radio buttons inside list items and customize them as needed. For accessibility, be sure to provide proper labels so assistive technologies can interpret them correctly.</p>
+
+                                        <div class="divide-default-300 border-default-300 divide-y rounded border">
+                                            <div class="flex items-center gap-2 px-4 py-2.5">
+                                                <input type="checkbox" class="form-checkbox size-4.25" id="newsletterCheckbox" />
+                                                <label for="newsletterCheckbox">Subscribe to newsletter</label>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 px-4 py-2.5">
+                                                <input type="checkbox" class="form-checkbox size-4.25" id="termsCheckbox" />
+                                                <label for="termsCheckbox">Accept terms and conditions</label>
+                                            </div>
+                                        </div>
+
+                                        <div class="divide-default-300 border-default-300 mt-3 divide-y rounded border">
+                                            <div class="flex items-center gap-2 px-4 py-2.5">
+                                                <input type="radio" name="notificationOptions" class="form-checkbox size-4.25 rounded-full" id="emailRadio" checked />
+                                                <label for="emailRadio">Notify by Email</label>
+                                            </div>
+
+                                            <div class="flex items-center gap-2 px-4 py-2.5">
+                                                <input type="radio" name="notificationOptions" class="form-checkbox size-4.25 rounded-full" id="smsRadio" />
+                                                <label for="smsRadio">Notify by SMS</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- end card-->
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end col-->
+
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Numbered</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">List numbers are automatically generated and styled using a built-in counting system, ensuring consistent numbering and alignment for each item.</p>
+
+                                        <ul class="divide-default-300 border-default-300 divide-y rounded border">
+                                            <li class="flex justify-between gap-1.25 px-4 py-2.5">
+                                                <div class="flex gap-3">
+                                                    <div>1.</div>
+                                                    <div>
+                                                        <div class="font-bold">Admin Dashboard Pro</div>
+                                                        A premium admin dashboard with modern UI components.
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-primary text-white rounded-full">865</span>
+                                                </div>
+                                            </li>
+
+                                            <li class="flex justify-between gap-1.25 px-4 py-2.5">
+                                                <div class="flex gap-3">
+                                                    <div>2.</div>
+                                                    <div>
+                                                        <div class="font-bold">Vue Admin Lite</div>
+                                                        Clean and minimal admin panel built with Vue.js.
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-primary text-white rounded-full">140</span>
+                                                </div>
+                                            </li>
+
+                                            <li class="flex justify-between gap-1.25 px-4 py-2.5">
+                                                <div class="flex gap-3">
+                                                    <div>3.</div>
+                                                    <div>
+                                                        <div class="font-bold">Angular Admin Panel</div>
+                                                        Lightweight and powerful Angular-based admin template. 85
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-primary text-white rounded-full">85</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+                            </div>
+                            <!-- end col-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

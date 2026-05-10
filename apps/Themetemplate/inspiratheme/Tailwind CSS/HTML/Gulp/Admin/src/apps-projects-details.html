@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Project Overview"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Project Overview"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Project Overview"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-base lg:gap-0">
+                            <!-- Project Main Details -->
+                            <div class="lg:col-span-3">
+                                <div class="card h-full">
+                                    <div class="card-header flex flex-wrap items-start gap-base p-7.5">
+                                        <div class="bg-light me-5 flex size-20 items-center justify-center rounded">
+                                            <img src="assets/images/logos/starbucks.svg" class="h-12" alt="Brand-img" />
+                                        </div>
+
+                                        <div>
+                                            <h3 class="mb-1.25 flex items-center text-lg">Starbucks - AI Analytics Dashboard</h3>
+                                            <p class="text-default-400 text-2xs mb-2.5">Updated 5 minutes ago</p>
+                                            <span class="badge badge-label text-2xs text-success bg-success/15">In Progress</span>
+                                        </div>
+
+                                        <div class="ms-auto">
+                                            <a href="javascript: void(0);" class="btn bg-light hover:text-primary"> <i class="iconify tabler--pencil"></i> Edit </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body px-7.5">
+                                        <div class="mb-7.5">
+                                            <h5 class="mb-2.5">Project Description:</h5>
+                                            <p class="text-default-400 mb-4">
+                                                This dashboard provides AI-powered insights and analytics for Starbucks business data. It includes sales performance, customer behavior, and predictive trends to assist in data-driven decision-making.
+                                            </p>
+                                            <p class="text-default-400 mb-4">
+                                                Customizable reports and role-based dashboards ensure relevant insights for marketing teams, financial analysts, and executive decision-makers. The system is built with scalability and responsiveness in mind, supporting both desktop
+                                                and mobile views for seamless access.
+                                            </p>
+                                        </div>
+
+                                        <div class="mb-7.5">
+                                            <div class="grid grid-cols-2 gap-base md:grid-cols-4">
+                                                <div>
+                                                    <h6 class="text-xs text-default-400 mb-1.25 uppercase">Created Date:</h6>
+                                                    <p class="font-medium">March 15, 2025</p>
+                                                </div>
+
+                                                <div>
+                                                    <h6 class="text-xs text-default-400 mb-1.25 uppercase">Deadline:</h6>
+                                                    <p class="font-medium">June 30, 2025</p>
+                                                </div>
+
+                                                <div>
+                                                    <h6 class="text-xs text-default-400 mb-1.25 uppercase">Created By:</h6>
+                                                    <p class="font-medium">John Smith</p>
+                                                </div>
+
+                                                <div>
+                                                    <h6 class="text-xs text-default-400 mb-1.25 uppercase">Client Name:</h6>
+                                                    <p class="font-medium">Starbucks Corporation</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Tabs -->
+                                        <div class="border-default-300 border-b">
+                                            <nav class="flex gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal">
+                                                <button
+                                                    type="button"
+                                                    class="hs-tab-active:font-semibold hs-tab-active:border-primary hs-tab-active:text-primary hover:text-primary focus:text-primary active inline-flex items-center gap-x-2 border-b border-transparent px-4 py-2 text-sm whitespace-nowrap focus:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                                                    id="comments"
+                                                    aria-selected="true"
+                                                    data-hs-tab="#comments-tab"
+                                                    aria-controls="comments-tab"
+                                                    role="tab"
+                                                >
+                                                    <i class="iconify tabler--message-circle me-md-1 text-base align-middle"></i>
+                                                    <span class="hidden align-middle md:inline-block">Comments</span>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="hs-tab-active:font-semibold hs-tab-active:border-primary hs-tab-active:text-primary hover:text-primary focus:text-primary inline-flex items-center gap-x-2 border-b border-transparent px-4 py-2 text-sm whitespace-nowrap focus:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                                                    id="tasks"
+                                                    aria-selected="false"
+                                                    data-hs-tab="#tasks-tab"
+                                                    aria-controls="tasks-tab"
+                                                    role="tab"
+                                                >
+                                                    <i class="iconify tabler--list-check me-md-1 text-base align-middle"></i>
+                                                    <span class="hidden align-middle md:inline-block">Task List</span>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="hs-tab-active:font-semibold hs-tab-active:border-primary hs-tab-active:text-primary hover:text-primary focus:text-primary inline-flex items-center gap-x-2 border-b border-transparent px-4 py-2 text-sm whitespace-nowrap focus:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                                                    id="activity"
+                                                    aria-selected="false"
+                                                    data-hs-tab="#activity-tab"
+                                                    aria-controls="activity-tab"
+                                                    role="tab"
+                                                >
+                                                    <i class="iconify tabler--activity me-md-1 text-base align-middle"></i>
+                                                    <span class="hidden align-middle md:inline-block">Activity</span>
+                                                </button>
+                                            </nav>
+                                        </div>
+
+                                        <div class="mt-5">
+                                            <div id="comments-tab" role="tabpanel" aria-labelledby="comments">
+                                                <div class="mb-5">
+                                                    <div class="mb-5">
+                                                        <textarea class="form-textarea" id="form-control-textarea" rows="4" placeholder="Enter your messages..."></textarea>
+                                                    </div>
+
+                                                    <div class="text-end">
+                                                        <button type="button" class="btn btn-sm bg-secondary text-white hover:bg-secondary-hover">
+                                                            Comment
+                                                            <i class="iconify tabler--send-2"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <h4 class="text-md mb-base">Comments (15)</h4>
+
+                                                <div class="border-default-300 mb-2.5 rounded border border-dashed p-5">
+                                                    <div class="flex gap-2.5">
+                                                        <div class="shrink-0">
+                                                            <img src="assets/images/users/user-8.jpg" alt="" class="size-8 rounded-full" />
+                                                        </div>
+
+                                                        <div>
+                                                            <div>
+                                                                <h5 class="mb-1.25">
+                                                                    Liam Carter
+                                                                    <small class="text-default-400">15 Apr 2025 · 09:20AM</small>
+                                                                </h5>
+                                                                <p class="mb-2.5">Customers are reporting that the checkout page freezes after submitting their payment information.</p>
+
+                                                                <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                    <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                    Reply
+                                                                </a>
+                                                            </div>
+
+                                                            <div class="mt-7.5 flex gap-2.5">
+                                                                <div class="shrink-0">
+                                                                    <img src="assets/images/users/user-10.jpg" alt="" class="size-8 rounded-full" />
+                                                                </div>
+
+                                                                <div>
+                                                                    <h5 class="mb-1.25">
+                                                                        Nina Bryant
+                                                                        <small class="text-default-400">15 Apr 2025 · 11:47AM</small>
+                                                                    </h5>
+                                                                    <p class="mb-2.5">That might be caused by the third-party payment gateway. I recommend testing in incognito mode and checking for any JS errors in the console.</p>
+
+                                                                    <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                        <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                        Reply
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="mt-7.5 flex gap-2.5">
+                                                                <div class="shrink-0">
+                                                                    <img src="assets/images/users/user-3.jpg" alt="" class="size-8 rounded-full" />
+                                                                </div>
+
+                                                                <div>
+                                                                    <h5 class="mb-1.25">
+                                                                        Sophie Allen
+                                                                        <small class="text-default-400">16 Apr 2025 · 10:15AM</small>
+                                                                    </h5>
+                                                                    <p class="mb-2.5">We’ve noticed this issue before when the CDN cache hasn't been cleared properly. Try purging the cache and reloading the page.</p>
+
+                                                                    <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                        <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                        Reply
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="border-default-300 mb-2.5 rounded border border-dashed p-5">
+                                                    <div class="flex gap-2.5">
+                                                        <div class="shrink-0">
+                                                            <img src="assets/images/users/user-6.jpg" alt="" class="size-8 rounded-full" />
+                                                        </div>
+
+                                                        <div>
+                                                            <div>
+                                                                <h5 class="mb-1.25">
+                                                                    Daniel West
+                                                                    <small class="text-default-400">14 Apr 2025 · 04:15PM</small>
+                                                                </h5>
+                                                                <p class="mb-2.5">You can also clear the browser cache or try a different browser. We had a similar issue with Chrome extensions interfering before.</p>
+
+                                                                <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                    <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                    Reply
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="border-default-300 mb-5 rounded border border-dashed p-5">
+                                                    <div class="flex gap-2.5">
+                                                        <div class="shrink-0">
+                                                            <img src="assets/images/users/user-10.jpg" alt="" class="size-8 rounded-full" />
+                                                        </div>
+
+                                                        <div>
+                                                            <div>
+                                                                <h5 class="mb-1.25">
+                                                                    Nina Bryant
+                                                                    <small class="text-default-400">16 Apr 2025 · 08:04AM</small>
+                                                                </h5>
+                                                                <p class="mb-4">
+                                                                    The
+                                                                    <a href="javascript:void(0)" class="text-primary underline">System Status Page</a>
+                                                                    has been updated. We're actively monitoring and will release a patch within 24 hours.
+                                                                </p>
+
+                                                                <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                    <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                    Reply
+                                                                </a>
+                                                            </div>
+
+                                                            <div class="mt-7.5 flex gap-2.5">
+                                                                <div class="shrink-0">
+                                                                    <img src="assets/images/users/user-6.jpg" alt="" class="size-8 rounded-full" />
+                                                                </div>
+
+                                                                <div>
+                                                                    <h5 class="mb-1.25">
+                                                                        Daniel West
+                                                                        <small class="text-default-400">16 Apr 2025 · 08:30AM</small>
+                                                                    </h5>
+                                                                    <p class="mb-2.5">Thanks for the update! We'll notify the customers and let them know the issue is being resolved.</p>
+
+                                                                    <a href="javascript:void(0);" class="badge bg-light text-default-400">
+                                                                        <i class="iconify tabler--corner-up-left text-base"></i>
+                                                                        Reply
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <nav class="flex items-center justify-center gap-1.5" aria-label="Pagination">
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary gap-x-1.5 rounded-full border transition-all duration-300" aria-label="Previous">
+                                                        <i class="iconify tabler--chevron-left"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-icon bg-primary rounded-full text-white">1</button>
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary rounded-full border transition-all duration-300">2</button>
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary rounded-full border transition-all duration-300">3</button>
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary rounded-full border transition-all duration-300">...</button>
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary rounded-full border transition-all duration-300">5</button>
+                                                    <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary gap-x-1.5 rounded-full border transition-all duration-300" aria-label="Next">
+                                                        <i class="iconify tabler--chevron-right"></i>
+                                                    </button>
+                                                </nav>
+                                            </div>
+
+                                            <div id="tasks-tab" class="hidden" role="tabpanel" aria-labelledby="tasks">
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task2" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Finalize monthly performance report</a>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-2.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Liam James</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-success text-white">Completed</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Yesterday</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">7/7</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">12</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task3" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Design wireframes for new onboarding flow</a>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-4.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Sophia Lee</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-danger text-white">Delayed</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Tomorrow</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">2/5</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">7</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task4" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Update customer segmentation dashboard</a>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-5.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Noah Carter</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-primary text-white">Pending</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Friday</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">0/4</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">3</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task5" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Conduct competitor analysis report</a>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-6.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Emily Davis</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-warning text-white">In Progress</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Next Week</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">1/6</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">5</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task6" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Implement API for mobile integration</a>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-7.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Lucas White</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-info text-white">Review</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Today</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">6/6</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">10</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task7" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">QA testing for billing module</a>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-8.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Olivia Martin</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-warning text-white">In Progress</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Monday</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">4/8</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">14</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="card mb-1.25">
+                                                    <div class="card-body p-2.5">
+                                                        <div class="grid grid-cols-1 items-center justify-between lg:grid-cols-2 gap-base">
+                                                            <div class="col-span-1">
+                                                                <div class="flex items-center gap-2.5">
+                                                                    <input type="checkbox" class="form-checkbox size-5.5! rounded-full" id="task8" />
+                                                                    <a href="#!" class="hover:text-primary font-medium">Schedule product roadmap presentation</a>
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="col-span-1">
+                                                                <div class="flex gap-base flex-wrap items-center justify-start lg:justify-end">
+                                                                    <div class="flex items-center gap-1.5">
+                                                                        <div>
+                                                                            <img src="assets/images/users/user-8.jpg" alt="avatar-2" class="size-6 rounded-full" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h5 class="text-nowrap">
+                                                                                <a href="#!" class="hover:text-primary">Ethan Moore</a>
+                                                                            </h5>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div class="shrink-0">
+                                                                        <span class="badge badge-label bg-secondary text-white">Planned</span>
+                                                                    </div>
+
+                                                                    <ul class="flex shrink-0 flex-wrap items-center gap-3.5 text-end">
+                                                                        <li>
+                                                                            <i class="iconify tabler--calendar text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-semibold">Next Month</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--list-details text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">0/1</span>
+                                                                        </li>
+                                                                        <li>
+                                                                            <i class="iconify tabler--message text-default-400 me-1.25 text-base align-middle"></i>
+                                                                            <span class="font-medium">0</span>
+                                                                        </li>
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div id="activity-tab" class="hidden" role="tabpanel" aria-labelledby="activity">
+                                                <div class="border-default-300 flex gap-1.5 border-b border-dashed pb-5">
+                                                    <div class="me-2.5 shrink-0">
+                                                        <img src="assets/images/users/user-1.jpg" class="size-9 rounded-full" alt="" />
+                                                    </div>
+                                                    <div class="text-default-400 grow">
+                                                        <span class="text-default-700 text-sm font-medium">Daniel Martinez</span>
+                                                        uploaded a revised contract file.
+                                                        <p class="text-default-400 text-xs">Today 10:15 am - 24 Apr, 2025</p>
+                                                    </div>
+                                                    <p class="text-default-400 text-xs">5m ago</p>
+                                                </div>
+
+                                                <div class="border-default-300 flex gap-1.5 border-b border-dashed py-5">
+                                                    <div class="me-2.5 shrink-0">
+                                                        <img src="assets/images/users/user-2.jpg" class="size-9 rounded-full" alt="" />
+                                                    </div>
+                                                    <div class="text-default-400 grow">
+                                                        <span class="text-default-700 text-sm font-medium">Nina Patel</span>
+                                                        commented on your design update.
+                                                        <p class="text-default-400 text-xs">Today 8:00 am - 24 Apr, 2025</p>
+                                                    </div>
+                                                    <p class="text-default-400 text-xs">2h ago</p>
+                                                </div>
+
+                                                <div class="border-default-300 flex gap-1.5 border-b border-dashed py-5">
+                                                    <div class="me-2.5 shrink-0">
+                                                        <img src="assets/images/users/user-3.jpg" class="size-9 rounded-full" alt="" />
+                                                    </div>
+                                                    <div class="text-default-400 grow">
+                                                        <span class="text-default-700 text-sm font-medium">Jason Lee</span>
+                                                        completed the feedback review.
+                                                        <p class="text-default-400 text-xs">Yesterday 6:10 pm - 23 Apr, 2025</p>
+                                                    </div>
+                                                    <p class="text-default-400 text-xs">16h ago</p>
+                                                </div>
+
+                                                <div class="border-default-300 flex gap-1.5 border-b border-dashed py-5">
+                                                    <div class="me-2.5 shrink-0">
+                                                        <img src="assets/images/users/user-4.jpg" class="size-9 rounded-full" alt="" />
+                                                    </div>
+                                                    <div class="text-default-400 grow">
+                                                        <span class="text-default-700 text-sm font-medium">Emma Davis</span>
+                                                        shared a link in the marketing group chat.
+                                                        <p class="text-default-400 mb-2.5 text-xs">Yesterday 3:25 pm - 23 Apr, 2025</p>
+                                                        <a href="#!" class="btn border-default-300 hover:bg-default-50 text-default-700 border border-dashed px-1.5 py-0">
+                                                            <i class="iconify tabler--link 1"></i>
+                                                            View
+                                                        </a>
+                                                    </div>
+                                                    <p class="text-default-400 text-xs">19h ago</p>
+                                                </div>
+
+                                                <div class="border-default-300 flex gap-1.5 border-b border-dashed py-5">
+                                                    <div class="me-2.5 shrink-0">
+                                                        <img src="assets/images/users/user-5.jpg" class="size-9 rounded-full" alt="" />
+                                                    </div>
+                                                    <div class="text-default-400 grow">
+                                                        <span class="text-default-700 text-sm font-medium">Leo Zhang</span>
+                                                        sent you a private message.
+                                                        <p class="text-default-400 mb-2.5 text-xs">2 days ago 11:45 am - 22 Apr, 2025</p>
+                                                        <div class="bg-light/50 px-5 py-2.5">"Let’s sync up on the product roadmap tomorrow afternoon, does 2 PM work for you?"</div>
+                                                    </div>
+                                                    <p class="text-default-400 text-xs">30h ago</p>
+                                                </div>
+
+                                                <div class="flex items-center justify-center gap-2.5 p-2.5 md:p-5">
+                                                    <strong>Loading...</strong>
+                                                    <div class="text-danger inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Team Sidebar -->
+                            <div class="card h-full lg:rounded-s-none shadow-none">
+                                <div class="border-default-300 border-b border-dashed p-5">
+                                    <h5 class="mb-2.5">Status</h5>
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--calendar-clock input-icon"></i>
+                                        <select class="form-select">
+                                            <option>Status</option>
+                                            <option selected value="On Track">On Track</option>
+                                            <option value="Delayed">Delayed</option>
+                                            <option value="At Risk">At Risk</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="border-default-300 border-b border-dashed p-5">
+                                    <div class="mb-5 flex items-center justify-between">
+                                        <h5 class="font-semibold">Team Members:</h5>
+                                        <a href="javascript: void(0);" class="btn bg-light btn-icon size-7.75 rounded-full">
+                                            <i class="iconify tabler--plus"></i>
+                                        </a>
+                                    </div>
+
+                                    <!-- team member -->
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-3.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Ava Brooks</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">UI/UX Designer</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-4.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Liam Carter</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">Frontend Developer</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-5.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Sophia Lee</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">Project Manager</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-6.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Noah Kim</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">Backend Developer</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-7.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Emma Watson</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">QA Engineer</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-8.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">James Nolan</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">DevOps Engineer</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-9.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Olivia Reed</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">Product Owner</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="size-8">
+                                                <img src="assets/images/users/user-10.jpg" alt="avatar-3" class="img-fluid rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Daniel Craig</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">Data Scientist</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Message">
+                                                <i class="iconify tabler--message text-default-400 text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-default-300 border-b border-dashed px-5 pt-5">
+                                    <div class="mb-5 flex items-center justify-between">
+                                        <h5 class="font-semibold">Files:</h5>
+                                        <a href="javascript: void(0);" class="btn bg-light btn-icon size-7.75 rounded-full">
+                                            <i class="iconify tabler--plus"></i>
+                                        </a>
+                                    </div>
+
+                                    <!-- Download Files -->
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--file-text text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Project-Brief.pdf</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">2.1MB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--music text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Team-Intro.mp3</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">5.6MB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--file-zip text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">UI-Kit.zip</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">42MB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--photo text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Brand-Logo.png</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">1.2MB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--video text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">Promo-Video.mp4</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">78MB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between pb-2.5">
+                                        <div class="flex items-center gap-2.5 py-1.25">
+                                            <div class="btn bg-light btn-icon size-9">
+                                                <i class="iconify tabler--code text-default-400 text-lg"></i>
+                                            </div>
+                                            <div>
+                                                <h5 class="text-nowrap">
+                                                    <a href="#!" class="hover:text-primary">dashboard-config.json</a>
+                                                </h5>
+                                                <p class="text-default-400 text-2xs">524KB</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="#" class="btn btn-sm btn-icon btn-default border-default-300 hover:border-default-400 hover:bg-default-100 size-7.75 border" title="Download">
+                                                <i class="iconify tabler--download text-base"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-center gap-2.5 p-2.5 md:p-5">
+                                        <strong>Loading...</strong>
+                                        <div class="text-danger inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" role="status" aria-label="loading">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

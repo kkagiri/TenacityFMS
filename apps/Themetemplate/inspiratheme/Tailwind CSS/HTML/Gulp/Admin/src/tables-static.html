@@ -1,0 +1,1879 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Static Tables"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Datatables", "title":"Static Tables"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Datatables", "title":"Static Tables"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Table</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Wireless Headphones</td>
+                                                    <td>Electronics</td>
+                                                    <td>$99.00</td>
+                                                    <td>120</td>
+                                                    <td>4.5 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="flex gap-1.5">
+                                                        <button class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Edit</button>
+                                                        <button class="btn btn-sm bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Running Shoes</td>
+                                                    <td>Footwear</td>
+                                                    <td>$59.99</td>
+                                                    <td>80</td>
+                                                    <td>4.2 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="flex gap-1.5">
+                                                        <button class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Edit</button>
+                                                        <button class="btn btn-sm bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Smartwatch</td>
+                                                    <td>Wearables</td>
+                                                    <td>$129.00</td>
+                                                    <td>0</td>
+                                                    <td>4.0 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Out of Stock</span>
+                                                    </td>
+                                                    <td class="flex gap-1.5">
+                                                        <button class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Edit</button>
+                                                        <button class="btn btn-sm bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Gaming Mouse</td>
+                                                    <td>Accessories</td>
+                                                    <td>$39.50</td>
+                                                    <td>250</td>
+                                                    <td>4.7 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="flex gap-1.5">
+                                                        <button class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Edit</button>
+                                                        <button class="btn btn-sm bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Office Chair</td>
+                                                    <td>Furniture</td>
+                                                    <td>$149.00</td>
+                                                    <td>35</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="flex gap-1.5">
+                                                        <button class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Edit</button>
+                                                        <button class="btn btn-sm bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Custom Table</h4>
+                                </div>
+
+                                <div class="table-wrapper">
+                                    <table class="table">
+                                        <thead class="border-default-300 bg-default-100 border-b font-semibold text-xs">
+                                            <tr>
+                                                <th>Product Name</th>
+                                                <th>Category</th>
+                                                <th>Price</th>
+                                                <th>Stock</th>
+                                                <th>Rating</th>
+                                                <th>Status</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="font-medium">Bluetooth Speaker</td>
+                                                <td>Audio</td>
+                                                <td>$49.00</td>
+                                                <td>200</td>
+                                                <td>4.6 ★</td>
+                                                <td>
+                                                    <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="hs-dropdown relative inline-flex">
+                                                        <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                            <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <a class="dropdown-item" href="#">
+                                                                <i class="iconify tabler--eye text-xs"></i>
+                                                                Overview
+                                                            </a>
+                                                            <a class="dropdown-item" href="#">
+                                                                <i class="iconify tabler--edit text-xs"></i>
+                                                                Edit
+                                                            </a>
+                                                            <a class="dropdown-item text-danger" href="#">
+                                                                <i class="iconify tabler--trash text-xs"></i>
+                                                                Delete
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="font-medium">Leather Wallet</td>
+                                                <td>Accessories</td>
+                                                <td>$29.99</td>
+                                                <td>150</td>
+                                                <td>4.3 ★</td>
+                                                <td>
+                                                    <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="hs-dropdown relative inline-flex">
+                                                        <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                            <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--eye text-xs"></i>
+                                                                    Overview
+                                                                </a>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--edit text-xs"></i>
+                                                                    Edit
+                                                                </a>
+                                                                <a class="dropdown-item text-danger" href="#">
+                                                                    <i class="iconify tabler--trash text-xs"></i>
+                                                                    Delete
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="font-medium">Fitness Tracker</td>
+                                                <td>Wearables</td>
+                                                <td>$89.00</td>
+                                                <td>60</td>
+                                                <td>4.1 ★</td>
+                                                <td>
+                                                    <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="hs-dropdown relative inline-flex">
+                                                        <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                            <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--eye text-xs"></i>
+                                                                    Overview
+                                                                </a>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--edit text-xs"></i>
+                                                                    Edit
+                                                                </a>
+                                                                <a class="dropdown-item text-danger" href="#">
+                                                                    <i class="iconify tabler--trash text-xs"></i>
+                                                                    Delete
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="font-medium">4K Monitor</td>
+                                                <td>Electronics</td>
+                                                <td>$349.00</td>
+                                                <td>30</td>
+                                                <td>4.8 ★</td>
+                                                <td>
+                                                    <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="hs-dropdown relative inline-flex">
+                                                        <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                            <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--eye text-xs"></i>
+                                                                    Overview
+                                                                </a>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--edit text-xs"></i>
+                                                                    Edit
+                                                                </a>
+                                                                <a class="dropdown-item text-danger" href="#">
+                                                                    <i class="iconify tabler--trash text-xs"></i>
+                                                                    Delete
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="font-medium">Standing Desk</td>
+                                                <td>Furniture</td>
+                                                <td>$499.00</td>
+                                                <td>10</td>
+                                                <td>4.4 ★</td>
+                                                <td>
+                                                    <span class="badge badge-label bg-info/10 text-info">New</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="hs-dropdown relative inline-flex">
+                                                        <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                            <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--eye text-xs"></i>
+                                                                    Overview
+                                                                </a>
+                                                                <a class="dropdown-item" href="#">
+                                                                    <i class="iconify tabler--edit text-xs"></i>
+                                                                    Edit
+                                                                </a>
+                                                                <a class="dropdown-item text-danger" href="#">
+                                                                    <i class="iconify tabler--trash text-xs"></i>
+                                                                    Delete
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Variants of Table</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="border-default-300 bg-default-100 border-b font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end w-[1%]">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="border-default-300 bg-primary/15 border-b">
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td class="bg-warning/15 px-2.25 py-3">4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td class="bg-info/15 px-2.25 py-3">$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="bg-light/15 px-2.25 py-3 text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">4K Monitor</td>
+                                                    <td>Electronics</td>
+                                                    <td>$349.00</td>
+                                                    <td class="bg-danger/15 px-2.25 py-3">30</td>
+                                                    <td>4.8 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="bg-dark px-2.25 py-3 font-medium text-white">Standing Desk</td>
+                                                    <td>Furniture</td>
+                                                    <td>$499.00</td>
+                                                    <td>10</td>
+                                                    <td>4.4 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-info/10 text-info">New</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Striped Rows</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end w-[1%]">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="border-default-300 odd:bg-default-100 border-b">
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-default-300 odd:bg-default-100 border-b">
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-default-300 odd:bg-default-100 border-b">
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Striped Columns</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th class="bg-default-100 p-2 text-start">Category</th>
+                                                    <th>Price</th>
+                                                    <th class="bg-default-100 p-2 text-start">Stock</th>
+                                                    <th>Rating</th>
+                                                    <th class="bg-default-100 p-2 text-start">Status</th>
+                                                    <th class="text-end w-[1%]">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td class="bg-default-100 px-2.25 py-3">
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Hoverable Rows</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table table-hover">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Active Tables</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="border-default-300 bg-default-100 border-b">
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td class="bg-default-100 px-2 py-3">$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Bordered Tables</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="border-default-300 border font-semibold text-xs">
+                                                <tr class="divide-default-300 divide-x">
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end" style="width: 1%">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="border-default-300 divide-default-300 divide-x border">
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-default-300 divide-default-300 divide-x border">
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-default-300 divide-default-300 divide-x border">
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Tables without Borders</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end" style="width: 1%">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="border-0">
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-0">
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr class="border-0">
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Small Tables</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="p-2 font-medium">Bluetooth Speaker</td>
+                                                    <td class="p-2">Audio</td>
+                                                    <td class="p-2">$49.00</td>
+                                                    <td class="p-2">200</td>
+                                                    <td class="p-2">4.6 ★</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="p-2 font-medium">Leather Wallet</td>
+                                                    <td class="p-2">Accessories</td>
+                                                    <td class="p-2">$29.99</td>
+                                                    <td class="p-2">150</td>
+                                                    <td class="p-2">4.3 ★</td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="p-2 font-medium">Fitness Tracker</td>
+                                                    <td class="p-2">Wearables</td>
+                                                    <td class="p-2">$89.00</td>
+                                                    <td class="p-2">60</td>
+                                                    <td class="p-2">4.1 ★</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Table Group Dividers</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="border-default-600 border-b-2 font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Nesting</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td colspan="7" class="border-default-300 w-full border-b p-5">
+                                                        <table class="table">
+                                                            <thead class="font-semibold text-xs">
+                                                                <tr>
+                                                                    <th>Variant</th>
+                                                                    <th>Color</th>
+                                                                    <th>SKU</th>
+                                                                    <th>Stock</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                <tr>
+                                                                    <td class="p-2 font-medium">Mini</td>
+                                                                    <td class="p-2">Black</td>
+                                                                    <td class="p-2">SPK-M-BLK</td>
+                                                                    <td class="p-2">80</td>
+                                                                </tr>
+
+                                                                <tr>
+                                                                    <td class="p-2 font-medium">Standard</td>
+                                                                    <td class="p-2">Blue</td>
+                                                                    <td class="p-2">SPK-S-BLU</td>
+                                                                    <td class="p-2">120</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Table Head</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="table">
+                                            <thead class="bg-dark">
+                                                <tr class="*:text-white!">
+                                                    <th class="text-start">Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Captions</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="table-wrapper">
+                                        <table class="w-full table table-hover">
+                                            <caption class="text-default-400 caption-bottom pt-3 text-start mt-0">
+                                                List of Ecommerce Products
+                                            </caption>
+                                            <thead class="font-semibold text-xs">
+                                                <tr>
+                                                    <th>Product Name</th>
+                                                    <th>Category</th>
+                                                    <th>Price</th>
+                                                    <th>Stock</th>
+                                                    <th>Rating</th>
+                                                    <th>Status</th>
+                                                    <th class="p-2 text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="font-medium">Bluetooth Speaker</td>
+                                                    <td>Audio</td>
+                                                    <td>$49.00</td>
+                                                    <td>200</td>
+                                                    <td>4.6 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Leather Wallet</td>
+                                                    <td>Accessories</td>
+                                                    <td>$29.99</td>
+                                                    <td>150</td>
+                                                    <td>4.3 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/10 text-success">Active</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td class="font-medium">Fitness Tracker</td>
+                                                    <td>Wearables</td>
+                                                    <td>$89.00</td>
+                                                    <td>60</td>
+                                                    <td>4.1 ★</td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/10 text-warning">Limited Stock</span>
+                                                    </td>
+                                                    <td class="text-end">
+                                                        <div class="hs-dropdown relative inline-flex">
+                                                            <button type="button" class="hs-dropdown-toggle flex h-7.5 w-11.25 items-center justify-center font-semibold" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown" hs-dropdown-placement="bottom-end">
+                                                                <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                            </button>
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--eye text-xs"></i>
+                                                                        Overview
+                                                                    </a>
+                                                                    <a class="dropdown-item" href="#">
+                                                                        <i class="iconify tabler--edit text-xs"></i>
+                                                                        Edit
+                                                                    </a>
+                                                                    <a class="dropdown-item text-danger" href="#">
+                                                                        <i class="iconify tabler--trash text-xs"></i>
+                                                                        Delete
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

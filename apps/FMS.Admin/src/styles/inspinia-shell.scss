@@ -1,0 +1,279 @@
+/**
+ * File:          inspinia-shell.scss
+ * Purpose:       Inspinia-style application shell for FMS.Admin.
+ * Dependencies:  OperatorLayout.tsx, admin.scss
+ * Last Modified: 2026-05-10
+ *
+ * Key Functions:
+ * - Styles the shared dark sidebar, white topbar, and responsive shell chrome.
+ */
+
+.admin-shell {
+  display: block;
+  min-height: 100vh;
+  background: var(--inspinia-content-bg);
+}
+
+.admin-shell__sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  width: var(--theme-sidenav-width);
+  min-width: var(--theme-sidenav-width);
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  min-height: 100%;
+  background: var(--theme-sidenav-bg);
+  border-right: 1px solid var(--theme-sidenav-border-color);
+  box-shadow: var(--theme-box-shadow);
+  color: var(--inspinia-sidebar-text);
+  transition:
+    width 0.25s ease-in-out,
+    min-width 0.25s ease-in-out,
+    transform 0.25s ease-in-out;
+}
+
+.admin-shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--theme-topbar-height);
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.admin-shell__brand-mark,
+.operator-login__brand-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--inspinia-accent);
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.admin-shell__brand-title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-shell__brand-subtitle {
+  color: var(--theme-sidenav-item-color);
+  font-size: 12px;
+}
+
+.admin-shell__nav-label {
+  margin: 14px 18px 6px;
+  color: var(--theme-sidenav-item-color);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-shell__nav {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 24px;
+}
+
+.admin-shell__nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  margin: 0 10px 5px;
+  padding: var(--theme-sidenav-item-padding-y)
+    var(--theme-sidenav-item-padding-x);
+  border-radius: 5px;
+  color: var(--inspinia-sidebar-text);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+
+  i {
+    width: 18px;
+    color: inherit;
+    text-align: center;
+  }
+
+  &:hover {
+    color: var(--theme-sidenav-item-hover-color);
+    background: var(--theme-sidenav-item-hover-bg);
+  }
+
+  &.is-active {
+    color: var(--theme-sidenav-item-active-color);
+    background: var(--theme-sidenav-item-active-bg);
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 0 4px 4px 0;
+      background: var(--inspinia-accent);
+    }
+  }
+}
+
+.admin-shell__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-left: var(--theme-sidenav-width);
+  background: var(--inspinia-content-bg);
+  transition: margin 0.25s ease-in-out;
+}
+
+.admin-shell__topbar {
+  height: var(--theme-topbar-height);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--inspinia-topbar-border);
+  background: var(--inspinia-topbar-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.admin-shell__topbar-left,
+.admin-shell__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-shell__menu-button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-color: transparent;
+  background: var(--theme-primary);
+  color: #ffffff;
+}
+
+.admin-shell__topbar-title {
+  color: var(--inspinia-heading);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-shell__user {
+  color: var(--m365-text-secondary);
+}
+
+.admin-shell__content {
+  min-width: 0;
+  flex: 1;
+  padding: 24px;
+}
+
+html[data-sidenav-size="condensed"] .admin-shell__sidebar {
+  width: var(--theme-sidenav-width-sm);
+  min-width: var(--theme-sidenav-width-sm);
+}
+
+html[data-sidenav-size="condensed"] .admin-shell__main {
+  margin-left: var(--theme-sidenav-width-sm);
+}
+
+html[data-sidenav-size="condensed"] .admin-shell__brand-title,
+html[data-sidenav-size="condensed"] .admin-shell__brand-subtitle,
+html[data-sidenav-size="condensed"] .admin-shell__nav-label,
+html[data-sidenav-size="condensed"] .admin-shell__nav-item span {
+  display: none;
+}
+
+html[data-sidenav-size="condensed"] .admin-shell__brand,
+html[data-sidenav-size="condensed"] .admin-shell__nav-item {
+  justify-content: center;
+}
+
+html[data-sidenav-size="offcanvas"] .admin-shell__main,
+html[data-sidenav-size="hidden"] .admin-shell__main {
+  margin-left: 0;
+}
+
+html[data-layout-width="boxed"] .admin-shell {
+  max-width: 1340px;
+  margin: 0 auto;
+  box-shadow: 0 0 24px rgba(49, 58, 70, 0.12);
+}
+
+html[data-layout-position="scrollable"] .admin-shell__sidebar,
+html[data-layout-position="scrollable"] .admin-shell__topbar {
+  position: absolute;
+}
+
+html[data-footer-position="fixed"] .admin-shell__content {
+  padding-bottom: 64px;
+}
+
+.admin-shell__overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-shell__sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: min(280px, 84vw);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .admin-shell__main {
+    margin-left: 0;
+  }
+
+  .admin-shell.is-sidebar-open .admin-shell__sidebar {
+    transform: translateX(0);
+  }
+
+  .admin-shell__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    display: none;
+    border: 0;
+    background: rgba(0, 0, 0, 0.32);
+  }
+
+  .admin-shell.is-sidebar-open .admin-shell__overlay {
+    display: block;
+  }
+
+  .admin-shell__topbar {
+    padding: 0 14px;
+  }
+
+  .admin-shell__user span {
+    display: none;
+  }
+
+  .admin-shell__content {
+    padding: 16px;
+  }
+}

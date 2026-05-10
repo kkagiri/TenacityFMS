@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Widgets"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Widgets"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Widgets"})
+
+                    <div class="container-fluid">
+                        <div class="card mb-5">
+                            <div class="card-body">
+                                <div class="grid xl:grid-cols-4 md:grids-cols-2 grid-cols-1 gap-base">
+                                    <div class="card border-0 bg-success/10 shadow-none">
+                                        <div class="card-body">
+                                            <h5 title="Number of Orders">Orders</h5>
+                                            <div class="flex items-center gap-2.5 my-5">
+                                                <div class="shrink-0">
+                                                    <span class="text-white bg-success/90 rounded-full size-9 flex justify-center items-center">
+                                                        <i class="iconify tabler--shopping-cart size-5.5"></i>
+                                                    </span>
+                                                </div>
+                                                <h3 class="text-xl">1,250</h3>
+                                            </div>
+                                            <p>
+                                                <span class="text-success"><i class="iconify tabler--point-filled"></i></span>
+                                                <span class="text-nowrap text-default-400">Total Orders</span>
+                                                <span class="float-end"><b>15,320</b></span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="card border-0 bg-warning/10 shadow-none">
+                                        <div class="card-body">
+                                            <h5 title="Revenue Earned">Revenue</h5>
+                                            <div class="flex items-center gap-2.5 my-5">
+                                                <div class="shrink-0">
+                                                    <span class="text-white bg-warning/90 rounded-full size-9 flex justify-center items-center">
+                                                        <i class="iconify tabler--currency-dollar size-5.5"></i>
+                                                    </span>
+                                                </div>
+                                                <h3 class="text-xl">$98.7k</h3>
+                                            </div>
+                                            <p>
+                                                <span class="text-primary"><i class="iconify tabler--point-filled"></i></span>
+                                                <span class="text-nowrap text-default-400">Total Revenue</span>
+                                                <span class="float-end"><b>$1.2M</b></span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="card border-0 bg-info/10 shadow-none">
+                                        <div class="card-body">
+                                            <h5 title="Seller Ratings">Ratings</h5>
+                                            <div class="flex items-center gap-2.5 my-5">
+                                                <div class="shrink-0">
+                                                    <span class="text-white bg-info/90 rounded-full size-9 flex justify-center items-center">
+                                                        <i class="iconify tabler--star size-5.5"></i>
+                                                    </span>
+                                                </div>
+                                                <h3 class="text-xl">4.8</h3>
+                                            </div>
+                                            <p>
+                                                <span class="text-info"><i class="iconify tabler--point-filled"></i></span>
+                                                <span class="text-nowrap text-default-400">Average Rating</span>
+                                                <span class="float-end"><b>5k Reviews</b></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="card border-0 bg-secondary/10 shadow-none">
+                                        <div class="card-body">
+                                            <h5 title="Total Products">Products</h5>
+                                            <div class="flex items-center gap-2.5 my-5">
+                                                <div class="shrink-0">
+                                                    <span class="text-white bg-secondary/90 rounded-full size-9 flex justify-center items-center">
+                                                        <i class="iconify tabler--box size-5.5"></i>
+                                                    </span>
+                                                </div>
+                                                <h3 class="text-xl">350</h3>
+                                            </div>
+                                            <p>
+                                                <span class="text-secondary"><i class="iconify tabler--point-filled"></i></span>
+                                                <span class="text-nowrap text-default-400">Total Products</span>
+                                                <span class="float-end"><b>750 Variants</b></span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-3 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="p-5 bg-light/20 border-b border-dashed border-default-300">
+                                    <div class="flex justify-between items-center">
+                                        <div class="col">
+                                            <h4 class="text-sm mb-1.25">Would you like the full report?</h4>
+                                            <small class="text-default-400 text-xs"> All 120 orders have been successfully delivered </small>
+                                        </div>
+                                        <div class="ms-auto">
+                                            <div class="hs-tooltip [--placement:top] inline-block">
+                                                <button type="button" class="hs-tooltip-toggle size-7.75 flex justify-center items-center rounded-full border border-default-300 text-default-700 hover:bg-default-50 hover:border-default-400 focus:outline-hidden">
+                                                    <i class="iconify tabler--download text-xl"></i>
+                                                    <span
+                                                        class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-default-800 border border-tooltip-line text-xs font-medium text-body-bg rounded-md shadow-2xs"
+                                                        role="tooltip"
+                                                    >
+                                                        Download
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-1.25 grid md:grid-cols-2 grid-cols-1 gap-1.25">
+                                    <div class="card rounded-none border shadow-none border-dashed border-primary bg-primary/10 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">$24,500</h5>
+                                                <span>18.45% <i class="iconify tabler--arrow-up text-success"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5"><span>Total sales in period</span></p>
+                                            <div class="w-full bg-primary/25 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-primary h-1.25 rounded-full" role="progressbar" style="width: 18.45%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">1,240</h5>
+                                                <span>10.35% <i class="iconify tabler--arrow-down text-danger"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5"><span>Number of customers</span></p>
+                                            <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 10.35%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">$65.49 <small class="text-2xs">USD</small></h5>
+                                                <span>5.92% <i class="iconify tabler--arrow-up text-success"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5"><span>Average order value</span></p>
+                                            <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 5.92%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card rounded-none border shadow-none border-dashed border-secondary bg-secondary/10 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">3,750</h5>
+                                                <span>22.61% <i class="iconify tabler--bolt text-primary"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5 truncate"><span>Products sold in the period</span></p>
+                                            <div class="w-full bg-secondary/25 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 22.61%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card rounded-none border shadow-none border-dashed border-warning bg-warning/10 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">$24,500</h5>
+                                                <span>18.45% <i class="iconify tabler--arrow-up text-success"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5"><span>Total sales in period</span></p>
+                                            <div class="w-full bg-warning/25 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-warning h-1.25 rounded-full" role="progressbar" style="width: 18.45%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                        <div class="card-body">
+                                            <div class="mb-5 flex justify-between items-center">
+                                                <h5 class="text-lg">1,240</h5>
+                                                <span>10.35% <i class="iconify tabler--arrow-down text-danger"></i></span>
+                                            </div>
+                                            <p class="text-default-400 mb-2.5"><span>Number of customers</span></p>
+                                            <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 10.35%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center my-2.5">
+                                    <a href="#!" class="hover:text-primary underline font-semibold link-offset-3"> View all Links <i class="iconify tabler--link"></i> </a>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Traffic Sources</h4>
+                                    <div class="flex gap-1">
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up"></i>
+                                        </a>
+
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-refresh">
+                                            <i class="iconify tabler--refresh"></i>
+                                        </a>
+
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-close">
+                                            <i class="iconify tabler--x"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="flex justify-between gap-base mb-2.5">
+                                        <div>
+                                            <h3 class="mb-2.5 text-xl font-bold"><span data-target="8,975">8,975</span></h3>
+                                            <p class="mb-2.5 text-default-400 font-semibold">Right Now</p>
+                                        </div>
+                                        <!--end col-->
+                                        <div class="self-center">
+                                            <ul class="leading-6">
+                                                <li class="flex items-center gap-1.25">
+                                                    <i class="iconify tabler--caret-right-filled text-lg align-middle text-primary"></i>
+                                                    <span class="text-default-400">Organic</span>
+                                                </li>
+
+                                                <li class="flex items-center gap-1.25">
+                                                    <i class="iconify tabler--caret-right-filled text-lg align-middle text-success"></i>
+                                                    <span class="text-default-400">Direct</span>
+                                                </li>
+
+                                                <li class="flex items-center gap-1.25">
+                                                    <i class="iconify tabler--caret-right-filled text-lg align-middle"></i>
+                                                    <span class="text-default-400">Campaign</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5 h-5 w-full overflow-hidden rounded bg-default-200 flex">
+                                        <div class="h-full bg-primary" style="width: 25%" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="h-full bg-success" style="width: 50%" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="h-full bg-info" style="width: 15%" role="progressbar" aria-valuenow="25" aria-valuemin="100" aria-valuemax="100"></div>
+                                    </div>
+
+                                    <div class="table-wrapper whitespace-nowrap">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="bg-light/25 align-middle">
+                                                <tr class="uppercase text-2xs">
+                                                    <th class="text-default-400">URL</th>
+                                                    <th class="text-default-400 text-end">Views</th>
+                                                    <th class="text-default-400 text-end">Uniques</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody class="border-b border-default-300">
+                                                <tr class="">
+                                                    <td class="underline">/dashboard</td>
+                                                    <td class="text-end">9.8k</td>
+                                                    <td class="text-end">8.5k</td>
+                                                </tr>
+
+                                                <tr class="">
+                                                    <td class="underline">/ecommerce-index</td>
+                                                    <td class="text-end">8.2k</td>
+                                                    <td class="text-end">7.1k</td>
+                                                </tr>
+
+                                                <tr class="">
+                                                    <td class="underline">/apps/projects-overview</td>
+                                                    <td class="text-end">7.6k</td>
+                                                    <td class="text-end">6.2k</td>
+                                                </tr>
+
+                                                <tr class="">
+                                                    <td class="underline">/pages/contact</td>
+                                                    <td class="text-end">5.9k</td>
+                                                    <td class="text-end">4.8k</td>
+                                                </tr>
+
+                                                <tr class="">
+                                                    <td class="underline">/support/faq</td>
+                                                    <td class="text-end">5.2k</td>
+                                                    <td class="text-end">4.3k</td>
+                                                </tr>
+
+                                                <tr class="">
+                                                    <td class="underline">/login</td>
+                                                    <td class="text-end">4.7k</td>
+                                                    <td class="text-end">3.9k</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="text-center mt-5">
+                                        <a href="#!" class="hover:text-primary underline underline-offset-4 font-semibold flex items-center gap-1.25 justify-end"> View all Links<i class="iconify tabler--link"></i> </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Top 10 Countries</h4>
+                                    <div class="flex gap-1">
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up"></i>
+                                        </a>
+
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-refresh">
+                                            <i class="iconify tabler--refresh"></i>
+                                        </a>
+
+                                        <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-close">
+                                            <i class="iconify tabler--x"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">01.</span>
+                                        <img src="assets/images/flags/de.svg" alt="Germany" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Germany</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">10,412</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+1.5%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">02.</span>
+                                        <img src="assets/images/flags/fr.svg" alt="France" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">France</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">8,934</p>
+                                                <p class="badge badge-label text-2xs bg-danger/15 text-danger mb-0">-0.8%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">03.</span>
+                                        <img src="assets/images/flags/in.svg" alt="India" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">India</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">14,217</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+3.2%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">04.</span>
+                                        <img src="assets/images/flags/us.svg" alt="United States" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">United States</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">18,522</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+2.1%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">05.</span>
+                                        <img src="assets/images/flags/gb.svg" alt="United Kingdom" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">United Kingdom</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">7,614</p>
+                                                <p class="badge badge-label text-2xs bg-danger/15 text-danger mb-0">-1.2%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">06.</span>
+                                        <img src="assets/images/flags/ca.svg" alt="Canada" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Canada</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">6,221</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+0.9%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">07.</span>
+                                        <img src="assets/images/flags/jp.svg" alt="Japan" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Japan</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">5,785</p>
+                                                <p class="badge badge-label text-2xs bg-warning/15 text-warning mb-0">0.0%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">08.</span>
+                                        <img src="assets/images/flags/au.svg" alt="Australia" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Australia</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">4,918</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+1.1%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5 mb-5">
+                                        <span class="text-sm font-medium italic text-default-400">09.</span>
+                                        <img src="assets/images/flags/br.svg" alt="Brazil" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Brazil</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">3,874</p>
+                                                <p class="badge badge-label text-2xs bg-danger/15 text-danger mb-0">-0.5%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="text-sm font-medium italic text-default-400">10.</span>
+                                        <img src="assets/images/flags/it.svg" alt="Italy" class="size-4 rounded" />
+                                        <h5 class="font-medium"><a href="#!" class="hover:text-primary">Italy</a></h5>
+                                        <div class="ms-auto">
+                                            <div class="flex items-center gap-5">
+                                                <p class="font-medium">4,105</p>
+                                                <p class="badge badge-label text-2xs bg-success/15 text-success mb-0">+0.7%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-2.5">
+                                        <a href="#!" class="hover:text-primary underline font-semibold link-offset-3"> View all Countries <i class="iconify tabler--world"></i> </a>
+                                    </div>
+                                </div>
+                                <!-- end card-body -->
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-3 grid-cols-1 gap-base mb-5">
+                            <div class="flex flex-col gap-base">
+                                <div class="card">
+                                    <div class="relative card-side-img overflow-hidden rounded-t-sm bg-center bg-no-repeat bg-cover bg-[url('../images/profile-bg.jpg')]" style="height: 180px">
+                                        <div class="h-full p-7.5 bg-linear-to-t from-[#313a46] via-[rgba(49,58,70,0.8)] to-[rgba(49,58,70,0.5)] inset-0 absolute rounded-s-sm auth-overlay flex rounded-t-sm items-center justify-center">
+                                            <h5 class="text-white italic">"Welcome!"</h5>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body relative">
+                                        <div class="flex justify-start gap-5">
+                                            <div class="size-20" style="margin-top: -60px">
+                                                <a href="#!">
+                                                    <img src="assets/images/users/user-2.jpg" alt="User Profile" class="p-1 bg-body-bg border border-default-300 rounded-full" />
+                                                </a>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-nowrap font-bold mb-1.25">
+                                                    <a href="#!" class="text-lg">Damian D.</a>
+                                                </h4>
+                                                <p class="text-default-400 mb-0">Member since Jan 2021</p>
+                                            </div>
+
+                                            <div class="relative -mt-10 ms-auto">
+                                                <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                    <button type="button" class="hs-dropdown-toggle size-9.5 bg-primary text-white btn btn-icon rounded-full" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                        <i class="iconify tabler--dots text-2xl"></i>
+                                                    </button>
+
+                                                    <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical" tabindex="-1">
+                                                        <div class="space-y-0.5">
+                                                            <a href="#" class="dropdown-item"> Edit Profile </a>
+
+                                                            <a href="#" class="dropdown-item text-danger"> Report </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="flex border border-dashed rounded p-5 border-default-300">
+                                            <div class="shrink-0">
+                                                <img src="assets/images/users/user-8.jpg" alt="" class="size-8 rounded-full shadow-sm" />
+                                            </div>
+                                            <div class="grow ms-2.5">
+                                                <h5 class="mb-1.25">Liam Carter <small class="text-default-400">15 Apr 2025 · 09:20AM</small></h5>
+                                                <p class="mb-2.5">Loving the new dashboard update! The UI feels much smoother and more intuitive now. Great job!</p>
+
+                                                <div class="flex justify-between mt-2.5 text-default-400">
+                                                    <div class="flex gap-5">
+                                                        <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--eye"></i> 1.2K</span>
+                                                        <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--heart"></i> 320</span>
+                                                        <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--message-circle-2"></i> 14</span>
+                                                    </div>
+                                                    <a href="javascript:void(0);" class="text-primary hover:text-primary-hover font-semibold inline-flex items-center gap-1.25"> <i class="iconify tabler--arrow-back-up"></i> Reply </a>
+                                                </div>
+
+                                                <!-- Nested Comment -->
+                                                <div class="flex mt-7.5">
+                                                    <div class="shrink-0">
+                                                        <img src="assets/images/users/user-10.jpg" alt="" class="size-8 rounded-full shadow-sm" />
+                                                    </div>
+                                                    <div class="grow ms-2.5">
+                                                        <h5 class="mb-1.25">Nina Bryant <small class="text-default-400">15 Apr 2025 · 10:00AM</small></h5>
+                                                        <p class="mb-2.5">Totally agree! The load speed is noticeably faster too.</p>
+
+                                                        <div class="flex justify-between text-default-400">
+                                                            <div class="flex gap-5">
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--eye"></i> 860</span>
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--heart"></i> 150</span>
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--message-circle-2"></i> 6</span>
+                                                            </div>
+                                                            <a href="javascript:void(0);" class="text-primary hover:text-primary-hover font-semibold inline-flex items-center gap-1.25"> <i class="iconify tabler--arrow-back-up"></i> Reply </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Another Nested Comment -->
+                                                <div class="flex mt-7.5">
+                                                    <div class="shrink-0">
+                                                        <img src="assets/images/users/user-3.jpg" alt="" class="size-8 rounded-full shadow-sm" />
+                                                    </div>
+                                                    <div class="grow ms-2.5">
+                                                        <h5 class="mb-1.25">Sophie Allen <small class="text-default-400">15 Apr 2025 · 12:10PM</small></h5>
+                                                        <p class="mb-2.5">Hope we get more dark mode themes next!</p>
+
+                                                        <div class="flex justify-between text-default-400">
+                                                            <div class="flex gap-5">
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--eye"></i> 580</span>
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--heart"></i> 90</span>
+                                                                <span class="inline-flex items-center gap-1.25"><i class="iconify tabler--message-circle-2"></i> 3</span>
+                                                            </div>
+                                                            <a href="javascript:void(0);" class="text-primary hover:text-primary-hover font-semibold inline-flex items-center gap-1.25"> <i class="iconify tabler--arrow-back-up"></i> Reply </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-base">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Chat</h4>
+                                    </div>
+
+                                    <div class="card-body h-95 py-0" data-simplebar>
+                                        <!-- Message 1 -->
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="assets/images/users/user-5.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 font-medium rounded px-5 py-2.5">Hey! Are you available for a quick call? 📞</div>
+                                                <div class="text-default-400 mt-1.25 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    08:55 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Message 2 -->
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 font-medium rounded px-5 py-2.5">Sure, give me 5 minutes. Just wrapping something up.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    08:57 am
+                                                </div>
+                                            </div>
+                                            <img src="assets/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <!-- Message 3-->
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="assets/images/users/user-5.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 font-medium rounded px-5 py-2.5">Perfect. Let me know when you're ready 👍</div>
+                                                <div class="text-default-400 mt-1.25 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    08:58 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Message 4 -->
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 font-medium rounded px-5 py-2.5">Ready now. Calling you!</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:00 am
+                                                </div>
+                                            </div>
+                                            <img src="assets/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <!-- Message 5 -->
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="assets/images/users/user-5.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 font-medium rounded px-5 py-2.5">Thanks for your time earlier!</div>
+                                                <div class="text-default-400 mt-1.25 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:45 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Message 6 -->
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 font-medium rounded px-5 py-2.5">Of course! It was a productive discussion.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:46 am
+                                                </div>
+                                            </div>
+                                            <img src="assets/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <!-- Message 7 -->
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="assets/images/users/user-5.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 font-medium rounded px-5 py-2.5">I’ll send over the updated files by noon.</div>
+                                                <div class="text-default-400 mt-1.25 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:50 am
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-default-300 border-t border-dashed px-5 py-3.75">
+                                        <div class="flex gap-2.5">
+                                            <div class="input-icon-group grow">
+                                                <i class="iconify tabler--message-dots input-icon text-default-400"></i>
+                                                <input type="text" class="form-input border-light bg-light/20" placeholder="Enter message..." />
+                                            </div>
+
+                                            <a data-send href="#!" class="btn btn-icon bg-primary size-9.5 text-white">
+                                                <i class="iconify tabler--send-2 text-xl"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                    <div>
+                                        <div class="card text-white bg-purple border-0">
+                                            <div class="card-body">
+                                                <div class="flex items-center mb-5 gap-2.5">
+                                                    <div class="">
+                                                        <span class="flex justify-center items-center size-9 bg-light/20 text-white rounded-full">
+                                                            <i class="iconify tabler--phone text-xl"></i>
+                                                        </span>
+                                                    </div>
+                                                    <p class="font-semibold">PHONE</p>
+                                                </div>
+                                                <h5 class="mb-1.25 text-white/75">+1 800 123 4567</h5>
+                                                <h5 class="mb-0 text-white/75">+1 800 765 4321</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="card text-white bg-success border-0">
+                                            <div class="card-body">
+                                                <div class="flex items-center mb-5 gap-2.5">
+                                                    <div class="">
+                                                        <span class="flex justify-center items-center size-9 bg-light/20 text-white rounded-full">
+                                                            <i class="iconify tabler--mail text-xl"></i>
+                                                        </span>
+                                                    </div>
+                                                    <p class="font-semibold">EMAIL</p>
+                                                </div>
+                                                <h5 class="mb-1.25 text-white/75">support@example.com</h5>
+                                                <h5 class="mb-0 text-white/75">sales@example.com</h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-base">
+                                <div class="card">
+                                    <div class="card-header justify-between">
+                                        <h4 class="card-title">File Manage</h4>
+                                        <a href="javascript: void(0);" class="btn bg-light btn-sm btn-icon rounded-full hover:text-primary hover:bg-primary/15"><i class="iconify tabler--plus"></i></a>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <!-- File Item -->
+                                        <div class="flex justify-between items-center pb-2.5">
+                                            <div class="flex items-center py-1.25 gap-2.5">
+                                                <div class="size-9 bg-light/50 text-default-400 rounded-md flex justify-center items-center">
+                                                    <i class="iconify tabler--file-text text-xl"></i>
+                                                </div>
+                                                <div class="grow">
+                                                    <h5 class="mb-1.25 text-sm"><a href="#!" class="link-reset">Meeting-Notes.docx</a></h5>
+                                                    <p class="text-default-400 text-xs">1.2MB</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                <div><img src="assets/images/users/user-4.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-7.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-1.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-2.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-sm size-8 border border-default-300 hover:border-default-400 hover:bg-default-50 transition-all duration-400" title="Download"><i class="iconify tabler--download text-lg"></i></a>
+                                            </div>
+                                        </div>
+
+                                        <!-- File Item -->
+                                        <div class="flex justify-between items-center pb-2.5">
+                                            <div class="flex items-center py-1.25 gap-2.5">
+                                                <div class="size-9 bg-light/50 text-default-400 rounded-md flex justify-center items-center">
+                                                    <i class="iconify tabler--file-type-pdf text-xl"></i>
+                                                </div>
+                                                <div class="grow">
+                                                    <h5 class="mb-1.25 text-sm"><a href="#!" class="link-reset">Design-Specs.pdf</a></h5>
+                                                    <p class="text-default-400 text-xs">3.6MB</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                <div><img src="assets/images/users/user-8.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-2.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-6.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-9.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-10.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-sm size-8 border border-default-300 hover:border-default-400 hover:bg-default-50 transition-all duration-400" title="Download"><i class="iconify tabler--download text-lg"></i></a>
+                                            </div>
+                                        </div>
+
+                                        <!-- File Item -->
+                                        <div class="flex justify-between items-center pb-2.5">
+                                            <div class="flex items-center py-1.25 gap-2.5">
+                                                <div class="size-9 bg-light/50 text-default-400 rounded-md flex justify-center items-center">
+                                                    <i class="iconify tabler--file-type-zip text-xl"></i>
+                                                </div>
+                                                <div class="grow">
+                                                    <h5 class="mb-1.25 text-sm"><a href="#!" class="link-reset">-Package.zip</a></h5>
+                                                    <p class="text-default-400 text-xs">7.4MB</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                <div><img src="assets/images/users/user-1.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-6.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-sm size-8 border border-default-300 hover:border-default-400 hover:bg-default-50 transition-all duration-400" title="Download"><i class="iconify tabler--download text-lg"></i></a>
+                                            </div>
+                                        </div>
+
+                                        <!-- File Item -->
+                                        <div class="flex justify-between items-center pb-2.5">
+                                            <div class="flex items-center py-1.25 gap-2.5">
+                                                <div class="size-9 bg-light/50 text-default-400 rounded-md flex justify-center items-center">
+                                                    <i class="iconify tabler--file-type-ppt text-xl"></i>
+                                                </div>
+                                                <div class="grow">
+                                                    <h5 class="mb-1.25 text-sm"><a href="#!" class="link-reset">Marketing-Plan.pptx</a></h5>
+                                                    <p class="text-default-400 text-xs">5.0MB</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                <div><img src="assets/images/users/user-10.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-4.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-1.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-3.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                                <div><img src="assets/images/users/user-6.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-sm size-8 border border-default-300 hover:border-default-400 hover:bg-default-50 transition-all duration-400" title="Download"><i class="iconify tabler--download text-lg"></i></a>
+                                            </div>
+                                        </div>
+
+                                        <!-- File Item -->
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center py-1.25 gap-2.5">
+                                                <div class="size-9 bg-light/50 text-default-400 rounded-md flex justify-center items-center">
+                                                    <i class="iconify tabler--photo text-xl"></i>
+                                                </div>
+                                                <div class="grow">
+                                                    <h5 class="mb-1.25 text-sm"><a href="#!" class="link-reset">Wireframe.png</a></h5>
+                                                    <p class="text-default-400 text-xs">820KB</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center transition-all duration-300">
+                                                <div><img src="assets/images/users/user-9.jpg" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" alt="" /></div>
+                                            </div>
+                                            <div>
+                                                <a href="#" class="btn btn-sm size-8 border border-default-300 hover:border-default-400 hover:bg-default-50 transition-all duration-400" title="Download"><i class="iconify tabler--download text-lg"></i></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                                <!-- end card-->
+
+                                <div class="card">
+                                    <div class="card-header justify-content-between">
+                                        <h4 class="card-title">Today's Schedule</h4>
+                                        <a href="javascript: void(0);" class="text-primary font-semibold hover:text-primary-hover"><i class="iconify tabler--calendar me-1"></i><span>Invite</span></a>
+                                    </div>
+                                    <!-- end card-header-->
+
+                                    <div class="card-body">
+                                        <div class="pb-2.5 border-b border-light border-dashed">
+                                            <div class="mb-2.5">
+                                                <p class="mb-1.25 text-truncate text-sm font-medium">Design Review Meeting</p>
+                                                <span class="text-warning text-xs">30 minute session with UI/UX team</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                    <div>
+                                                        <img src="assets/images/users/user-5.jpg" alt="Liam Carter" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" />
+                                                    </div>
+                                                    <div>
+                                                        <img src="assets/images/users/user-6.jpg" alt="Zoe Miles" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" />
+                                                    </div>
+                                                    <div class="">
+                                                        <span class="size-6 flex justify-center items-center rounded-full bg-primary/15 text-primary font-bold"> D </span>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn size-8 bg-secondary/15 text-secondary hover:bg-secondary hover:text-white rounded-full">
+                                                    <i class="iconify tabler--brand-figma text-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="py-2.5 border-b border-light border-dashed">
+                                            <div class="mb-2.5">
+                                                <p class="mb-1.25 text-truncate text-sm font-medium">Sprint Planning Session</p>
+                                                <span class="text-success text-xs">1 hour agile team meeting</span>
+                                            </div>
+                                            <div class="flex justify-between items-center">
+                                                <div class="flex items-center -space-x-2 transition-all duration-300">
+                                                    <div>
+                                                        <img src="assets/images/users/user-7.jpg" alt="Ava Lee" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" />
+                                                    </div>
+                                                    <div>
+                                                        <img src="assets/images/users/user-8.jpg" alt="Ethan King" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" />
+                                                    </div>
+                                                    <div>
+                                                        <img src="assets/images/users/user-9.jpg" alt="Lucas White" class="transitio-all size-6 rounded-full duration-200 hover:-translate-y-1" />
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn size-8 bg-secondary/15 text-secondary hover:bg-secondary hover:text-white rounded-full">
+                                                    <i class="iconify tabler--calendar-event text-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- end card-body-->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-5 md:grid-cols-3 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-body">
+                                    <a href="#!" class="text-default-400 float-end -mt-1.25 text-xl"><i class="iconify tabler--external-link"></i></a>
+                                    <h5 title="Number of Tasks">My Tasks</h5>
+                                    <div class="flex items-center gap-2.5 my-5">
+                                        <div>
+                                            <span class="size-9 bg-light rounded-full flex justify-center items-center">
+                                                <i class="iconify tabler--checklist size-5.5"></i>
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl"><span data-target="124">0</span></h3>
+                                        <span class="badge bg-primary/15 text-primary font-medium text-xs ms-auto">+3 New</span>
+                                    </div>
+                                    <p>
+                                        <span class="text-primary"><i class="iconify tabler--point-filled"></i></span>
+                                        <span class="text-nowrap text-muted">Total Tasks</span>
+                                        <span class="float-end"><b>12,450</b></span>
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <a href="#!" class="text-default-400 float-end -mt-1.25 text-xl"><i class="iconify tabler--external-link"></i></a>
+                                    <h5 title="Number of Messages">Messages</h5>
+                                    <div class="flex items-center gap-2.5 my-5">
+                                        <div>
+                                            <span class="size-9 flex justify-center items-center text-white bg-purple rounded-full">
+                                                <i class="iconify tabler--message-circle size-5.5"></i>
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl"><span data-target="69.5">0</span>k</h3>
+                                        <span class="badge bg-secondary/15 text-secondary font-medium text-xs ms-auto">+5 New</span>
+                                    </div>
+                                    <p>
+                                        <span class="text-secondary"><i class="iconify tabler--point-filled"></i></span>
+                                        <span class="text-nowrap text-muted">Total Messages</span>
+                                        <span class="float-end"><b>32.1M</b></span>
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card text-white bg-primary border-0">
+                                <div class="card-body">
+                                    <a href="#!" class="text-white-50 float-end mt-n1 text-xl"><i class="iconify tabler--external-link"></i></a>
+                                    <h5 title="Pending Approvals">Approvals</h5>
+                                    <div class="flex items-center gap-2.5 my-5">
+                                        <div>
+                                            <span class="size-9 flex justify-center items-center bg-white/20 rounded-full">
+                                                <i class="iconify tabler--file-check size-5.5"></i>
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl"><span data-target="32">0</span></h3>
+                                    </div>
+                                    <p>
+                                        <span class="text-nowrap text-white text-opacity-75">Total Approvals:</span>
+                                        <span class="float-end"
+                                            ><b><span data-target="1,479">0</span></b></span
+                                        >
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <a href="#!" class="text-default-400 float-end -mt-1.25 text-xl"><i class="iconify tabler--external-link"></i></a>
+                                    <h5 title="Total Clients">Clients</h5>
+                                    <div class="flex items-center gap-2.5 my-5">
+                                        <div>
+                                            <span class="size-9 flex justify-center items-center text-white bg-info rounded-full">
+                                                <i class="iconify tabler--users size-5.5"></i>
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl"><span data-target="184">0</span></h3>
+                                        <span class="badge bg-secondary/15 text-secondary font-medium text-xs ms-auto">+4 New</span>
+                                    </div>
+                                    <p>
+                                        <span class="text-secondary"><i class="iconify tabler--point-filled"></i></span>
+                                        <span class="text-nowrap text-muted">Total Clients</span>
+                                        <span class="float-end"><b>9,835</b></span>
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card bg-danger/10 border-0">
+                                <div class="card-body">
+                                    <a href="#!" class="text-default-400 float-end -mt-1.25 text-xl"><i class="iconify tabler--external-link"></i></a>
+                                    <h5 title="Revenue Generated">Revenue</h5>
+                                    <div class="flex items-center gap-2.5 my-5">
+                                        <div>
+                                            <span class="size-9 flex justify-center items-center text-white bg-danger/90 rounded-full">
+                                                <i class="iconify tabler--credit-card size-5.5"></i>
+                                            </span>
+                                        </div>
+                                        <h3 class="text-xl">$<span data-target="125.5">0</span>k</h3>
+                                        <span class="badge bg-danger/15 text-danger font-medium text-xs ms-auto">+1.5%</span>
+                                    </div>
+                                    <p>
+                                        <span class="text-primary"><i class="iconify tabler--point-filled"></i></span>
+                                        <span class="text-nowrap text-muted">Total Revenue</span>
+                                        <span class="float-end"><b>$12.5M</b></span>
+                                    </p>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="">
+                                            <span class="size-15 flex justify-center items-center rounded-full bg-dark text-white">
+                                                <i class="iconify tabler--credit-card size-8"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="320">320</span>K</h3>
+                                            <p class="text-default-400">Monthly Total Sales</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Orders</h5>
+                                    <span class="badge bg-primary/15 text-primary"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="">
+                                            <span class="size-15 flex justify-center items-center rounded-full bg-dark text-white">
+                                                <i class="iconify tabler--package size-8"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="245">245</span></h3>
+                                            <p class="text-default-400">Monthly Total Orders</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">New Customers</h5>
+                                    <span class="badge bg-info/15 text-info"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="">
+                                            <span class="size-15 flex justify-center items-center rounded-full bg-dark text-white">
+                                                <i class="iconify tabler--users size-8"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="4,382">4,382</span></h3>
+                                            <p class="text-default-400">Monthly New Customers</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Revenue</h5>
+                                    <span class="badge bg-warning/15 text-warning"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="">
+                                            <span class="size-15 flex justify-center items-center rounded-full bg-dark text-white">
+                                                <i class="iconify tabler--chart-bar size-8"></i>
+                                            </span>
+                                        </div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="89.45">89.45</span>K</h3>
+                                            <p class="text-default-400">Monthly Revenue</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div>
+                                        <a href="#" class="hover:text-primary uppercase font-semibold">Backend API Integration</a>
+                                        <div class="py-2">
+                                            <span class="text-lg font-bold me-2.5"><span data-target="72.5">0</span>%</span>
+                                            <span class="font-semibold text-default-400 text-sm">In Progress</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-success/25 rounded-full h-2">
+                                        <div class="bg-success h-2 rounded-full" style="width: 72.5%"></div>
+                                    </div>
+                                    <div class="mt-2.5 text-default-400">Estimated completion: 2 days.</div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div>
+                                        <a href="#" class="hover:text-primary uppercase font-semibold">UI Design</a>
+                                        <div class="py-2">
+                                            <span class="text-lg font-bold me-2.5"><span data-target="100">0</span>%</span>
+                                            <span class="font-semibold text-default-400 text-sm">Completed</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-success/25 rounded-full h-2">
+                                        <div class="bg-success h-2 rounded-full" style="width: 100%"></div>
+                                    </div>
+                                    <div class="mt-2.5 text-default-400">Delivered yesterday at 5:00 pm.</div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div>
+                                        <a href="#" class="hover:text-primary uppercase font-semibold">Database Optimization</a>
+                                        <div class="py-2">
+                                            <span class="text-lg font-bold me-2.5"><span data-target="45">0</span>%</span>
+                                            <span class="font-semibold text-default-400 text-sm"> Pending</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-success/25 rounded-full h-2">
+                                        <div class="bg-success h-2 rounded-full" style="width: 45%"></div>
+                                    </div>
+                                    <div class="mt-2.5 text-default-400">Next review: Monday 10:00 am.</div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div>
+                                        <a href="#" class="hover:text-primary uppercase font-semibold">Server Uptime</a>
+                                        <div class="py-2">
+                                            <span class="text-lg font-bold me-2.5"><span data-target="99.90">0</span>%</span>
+                                            <span class="font-semibold text-default-400 text-sm">Stable</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-success/25 rounded-full h-2">
+                                        <div class="bg-success h-2 rounded-full" style="width: 99.9%"></div>
+                                    </div>
+                                    <div class="mt-2.5 text-default-400">Last downtime: 7 days ago.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-6 md:grid-cols-3 grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="size-12 flex justify-center items-center bg-primary/15 text-primary rounded-full">
+                                            <i class="iconify tabler--building-skyscraper text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl">$<span data-target="150">0</span>M</h3>
+                                    <p class="text-default-400">Total Property Value</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="size-12 flex justify-center items-center bg-success/15 text-success rounded-full">
+                                            <i class="iconify tabler--home-dollar text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl"><span data-target="320">0</span></h3>
+                                    <p class="text-default-400">Properties Sold</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="size-12 flex justify-center items-center bg-warning/15 text-warning rounded-full">
+                                            <i class="iconify tabler--building-store text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl"><span data-target="180">0</span></h3>
+                                    <p class="text-default-400">Active Listings</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="size-12 flex justify-center items-center bg-info/15 text-info rounded-full">
+                                            <i class="iconify tabler--users-group text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl"><span data-target="85">0</span></h3>
+                                    <p class="text-default-400">Agents Available</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5">
+                                        <span class="size-12 flex justify-center items-center bg-danger/15 text-danger rounded-full">
+                                            <i class="iconify tabler--calendar-time text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl"><span data-target="42">0</span></h3>
+                                    <p class="text-default-400">Upcoming Viewings</p>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="avatar-xl mb-3">
+                                        <span class="size-12 flex justify-center items-center bg-secondary/15 text-secondary rounded-full">
+                                            <i class="iconify tabler--building-warehouse text-2xl"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="mb-1.25 text-xl"><span data-target="27">0</span></h3>
+                                    <p class="text-default-400">New Constructions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

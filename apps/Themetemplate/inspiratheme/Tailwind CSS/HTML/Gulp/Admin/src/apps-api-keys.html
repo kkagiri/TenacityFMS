@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "API Keys"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"API Keys"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"API Keys"})
+
+                    <div class="container-fluid">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="text" type="search" placeholder="Search API clients..." class="form-input" />
+                                    </div>
+
+                                    <button type="button" class="btn btn-icon bg-secondary text-white hover:bg-secondary-hover" aria-haspopup="dialog" aria-expanded="false" aria-controls="addApiKeyModal" data-hs-overlay="#addApiKeyModal">
+                                        <i class="iconify tabler--plus text-base"></i>
+                                    </button>
+
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                    <span class="me-2.5 font-semibold text-nowrap">Filter By:</span>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--circle-check input-icon"></i>
+                                        <select data-table-filter="status" class="form-select">
+                                            <option value="All">Status</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Revoked">Revoked</option>
+                                            <option value="Suspended">Suspended</option>
+                                            <option value="Expired">Expired</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--world input-icon"></i>
+                                        <select data-table-filter="region" class="form-select">
+                                            <option value="All">Region</option>
+                                            <option value="US">USA</option>
+                                            <option value="UK">UK</option>
+                                            <option value="IN">India</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="AU">Australia</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <select data-table-set-rows-per-page class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover">
+                                    <thead class="bg-light/25 thead-sm">
+                                        <tr class="text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="checkAll" />
+                                            </th>
+                                            <th data-table-sort>Name</th>
+                                            <th data-table-sort="name">Created By</th>
+                                            <th>API Key</th>
+                                            <th data-table-sort data-column="status">Status</th>
+                                            <th>Usage</th>
+                                            <th data-table-sort>Created</th>
+                                            <th data-table-sort>Expires</th>
+                                            <th data-table-sort data-column="region">Region</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="font-medium">APINexus</div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-2.jpg" class="size-6 rounded-full" />
+                                                    <div>
+                                                        <h5 data-sort="name" class="text-sm font-medium text-nowrap">Mark Reynolds</h5>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keyOne" readonly="" value="e4A7Fc98z120XYz776abc90MNZ" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keyOne">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-warning/15 text-warning"> Pending </span>
+                                            </td>
+                                            <td>245 / 1000</td>
+                                            <td>Jan 10, 2025</td>
+                                            <td>Nov 15, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/de.svg" class="size-3.5 rounded-full" />
+                                                    DE
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">DataPulse</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-4.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Sophia Turner</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keyTwo" readonly value="9BcD456Xy78LmN0zPQR12sA3Z" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keyTwo">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-danger/15 text-danger">Revoked</span>
+                                            </td>
+                                            <td>847 / 1000</td>
+                                            <td>Mar 5, 2025</td>
+                                            <td>Aug 20, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/gb.svg" class="size-3.5 rounded-full" />
+                                                    UK
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">AuthKit</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-5.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Liam Watson</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keyThree" readonly value="ZZ99xC8K23Fm10TyPLqZa17d" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keyThree">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>105 / 700</td>
+                                            <td>Apr 22, 2025</td>
+                                            <td>Dec 31, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/in.svg" class="size-3.5 rounded-full" />
+                                                    IN
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">APIxEdge</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-2.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Ava Turner</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keyFour" readonly value="XY91kLpB42Ga98WxRTzEe55n" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keyFour">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>0 / 500</td>
+                                            <td>Apr 10, 2025</td>
+                                            <td>Oct 10, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/us.svg" class="size-3.5 rounded-full" />
+                                                    US
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">DataLinker</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-7.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Noah Reed</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keyFive" readonly value="BB22zWqT65Op90VxMLaRt18c" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keyFive">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-danger/15 text-danger">Suspended</span>
+                                            </td>
+                                            <td>369 / 1000</td>
+                                            <td>Mar 15, 2025</td>
+                                            <td>Sep 15, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/de.svg" class="size-3.5 rounded-full" />
+                                                    DE
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">WebhookMate</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-3.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Sophia Lee</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keySix" readonly value="RM19yUlP75Kl44YvNJdHg09s" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" type="button" data-clipboard-target="#keySix">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>459 / 600</td>
+                                            <td>Jan 01, 2025</td>
+                                            <td>Dec 31, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/gb.svg" class="size-3.5 rounded-full" />
+                                                    UK
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td class="font-medium">DevPortal</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-4.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Mason Clark</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" class="form-input form-input-sm" id="keySeven" readonly value="AA47qBcJ61Tr77WpKKzTy39k" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" data-clipboard-target="#keySeven">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-info/15 text-info">Trial</span>
+                                            </td>
+                                            <td>0 / 100</td>
+                                            <td>Feb 01, 2025</td>
+                                            <td>May 01, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/au.svg" class="size-3.5 rounded-full" />
+                                                    AU
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">NotifyX</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-6.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Ella James</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" id="keyEight" readonly class="form-input form-input-sm" value="ZP83mXcD28Uv11MtYYoXx03b" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" data-clipboard-target="#keyEight">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>3584 / 5000</td>
+                                            <td>Apr 01, 2025</td>
+                                            <td>Jan 01, 2026</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/ca.svg" class="size-3.5 rounded-full" />
+                                                    CA
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">TokenVault</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-8.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Lucas Hill</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" id="keyNine" readonly class="form-input form-input-sm" value="LK35yTrF82Lo99UiSSpPr47x" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" data-clipboard-target="#keyNine">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-secondary/15 text-secondary">Expired</span>
+                                            </td>
+                                            <td>958 / 1000</td>
+                                            <td>Jul 15, 2024</td>
+                                            <td>Jan 15, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/fr.svg" class="size-3.5 rounded-full" />
+                                                    FR
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td class="font-medium">StreamAPI</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-9.jpg" class="size-6 rounded-full" />
+                                                    <h5 class="text-sm font-medium text-nowrap">Mia Bennett</h5>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="input-group">
+                                                    <input type="text" id="keyTen" readonly class="form-input form-input-sm" value="DW64aUvQ11Gh32PpDDjWw72t" />
+                                                    <button class="btn btn-sm btn-icon border-default-300" data-clipboard-target="#keyTen">
+                                                        <i class="iconify tabler--copy text-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>78 / 100</td>
+                                            <td>Mar 05, 2025</td>
+                                            <td>Dec 05, 2025</td>
+                                            <td>
+                                                <div class="inline-flex items-center gap-1.25 font-bold">
+                                                    <img src="assets/images/flags/in.svg" class="size-3.5 rounded-full" />
+                                                    IN
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a class="btn btn-sm btn-icon border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="apis"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="addApiKeyModal"
+                        class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto"
+                        role="dialog"
+                        tabindex="-1"
+                        aria-labelledby="addApiKeyModalLabel"
+                    >
+                        <div class="hs-overlay-animation-target flex items-start justify-end m-3 max-w-sm md:w-full md:max-w-2xl lg:max-w-3xl">
+                            <div class="card pointer-events-auto flex w-full flex-col">
+                                <div class="border-default-300 flex items-center justify-between border-b p-6">
+                                    <h3 id="addApiKeyModalLabel" class="card-title">Add New API Key</h3>
+                                    <button type="button" aria-label="Close" data-hs-overlay="#addApiKeyModal">
+                                        <i class="iconify tabler--x text-xl"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body overflow-y-auto">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="form-label">Client Name</label>
+                                            <input type="text" class="form-input" placeholder="Enter client name" />
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Created By</label>
+                                            <select class="form-select">
+                                                <option selected="" disabled="">Select user</option>
+                                                <option>Mark Reynolds</option>
+                                                <option>Sophia Turner</option>
+                                                <option>Liam Watson</option>
+                                                <option>Ava Turner</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">API Key</label>
+                                            <div class="relative">
+                                                <input type="text" id="apiKeyInput" class="form-input" placeholder="Enter or generate API key" />
+                                                <button type="button" class="btn bg-secondary absolute end-0 top-0 rounded-s-none text-white" id="generateApiKey">Generate</button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Status</label>
+                                            <select class="form-select">
+                                                <option value="Active">Active</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Revoked">Revoked</option>
+                                                <option value="Suspended">Suspended</option>
+                                                <option value="Trial">Trial</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Usage Limit</label>
+                                            <input type="text" class="form-input" placeholder="e.g. 1000" />
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Region</label>
+                                            <select class="form-select">
+                                                <option value="DE">🇩🇪 Germany</option>
+                                                <option value="UK">🇬🇧 UK</option>
+                                                <option value="IN">🇮🇳 India</option>
+                                                <option value="US">🇺🇸 USA</option>
+                                                <option value="AU">🇦🇺 Australia</option>
+                                                <option value="CA">🇨🇦 Canada</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Created On</label>
+                                            <input type="text" data-provider="flatpickr" data-date-format="d M, Y" class="form-input" readonly="readonly" />
+                                        </div>
+
+                                        <div>
+                                            <label class="form-label">Expires On</label>
+                                            <input type="text" data-provider="flatpickr" data-date-format="d M, Y" class="form-input" readonly="readonly" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="p-4 flex items-center justify-end gap-x-2 border-t border-default-300">
+                                    <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#addApiKeyModal">Cancel</button>
+
+                                    <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">Add API Key</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Custom table -->
+        <script src="assets/js/pages/custom-table.js"></script>
+
+        <!-- Apex Charts js -->
+        <script src="assets/plugins/apexcharts/apexcharts.min.js"></script>
+
+        <!-- Clipboard js -->
+        <script src="assets/plugins/clipboard/clipboard.min.js"></script>
+
+        <!-- APIKey Page Init -->
+        <script src="assets/js/pages/apps-api-keys.js"></script>
+    </body>
+</html>

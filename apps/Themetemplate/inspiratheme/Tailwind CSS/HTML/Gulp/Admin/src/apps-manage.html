@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Manage Apps"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Manage Apps"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Manage Apps"})
+
+                    <div class="container">
+                        <div class="mb-4">
+                            <h5 class="mb-1.25 text-base">Authorized Apps</h5>
+                            <p class="text-default-400">
+                                You’re currently using
+                                <strong>3 of 3</strong>
+                                free integrations. Upgrade to
+                                <a href="#" class="text-primary underline">PRO</a>
+                                to unlock more integrations and supercharge your workflow.
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-base mb-base">
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-start justify-between">
+                                        <div class="flex items-center gap-base">
+                                            <img src="assets/images/logos/google.svg" alt="Google Analytics Logo" class="size-12 rounded" />
+                                            <div>
+                                                <h5 class="card-title mb-1.25">Google Analytics</h5>
+                                                <p class="text-default-400 text-sm mb-0.5">Google Analytics is a free web analytics service offered by Google that tracks and reports website traffic.</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <input type="checkbox" class="form-switch" checked />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5 flex flex-wrap items-center gap-2.5">
+                                        <span class="badge font-semibold bg-light text-primary rounded-full px-2.5 py-1.25">Free Plan</span>
+                                        <span class="badge font-semibold bg-success/15 text-success rounded-full px-2.5 py-1.25">Connected</span>
+                                        <span class="badge font-semibold bg-info/15 text-info rounded-full px-2.5 py-1.25">Sync: Every 15 mins</span>
+                                    </div>
+
+                                    <div class="mb-5 grid grid-cols-2 gap-base">
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Connected Account</p>
+                                            <span>analytics&#64;domain.com</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Last Sync</p>
+                                            <span>12:56 pm, 12 May</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-5">
+                                        <div class="flex justify-between mb-2.5">
+                                            <span class="text-xs font-bold">Usage</span>
+                                            <small class="text-success font-bold">80% of quota</small>
+                                        </div>
+
+                                        <!-- Progress -->
+                                        <div class="bg-default-200 flex h-1.5 w-full overflow-hidden rounded-full" role="progressbar" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
+                                            <div class="bg-success flex flex-col justify-center overflow-hidden rounded-full text-center text-xs whitespace-nowrap text-white transition duration-500" style="width: 80%"></div>
+                                        </div>
+                                        <!-- End Progress -->
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <button class="btn border-danger text-danger hover:bg-danger w-full hover:text-white">Remove</button>
+                                        </div>
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-primary text-primary hover:bg-primary w-full hover:text-white">
+                                                Details
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View integration details</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-start justify-between">
+                                        <div class="flex items-center gap-base">
+                                            <img src="assets/images/logos/asana.svg" alt="Asana Logo" class="size-12 rounded" />
+                                            <div>
+                                                <h5 class="card-title mb-1.25">Asana</h5>
+                                                <p class="text-default-400 text-sm mb-0.5">Asana is a work management platform that helps teams organize, track, and manage their work more effectively.</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <input type="checkbox" class="form-switch" checked />
+                                        </div>
+                                    </div>
+
+                                    <!-- Badge font-semibolds -->
+                                    <div class="mb-5 flex flex-wrap items-center gap-2.5">
+                                        <span class="badge font-semibold bg-light text-primary rounded-full px-2.5 py-1.25">Premium Plan</span>
+                                        <span class="badge font-semibold bg-success/15 text-success rounded-full px-2.5 py-1.25">Connected</span>
+                                        <span class="badge font-semibold bg-info/15 text-info rounded-full px-2.5 py-1.25">Sync: Every 10 mins</span>
+                                    </div>
+
+                                    <!-- Connection Info -->
+                                    <div class="mb-5 grid grid-cols-2 gap-base">
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Connected Account</p>
+                                            <span>project&#64;asana.com</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Last Sync</p>
+                                            <span>09:30 am, 18 May</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Usage -->
+                                    <div class="mb-5">
+                                        <div class="flex justify-between mb-2.5">
+                                            <span class="text-xs font-bold">Usage</span>
+                                            <small class="text-success font-bold">65% of quota</small>
+                                        </div>
+
+                                        <div class="bg-default-200 flex h-1.5 w-full overflow-hidden rounded-full">
+                                            <div class="bg-success flex flex-col justify-center overflow-hidden rounded-full transition duration-500" style="width: 65%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn border-danger text-danger hover:bg-danger w-full hover:text-white">Remove</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-primary text-primary hover:bg-primary w-full hover:text-white">
+                                                Details
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View integration details</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-start justify-between">
+                                        <div class="flex items-center gap-base">
+                                            <img src="assets/images/logos/dropbox.svg" alt="Dropbox Logo" class="size-12 rounded" />
+                                            <div>
+                                                <h5 class="card-title mb-1.25">Dropbox</h5>
+                                                <p class="text-default-400 text-sm mb-0.5">Dropbox is a cloud storage platform for securely storing, sharing, and accessing files from anywhere.</p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <input type="checkbox" class="form-switch" checked />
+                                        </div>
+                                    </div>
+
+                                    <!-- Badge font-semibolds -->
+                                    <div class="mb-5 flex flex-wrap items-center gap-2.5">
+                                        <span class="badge font-semibold bg-light text-primary rounded-full px-2.5 py-1.25">Business Plan</span>
+                                        <span class="badge font-semibold bg-success/15 text-success rounded-full px-2.5 py-1.25">Connected</span>
+                                        <span class="badge font-semibold bg-info/15 text-info rounded-full px-2.5 py-1.25">Sync: Every 30 mins</span>
+                                    </div>
+
+                                    <!-- Connection Info -->
+                                    <div class="mb-5 grid grid-cols-2 gap-base">
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Connected Account</p>
+                                            <span>files&#64;dropbox.com</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-2xs text-default-400 font-bold uppercase">Last Sync</p>
+                                            <span>03:45 pm, 19 May</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Usage -->
+                                    <div class="mb-5">
+                                        <div class="flex justify-between mb-2.5">
+                                            <span class="text-xs font-bold">Usage</span>
+                                            <small class="text-success font-bold">92% of quota</small>
+                                        </div>
+
+                                        <div class="bg-default-200 flex h-1.5 w-full overflow-hidden rounded-full">
+                                            <div class="bg-success flex flex-col justify-center overflow-hidden rounded-full transition duration-500" style="width: 92%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Buttons -->
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn border-danger text-danger hover:bg-danger w-full hover:text-white">Remove</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-primary text-primary hover:bg-primary w-full hover:text-white">
+                                                Details
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View integration details</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="py-2.5 text-center">
+                            <h5 class="mb-1.25 text-base">Explore More Integrations</h5>
+                            <p class="text-default-400 mb-5">Discover over 200 integrations to enhance your workflow</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-base mb-base">
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/amazon.svg" alt="Amazon Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-light text-default-800">Free</span>
+                                        </div>
+                                    </div>
+                                    <h5 class="card-title mb-1.25">Amazon</h5>
+                                    <p class="text-default-400 mb-4">Amazon Web Services offers scalable cloud computing and hosting solutions for businesses of all sizes...</p>
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.amazon.com</a>
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+                                        </div>
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/figma.svg" alt="Figma Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-warning flex items-center gap-1 text-white">
+                                                <i class="iconify tabler--medal"></i>
+                                                Premium
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Figma</h5>
+                                    <p class="text-default-400 mb-4">Figma is a collaborative interface design tool that helps teams design and prototype together in real time...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.figma.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/microsoft.svg" alt="Microsoft Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-warning flex items-center gap-1 text-white">
+                                                <i class="iconify tabler--medal"></i>
+                                                Premium
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Microsoft</h5>
+                                    <p class="text-default-400 mb-4">Microsoft provides productivity software and cloud services including Office 365, Azure, and more...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.microsoft.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/openai.svg" alt="OpenAI Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-light/70 text-default-800">Free</span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">OpenAI</h5>
+                                    <p class="text-default-400 mb-4">OpenAI provides cutting-edge artificial intelligence APIs and tools to integrate AI into your apps...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.openai.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/slack.svg" alt="Slack Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-warning flex items-center gap-1 text-white">
+                                                <i class="iconify tabler--medal"></i>
+                                                Premium
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Slack</h5>
+                                    <p class="text-default-400 mb-4">Slack is a messaging app for teams that connects people, information, and tools together in one place...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.slack.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/spotify.svg" alt="Spotify Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-light/70 text-default-800">Free</span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Spotify</h5>
+                                    <p class="text-default-400 mb-4">Spotify is a digital music service that gives you access to millions of songs and podcasts...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.spotify.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/meta.svg" alt="Meta Logo" class="h-6" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-warning flex items-center gap-1 text-white">
+                                                <i class="iconify tabler--medal"></i>
+                                                Premium
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Meta</h5>
+                                    <p class="text-default-400 mb-4">Meta connects billions of people through its apps and services including Facebook, Instagram, and WhatsApp...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.meta.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/apple.svg" alt="Apple Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-light/70 text-default-800">Free</span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Apple</h5>
+                                    <p class="text-default-400 mb-4">Apple designs and develops consumer electronics, software, and online services including iPhone...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.apple.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- card -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-6.25 flex items-center justify-between">
+                                        <div class="bg-light/75 flex size-12 items-center justify-center rounded">
+                                            <img src="assets/images/logos/airbnb.svg" alt="Airbnb Logo" class="h-7.5" />
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-label font-semibold bg-warning flex items-center gap-1 text-white">
+                                                <i class="iconify tabler--medal"></i>
+                                                Premium
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="card-title mb-1.25">Airbnb</h5>
+                                    <p class="text-default-400 mb-4">Airbnb is an online marketplace for lodging, primarily homestays for vacation rentals, and tourism activities...</p>
+
+                                    <div class="mb-5">
+                                        <div class="flex items-center gap-1.25 text-sm">
+                                            <i class="iconify tabler--world text-sm"></i>
+                                            <a href="#!" class="hover:text-primary">www.airbnb.com</a>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <button class="btn bg-success hover:bg-success-hover w-full text-white">Connect</button>
+
+                                        <div class="hs-tooltip inline-block [--placement:top]">
+                                            <button type="button" class="hs-tooltip-toggle btn border-secondary text-secondary hover:bg-secondary w-full hover:text-white">
+                                                Learn More
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span
+                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible bg-default-900 text-default-50 invisible absolute z-10 inline-block rounded-md px-2 py-1 text-sm font-medium opacity-0 shadow-2xs transition-opacity"
+                                                    role="tooltip"
+                                                    >View more information</span
+                                                >
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="mb-4">
+                            <nav class="mx-auto flex items-center justify-center gap-1.5" aria-label="Pagination">
+                                <button type="button" class="btn btn-icon size-8.75 bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Previous">
+                                    <span>«</span>
+                                </button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">1</button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-primary rounded-full text-white">2</button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">3</button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">4</button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-card hover:bg-default-50 border-default-300 hover:text-primary rounded-full">5</button>
+                                <button type="button" class="btn btn-icon size-8.75 bg-card border-default-300 hover:bg-default-50 hover:text-primary rounded-full" aria-label="Next">
+                                    <span>»</span>
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

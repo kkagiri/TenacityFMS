@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Email Details" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Email Details" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main class="pb-0!">
+                    {{> page-title subtitle="Apps" title="Email Details" }}
+
+                    <div class="container-fluid">
+                        <div class="lg:flex lg:h-[calc(100vh-200px)]">
+                            <div class="card h-full">
+                                <div
+                                    id="emailSidebaroffcanvas"
+                                    class="hs-overlay hs-overlay-open:translate-x-0 rounded fixed start-0 top-0 bottom-0 z-50 hidden bg-card h-full w-56.5 -translate-x-full transform transition-all duration-300 [--auto-close:lg] lg:static lg:end-auto lg:bottom-0 lg:block! lg:translate-x-0"
+                                    role="dialog"
+                                    tabindex="-1"
+                                    aria-label="Sidebar"
+                                >
+                                    <div class="card-body h-full" data-simplebar>
+                                        <a href="apps-email-compose.html" class="btn w-full bg-danger text-white hover:bg-danger-hover">Compose</a>
+
+                                        <div class="mt-5">
+                                            <div class="flex flex-col">
+                                                <a href="apps-email-inbox.html" class="bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--inbox text-base align-middle"></i>
+                                                    <span class="align-middle">Inbox</span>
+                                                    <span class="ms-auto badge text-2xs bg-danger/15 text-danger font-semibold">21</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--send-2 text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Sent</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--star text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Starred</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--clock text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Scheduled</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--pencil text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Drafts</span>
+                                                    <span class="ms-auto badge bg-secondary/15 text-secondary font-semibold text-2xs">9</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--alert-circle text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Important</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--ban text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Spam</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--trash text-base align-middle text-default-700"></i>
+                                                    <span class="align-middle">Trash</span>
+                                                </a>
+                                            </div>
+
+                                            <div class="mt-2.5">
+                                                <div class="text-default-800 px-3 py-2 text-sm font-medium tracking-wider">Labels</div>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-primary align-middle text-sm"></i>
+                                                    <span class="align-middle">Business</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-secondary align-middle text-sm"></i>
+                                                    <span class="align-middle">Personal</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-info align-middle text-sm"></i>
+                                                    <span class="align-middle">Friends</span>
+                                                </a>
+
+                                                <a href="javascript:void(0);" class="hover:bg-default-100 font-medium flex items-center gap-2 rounded px-3 py-2 transition">
+                                                    <i class="iconify tabler--chart-donut text-warning align-middle text-sm"></i>
+                                                    <span class="align-middle">Family</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-full min-w-0 flex-1">
+                                <div data-table data-table-rows-per-page="15" class="card z-90 rounded-none h-full">
+                                    <div class="card-header lg:hidden">
+                                        <button class="btn btn-icon border-default-300 rounded border">
+                                            <i class="iconify tabler--menu-4 text-default-600 size-6" aria-haspopup="dialog" aria-expanded="false" aria-controls="emailSidebaroffcanvas" aria-label="Toggle navigation" data-hs-overlay="#emailSidebaroffcanvas"></i>
+                                        </button>
+
+                                        <div class="input-icon-group lg:hidden inline-flex">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input data-table-search type="text" class="form-input" placeholder="Search mails..." />
+                                        </div>
+                                    </div>
+
+                                    <div class="card-header justify-between">
+                                        <div class="flex flex-wrap items-center gap-1.25">
+                                            <span class="hs-tooltip [--placement:top] inline-block">
+                                                <a href="apps-email-inbox.html" class="hs-tooltip-toggle btn btn-icon size-8 border border-default-300">
+                                                    <i class="iconify tabler--arrow-left text-base text-default-800"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-90 py-1 px-2 bg-dark text-xs font-medium text-white rounded" role="tooltip">
+                                                        Back to Inbox
+                                                    </span>
+                                                </a>
+                                            </span>
+
+                                            <span class="hs-tooltip [--placement:top] inline-block">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-8 border border-default-300">
+                                                    <i class="iconify tabler--trash text-base text-default-800"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded" role="tooltip">
+                                                        Delete
+                                                    </span>
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip [--placement:top] inline-block">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-8 border border-default-300">
+                                                    <i class="iconify tabler--mail-opened text-base text-default-800"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded" role="tooltip">
+                                                        Mark as Read
+                                                    </span>
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip [--placement:top] inline-block">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-8 border border-default-300">
+                                                    <i class="iconify tabler--archive text-base text-default-800"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded" role="tooltip">
+                                                        Archive
+                                                    </span>
+                                                </button>
+                                            </span>
+
+                                            <span class="hs-tooltip [--placement:top] inline-block">
+                                                <button type="button" class="hs-tooltip-toggle btn btn-icon size-8 border border-default-300">
+                                                    <i class="iconify tabler--folder text-base text-default-800"></i>
+                                                    <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded" role="tooltip">
+                                                        Move to Folder
+                                                    </span>
+                                                </button>
+                                            </span>
+                                        </div>
+
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" class="btn btn-icon size-7.5 text-secondary hover:bg-secondary hover:text-white rounded-full">
+                                                <i class="iconify tabler--corner-up-right-double text-lg"></i>
+                                            </button>
+
+                                            <button type="button" class="btn btn-icon size-7.5 text-dark hover:bg-dark hover:text-white rounded-full">
+                                                <i class="iconify tabler--dots-vertical text-lg"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body py-0 lg:h-[calc(100vh-334px)] h-[calc(100vh-420px)]" data-simplebar>
+                                        <h4 class="py-5 text-lg sticky top-0 card border-none! rounded-none! z-20">Design Reviews & Feedback</h4>
+
+                                        <div class="pb-base border-b border-dashed border-default-300">
+                                            <div>
+                                                <div class="flex justify-between items-center flex-wrap">
+                                                    <button type="button" class="hs-collapse-toggle" id="EmailOne" aria-expanded="false" aria-controls="EmailOne-heading" data-hs-collapse="#EmailOne-heading">
+                                                        <a class="flex items-center text-reset">
+                                                            <img src="/images/users/user-3.jpg" class="size-9 rounded-full" alt="User Avatar" />
+                                                            <div class="ms-2.5 overflow-hidden text-start">
+                                                                <h5>John Maxwell</h5>
+                                                                <p class="text-default-400">john.maxwell&#64;uxstudio.com</p>
+                                                            </div>
+                                                        </a>
+                                                    </button>
+
+                                                    <div class="md:ms-auto flex items-center gap-1">
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--star-filled text-warning text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-forward text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-opened text-base"></i>
+                                                        </button>
+                                                        <span class="text-default-400 text-xs ms-2">Apr 11, 07:47 AM</span>
+                                                    </div>
+                                                </div>
+                                                <div id="EmailOne-heading" class="hs-collapse hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="EmailOne">
+                                                    <div class="mt-5">
+                                                        <p class="mb-4">Hey team,</p>
+                                                        <p class="mb-4">I reviewed the new dashboard layout and overall it's looking solid. The spacing and typography are much better than the previous version.</p>
+                                                        <p class="mb-4">A couple of suggestions:</p>
+                                                        <ul>
+                                                            <li>Make the chart legends slightly smaller and lighter in color.</li>
+                                                            <li>Try a softer drop shadow for the card components – they feel a bit harsh right now.</li>
+                                                        </ul>
+                                                        <p class="mb-4">Let me know if you need a quick call to discuss.</p>
+                                                        <p class="mt-5">Cheers,</p>
+                                                        <p class="font-medium">John</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="py-5 border-b border-dashed border-default-300">
+                                            <div>
+                                                <div class="flex justify-between items-center flex-wrap">
+                                                    <button type="button" class="hs-collapse-toggle" id="EmailTwo" aria-expanded="false" aria-controls="EmailTwo-heading" data-hs-collapse="#EmailTwo-heading">
+                                                        <a class="flex items-center text-reset">
+                                                            <img src="/images/users/user-6.jpg" class="size-9 rounded-full" alt="User Avatar" />
+                                                            <div class="ms-2.5 overflow-hidden text-start">
+                                                                <h5>Anika Patel</h5>
+                                                                <p class="text-default-400">anika&#64;creativemix.net</p>
+                                                            </div>
+                                                        </a>
+                                                    </button>
+
+                                                    <div class="md:ms-auto flex items-center gap-1">
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--star-filled text-warning text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-forward text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-opened text-base"></i>
+                                                        </button>
+                                                        <span class="text-default-400 text-xs ms-2">Apr 11, 09:05 AM</span>
+                                                    </div>
+                                                </div>
+
+                                                <div id="EmailTwo-heading" class="hs-collapse hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="EmailTwo">
+                                                    <div class="mt-5">
+                                                        <p class="mb-4">Hello team,</p>
+                                                        <p class="mb-4">I did a final check on the landing page animations. Everything works smoothly except the testimonial slider – there's a tiny jitter on loop transition.</p>
+                                                        <p class="mb-4">Maybe easing timing or delay tweaks can help fix it. Otherwise, great job!</p>
+                                                        <p class="mb-5">Let me know once it's deployed to staging so I can do one last run-through.</p>
+                                                        <p class="mt-5">Thanks,</p>
+                                                        <p class="font-medium">Anika</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="py-5">
+                                            <div>
+                                                <div class="flex justify-between items-center flex-wrap">
+                                                    <button type="button" class="hs-collapse-toggle" id="EmailThree" aria-expanded="false" aria-controls="EmailThree-heading" data-hs-collapse="#EmailThree-heading">
+                                                        <a class="flex items-center text-reset">
+                                                            <img src="/images/users/user-5.jpg" class="size-9 rounded-full" alt="User Avatar" />
+                                                            <div class="ms-2.5 overflow-hidden text-start">
+                                                                <h5>Laura Chen</h5>
+                                                                <p class="text-default-400">laura.chen&#64;designteam.co</p>
+                                                            </div>
+                                                        </a>
+                                                    </button>
+
+                                                    <div class="md:ms-auto flex items-center gap-1">
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--star-filled text-warning text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-forward text-base"></i>
+                                                        </button>
+                                                        <button class="btn btn-icon hover:bg-default-100 size-8 rounded-full text-default-800">
+                                                            <i class="iconify tabler--mail-opened text-base"></i>
+                                                        </button>
+                                                        <span class="text-default-400 text-xs ms-2">Apr 12, 11:42 AM</span>
+                                                    </div>
+                                                </div>
+
+                                                <div id="EmailThree-heading" class="hs-collapse w-full overflow-hidden transition-[height] duration-300" aria-labelledby="EmailThree">
+                                                    <div class="mt-7.5">
+                                                        <p class="mb-4">Hi folks,</p>
+                                                        <p class="mb-4">Thanks for sharing the prototype. The color scheme and layout look clean, but I think we can still refine the mobile responsiveness on the pricing page.</p>
+                                                        <p class="mb-4">Also, the button contrast on the footer needs more WCAG-friendly contrast – it's currently a bit hard to read.</p>
+                                                        <p class="mb-4">I’ve attached some screenshots with markup for clarity.</p>
+                                                        <p class="mt-5">Regards,</p>
+                                                        <p class="font-medium">Laura</p>
+                                                    </div>
+
+                                                    <div class="mt-5">
+                                                        <div class="flex justify-between">
+                                                            <h4 class="text-default-400 text-sm">2 Attachments</h4>
+                                                        </div>
+                                                        <div class="mt-4 flex flex-wrap gap-base">
+                                                            <div class="flex p-2.5 gap-2.5 items-center text-start relative border border-dashed border-default-300 rounded group">
+                                                                <i class="iconify tabler--file text-2xl text-danger"></i>
+                                                                <div>
+                                                                    <h4 class="mb-1.25">
+                                                                        <a href="#!" class="group-hover:text-primary">footer-contrast-notes.pdf</a>
+                                                                    </h4>
+                                                                    <p class="text-xs">1.2 MB</p>
+                                                                </div>
+                                                                <i class="iconify tabler--download text-default-400 text-2xl"></i>
+                                                            </div>
+                                                            <div class="flex p-2.5 gap-2.5 items-center text-start relative border border-dashed border-default-300 rounded group">
+                                                                <i class="iconify tabler--photo text-2xl text-secondary"></i>
+                                                                <div>
+                                                                    <h4 class="mb-1.25">
+                                                                        <a href="#!" class="group-hover:text-primary">responsive-issues.png</a>
+                                                                    </h4>
+                                                                    <p class="text-xs">850 KB</p>
+                                                                </div>
+                                                                <i class="iconify tabler--download text-default-400 text-2xl"></i>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="EmailReply-heading" class="hs-collapse hidden sticky bottom-0 z-10 w-full overflow-hidden transition-[height] duration-300" aria-labelledby="EmailReply">
+                                            <div class="card border border-default-300 mb-4">
+                                                <textarea class="form-textarea border-0!" id="exampleFormControlTextarea1" rows="6" placeholder="Enter message"></textarea>
+                                                <div class="bg-light/15 border-t border-default-300 p-3">
+                                                    <div class="flex flex-wrap gap-1.5 items-center">
+                                                        <span class="hs-tooltip [--placement:top] inline-block">
+                                                            <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-100 size-8">
+                                                                <i class="iconify tabler--bold text-xs"></i>
+                                                                <span
+                                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded"
+                                                                    role="tooltip"
+                                                                >
+                                                                    Bold
+                                                                </span>
+                                                            </button>
+                                                        </span>
+
+                                                        <span class="hs-tooltip [--placement:top] inline-block">
+                                                            <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-100 size-8">
+                                                                <i class="iconify tabler--italic text-xs"></i>
+                                                                <span
+                                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded"
+                                                                    role="tooltip"
+                                                                >
+                                                                    Italic
+                                                                </span>
+                                                            </button>
+                                                        </span>
+
+                                                        <span class="hs-tooltip [--placement:top] inline-block">
+                                                            <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-100 size-8">
+                                                                <i class="iconify tabler--paperclip text-xs"></i>
+                                                                <span
+                                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded"
+                                                                    role="tooltip"
+                                                                >
+                                                                    Attach files
+                                                                </span>
+                                                            </button>
+                                                        </span>
+
+                                                        <span class="hs-tooltip [--placement:top] inline-block">
+                                                            <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-100 size-8">
+                                                                <i class="iconify tabler--link text-xs"></i>
+                                                                <span
+                                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded"
+                                                                    role="tooltip"
+                                                                >
+                                                                    Insert link
+                                                                </span>
+                                                            </button>
+                                                        </span>
+
+                                                        <span class="hs-tooltip [--placement:top] inline-block">
+                                                            <button type="button" class="hs-tooltip-toggle btn btn-icon bg-default-100 size-8">
+                                                                <i class="iconify tabler--photo-up text-xs"></i>
+                                                                <span
+                                                                    class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-dark text-xs font-medium text-white rounded"
+                                                                    role="tooltip"
+                                                                >
+                                                                    Insert photo
+                                                                </span>
+                                                            </button>
+                                                        </span>
+
+                                                        <button type="button" class="btn btn-sm bg-light ms-auto">
+                                                            <i class="iconify tabler--x text-xs"></i>
+                                                            Cancel
+                                                        </button>
+
+                                                        <button type="button" class="btn btn-sm bg-success text-white">
+                                                            <i class="iconify tabler--send-2 text-xs"></i>
+                                                            Send
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer border-t border-dashed">
+                                        <div class="flex flex-wrap gap-3 items-center justify-between">
+                                            <button class="hs-collapse-toggle btn btn-sm border border-default-300 hover:border-default-400 hover:bg-default-50" id="EmailReply" aria-expanded="false" aria-controls="EmailReply-heading" data-hs-collapse="#EmailReply-heading">
+                                                <i class="iconify tabler--corner-up-left text-base"></i>
+                                                <span class="font-medium">Reply</span>
+                                            </button>
+
+                                            <button class="btn btn-sm border border-default-300 hover:border-default-400 hover:bg-default-50" type="button">
+                                                <i class="iconify tabler--corner-up-right-double text-base"></i>
+                                                <span class="font-medium">Forward</span>
+                                            </button>
+
+                                            <button class="btn btn-sm border border-default-300 hover:border-default-400 hover:bg-default-50" type="button">
+                                                <i class="iconify tabler--printer text-base"></i>
+                                                <span class="font-medium">Print</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

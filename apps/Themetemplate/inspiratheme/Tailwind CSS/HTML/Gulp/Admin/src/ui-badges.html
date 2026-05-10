@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Badges"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Badges"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Badges"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>.badge</code>
+                                        &amp;
+                                        <code>.bg-*</code>
+                                        classes to make badges.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge border-default-300 border">Default</span>
+                                        <span class="badge bg-primary text-white hover:bg-primary-hover">Primary</span>
+                                        <span class="badge bg-secondary text-white">Secondary</span>
+                                        <span class="badge bg-success text-white">Success</span>
+                                        <span class="badge bg-danger text-white hover:bg-danger-hover">Danger</span>
+                                        <span class="badge bg-warning text-white">Warning</span>
+                                        <span class="badge bg-info text-white">Info</span>
+                                        <span class="badge bg-light">Light</span>
+                                        <span class="badge bg-dark text-white">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Pill Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>.rounded-full</code>
+                                        modifier class to make badges more rounded.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge border-default-300 rounded-full border">Default</span>
+                                        <span class="badge bg-primary rounded-full text-white">Primary</span>
+                                        <span class="badge bg-secondary rounded-full text-white">Secondary</span>
+                                        <span class="badge bg-success rounded-full text-white">Success</span>
+                                        <span class="badge bg-danger rounded-full text-white">Danger</span>
+                                        <span class="badge bg-warning rounded-full text-white">Warning</span>
+                                        <span class="badge bg-info rounded-full text-white">Info</span>
+                                        <span class="badge bg-light rounded-full">Light</span>
+                                        <span class="badge bg-dark rounded-full text-white">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Outline Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Using the
+                                        <code>.border-*</code>
+                                        to quickly create a bordered badges.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge border-primary text-primary border">Primary</span>
+                                        <span class="badge border-secondary text-secondary border">Secondary</span>
+                                        <span class="badge border-success text-success border">Success</span>
+                                        <span class="badge border-danger text-danger border">Danger</span>
+                                        <span class="badge border-warning text-warning border">Warning</span>
+                                        <span class="badge border-info text-info border">Info</span>
+                                        <span class="badge border-dark text-dark border">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Outline Pill Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the
+                                        <code>.rounded-full</code>
+                                        modifier class to make badges more rounded.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge border-primary text-primary rounded-full border">Primary</span>
+                                        <span class="badge border-secondary text-secondary rounded-full border">Secondary</span>
+                                        <span class="badge border-success text-success rounded-full border">Success</span>
+                                        <span class="badge border-danger text-danger rounded-full border">Danger</span>
+                                        <span class="badge border-warning text-warning rounded-full border">Warning</span>
+                                        <span class="badge border-info text-info rounded-full border">Info</span>
+                                        <span class="badge border-dark text-dark rounded-full border">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Lighten Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the background opacity
+                                        <code>.bg-*/15</code>
+                                        modifier class to make badges lighten.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge bg-primary/15 text-primary">Primary</span>
+                                        <span class="badge bg-secondary/15 text-secondary">Secondary</span>
+                                        <span class="badge bg-success/15 text-success">Success</span>
+                                        <span class="badge bg-danger/15 text-danger">Danger</span>
+                                        <span class="badge bg-warning/15 text-warning">Warning</span>
+                                        <span class="badge bg-info/15 text-info">Info</span>
+                                        <span class="badge bg-dark/15 text-dark">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Lighten Pill Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Use the background opacity
+                                        <code>.bg-*/15</code>
+                                        modifier class to make badges lighten.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge bg-primary/15 text-primary rounded-full">Primary</span>
+                                        <span class="badge bg-secondary/15 text-secondary rounded-full">Secondary</span>
+                                        <span class="badge bg-success/15 text-success rounded-full">Success</span>
+                                        <span class="badge bg-danger/15 text-danger rounded-full">Danger</span>
+                                        <span class="badge bg-warning/15 text-warning rounded-full">Warning</span>
+                                        <span class="badge bg-info/15 text-info rounded-full">Info</span>
+                                        <span class="badge bg-dark/15 text-dark rounded-full">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Label Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Using the
+                                        <code>.badge-label</code>
+                                        to quickly create a square based badges.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge badge-label border-default-300 border">Default</span>
+                                        <span class="badge badge-label bg-primary text-white">Primary</span>
+                                        <span class="badge badge-label bg-secondary text-white">Secondary</span>
+                                        <span class="badge badge-label bg-success text-white">Success</span>
+                                        <span class="badge badge-label bg-danger text-white">Danger</span>
+                                        <span class="badge badge-label bg-warning text-white">Warning</span>
+                                        <span class="badge badge-label bg-info text-white">Info</span>
+                                        <span class="badge badge-label bg-light text-dark">Light</span>
+                                        <span class="badge badge-label bg-dark text-white">Dark</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Square Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Using the
+                                        <code>.size-*</code>
+                                        to quickly create a square based badges.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge size-4 border border-default-300">0</span>
+                                        <span class="badge size-4 bg-primary text-white hover:bg-primary-hover">1</span>
+                                        <span class="badge size-4 bg-secondary text-white">2</span>
+                                        <span class="badge size-4 bg-success text-white">3</span>
+                                        <span class="badge size-4 bg-danger text-white hover:bg-danger-hover">4</span>
+                                        <span class="badge size-4 bg-warning text-white">5</span>
+                                        <span class="badge size-4 bg-info text-white">6</span>
+                                        <span class="badge size-4 bg-light">7</span>
+                                        <span class="badge size-4 bg-dark text-white">8</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Circle Badges</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Using the
+                                        <code>.rounded-full</code>
+                                        to quickly create a circle based badges.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="badge size-4 rounded-full border border-default-300">0</span>
+                                        <span class="badge size-4 rounded-full bg-primary text-white hover:bg-primary-hover">1</span>
+                                        <span class="badge size-4 rounded-full bg-secondary text-white">2</span>
+                                        <span class="badge size-4 rounded-full bg-success text-white">3</span>
+                                        <span class="badge size-4 rounded-full bg-danger text-white hover:bg-danger-hover">4</span>
+                                        <span class="badge size-4 rounded-full bg-warning text-white">5</span>
+                                        <span class="badge size-4 rounded-full bg-info text-white">6</span>
+                                        <span class="badge size-4 rounded-full bg-light text-dark">7</span>
+                                        <span class="badge size-4 rounded-full bg-dark text-white">8</span>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Positioned</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="mb-4">
+                                        Use utilities to modify a
+                                        <code>.badge</code>
+                                        and position it in the corner of a link or button.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-4">
+                                        <button type="button" class="btn bg-primary hover:bg-primary-hover relative text-white transition-all duration-300">
+                                            Inbox
+                                            <span class="badge bg-danger absolute -end-2 -top-2 rounded-full">99+</span>
+                                        </button>
+
+                                        <button type="button" class="btn bg-primary hover:bg-primary-hover relative text-white transition-all duration-300">
+                                            Profile
+                                            <span class="bg-danger absolute -end-1 -top-1 size-3 rounded-full border border-white px-0.75 py-0.5"></span>
+                                        </button>
+
+                                        <button type="button" class="btn bg-success hover:bg-success-hover text-white transition-all duration-300">
+                                            Notifications
+                                            <span class="badge bg-white text-black">4</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

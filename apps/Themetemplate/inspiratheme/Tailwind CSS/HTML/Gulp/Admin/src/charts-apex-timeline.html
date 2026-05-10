@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Timeline Apexchart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Timeline Apexchart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Timeline Apexchart"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Timeline</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-timeline" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Distributed Timeline</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="distributed-timeline" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Multi Series Timeline</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="multi-series-timeline" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Advanced Timeline</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="advanced-timeline" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Multiple Series - Group Rows</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="group-rows-timeline" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Apex Chart js -->
+        <script src="assets/plugins/apexcharts/apexcharts.min.js"></script>
+
+        <!-- Moment js -->
+        <script src="assets/plugins/moment/moment.min.js"></script>
+
+        <!-- Apex Chart Timeline Demo js -->
+        <script src="assets/js/pages/chart-apex-timeline.js"></script>
+    </body>
+</html>

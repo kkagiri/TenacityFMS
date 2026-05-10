@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Accordions"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "UI", "title":"Accordions"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "UI", "title":"Accordions"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Default Accordions</h5>
+
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="hs-accordion-group divide-default-300 border-default-300 divide-y rounded border overflow-hidden">
+                                        <div class="hs-accordion active" id="headingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="collapseOne">
+                                                Accordion Item #1
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="collapseOne" class="hs-accordion-content border-default-300 w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="headingOne">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the first item's accordion body.</strong>
+                                                    It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="headingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="collapseTwo">
+                                                Accordion Item #2
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="collapseTwo" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="headingTwo">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the second item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="headingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="collapseThree">
+                                                Accordion Item #3
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="collapseThree" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="headingThree">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the third item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Flush Accordions</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="hs-accordion-group rounded">
+                                        <div class="hs-accordion active border-default-300 border-b" id="flush-headingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="flush-collapseOne">
+                                                Accordion Item #1
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="flush-collapseOne" class="hs-accordion-content w-full overflow-hidden transition-[height] duration-300" role="region" aria-labelledby="flush-headingOne">
+                                                <div class="px-5 py-4">
+                                                    <p>
+                                                        Placeholder content for this accordion, which is intended to demonstrate the
+                                                        <code>.accordion flush</code>
+                                                        class. This is the first item's accordion body.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion border-default-300 border-b" id="flush-headingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="flush-collapseTwo">
+                                                Accordion Item #2
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="flush-collapseTwo" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" role="region" aria-labelledby="flush-headingTwo">
+                                                <div class="px-5 py-4">
+                                                    Placeholder content for this accordion, which is intended to demonstrate the
+                                                    <code>.accordion flush</code>
+                                                    class. This is the second item's accordion body. Let's imagine this being filled with some actual content.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="flush-headingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="flush-collapseThree">
+                                                Accordion Item #3
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="flush-collapseThree" class="hs-accordion-content hidden w-full overflow-hidden transition-[height] duration-300" role="region" aria-labelledby="flush-headingThree">
+                                                <div class="px-5 py-4">
+                                                    Placeholder content for this accordion, which is intended to demonstrate the
+                                                    <code>.accordion flush</code>
+                                                    class. This is the third item's accordion body. Nothing more exciting happening here in terms of content, but just filling up the space to make it look, at least at first glance, a bit more representative of how this would look
+                                                    in a real-world application.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Always Open Accordions</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="divide-default-300 border-default-300 divide-y rounded border">
+                                        <div class="hs-accordion active" id="panelsStayOpen-headingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="panelsStayOpen-collapseOne">
+                                                Accordion Item #1
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="panelsStayOpen-collapseOne" class="hs-accordion-content border-default-300 w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="panelsStayOpen-headingOne">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the first item's accordion body.</strong>
+                                                    It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="panelsStayOpen-headingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="panelsStayOpen-collapseTwo">
+                                                Accordion Item #2
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="panelsStayOpen-collapseTwo" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="panelsStayOpen-headingTwo">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the second item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="panelsStayOpen-headingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="panelsStayOpen-collapseThree">
+                                                Accordion Item #3
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="panelsStayOpen-collapseThree" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="panelsStayOpen-headingThree">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the third item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Accordion Without Arrow</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="hs-accordion-group divide-default-300 border-default-300 divide-y rounded border overflow-hidden">
+                                        <div class="hs-accordion active" id="withoutarrowheadingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="withoutarrowcollapseOne">
+                                                Accordion Item #1
+                                            </button>
+
+                                            <div id="withoutarrowcollapseOne" class="hs-accordion-content border-default-300 w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="withoutarrowheadingOne">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the first item's accordion body.</strong>
+                                                    It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="withoutarrowheadingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="withoutarrowcollapseTwo">
+                                                Accordion Item #2
+                                            </button>
+
+                                            <div id="withoutarrowcollapseTwo" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="withoutarrowheadingTwo">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the second item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="withoutarrowheadingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="withoutarrowcollapseThree">
+                                                Accordion Item #3
+                                            </button>
+
+                                            <div id="withoutarrowcollapseThree" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="withoutarrowheadingThree">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the third item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Bordered Accordions</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="hs-accordion-group">
+                                        <div class="hs-accordion active border border-default-300 rounded" id="BorderedheadingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="BorderedcollapseOne">
+                                                Accordion Item #1
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="BorderedcollapseOne" class="hs-accordion-content border-default-300 w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="BorderedheadingOne">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the first item's accordion body.</strong>
+                                                    It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion border border-default-300 mt-2 rounded" id="BorderedheadingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="BorderedcollapseTwo">
+                                                Accordion Item #2
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="BorderedcollapseTwo" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="BorderedheadingTwo">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the second item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion border border-default-300 mt-2 rounded" id="BorderedheadingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="BorderedcollapseThree">
+                                                Accordion Item #3
+                                                <i class="iconify tabler--chevron-down hs-accordion-active:rotate-180 transition-transform text-base"></i>
+                                            </button>
+
+                                            <div id="BorderedcollapseThree" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="BorderedheadingThree">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the third item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Custom Icon Accordion</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="hs-accordion-group divide-default-300 border-default-300 divide-y rounded border overflow-hidden">
+                                        <div class="hs-accordion active" id="CustomIconheadingOne">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="CustomIconcollapseOne">
+                                                Accordion item with custom icons
+                                                <i class="iconify tabler--plus hs-accordion-active:hidden text-base"></i>
+                                                <i class="iconify tabler--minus hs-accordion-active:flex hidden text-base"></i>
+                                            </button>
+
+                                            <div id="CustomIconcollapseOne" class="hs-accordion-content border-default-300 w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="CustomIconheadingOne">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the first item's accordion body.</strong>
+                                                    It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="CustomIconheadingTwo">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="CustomIconcollapseTwo">
+                                                Accordion item with custom icons
+                                                <i class="iconify tabler--plus hs-accordion-active:hidden text-base"></i>
+                                                <i class="iconify tabler--minus hs-accordion-active:flex hidden text-base"></i>
+                                            </button>
+
+                                            <div id="CustomIconcollapseTwo" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="CustomIconheadingTwo">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the second item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="hs-accordion" id="CustomIconheadingThree">
+                                            <button class="hs-accordion-toggle hs-accordion-active:bg-default-100 font-secondary flex w-full items-center justify-between px-5 py-4 font-semibold transition" aria-expanded="true" aria-controls="CustomIconcollapseThree">
+                                                Accordion item with custom icons
+                                                <i class="iconify tabler--plus hs-accordion-active:hidden text-base"></i>
+                                                <i class="iconify tabler--minus hs-accordion-active:flex hidden text-base"></i>
+                                            </button>
+
+                                            <div id="CustomIconcollapseThree" class="hs-accordion-content border-default-300 hidden w-full overflow-hidden border-t transition-[height] duration-300" role="region" aria-labelledby="CustomIconheadingThree">
+                                                <div class="px-5 py-4">
+                                                    <strong>This is the third item's accordion body.</strong>
+                                                    It is hidden by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can
+                                                    modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the accordion body , though the transition does limit overflow.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

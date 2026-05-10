@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Idle Timer"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Plugins", "title":"Idle Timer"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Plugins", "title":"Idle Timer"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Idle Timer Plugin</h4>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Alert placeholder (initially hidden) -->
+                                    <div class="bg-danger/15 text-danger idle-alert mb-4 hidden rounded px-4 py-3" role="alert">Your session has expired. Please move your mouse to resume your activity.</div>
+
+                                    <p class="text-default-400">The Idle Timer plugin allows you to monitor user activity on the page. Idle is defined as a lack of mouse movement, scrolling, or keyboard input.</p>
+
+                                    <div class="p-6 text-center">
+                                        <i class="iconify tabler--fingerprint block mb-5 text-4xl mx-auto"></i>
+                                        <h3 class="mb-2 text-2xl italic">Please stay idle for 5 seconds</h3>
+                                    </div>
+
+                                    <p>
+                                        You can instantiate the timer either statically or on a specific element. Element-bound timers will only track activity within that element, whereas global timers will monitor activity on the entire page. To set up page-level activity, you
+                                        can initialize the timer on
+                                        <code>document</code>
+                                        ,
+                                        <code>document.documentElement</code>
+                                        , or
+                                        <code>document.body</code>
+                                        . The initialization returns a jQuery object, allowing for method chaining.
+                                    </p>
+
+                                    <div class="fixed end-0 top-0 z-100 m-10">
+                                        <!-- Success Toast -->
+                                        <div id="backToast" class="bg-success border-success mb-5 hidden w-xs max-w-full rounded shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+                                            <div class="flex items-center gap-3 border-b border-white/20 px-3 py-2">
+                                                <strong class="me-auto text-base text-white">Welcome Back</strong>
+                                                <small class="text-white">Now</small>
+                                                <button type="button" class="flex text-white" aria-label="Close" data-hs-remove-element="#backToast">
+                                                    <i class="iconify tabler--x"></i>
+                                                </button>
+                                            </div>
+                                            <div class="p-4 text-white italic">We missed you! Welcome back!</div>
+                                        </div>
+
+                                        <!-- Toast container -->
+                                        <div id="liveToast" class="bg-warning border-warning hidden w-xs max-w-full rounded shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+                                            <div class="flex items-center gap-3 border-b border-white/20 px-3 py-2">
+                                                <img src="assets/images/logo-sm.png" class="h-5" alt="..." />
+                                                <strong class="me-auto text-base text-white">Idle Alert</strong>
+                                                <small class="text-white">Just now</small>
+                                                <button type="button" class="flex text-white" aria-label="Close" data-hs-remove-element="#liveToast">
+                                                    <i class="iconify tabler--x"></i>
+                                                </button>
+                                            </div>
+
+                                            <div class="p-4 text-white italic">You've been inactive for too long. Please interact with the page to continue.</div>
+                                        </div>
+                                    </div>
+                                    <!-- end toast-container-->
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- idle Timer Plugin Js -->
+        <script src="assets/js/pages/plugins-idle-timer.js"></script>
+    </body>
+</html>

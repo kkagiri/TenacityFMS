@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Child Row" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Tables" title="Child Row" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Tables" title="Child Row" }}
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Example</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-wrapper -mb-4">
+                                        <table id="child-rows-data" class="table table-striped">
+                                            <thead class="text-2xs font-semibold uppercase">
+                                                <tr>
+                                                    <th></th>
+                                                    <th>Company</th>
+                                                    <th>Symbol</th>
+                                                    <th>Price</th>
+                                                    <th>Change</th>
+                                                    <th>Volume</th>
+                                                    <th>Market Cap</th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/datatables-child-rows.js"></script>
+    </body>
+</html>

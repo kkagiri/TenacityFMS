@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Metrics"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Pages", "title":"Metrics"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Pages", "title":"Metrics"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex border-b border-default-300 border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> Monthly</span>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="250">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Total Sales</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-b border-default-300 border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Orders</h5>
+                                    <span class="badge bg-primary/15 text-primary"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="180">0</span></h3>
+                                            <p class="text-default-400"><span>Monthly Total Orders</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-b border-default-300 border-dashed justify-between items-center">
+                                    <h5 class="card-title">New Customers</h5>
+                                    <span class="badge bg-info/15 text-info"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="50,895">0</span></h3>
+                                            <p class="text-default-400"><span>Monthly New Customers</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-b border-default-300 border-dashed justify-between items-center">
+                                    <h5 class="card-title">Revenue</h5>
+                                    <span class="badge bg-warning/15 text-warning"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="50.33">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Revenue</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex justify-between items-center border-0">
+                                    <h5 class="card-title">Project A - Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="320">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Sales for Project A</span></p>
+                                        </div>
+                                        <div class="bar-chart" style="min-height: 40px; width: 80px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex justify-between items-center border-0">
+                                    <h5 class="card-title">Project B - Revenue</h5>
+                                    <span class="badge bg-info/15 text-info"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="bar-chart" style="min-height: 40px; width: 80px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="450">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Revenue for Project B</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex justify-between items-center border-0">
+                                    <h5 class="card-title">Project C - Engagement</h5>
+                                    <span class="badge bg-warning/15 text-warning"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="580">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Engagement for Project C</span></p>
+                                        </div>
+                                        <div class="bar-chart" style="min-height: 40px; width: 80px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex justify-between items-center border-0">
+                                    <h5 class="card-title">Project D - Expenses</h5>
+                                    <span class="badge bg-danger/15 text-danger"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="bar-chart" style="min-height: 40px; width: 80px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="700">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Expenses for Project D</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title">Greenfield Towers - Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> +$40K</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between align-center">
+                                        <div class="area-chart" style="min-height: 60px; width: 140px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="550">0</span>K</h3>
+                                            <p class="text-default-400"><span>Sales Change (Prev.)</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title">Oceanview Residences - Sales</h5>
+                                    <span class="badge bg-danger/15 text-danger"> -$20K</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between align-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="230">0</span>K</h3>
+                                            <p class="text-default-400"><span>Sales Change (Prev.)</span></p>
+                                        </div>
+                                        <div class="area-chart" style="min-height: 60px; width: 140px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title">Sunset Bay Villas - Sales</h5>
+                                    <span class="badge bg-warning/15 text-warning"> +$50K</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between align-center">
+                                        <div class="area-chart" style="min-height: 60px; width: 140px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="650">0</span>K</h3>
+                                            <p class="text-default-400"><span>Sales Change (Prev.)</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title">Maple Grove Homes - Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> +$30K</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between align-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="480">0</span>K</h3>
+                                            <p class="text-default-400"><span>Sales Change (Prev.)</span></p>
+                                        </div>
+                                        <div class="area-chart" style="min-height: 60px; width: 140px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title mb-0">Total Revenue</h5>
+                                    <span class="badge bg-success/15 text-success">+8.2%</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="1240">0</span>K</h3>
+                                            <p class="text-default-400">This Quarter</p>
+                                        </div>
+                                        <div class="pie-chart" style="height: 70px; width: 70px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title mb-0">Total Expenses</h5>
+                                    <span class="badge bg-danger/15 text-danger">-2.1%</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="pie-chart" style="height: 70px; width: 70px"></div>
+                                        <div class="text-end ms-3">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="840">0</span>K</h3>
+                                            <p class="text-default-400">This Quarter</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title mb-0">Net Profit</h5>
+                                    <span class="badge bg-info/15 text-info">Stable</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="400">0</span>K</h3>
+                                            <p class="text-default-400">This Quarter</p>
+                                        </div>
+                                        <div class="pie-chart" style="height: 70px; width: 70px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-0 justify-between items-center">
+                                    <h5 class="card-title mb-0">Cash Flow</h5>
+                                    <span class="badge bg-warning/15 text-warning">+5.6%</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="pie-chart" style="height: 70px; width: 70px"></div>
+                                        <div class="text-end ms-3">
+                                            <h3 class="mb-1.25 font-normal text-xl">$<span data-target="720">0</span>K</h3>
+                                            <p class="text-default-400">This Quarter</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-3 grid-cols-1 gap-base">
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-header justify-between items-center">
+                                        <h5 class="card-title">Quarterly Reports <span class="badge text-white bg-primary">IN+</span></h5>
+                                        <div class="flex gap-1">
+                                            <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-toggle">
+                                                <i class="iconify tabler--chevron-up"></i>
+                                            </a>
+
+                                            <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-refresh">
+                                                <i class="iconify tabler--refresh"></i>
+                                            </a>
+
+                                            <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-close">
+                                                <i class="iconify tabler--x"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body p-0">
+                                        <div class="table-wrapper whitespace-nowrap">
+                                            <table class="table table-hover">
+                                                <thead class="bg-light/25 thead-sm">
+                                                    <tr class="uppercase text-2xs">
+                                                        <th class="text-default-400">Quarter</th>
+                                                        <th class="text-default-400">Revenue</th>
+                                                        <th class="text-default-400">Expense</th>
+                                                        <th class="text-default-400">Margin</th>
+                                                        <th class="text-default-400">•••</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td>
+                                                            <h5 class="text-sm mb-1.25">Quarter 1</h5>
+                                                            <span class="text-default-400 text-xs">January - March 2024</span>
+                                                        </td>
+                                                        <td>$210k</td>
+                                                        <td>$165k</td>
+                                                        <td>$45k</td>
+                                                        <td style="width: 60px">
+                                                            <div dir="ltr">
+                                                                <div class="donut-chart" data-chart="donut" style="min-height: 30px"></div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <h5 class="text-sm mb-1.25">Quarter 2</h5>
+                                                            <span class="text-default-400 text-xs">April - June 2024</span>
+                                                        </td>
+                                                        <td>$225k</td>
+                                                        <td>$175k</td>
+                                                        <td>$50k</td>
+                                                        <td style="width: 60px">
+                                                            <div dir="ltr">
+                                                                <div class="donut-chart" data-chart="donut" style="min-height: 30px"></div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td>
+                                                            <h5 class="text-sm mb-1.25">Quarter 3</h5>
+                                                            <span class="text-default-400 text-xs">July - September 2024</span>
+                                                        </td>
+                                                        <td>$240k</td>
+                                                        <td>$190k</td>
+                                                        <td>$50k</td>
+                                                        <td style="width: 60px">
+                                                            <div dir="ltr">
+                                                                <div class="donut-chart" data-chart="donut" style="min-height: 30px"></div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <!-- end table-responsive-->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="xl:col-span-2">
+                                <div class="grid xl:grid-cols-3 grid-cols-1 gap-base">
+                                    <div class="card">
+                                        <div class="p-5">
+                                            <h3 class="mb-5 text-xl font-bold"><span data-target="421">421</span><span class="text-default-400 ms-1.25 text-sm">Orders</span></h3>
+                                            <p class="mb-0">You have received 421 new orders, indicating a healthy sales trend over the past period.</p>
+                                        </div>
+
+                                        <div id="orders-chart" style="min-height: 120px" class="mb-5"></div>
+                                    </div>
+
+                                    <div class="card bg-secondary">
+                                        <div class="p-5 mb-5">
+                                            <h3 class="mb-5 text-xl font-bold text-white"><span data-target="185">185</span><span class="text-white/50 ms-1.25 text-sm">Products</span></h3>
+                                            <p class="text-white/50">You currently have 185 active products available across your store inventory.</p>
+                                        </div>
+                                        <div id="product-chart" style="min-height: 120px"></div>
+                                    </div>
+
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h3 class="mb-5 font-bold text-xl">$<span data-target="12.5">0</span>k<span class="text-default-400 ms-1.25 text-sm">Profit</span></h3>
+                                            <p class="mb-5">Your total profit reached $12,500 this month, showing stable and positive business growth.</p>
+                                            <div id="profit-chart" style="min-height: 120px"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- Metrics Page js -->
+        <script src="assets/js/pages/metrics.js"></script>
+    </body>
+</html>

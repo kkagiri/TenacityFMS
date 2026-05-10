@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Treemap Apexchart" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Treemap Apexchart" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Treemap Apexchart" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Treemap</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-treemap" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Treemap Multiple Series</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="multiple-treemap" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Distributed Treemap</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="distributed-treemap" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Color Range Treemap</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="color-range-treemap" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/chart-apex-treemap.js"></script>
+    </body>
+</html>

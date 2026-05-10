@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Products Grid" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Ecommerce" title="Products Grid" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Ecommerce" title="Products Grid" }}
+
+                    <div class="container-fluid">
+                        <div class="card mb-2.5">
+                            <div class="card-body">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center gap-2 text-start lg:hidden">
+                                            <button class="btn btn-icon border-default-300 border bg-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="productFillterOffcanvas" aria-label="Toggle navigation" data-hs-overlay="#productFillterOffcanvas">
+                                                <i class="iconify tabler--menu-4 text-default-600 text-2xl"></i>
+                                            </button>
+                                        </div>
+
+                                        <h3 class="text-lg">
+                                            <span data-target="1025">0</span>
+                                            Products
+                                        </h3>
+                                    </div>
+
+                                    <div class="flex items-center gap-2.5 md:ms-auto">
+                                        <nav class="flex items-center gap-x-1.25" aria-label="Tabs" role="tablist" aria-orientation="horizontal">
+                                            <a href="apps-ecommerce-products-grid.html" class="btn btn-icon bg-primary text-white hover:bg-primary-hover">
+                                                <i class="iconify tabler--apps text-lg"></i>
+                                            </a>
+
+                                            <a href="apps-ecommerce-products.html" class="btn btn-icon bg-primary/15 text-primary hover:bg-primary hover:text-white">
+                                                <i class="iconify tabler--list-check text-lg"></i>
+                                            </a>
+                                        </nav>
+
+                                        <a href="apps-ecommerce-product-add.html" class="btn bg-danger text-white hover:bg-danger-hover">
+                                            <i class="iconify tabler--plus"></i>
+                                            Add Product
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-2.5 lg:grid-cols-4">
+                            <div>
+                                <div
+                                    id="productFillterOffcanvas"
+                                    class="hs-overlay hs-overlay-open:translate-x-0 fixed start-0 top-0 bottom-0 z-90 h-full w-80 -translate-x-full transform rounded-lg transition-all duration-300 [--auto-close:lg] lg:static lg:end-auto lg:bottom-0 lg:block! lg:w-full lg:translate-x-0"
+                                    role="dialog"
+                                    tabindex="-1"
+                                    aria-label="Sidebar"
+                                >
+                                    <div class="card">
+                                        <div class="card-body p-0">
+                                            <div class="border-default-300 border-b border-dashed p-5">
+                                                <div class="input-icon-group">
+                                                    <i class="iconify tabler--search input-icon"></i>
+                                                    <input type="search" class="form-input" placeholder="Search product name..." />
+                                                </div>
+                                            </div>
+
+                                            <div class="border-default-300 border-b border-dashed p-5">
+                                                <div class="mb-4.5 flex items-center justify-between">
+                                                    <h5>Category:</h5>
+                                                    <a href="javascript: void(0);" class="font-semibold text-primary">View All</a>
+                                                </div>
+
+                                                <div class="space-y-2.5 mt-1.5">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-electronics" class="form-checkbox" />
+                                                            <label for="cat-electronics" class="text-default-400 font-normal">Electronics</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">8</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-computers" class="form-checkbox" />
+                                                            <label for="cat-computers" class="text-default-400 font-normal">Computers</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">5</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-home-office" class="form-checkbox" />
+                                                            <label for="cat-home-office" class="text-default-400 font-normal">Home & Office</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">6</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-accessories" class="form-checkbox" />
+                                                            <label for="cat-accessories" class="text-default-400 font-normal">Accessories</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-gaming" class="form-checkbox" />
+                                                            <label for="cat-gaming" class="text-default-400 font-normal">Gaming</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">9</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-mobile" class="form-checkbox" />
+                                                            <label for="cat-mobile" class="text-default-400 font-normal">Mobile Phones</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">12</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="cat-appliances" class="form-checkbox" />
+                                                            <label for="cat-appliances" class="text-default-400 font-normal">Appliances</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="border-default-300 border-b border-dashed p-5">
+                                                <div class="mb-4.5 flex items-center justify-between">
+                                                    <h5>Brands:</h5>
+                                                    <a href="javascript: void(0);" class="font-semibold text-primary">View All</a>
+                                                </div>
+
+                                                <div class="space-y-2.5 mt-1.5">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="brand-apple" class="form-checkbox" />
+                                                            <label for="brand-apple" class="text-default-400 font-normal">Apple</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">14</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="brand-samsung" class="form-checkbox" />
+                                                            <label for="brand-samsung" class="text-default-400 font-normal">Samsung</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">20</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="brand-sony" class="form-checkbox" />
+                                                            <label for="brand-sony" class="text-default-400 font-normal">Sony</label>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="brand-dell" class="form-checkbox" />
+                                                            <label for="brand-dell" class="text-default-400 font-normal">Dell</label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">7</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="brand-hp" class="form-checkbox" />
+                                                            <label for="brand-hp" class="text-default-400 font-normal">HP</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="border-default-300 border-b border-dashed p-5">
+                                                <h5 class="mb-4.5">Price:</h5>
+
+                                                <div id="price-filter" data-slider-size="sm"></div>
+                                                <div class="mt-5 w-full flex items-center gap-2">
+                                                    <div class="border border-default-300 rounded w-full text-center p-2" id="price-filter-low"></div>
+                                                    <span class="text-default-400 font-semibold">to</span>
+                                                    <div class="border border-default-300 rounded w-full text-center p-2" id="price-filter-high"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="border-default-300 p-5">
+                                                <div class="mb-4.5 flex items-center justify-between">
+                                                    <h5>Ratings:</h5>
+                                                </div>
+                                                <div class="space-y-2.5 mt-1.5">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="5star" class="form-checkbox" />
+                                                            <label for="5star" class="flex items-center">
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <span class="text-default-400 ms-1.25 font-normal">5 Stars & Up</span>
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">120</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="4star" class="form-checkbox" />
+                                                            <label for="4star" class="flex items-center">
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <span class="text-default-400 ms-1.25 font-normal">4 Stars & Up</span>
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">210</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="3star" class="form-checkbox" />
+                                                            <label for="3star" class="flex items-center">
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <span class="text-default-400 ms-1.25 font-normal">3 Stars & Up</span>
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">325</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="2star" class="form-checkbox" />
+                                                            <label for="2star" class="flex items-center">
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <span class="text-default-400 ms-1.25 font-normal">2 Stars & Up</span>
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">145</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <input type="checkbox" id="1star" class="form-checkbox" />
+                                                            <label for="1star" class="flex items-center">
+                                                                <i class="iconify tabler--star-filled text-warning text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <i class="iconify tabler--star-filled text-default-400 text-sm"></i>
+                                                                <span class="text-default-400 ms-1.25 font-normal">1 Stars & Up</span>
+                                                            </label>
+                                                        </div>
+                                                        <div>
+                                                            <span class="badge bg-light text-dark font-semibold">58</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-3">
+                                <div class="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:grid-cols-4">
+                                    <div class="card relative h-full!">
+                                        <div class="badge badge-label font-semibold rounded text-sm bg-success text-white absolute start-0 top-0 m-5">15% OFF</div>
+
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/1.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Modern Minimalist Fabric Sofa Single Seater</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(45)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-success flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$899.00</span>
+                                                    $764.15
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/2.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Funky Streetwear Sneakers - Neon Splash</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(32)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$59.99</span>
+                                                    $44.99
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="badge badge-label font-semibold rounded text-sm bg-danger text-white absolute start-0 top-0 m-5">15% OFF</div>
+
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/3.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Noise Canceling Wireless Earbuds - Black Edition</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(58)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$49.99</span>
+                                                    $42.49
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/4.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Minimalist Solid Wood Dining Chair</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(46)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$120.00</span>
+                                                    $96.00
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/5.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Modern Black Minimalist Wall Clock</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(62)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$49.99</span>
+                                                    $39.99
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="badge badge-label font-semibold rounded text-sm bg-danger text-white absolute start-0 top-0 m-5">20% OFF</div>
+
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/6.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Elegant Brown Wooden Chair</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(48)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$120.00</span>
+                                                    $96.00
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/7.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Apple iMac 24" Retina 4.5K Display</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(65)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$1,299.00</span>
+                                                    $1,039.20
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="badge badge-label font-semibold rounded text-sm bg-danger text-white absolute start-0 top-0 m-5">20% OFF</div>
+
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/8.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Coolest Ergonomic Lounge Chair</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(52)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$320.00</span>
+                                                    $256.00
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/9.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Apple iPad 10.9" Wi-Fi 64GB - Silver</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(142)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$449.00</span>
+                                                    $359.20
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/10.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Minimalist Denim Jacket – Indigo Blue</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(54)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$89.00</span>
+                                                    $64.00
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/1.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Next-Gen Smartwatch S9 – Graphite Black</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(128)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$249.00</span>
+                                                    $199.00
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card relative h-full!">
+                                        <div class="card-body pb-0 h-full">
+                                            <div class="p-5">
+                                                <img src="/images/products/2.png" alt="product" class="img-fluid" />
+                                            </div>
+
+                                            <h6 class="card-title mb-2.5 text-sm">
+                                                <a href="apps-ecommerce-product-details.html" class="hover:text-primary transition-all">Noise-Cancel Pro Headphones – Arctic White</a>
+                                            </h6>
+
+                                            <div class="flex items-center gap-1.25 mb-2">
+                                                <span class="text-warning">
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star-filled"></i>
+                                                    <i class="iconify tabler--star"></i>
+                                                </span>
+                                                <span>
+                                                    <a href="apps-ecommerce-reviews.html" class="hover:text-primary transition-all font-semibold">(87)</a>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="card-footer border-0!">
+                                            <div class="flex w-full justify-between">
+                                                <h4 class="text-danger flex items-center gap-3 text-sm">
+                                                    <span class="text-default-400 line-through">$199.99</span>
+                                                    $159.99
+                                                </h4>
+
+                                                <div>
+                                                    <a class="btn btn-icon size-7.75 bg-primary text-white hover:bg-primary-hover" href="#!">
+                                                        <i class="iconify tabler--basket"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="my-5 flex flex-wrap items-center justify-center gap-2 md:justify-between">
+                                    <span class="text-default-400 font-italic">
+                                        Last modification:
+                                        <i class="iconify tabler--clock"></i>
+                                        4:55 pm - 22.04.2025
+                                    </span>
+
+                                    <nav class="flex items-center gap-1.5" aria-label="Pagination">
+                                        <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary transition-all gap-x-1.5 border bg-card transition-all duration-300" aria-label="Previous">
+                                            <i class="iconify tabler--chevron-left"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-icon bg-primary text-white hover:bg-primary-hover">1</button>
+                                        <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary transition-all border bg-card transition-all duration-300">2</button>
+                                        <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary transition-all border bg-card transition-all duration-300">3</button>
+                                        <button type="button" class="btn btn-icon border-default-300 hover:bg-default-100 hover:text-primary transition-all gap-x-1.5 border bg-card transition-all duration-300" aria-label="Next">
+                                            <i class="iconify tabler--chevron-right"></i>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/ecommerce-products.js"></script>
+    </body>
+</html>

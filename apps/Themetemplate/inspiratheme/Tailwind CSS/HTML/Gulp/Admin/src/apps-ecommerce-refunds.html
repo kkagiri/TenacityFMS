@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Refunds"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Ecommerce", "title":"Refunds"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Ecommerce", "title":"Refunds"})
+
+                    <div class="container-fluid">
+                        <div class="mb-1.25 grid grid-cols-1 gap-1.25 md:grid-cols-2 lg:grid-cols-5">
+                            <!-- Total Refund Requests -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-center gap-2.5">
+                                        <div class="size-9 flex items-center justify-center bg-primary rounded-full">
+                                            <i class="iconify tabler--credit-card-refund size-5.5 text-white"></i>
+                                        </div>
+
+                                        <h3 class="text-xl"><span data-target="2,310"></span></h3>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1">
+                                            <span>Total Refund Requests</span>
+                                        </div>
+                                        <span class="badge font-semibold bg-primary/15 text-primary">+5.42%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Approved Refunds -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-center gap-2.5">
+                                        <div class="size-9 flex items-center justify-center bg-success rounded-full">
+                                            <i class="iconify tabler--check size-5.5 text-white"></i>
+                                        </div>
+
+                                        <h3 class="text-xl"><span data-target="1,560"></span></h3>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1">
+                                            <span>Approved Refunds</span>
+                                        </div>
+                                        <span class="badge font-semibold bg-success/15 text-success">+3.18%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Pending Refunds -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-center gap-2.5">
+                                        <div class="size-9 flex items-center justify-center bg-warning rounded-full">
+                                            <i class="iconify tabler--alarm-snooze size-5.5 text-white"></i>
+                                        </div>
+
+                                        <h3 class="text-xl"><span data-target="430"></span></h3>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1">
+                                            <span>Pending Refunds</span>
+                                        </div>
+                                        <span class="badge font-semibold bg-warning/15 text-warning">-1.09%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rejected Refunds -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-center gap-2.5">
+                                        <div class="size-9 flex items-center justify-center bg-danger rounded-full">
+                                            <i class="iconify tabler--x size-5.5 text-white"></i>
+                                        </div>
+
+                                        <h3 class="text-xl"><span data-target="210"></span></h3>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1">
+                                            <span>Rejected Refunds</span>
+                                        </div>
+                                        <span class="badge font-semibold bg-danger/15 text-danger">-0.62%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fully Refunded -->
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="mb-5 flex items-center gap-2.5">
+                                        <div class="size-9 flex items-center justify-center bg-info rounded-full">
+                                            <i class="iconify tabler--bolt size-5.5 text-white"></i>
+                                        </div>
+
+                                        <h3 class="text-xl"><span data-target="110"></span></h3>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-1">
+                                            <span>Fully Refunded</span>
+                                        </div>
+                                        <span class="badge font-semibold bg-info/15 text-info">+2.41%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <!-- Search -->
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" type="text" class="form-input" placeholder="Search refunds..." />
+                                    </div>
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <!-- Filters & Controls -->
+                                <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                    <div class="items-center gap-2.5 md:flex">
+                                        <span class="font-semibold me-2.5">Filter By:</span>
+                                        <!-- Refund Status Filter -->
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--credit-card-refund input-icon"></i>
+                                            <select data-table-filter="refund-status" class="form-select">
+                                                <option value="All">Refund Status</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Approved">Approved</option>
+                                                <option value="Rejected">Rejected</option>
+                                                <option value="Refunded">Refunded</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Records Per Page -->
+                                    <div>
+                                        <select data-table-set-rows-per-page class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Create Refund Button -->
+                                <div class="flex items-center gap-3">
+                                    <a href="#" class="btn bg-primary text-white hover:bg-primary-hover" aria-haspopup="dialog" aria-expanded="false" aria-controls="createRefundModal" data-hs-overlay="#createRefundModal">
+                                        <i class="iconify tabler--plus"></i>
+                                        Create Refund
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-products" />
+                                            </th>
+                                            <th data-table-sort>Order ID</th>
+                                            <th>Product</th>
+                                            <th>Customer</th>
+                                            <th>Reason</th>
+                                            <th data-table-sort>Payment</th>
+                                            <th data-table-sort>Amount</th>
+                                            <th data-table-sort data-column="refund-status">Status</th>
+                                            <th>Requested</th>
+                                            <th>Processed</th>
+                                            <th class="text-center w-[1%]">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <!-- row-1 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="apps-ecommerce-order-details.html" class="hover:text-primary">#INV-10423</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="assets/images/products/1.png" alt="" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <p class="font-medium">NoiseCancel Headphones</p>
+                                                        <p class="text-default-400 text-xs">SKU: NC-900</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="assets/images/users/user-2.jpg" alt="avatar-2" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 data-sort="customer" class="font-medium">Mason Carter</h5>
+                                                        <p class="text-default-400 text-xs">mason.carter&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Damaged on arrival</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/visa.svg" alt="" class="h-7" />
+                                                    xxxx 7832
+                                                </div>
+                                            </td>
+
+                                            <td>$129.45</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>08 Oct 2025</td>
+                                            <td>-</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div class="space-y-0.5">
+                                                                <a class="dropdown-item" href="#">View order</a>
+                                                                <a class="dropdown-item" href="#">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a class="dropdown-item" href="#">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 2 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="apps-ecommerce-order-details.html" class="hover:text-primary">#INV-10407</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/2.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Smartwatch Pro</p>
+                                                        <p class="text-default-400 text-xs">SKU: SW-PRO</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-5.jpg" alt="avatar-5" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Sofia Williams</h5>
+                                                        <p class="text-default-400 text-xs">sofia.williams&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Wrong size received</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/mastercard.svg" alt="" class="h-7" />
+                                                    xxxx 2294
+                                                </div>
+                                            </td>
+                                            <td>$79.99</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Approved</span>
+                                            </td>
+                                            <td>05 Oct 2025</td>
+                                            <td>06 Oct 2025</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 3 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="apps-ecommerce-order-details.html" class="hover:text-primary">#INV-10388</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/3.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">4K Action Camera</p>
+                                                        <p class="text-default-400 text-xs">SKU: AC-4K</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-3.jpg" alt="avatar-3" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Liam Brown</h5>
+                                                        <p class="text-default-400 text-xs">liam.brown&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>No longer needed</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/american-express.svg" alt="" class="h-7" />
+                                                    xxxx 1145
+                                                </div>
+                                            </td>
+                                            <td>$249.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-secondary/15 text-secondary">Refunded</span>
+                                            </td>
+                                            <td>30 Sep 2025</td>
+                                            <td>01 Oct 2025</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 4 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="apps-ecommerce-order-details.html" class="hover:text-primary">#INV-10352</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/4.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Bluetooth Speaker Mini</p>
+                                                        <p class="text-default-400 text-xs">SKU: BS-MINI</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-7.jpg" alt="avatar-7" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Emma Johnson</h5>
+                                                        <p class="text-default-400 text-xs">emma.johnson&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Product not as described</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/paypal.svg" alt="" class="h-7" />
+                                                    PayPal
+                                                </div>
+                                            </td>
+                                            <td>$59.99</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-danger/15 text-danger">Rejected</span>
+                                            </td>
+                                            <td>25 Sep 2025</td>
+                                            <td>-</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 5 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="apps-ecommerce-order-details.html" class="hover:text-primary">#INV-10341</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/5.png" alt="avatar-5" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Wireless Mouse</p>
+                                                        <p class="text-default-400 text-xs">SKU: WM-450</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-8.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Oliver Garcia</h5>
+                                                        <p class="text-default-400 text-xs">oliver.garcia&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Did not work as expected</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/visa.svg" alt="" class="h-7" />
+                                                    xxxx 9821
+                                                </div>
+                                            </td>
+                                            <td>$39.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>22 Sep 2025</td>
+                                            <td>-</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 6 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="#" class="hover:text-primary">#INV-10322</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/6.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Ergonomic Office Chair</p>
+                                                        <p class="text-default-400 text-xs">SKU: CHR-550</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-4.jpg" alt="avatar-4" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Lucas Turner</h5>
+                                                        <p class="text-default-400 text-xs">lucas.turner&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Incorrect color delivered</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/american-express.svg" alt="" class="h-7" />
+                                                    xxxx 6730
+                                                </div>
+                                            </td>
+                                            <td>$199.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Approved</span>
+                                            </td>
+                                            <td>20 Sep 2025</td>
+                                            <td>21 Sep 2025</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 7 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="#" class="hover:text-primary">#INV-10305</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/7.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Portable Vacuum Cleaner</p>
+                                                        <p class="text-default-400 text-xs">SKU: VC-201</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-9.jpg" alt="avatar-9" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Charlotte Davis</h5>
+                                                        <p class="text-default-400 text-xs">charlotte.d&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Missing accessories</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/mastercard.svg" alt="" class="h-7" />
+                                                    xxxx 8142
+                                                </div>
+                                            </td>
+                                            <td>$89.50</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-secondary/15 text-secondary">Refunded</span>
+                                            </td>
+                                            <td>16 Sep 2025</td>
+                                            <td>18 Sep 2025</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 8 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="#" class="hover:text-primary">#INV-10293</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/products/8.png" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <p class="font-medium">Gaming Keyboard RGB</p>
+                                                        <p class="text-default-400 text-xs">SKU: GK-88</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-10.jpg" alt="avatar-10" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>Henry Martin</h5>
+                                                        <p class="text-default-400 text-xs">henry.martin&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Keys not functioning</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/paypal.svg" alt="" class="h-7" />
+                                                    PayPal
+                                                </div>
+                                            </td>
+                                            <td>$119.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-danger/15 text-danger">Rejected</span>
+                                            </td>
+                                            <td>12 Sep 2025</td>
+                                            <td>-</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+                                                        <div class="hs-dropdown-menu">
+                                                            <div class="space-y-0.5">
+                                                                <a href="#" class="dropdown-item">View order</a>
+                                                                <a href="#" class="dropdown-item">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a href="#" class="dropdown-item">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 9 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="#" class="hover:text-primary">#INV-10275</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <div>
+                                                        <img src="assets/images/products/9.png" alt="" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <p class="font-medium">Fitness Tracker Band</p>
+                                                        <p class="text-default-400 text-xs">SKU: FT-900</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <div>
+                                                        <img src="assets/images/users/user-3.jpg" alt="avatar-3" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>Ella Rodriguez</h5>
+                                                        <p class="text-default-400 text-xs">ella.rodriguez&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Did not sync with app</td>
+
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/visa.svg" alt="" class="h-7" />
+                                                    xxxx 9082
+                                                </div>
+                                            </td>
+                                            <td>$49.99</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>08 Sep 2025</td>
+                                            <td>-</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div class="space-y-0.5">
+                                                                <a class="dropdown-item" href="#">View order</a>
+                                                                <a class="dropdown-item" href="#">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a class="dropdown-item" href="#">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Row 10 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="text-sm">
+                                                    <a href="#" class="hover:text-primary">#INV-10261</a>
+                                                </h5>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <div>
+                                                        <img src="assets/images/products/10.png" alt="" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <p class="font-medium">Laptop Stand Adjustable</p>
+                                                        <p class="text-default-400 text-xs">SKU: LS-101</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <div>
+                                                        <img src="assets/images/users/user-2.jpg" alt="avatar-2" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>James Anderson</h5>
+                                                        <p class="text-default-400 text-xs">james.anderson&#64;shopmail.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Package arrived late</td>
+                                            <td>
+                                                <div class="flex items-center gap-3">
+                                                    <img src="assets/images/cards/mastercard.svg" alt="" class="h-7" />
+                                                    xxxx 3210
+                                                </div>
+                                            </td>
+                                            <td>$64.99</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold bg-success/15 text-success">Approved</span>
+                                            </td>
+                                            <td>05 Sep 2025</td>
+                                            <td>06 Sep 2025</td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.5">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--check text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--x text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                    <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                        <button type="button" class="hs-dropdown-toggle btn btn-icon btn-sm border border-default-300 hover:border-default-400" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                            <i class="iconify tabler--dots-vertical text-base"></i>
+                                                        </button>
+
+                                                        <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                            <div class="space-y-0.5">
+                                                                <a class="dropdown-item" href="#">View order</a>
+                                                                <a class="dropdown-item" href="#">Contact customer</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a class="dropdown-item" href="#">Add note</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="refunds"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+
+                <div id="createRefundModal" class="hs-overlay pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto" role="dialog" tabindex="-1" aria-labelledby="createRefundModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-lg lg:max-w-lg">
+                        <div class="card pointer-events-auto flex w-full flex-col">
+                            <div class="card-header p-5">
+                                <h3 id="createRefundModalLabel" class="flex items-center font-semibold">
+                                    <i class="iconify tabler--credit-card text-primary me-2.5"></i>
+                                    Create Refund
+                                </h3>
+                                <button type="button" aria-label="Close" data-hs-overlay="#createRefundModal">
+                                    <i class="iconify tabler--x text-2xl align-middle text-default-600"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body">
+                                <div>
+                                    <!-- Order ID -->
+                                    <div class="mb-5">
+                                        <label for="refundOrderId" class="form-label">Order ID</label>
+                                        <select id="refundOrderId" class="form-select">
+                                            <option selected disabled>Select Order</option>
+                                            <option>#INV-10423</option>
+                                            <option>#INV-10424</option>
+                                            <option>#INV-10425</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Customer Info -->
+                                    <div class="mb-5">
+                                        <label for="refundCustomer" class="form-label">Customer</label>
+                                        <input id="refundCustomer" type="text" class="form-input" value="Mason Carter" readonly />
+                                    </div>
+
+                                    <!-- Refund Reason -->
+                                    <div class="mb-5">
+                                        <label for="refundReason" class="form-label">Reason</label>
+                                        <textarea id="refundReason" class="form-textarea" rows="2" placeholder="Enter refund reason (e.g., damaged item, wrong product, etc.)"></textarea>
+                                    </div>
+
+                                    <!-- Refund Method -->
+                                    <div class="mb-5">
+                                        <label for="refundMethod" class="form-label">Refund Method</label>
+                                        <select id="refundMethod" class="form-select">
+                                            <option selected>Original Payment Method (Visa ****7832)</option>
+                                            <option>Store Credit</option>
+                                            <option>Bank Transfer</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Refund Amount -->
+                                    <div class="mb-5">
+                                        <label for="refundAmount" class="form-label">Refund Amount</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input id="refundAmount" type="number" class="form-input" placeholder="129.45" value="129.45" />
+                                        </div>
+                                    </div>
+
+                                    <!-- Refund Date -->
+                                    <div>
+                                        <label for="refundDate" class="form-label">Refund Date</label>
+                                        <input id="refundDate" type="date" class="form-input" data-provider="flatpickr" data-date-format="d M, Y" value="2025-10-08" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="border-default-300 flex items-center justify-end gap-2 border-t p-5">
+                                <button type="button" class="btn bg-default-200" data-hs-overlay="#createRefundModal">Close</button>
+
+                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">
+                                    <i class="iconify tabler--check"></i>
+                                    Confirm Refund
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Custom table -->
+        <script src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

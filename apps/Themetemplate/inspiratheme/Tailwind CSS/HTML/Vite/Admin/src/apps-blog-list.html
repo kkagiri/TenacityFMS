@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="List" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Blog" title="List" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Blog" title="List" }}
+
+                    <div class="container-fluid">
+                        <div class="card">
+                            <div class="p-7.5">
+                                <div class="grid xl:grid-cols-3 gap-base lg:gap-15">
+                                    <div class="space-y-5 xl:col-span-2">
+                                        <article class="card border border-light">
+                                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                                <div>
+                                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                                        <div class="badge badge-label bg-dark text-white m-5 absolute start-0 top-0">Development</div>
+                                                        <img src="/images/blog/blog-1.jpg" class="h-full w-full object-cover" alt="Building APIs" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2.5">
+                                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Building REST APIs with Node.js</a>
+                                                        </h6>
+                                                        <p class="text-default-400 mb-5">Learn how to design and build scalable REST APIs with Node.js and Express in this step-by-step tutorial.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Node.js</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">API</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Tutorial</a>
+                                                        </div>
+
+                                                        <p class="text-default-400 mt-5 flex flex-wrap items-center gap-base text-sm">
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--calendar text-md"></i>
+                                                                Feb 2, 2025
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                                <a href="#!" class="hover:text-primary">16</a>
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--eye text-md"></i>
+                                                                8,974
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer border-top items-center bg-transparent">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <img src="/images/users/user-3.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                                            <div>
+                                                                <h5 class="font-bold">
+                                                                    <a href="#!" class="hover:text-primary">John Doe</a>
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                                            Read more
+                                                            <i class="iconify tabler--arrow-right"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+
+                                        <article class="card border border-light">
+                                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                                <div>
+                                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                                        <div class="badge badge-label bg-primary text-white m-5 absolute start-0 top-0">Design</div>
+                                                        <img src="/images/blog/blog-2.jpg" class="h-full w-full object-cover" alt="UI Design Tips" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2.5">
+                                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">10 Essential UI Design Tips for Better User Experience</a>
+                                                        </h6>
+
+                                                        <p class="text-default-400 mb-5">Discover key principles and practical tips to enhance usability, accessibility, and aesthetics in your web design.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Design</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">UI/UX</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Tips</a>
+                                                        </div>
+
+                                                        <p class="text-default-400 mt-5 flex flex-wrap items-center gap-base text-sm">
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--calendar"></i>
+                                                                Mar 10, 2025
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                                <a href="#!" class="hover:text-primary">24</a>
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--eye"></i>
+                                                                12,346
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer border-top items-center bg-transparent">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <img src="/images/users/user-5.jpg" class="size-6 rounded-full" alt="avatar-5" />
+                                                            <h5 class="font-bold">
+                                                                <a href="#!" class="hover:text-primary">Sarah Lee</a>
+                                                            </h5>
+                                                        </div>
+                                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                                            Read more
+                                                            <i class="iconify tabler--arrow-right"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+
+                                        <article class="card border border-light">
+                                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                                <div>
+                                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                                        <div class="badge badge-label bg-success text-white m-5 absolute start-0 top-0">Technology</div>
+                                                        <img src="/images/blog/blog-3.jpg" class="h-full w-full object-cover" alt="AI in Web Development" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2.5">
+                                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">How AI is Transforming Modern Web Development</a>
+                                                        </h6>
+
+                                                        <p class="text-default-400 mb-5">Explore how artificial intelligence is revolutionizing the way developers build, test, and deploy web applications.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label border border-default-300">AI</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Web</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Technology</a>
+                                                        </div>
+
+                                                        <p class="text-default-400 mt-5 flex flex-wrap items-center gap-base text-sm">
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--calendar"></i>
+                                                                Apr 5, 2025
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                                <a href="#!" class="hover:text-primary">32</a>
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--eye"></i>
+                                                                15,478
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer border-top items-center bg-transparent">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <img src="/images/users/user-7.jpg" class="size-6 rounded-full" alt="avatar-7" />
+                                                            <h5 class="font-bold">
+                                                                <a href="#!" class="hover:text-primary">Michael Brown</a>
+                                                            </h5>
+                                                        </div>
+                                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                                            Read more
+                                                            <i class="iconify tabler--arrow-right"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+
+                                        <article class="card border border-light">
+                                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                                <div>
+                                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                                        <div class="badge badge-label bg-warning text-white m-5 absolute start-0 top-0">Marketing</div>
+                                                        <img src="/images/blog/blog-4.jpg" class="h-full w-full object-cover" alt="Marketing Strategies" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2.5">
+                                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Top 5 Content Marketing Strategies That Work in 2025</a>
+                                                        </h6>
+
+                                                        <p class="text-default-400 mb-5">Learn how to build a strong content plan, leverage social media trends, and boost engagement.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Marketing</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">SEO</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Strategy</a>
+                                                        </div>
+
+                                                        <div class="text-sm text-default-400 mt-5 flex flex-wrap items-center gap-base">
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--calendar"></i>
+                                                                May 18, 2025
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                                <a href="#!" class="hover:text-primary">19</a>
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--eye"></i>
+                                                                9,812
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="card-footer border-top items-center bg-transparent">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <img src="/images/users/user-8.jpg" class="size-6 rounded-full" alt="avatar-8" />
+                                                            <h5 class="font-bold">
+                                                                <a href="#!" class="hover:text-primary">Emily Carter</a>
+                                                            </h5>
+                                                        </div>
+                                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                                            Read more
+                                                            <i class="iconify tabler--arrow-right"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+
+                                        <article class="card border border-light">
+                                            <div class="grid grid-cols-1 md:grid-cols-3">
+                                                <div>
+                                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                                        <div class="badge badge-label bg-info text-white m-5 absolute start-0 top-0">Startup</div>
+                                                        <img src="/images/blog/blog-5.jpg" class="h-full w-full object-cover" alt="Startup Growth" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="md:col-span-2">
+                                                    <div class="card-body">
+                                                        <h6 class="card-title mb-2.5">
+                                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Scaling Your Startup: Lessons from Successful Founders</a>
+                                                        </h6>
+
+                                                        <p class="text-default-400 mb-5">Explore actionable insights from entrepreneurs on managing growth, funding rounds, and building strong company culture.</p>
+
+                                                        <div>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Startup</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Growth</a>
+                                                            <a href="#!" class="badge badge-label border border-default-300">Business</a>
+                                                        </div>
+
+                                                        <p class="text-default-400 mt-5 flex flex-wrap items-center gap-base text-sm">
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--calendar text-md"></i>
+                                                                Jun 9, 2025
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                                <a href="#!" class="hover:text-primary">27</a>
+                                                            </span>
+                                                            <span class="flex items-center gap-1.25">
+                                                                <i class="iconify tabler--eye text-md"></i>
+                                                                14,532
+                                                            </span>
+                                                        </p>
+                                                    </div>
+
+                                                    <div class="card-footer border-top items-center bg-transparent">
+                                                        <div class="flex items-center gap-2.5">
+                                                            <img src="/images/users/user-9.jpg" alt="avatar-9" class="size-6 rounded-full" />
+                                                            <h5 class="font-bold">
+                                                                <a href="#!" class="hover:text-primary">David Wilson</a>
+                                                            </h5>
+                                                        </div>
+                                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                                            Read more
+                                                            <i class="iconify tabler--arrow-right"></i>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </article>
+
+                                        <div class="mt-7.5">
+                                            <nav class="mx-auto flex items-center justify-center gap-1.25" aria-label="Pagination">
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100" aria-label="Previous">
+                                                    <i class="iconify tabler--chevron-left"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full bg-primary text-white" aria-current="page">1</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100">2</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100">3</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100">..</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100">5</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100">6</button>
+                                                <button type="button" class="btn btn-icon size-8.5 rounded-full border-default-300 hover:bg-default-100" aria-label="Next">
+                                                    <i class="iconify tabler--chevron-right"></i>
+                                                </button>
+                                            </nav>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-span-1">
+                                        <div class="mb-7.5">
+                                            <a href="apps-blog-add.html" class="btn bg-primary btn-lg w-full text-sm text-white hover:bg-primary-hover">
+                                                <i class="iconify tabler--circle-dashed-plus"></i>
+                                                Add New Article
+                                            </a>
+                                        </div>
+
+                                        <h5 class="mb-5 font-bold uppercase">Search</h5>
+                                        <div class="input-icon-group mb-15">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input type="text" class="form-input bg-light/20 border-light" placeholder="Search post..." />
+                                        </div>
+
+                                        <div class="mb-15">
+                                            <h5 class="mb-5 font-bold uppercase">Categories</h5>
+                                            <ul class="*:py-3 *:pe-5 *:flex *:items-center *:justify-between">
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--folder"></i>
+                                                        Development
+                                                    </a>
+                                                    <span class="badge bg-light">12</span>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--folder"></i>
+                                                        Design
+                                                    </a>
+                                                    <span class="badge bg-light">8</span>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--folder"></i>
+                                                        Marketing
+                                                    </a>
+                                                    <span class="badge bg-light">5</span>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--folder"></i>
+                                                        Technology
+                                                    </a>
+                                                    <span class="badge bg-light">9</span>
+                                                </li>
+                                                <li>
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--folder"></i>
+                                                        Startup
+                                                    </a>
+                                                    <span class="badge bg-light">6</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="mb-15">
+                                            <h5 class="mb-5 font-bold uppercase">Popular Posts</h5>
+                                            <ul class="*:py-3 *:flex *:items-center *:justify-between">
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--article"></i>
+                                                        Unlocking the Secrets of Modern UI Design
+                                                    </a>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--article"></i>
+                                                        How to Build a Portfolio with Tailwind CSS
+                                                    </a>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--article"></i>
+                                                        Boost Productivity with These Web Dev Tools
+                                                    </a>
+                                                </li>
+                                                <li class="border-b border-default-300">
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--article"></i>
+                                                        The Future of Frontend: Trends to Watch in 2025
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a href="#" class="hover:text-primary flex items-center gap-3 font-medium">
+                                                        <i class="iconify tabler--article"></i>
+                                                        Essential Tips for Clean and Maintainable Code
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+
+                                        <div class="mb-15">
+                                            <h5 class="mb-5 font-bold uppercase">Popular Tags</h5>
+                                            <div class="flex flex-wrap itmes-center gap-1.25">
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Web Designn</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Frontend</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Tailwind CSS</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">JavaScript</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">React</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Startup</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">DevTools</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Open Source</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">Performance</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">UX/UI</a>
+                                                <a href="#" class="btn btn-sm bg-light hover:text-primary">SEO</a>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-light/15 border-default-300 rounded border p-6 md:p-7.5">
+                                            <h5 class="mb-5 font-bold uppercase">Subscribe to Newsletter</h5>
+                                            <p class="text-default-400 mb-5 text-sm">Get the latest articles and updates directly to your inbox.</p>
+                                            <form action="#">
+                                                <div class="relative">
+                                                    <input type="email" class="form-input" placeholder="Your email address" />
+                                                    <button class="btn bg-dark absolute end-0 top-1/2 -translate-y-1/2 rounded-s-none py-3 text-white" type="submit">
+                                                        <i class="iconify tabler--send-2"></i>
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

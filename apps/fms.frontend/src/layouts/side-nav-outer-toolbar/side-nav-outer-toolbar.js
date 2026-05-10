@@ -22,6 +22,36 @@ export default function SideNavOuterToolbar({ title, children }) {
     setMenuStatus(isLarge ? MenuStatus.Opened : MenuStatus.Closed);
   }, [isLarge]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    const layoutAttributes = {
+      "data-layout": "basic-left",
+      "data-menu-color": "dark",
+      "data-topbar-color": "light",
+      "data-layout-position": "fixed",
+      "data-layout-width": "fluid",
+      "data-footer-position": "scrollable",
+    };
+
+    Object.entries(layoutAttributes).forEach(([attribute, value]) => {
+      root.setAttribute(attribute, value);
+    });
+
+    return () => {
+      Object.keys(layoutAttributes).forEach((attribute) => {
+        root.removeAttribute(attribute);
+      });
+      root.removeAttribute("data-sidenav-size");
+    };
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      "data-sidenav-size",
+      !isLarge ? "offcanvas" : menuStatus === MenuStatus.Closed ? "condensed" : "default"
+    );
+  }, [isLarge, menuStatus]);
+
   // Handle outside clicks
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -61,7 +91,7 @@ export default function SideNavOuterToolbar({ title, children }) {
 
   const onNavigationChanged = useCallback(
     ({ itemData, event, node }) => {
-      if (menuStatus === MenuStatus.Closed || !itemData.path || node.selected) {
+      if ((!isLarge && menuStatus === MenuStatus.Closed) || !itemData.path || node.selected) {
         event.preventDefault();
         return;
       }
@@ -82,14 +112,14 @@ export default function SideNavOuterToolbar({ title, children }) {
 
   // Add click handler for main content area
   const onContentClick = useCallback((event) => {
-    if (menuStatus !== MenuStatus.Closed) {
+    if (!isLarge && menuStatus !== MenuStatus.Closed) {
       setMenuStatus(MenuStatus.Closed);
       event.stopPropagation();
     }
-  }, [menuStatus]);
+  }, [isLarge, menuStatus]);
 
   return (
-    <div className={"side-nav-outer-toolbar inspinia-shell"}>
+    <div className={"side-nav-outer-toolbar inspinia-shell wrapper"}>
       <Header
         menuToggleEnabled={true}
         toggleMenu={toggleMenu}
@@ -102,8 +132,8 @@ export default function SideNavOuterToolbar({ title, children }) {
         closeOnOutsideClick={true}
         openedStateMode={isLarge ? 'shrink' : 'overlap'}
         revealMode={'slide'}
-        minSize={0}
-        maxSize={250}
+        minSize={isLarge ? 75 : 0}
+        maxSize={235}
         shading={!isLarge}
         opened={menuStatus === MenuStatus.Closed ? false : true}
         template={"menu"}

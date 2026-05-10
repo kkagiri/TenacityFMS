@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Polar Area Apexchart" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Polar Area Apexchart" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Polar Area Apexchart" }}
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Polar Area Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-polar-area" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Monochrome Polar Area</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="monochrome-polar-area" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/chart-apex-polar-area.js"></script>
+    </body>
+</html>

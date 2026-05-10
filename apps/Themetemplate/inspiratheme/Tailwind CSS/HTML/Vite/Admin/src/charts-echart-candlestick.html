@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Candlestick Echart" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Charts" title="Candlestick Echart" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Charts" title="Candlestick Echart" }}
+
+                    <div class="container-fluid">
+                        <div class="space-y-5">
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Basic Candlestick Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-basic-candlestick" style="min-height: 400px"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Mixed Candlestick Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-mixed-candlestick" style="min-height: 400px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/chart-echart-candlestick.js"></script>
+    </body>
+</html>

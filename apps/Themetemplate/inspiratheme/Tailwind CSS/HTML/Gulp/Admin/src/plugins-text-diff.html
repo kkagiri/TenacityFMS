@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Text Diff"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Plugins", "title":"Text Diff"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Plugins", "title":"Text Diff"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">jsdiff</h4>
+                                </div>
+                                <!-- end card-header -->
+
+                                <div class="card-body">
+                                    <div class="grid xl:grid-cols-2 gap-base">
+                                        <div>
+                                            <h5 class="mb-3 uppercase">Original Text</h5>
+                                            <textarea class="diff-original form-textarea" rows="8">
+On a rainy Monday morning in a small town, Emma walked into her favorite café, her umbrella dripping and her hair slightly frizzy from the storm. She always ordered the same thing: black coffee, two sugars, and a blueberry muffin. But today, someone was already sitting at her usual table by the window. It was Jack — a quiet man with a book in hand and headphones around his neck. Their eyes met for a second. He smiled and motioned for her to join him. Hesitant but intrigued, Emma accepted.
+                                    </textarea
+                                            >
+                                        </div>
+                                        <!-- end col -->
+
+                                        <div>
+                                            <h5 class="mb-3 uppercase">Changed Text</h5>
+                                            <textarea class="diff-changed form-textarea" rows="8">
+On a rainy Monday morning in a small town, Emma stepped into her favorite café, her umbrella dripping and her hair slightly frizzy from the damp weather. She always ordered the same thing: black coffee with two sugars and a blueberry muffin. But today, someone was already seated at her usual window table. It was Jack — a quiet man with a book in one hand and headphones resting around his neck. Their eyes met briefly. He smiled and gestured for her to join him. Hesitant but curious, Emma agreed.</textarea
+                                            >
+                                        </div>
+                                        <!-- end col -->
+
+                                        <div class="lg:col-span-2">
+                                            <h5 class="mb-3 uppercase">Results</h5>
+                                            <div class="bg-light/15 border-default-300 rounded border border-dashed p-6 leading-7">
+                                                <div class="diff-output diff"></div>
+                                            </div>
+                                        </div>
+                                        <!-- end col -->
+                                    </div>
+                                    <!-- end row -->
+                                </div>
+                                <!-- end card-body -->
+                            </div>
+                            <!-- end card -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Diff Plugin Js-->
+        <script src="assets/plugins/diff/diff.min.js"></script>
+
+        <!-- Text Diff Plugin js -->
+        <script src="assets/js/pages/plugins-text-diff.js"></script>
+    </body>
+</html>

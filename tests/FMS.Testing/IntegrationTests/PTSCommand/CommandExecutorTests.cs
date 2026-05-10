@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.Common;
 using FMS.Application.Common.Commands;
 using FMS.Application.Common.PTSResponse;
+using FMS.Application.CommonInterface;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Connection;
 using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Communication.Redis;
 using FMS.Application.Features.PTS.Common;
 using FMS.Application.Features.PTS.Enum;
 using FMS.Application.Validation.PTSValidators;
@@ -18,24 +18,29 @@ using FMS.Domain.PTSCommon;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json.Linq;
+using StackExchange.Redis;
 using Xunit;
 
-namespace FMS.Testing.IntegrationTests.PTSCommand {
+namespace FMS.Testing.IntegrationTests.PTSCommand
+{
     /// <summary>
     /// Integration tests for CommandExecutor class focused on the fueling workflow
     /// </summary>
-    public class CommandExecutorTests {
+    public class CommandExecutorTests
+    {
         // Test double for IDeviceHttpCommandPusher to avoid expression tree issues
-        public class TestHttpCommandPusher : IDeviceHttpCommandPusher {
+        public class TestHttpCommandPusher : IDeviceHttpCommandPusher
+        {
             public bool ShouldSucceed { get; set; } = true;
             public int? ErrorCode { get; set; } = null;
             public PTSMessage ResponseToReturn { get; set; }
 
             // Updated signature to match interface exactly with optional bearerToken parameter
-            public Task < (bool Success, int? ErrorCode, PTSMessage Response) > SendPTSMessageAsync (
-                string ipAddress, int port, PTSMessage message, string bearerToken = null) {
+            public Task<(bool Success, int? ErrorCode, PTSMessage Response)> SendPTSMessageAsync(
+                string ipAddress, int port, PTSMessage message, string bearerToken = null)
+            {
                 // Bearer token is ignored in tests, we just return the configured response
-                return Task.FromResult ((ShouldSucceed, ErrorCode, ResponseToReturn));
+                return Task.FromResult((ShouldSucceed, ErrorCode, ResponseToReturn));
             }
         }
 
@@ -45,7 +50,8 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
         private readonly TestHttpCommandPusher _httpCommandPusher; // Use test double instead of mock
         private readonly Mock<IDeviceValidator> _mockDeviceValidator;
         private readonly Mock<ILogger<CommandExecutor>> _mockLogger;
-        private readonly Mock<RedisCommandService> _mockRedisCommandService;
+        private readonly Mock<IRedisCommandService> _mockRedisCommandService;
+        private readonly Mock<IConnectionMultiplexer> _mockRedisConnection;
 
         // System Under Test
         private readonly CommandExecutor _commandExecutor;
@@ -53,102 +59,113 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
         // Test data
         private const string TEST_DEVICE_ID = "123456789";
         private const string TEST_COMMAND_TYPE = "PumpAuthorize";
-        private readonly object TEST_COMMAND_DATA = new {
+        private readonly object TEST_COMMAND_DATA = new
+        {
             Pump = 1,
             Nozzle = 2,
             Dose = 10.0,
             Type = "Volume"
         };
 
-        public CommandExecutorTests () {
+        public CommandExecutorTests()
+        {
             // Initialize mocks
-            _mockDeviceCommunicationService = new Mock<IDeviceCommunicationService> ();
-            _mockPendingCommandRepo = new Mock<IPendingCommandRepository> ();
-            _httpCommandPusher = new TestHttpCommandPusher (); // Create test double
-            _mockDeviceValidator = new Mock<IDeviceValidator> ();
-            _mockLogger = new Mock<ILogger<CommandExecutor>> ();
-            _mockRedisCommandService = new Mock<RedisCommandService> ();
+            _mockDeviceCommunicationService = new Mock<IDeviceCommunicationService>();
+            _mockPendingCommandRepo = new Mock<IPendingCommandRepository>();
+            _httpCommandPusher = new TestHttpCommandPusher(); // Create test double
+            _mockDeviceValidator = new Mock<IDeviceValidator>();
+            _mockLogger = new Mock<ILogger<CommandExecutor>>();
+            _mockRedisCommandService = new Mock<IRedisCommandService>();
+            _mockRedisConnection = new Mock<IConnectionMultiplexer>();
 
             // Initialize SUT
-            _commandExecutor = new CommandExecutor (
+            _commandExecutor = new CommandExecutor(
                 _mockDeviceCommunicationService.Object,
                 _mockPendingCommandRepo.Object,
                 _httpCommandPusher, // Use test double instead of mock
                 _mockDeviceValidator.Object,
                 _mockLogger.Object,
-                _mockRedisCommandService.Object
+                _mockRedisCommandService.Object,
+                _mockRedisConnection.Object
             );
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_WebSocketMode_SuccessfulCommand () {
+        public async Task ExecuteCommandAsync_WebSocketMode_SuccessfulCommand()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.WebSocket);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.WebSocket);
 
             // Set up Redis Command Service response
             var mockResponseData = new JObject { { "Id", 12345 }, { "Status", "Success" }, { "Message", "Command executed successfully" } };
 
-            var redisResponse = new RedisPTSCommandResponse {
+            var redisResponse = new RedisPTSCommandResponse
+            {
                 DeviceId = TEST_DEVICE_ID,
                 Status = "Success",
                 Message = "Command executed successfully",
                 CorrelationId = "cmd123",
-                ResponsePayload = System.Text.Json.JsonDocument.Parse (mockResponseData.ToString ()).RootElement
+                ResponsePayload = System.Text.Json.JsonDocument.Parse(mockResponseData.ToString()).RootElement
             };
 
             _mockRedisCommandService
-                .Setup (s => s.SendCommandAsync (It.IsAny<RedisPTSCommand> (), It.IsAny<CancellationToken> ()))
-                .ReturnsAsync (redisResponse);
+                .Setup(s => s.SendCommandAsync(It.IsAny<RedisPTSCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(redisResponse);
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, JObject.FromObject (TEST_COMMAND_DATA));
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, JObject.FromObject(TEST_COMMAND_DATA));
 
             // Assert
-            Assert.NotNull (result);
-            Assert.True (result.Success);
-            Assert.Equal (TEST_COMMAND_TYPE, result.CommandType);
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+            Assert.Equal(TEST_COMMAND_TYPE, result.CommandType);
 
             // Verify Redis command service was called
-            _mockRedisCommandService.Verify (
-                s => s.SendCommandAsync (
-                    It.Is<RedisPTSCommand> (cmd =>
+            _mockRedisCommandService.Verify(
+                s => s.SendCommandAsync(
+                    It.Is<RedisPTSCommand>(cmd =>
                         cmd.DeviceId == TEST_DEVICE_ID &&
                         cmd.CommandType == TEST_COMMAND_TYPE),
-                    It.IsAny<CancellationToken> ()),
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_HttpMode_SuccessfulCommand () {
+        public async Task ExecuteCommandAsync_HttpMode_SuccessfulCommand()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.Http);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.Http);
 
             // Setup device validator to return device info
-            var deviceInfo = new DeviceInfoDTO {
+            var deviceInfo = new DeviceInfoDTO
+            {
                 PtsId = TEST_DEVICE_ID, // This will set DeviceId property
                 IpAddress = "10.0.10.95",
                 PortNumber = 8080
             };
 
             _mockDeviceValidator
-                .Setup (v => v.ValidateDevice (TEST_DEVICE_ID))
-                .ReturnsAsync (new DeviceValidationResult {
+                .Setup(v => v.ValidateDevice(TEST_DEVICE_ID))
+                .ReturnsAsync(new DeviceValidationResult
+                {
                     DeviceInfo = deviceInfo
                 });
 
             // Setup HTTP command pusher with a simple mock that always returns success
-            var responsePacket = new Packet {
+            var responsePacket = new Packet
+            {
                 Id = 1,
                 Error = false,
                 Message = "Success",
-                Data = JObject.FromObject (TEST_COMMAND_DATA)
+                Data = JObject.FromObject(TEST_COMMAND_DATA)
             };
 
-            var responseMessage = new PTSMessage {
+            var responseMessage = new PTSMessage
+            {
                 Protocol = "jsonPTS",
                 Packets = new List<Packet> { responsePacket }
             };
@@ -158,36 +175,40 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
             _httpCommandPusher.ResponseToReturn = responseMessage;
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
 
             // Assert
-            Assert.NotNull (result);
-            Assert.True (result.Success);
-            Assert.Equal (TEST_COMMAND_TYPE, result.CommandType);
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+            Assert.Equal(TEST_COMMAND_TYPE, result.CommandType);
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_HttpMode_DeviceReturnedError () {
+        public async Task ExecuteCommandAsync_HttpMode_DeviceReturnedError()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.Http);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.Http);
 
             // Setup device validator to return device info
-            var deviceInfo = new DeviceInfoDTO {
+            var deviceInfo = new DeviceInfoDTO
+            {
                 PtsId = TEST_DEVICE_ID,
                 IpAddress = "10.0.10.95",
                 PortNumber = 8080
             };
 
             _mockDeviceValidator
-                .Setup (v => v.ValidateDevice (TEST_DEVICE_ID))
-                .ReturnsAsync (new DeviceValidationResult {
+                .Setup(v => v.ValidateDevice(TEST_DEVICE_ID))
+                .ReturnsAsync(new DeviceValidationResult
+                {
                     DeviceInfo = deviceInfo
                 });
 
             // Setup HTTP command pusher with an error response
-            var errorPacket = new Packet {
+            var errorPacket = new Packet
+            {
                 Id = 1,
                 Error = true,
                 Code = 500,
@@ -195,7 +216,8 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
                 Data = null
             };
 
-            var errorResponse = new PTSMessage {
+            var errorResponse = new PTSMessage
+            {
                 Protocol = "jsonPTS",
                 Packets = new List<Packet> { errorPacket }
             };
@@ -205,32 +227,35 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
             _httpCommandPusher.ResponseToReturn = errorResponse;
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
 
             // Assert
-            Assert.NotNull (result);
-            Assert.False (result.Success);
-            Assert.Equal ("Device Error", result.Message);
-            Assert.Equal (500, result.Code);
+            Assert.NotNull(result);
+            Assert.False(result.Success);
+            Assert.Equal("Device Error", result.Message);
+            Assert.Equal(500, result.Code);
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_HttpMode_FailedToPush_QueuesPendingCommand () {
+        public async Task ExecuteCommandAsync_HttpMode_FailedToPush_QueuesPendingCommand()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.Http);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.Http);
 
             // Setup device validator to return device info
-            var deviceInfo = new DeviceInfoDTO {
+            var deviceInfo = new DeviceInfoDTO
+            {
                 PtsId = TEST_DEVICE_ID,
                 IpAddress = "10.0.10.95",
                 PortNumber = 8080
             };
 
             _mockDeviceValidator
-                .Setup (v => v.ValidateDevice (TEST_DEVICE_ID))
-                .ReturnsAsync (new DeviceValidationResult {
+                .Setup(v => v.ValidateDevice(TEST_DEVICE_ID))
+                .ReturnsAsync(new DeviceValidationResult
+                {
                     DeviceInfo = deviceInfo
                 });
 
@@ -240,74 +265,77 @@ namespace FMS.Testing.IntegrationTests.PTSCommand {
 
             // Setup pending command repo - returns Task<int> instead of Task
             _mockPendingCommandRepo
-                .Setup (r => r.QueueCommandAsync (
+                .Setup(r => r.QueueCommandAsync(
                     TEST_DEVICE_ID,
                     TEST_COMMAND_TYPE,
-                    It.IsAny<object> (),
-                    It.IsAny<int> (),
-                    It.IsAny<string> ()))
-                .ReturnsAsync (1); // Return 1 as the command ID
+                    It.IsAny<object>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string>()))
+                .ReturnsAsync(1); // Return 1 as the command ID
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
 
             // Assert
-            Assert.NotNull (result);
-            Assert.False (result.Success);
+            Assert.NotNull(result);
+            Assert.False(result.Success);
 
             // Verify pending command was queued
-            _mockPendingCommandRepo.Verify (
-                r => r.QueueCommandAsync (
+            _mockPendingCommandRepo.Verify(
+                r => r.QueueCommandAsync(
                     TEST_DEVICE_ID,
                     TEST_COMMAND_TYPE,
-                    It.IsAny<object> (),
-                    It.IsAny<int> (),
+                    It.IsAny<object>(),
+                    It.IsAny<int>(),
                     "HTTP_Retry"),
                 Times.Once);
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_NoDeviceInfo_ReturnsFailure () {
+        public async Task ExecuteCommandAsync_NoDeviceInfo_ReturnsFailure()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.Http);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.Http);
 
             // Setup device validator to return null device info
             _mockDeviceValidator
-                .Setup (v => v.ValidateDevice (TEST_DEVICE_ID))
-                .ReturnsAsync (new DeviceValidationResult {
+                .Setup(v => v.ValidateDevice(TEST_DEVICE_ID))
+                .ReturnsAsync(new DeviceValidationResult
+                {
                     DeviceInfo = null
                 });
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
 
             // Assert
-            Assert.NotNull (result);
-            Assert.False (result.Success);
-            Assert.Equal ("Device not found", result.Message);
-            Assert.Equal (404, result.Code);
+            Assert.NotNull(result);
+            Assert.False(result.Success);
+            Assert.Equal("Device not found", result.Message);
+            Assert.Equal(404, result.Code);
         }
 
         [Fact]
-        public async Task ExecuteCommandAsync_WebSocketMode_RedisServiceError () {
+        public async Task ExecuteCommandAsync_WebSocketMode_RedisServiceError()
+        {
             // Arrange
             _mockDeviceCommunicationService
-                .Setup (s => s.GetPreferredCommunicationMode (TEST_DEVICE_ID))
-                .ReturnsAsync (CommunicationMode.WebSocket);
+                .Setup(s => s.GetPreferredCommunicationMode(TEST_DEVICE_ID))
+                .ReturnsAsync(CommunicationMode.WebSocket);
 
             // Setup Redis service to throw exception
             _mockRedisCommandService
-                .Setup (s => s.SendCommandAsync (It.IsAny<RedisPTSCommand> (), It.IsAny<CancellationToken> ()))
-                .ThrowsAsync (new HttpRequestException ("Redis service error"));
+                .Setup(s => s.SendCommandAsync(It.IsAny<RedisPTSCommand>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new HttpRequestException("Redis service error"));
 
             // Act
-            var result = await _commandExecutor.ExecuteCommandAsync (TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
+            var result = await _commandExecutor.ExecuteCommandAsync(TEST_DEVICE_ID, TEST_COMMAND_TYPE, TEST_COMMAND_DATA);
 
             // Assert
-            Assert.NotNull (result);
-            Assert.False (result.Success);
+            Assert.NotNull(result);
+            Assert.False(result.Success);
         }
     }
 }

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Funnel Apexcharts"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Funnel Apexcharts"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Funnel Apexcharts"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Funnel</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-funnel" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Pyramid Funnel</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="pyramid-funnel" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Apex Chart js -->
+        <script src="assets/plugins/apexcharts/apexcharts.min.js"></script>
+
+        <!-- Moment js -->
+        <script src="assets/plugins/moment/moment.min.js"></script>
+
+        <!-- Apex Chart Timeline Demo js -->
+        <script src="assets/js/pages/chart-apex-funnel.js"></script>
+    </body>
+</html>

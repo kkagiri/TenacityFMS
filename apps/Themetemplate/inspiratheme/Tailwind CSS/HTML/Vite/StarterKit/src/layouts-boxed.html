@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-layout-width="boxed" data-sidenav-size="on-hover">
+    <head>
+        {{> title-meta title="Boxed" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="Boxed" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layouts" title="Boxed" }}
+
+                    <div class="container">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable the boxed layout, add
+                                <code>data-layout-width="boxed"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag. For optimal spacing and usability, we also recommend adding
+                                <code>data-sidenav-size="on-hover"</code>
+                                to make the sidebar compact while keeping more room for content.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

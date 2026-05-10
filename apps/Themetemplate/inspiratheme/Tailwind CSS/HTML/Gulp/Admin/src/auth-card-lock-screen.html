@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Lock Screen"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Start Page Content here -->
+        <div class="flex min-h-screen items-center p-12.5">
+            <div class="container">
+                <div class="flex justify-center">
+                    <div class="xl:w-5/6">
+                        <div class="card rounded-2xl">
+                            <div class="grid grid-cols-1 lg:grid-cols-2">
+                                <div class="card-body relative p-12.5">
+                                    <!-- Auth Brand Logo -->
+                                    <div class="mb-7.5 flex flex-col items-center justify-center text-center">
+                                        <a href="index.html" class="auth-logo">
+                                            <img src="assets/images/logo-black.png" alt="logo" class="flex dark:hidden" />
+                                            <img src="assets/images/logo.png" alt="dark logo" class="hidden dark:flex" />
+                                        </a>
+                                        <h4 class="text-default-900 mt-7.5 mb-2 text-base font-bold">Lock Screen!</h4>
+                                        <p class="text-default-400 mx-auto w-full lg:w-3/4">This screen is locked. Enter your password to continue.</p>
+                                    </div>
+
+                                    <form action="index.html">
+                                        <div class="mb-9 text-center">
+                                            <div class="border-default-300 mx-auto mb-3 size-20 rounded-full border-4">
+                                                <img src="assets/images/users/user-1.jpg" class="size-18 rounded-full" alt="thumbnail" />
+                                            </div>
+                                            <h5 class="text-base font-semibold">Damian D.</h5>
+                                        </div>
+
+                                        <div class="mb-5">
+                                            <label for="userPassword" class="form-label">
+                                                Password
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--lock-password input-icon"></i>
+                                                <input type="password" class="form-input" id="userPassword" placeholder="••••••••" required />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button type="submit" class="btn bg-primary w-full py-3 font-semibold text-white hover:bg-primary-hover">Unlock</button>
+                                        </div>
+                                    </form>
+
+                                    <p class="text-default-400 mt-7.5 text-center">
+                                        Not you? Return to
+                                        <a href="auth-card-sign-in.html" class="text-primary font-semibol underline underline-offset-3">Sign in</a>
+                                    </p>
+
+                                    <!-- Auth Footer -->
+                                    <p class="text-default-400 mt-7.5 text-center">
+                                        &copy;
+                                        <script>
+                                            document.write(new Date().getFullYear())
+                                        </script>
+                                        Inspinia - by
+                                        <span>WebAppLayers</span>
+                                    </p>
+                                </div>
+                                <div class="relative hidden h-full overflow-hidden rounded-e-2xl bg-cover bg-center object-cover lg:block" style="background-image: url(&quot;assets/images/auth.jpg&quot;)">
+                                    <div class="absolute inset-0 flex items-end justify-center rounded-e-sm p-9 [background:linear-gradient(to_top,#313a46,rgba(49,58,70,.8),rgba(49,58,70,.5))]"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html')
+    </body>
+</html>

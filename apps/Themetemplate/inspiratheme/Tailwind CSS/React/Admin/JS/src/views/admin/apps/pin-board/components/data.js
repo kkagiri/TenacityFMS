@@ -1,0 +1,58 @@
+export const pinNoteData = [
+  {
+    id: 'pin-1',
+    timestamp: '14:22:07 08-04-2025',
+    title: 'Client feedback summary',
+    description: 'Positive response on UI, requested dark mode toggle and faster load times.',
+    className: 'bg-primary/10',
+  },
+  {
+    id: 'pin-2',
+    timestamp: '17:09:33 05-04-2025',
+    title: 'Blog content ideas',
+    description: 'Write about upcoming trends in web design and practical CSS tips.',
+    className: 'bg-danger/10',
+  },
+  {
+    id: 'pin-3',
+    timestamp: '10:55:10 02-04-2025',
+    title: 'Code optimization checklist',
+    description: 'Refactor JS functions, minimize DOM manipulation, and lazy load assets.',
+    className: 'bg-warning/10',
+  },
+  {
+    id: 'pin-4',
+    timestamp: '09:30:44 30-03-2025',
+    title: 'Newsletter draft',
+    description: "Focus on April's product update, new feature highlights, and tutorials.",
+    className: 'bg-info/10',
+  },
+  {
+    id: 'pin-5',
+    timestamp: '16:47:25 28-03-2025',
+    title: 'Bug report log',
+    description: 'Users reporting login timeout issues on mobile—investigate session handling.',
+    className: 'bg-dark/10',
+  },
+  {
+    id: 'pin-6',
+    timestamp: '11:18:03 26-03-2025',
+    title: 'Design review notes',
+    description: 'Refine hero section spacing and use softer gradients for cards background.',
+    className: 'bg-light/10',
+  },
+  {
+    id: 'pin-7',
+    timestamp: '11:18:03 26-03-2025',
+    title: 'Design review notes',
+    description: 'Refine hero section spacing and use softer gradients for cards background.',
+    className: 'bg-secondary/10',
+  },
+  {
+    id: 'pin-8',
+    timestamp: '08:45:12 10-04-2025',
+    title: 'Team meeting recap',
+    description: 'Discussed key milestones, delegated tasks, and set deadlines for the next sprint.',
+    className: 'bg-success/10',
+  },
+]

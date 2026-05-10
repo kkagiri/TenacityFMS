@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Invoices list" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Invoices list" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Apps" title="Invoices list" }}
+
+                    <div class="container-fluid">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header flex flex-wrap justify-between">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" type="search" placeholder="Search invoices..." class="form-input" />
+                                    </div>
+
+                                    <a href="apps-invoice-create.html" class="btn btn-icon rounded-full bg-secondary text-white hover:bg-secondary-hover">
+                                        <i class="iconify tabler--plus text-base"></i>
+                                    </a>
+
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex items-center gap-2.5">
+                                    <span class="me-2.5 font-semibold">Filter By:</span>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--circle-check input-icon"></i>
+                                        <select data-table-filter="status" class="form-select">
+                                            <option value="All">Status</option>
+                                            <option value="Paid">Paid</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Overdue">Overdue</option>
+                                            <option value="Draft">Draft</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <select data-table-set-rows-per-page class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table-custom table-select table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-files" />
+                                            </th>
+                                            <th>ID</th>
+                                            <th>Create & End Date</th>
+                                            <th data-table-sort="name">Clients Name</th>
+                                            <th data-table-sort>Purchase</th>
+                                            <th data-table-sort>Amount</th>
+                                            <th data-table-sort data-column="status">Status</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-success text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120010</a>
+                                                </h5>
+                                            </td>
+                                            <td>Feb 2 - Feb 10, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-7.jpg" alt="avatar-7" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Emily Parker</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">emily&#64;startupwave.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Inspinia - Extended License</td>
+                                            <td>$999.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-warning text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120009</a>
+                                                </h5>
+                                            </td>
+                                            <td>Feb 5 - Feb 12, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="bg-info flex size-8 items-center justify-center rounded-full text-sm font-bold text-white">MS</div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Michael Scott</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">michael&#64;dundermifflin.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>CRM Dashboard - Regular License</td>
+                                            <td>$249.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-danger text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120008</a>
+                                                </h5>
+                                            </td>
+                                            <td>Jan 10 - Jan 15, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-3.jpg" alt="avatar-3" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Samantha Reed</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">samantha&#64;alphatech.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Landing Page - Agency Pack</td>
+                                            <td>$349.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-danger/15 text-danger">Overdue</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-info text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120007</a>
+                                                </h5>
+                                            </td>
+                                            <td>Mar 1 - Mar 5, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-2.jpg" alt="avatar-2" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Jonathan Lee</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">jonathan&#64;zenflow.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Task Manager - SaaS Version</td>
+                                            <td>$799.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-info/15 text-info">Draft</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-success text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120006</a>
+                                                </h5>
+                                            </td>
+                                            <td>Mar 10 - Mar 15, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="bg-primary flex size-8 items-center justify-center rounded-full text-sm font-bold text-white">CD</div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Carlos Diaz</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">carlos&#64;themeverse.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Admin Panel - Developer License</td>
+                                            <td>$1,199.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-warning text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120005</a>
+                                                </h5>
+                                            </td>
+                                            <td>Mar 20 - Mar 25, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-4.jpg" alt="avatar-4" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Lisa Brown</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">lisa&#64;digitize.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Analytics Suite - Enterprise</td>
+                                            <td>$1,499.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-info text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120004</a>
+                                                </h5>
+                                            </td>
+                                            <td>Apr 1 - Apr 7, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="bg-success flex size-8 items-center justify-center rounded-full text-sm font-bold text-white">RM</div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Ryan Mitchell</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">ryan&#64;bizsol.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Sales App - Regular License</td>
+                                            <td>$499.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-info/15 text-info">Draft</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-success text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120003</a>
+                                                </h5>
+                                            </td>
+                                            <td>Apr 8 - Apr 12, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-8.jpg" alt="avatar-8" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Nina Hughes</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">nina&#64;creativelabs.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Marketing Kit - Extended License</td>
+                                            <td>$899.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-success/15 text-success">Paid</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-warning text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120002</a>
+                                                </h5>
+                                            </td>
+                                            <td>Apr 10 - Apr 14, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-9.jpg" alt="avatar-9" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Oliver Grant</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">oliver&#64;nextgenapps.com</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>Mobile Kit - Standard Plan</td>
+                                            <td>$599.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h5 class="flex items-center gap-1.5">
+                                                    <i class="iconify tabler--invoice text-danger text-base"></i>
+                                                    <a href="apps-invoice-details.html" class="hover:text-primary font-semibold">#INS-0120001</a>
+                                                </h5>
+                                            </td>
+                                            <td>Apr 15 - Apr 20, 2025</td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div>
+                                                        <img src="/images/users/user-10.jpg" alt="avatar-10" class="size-8 rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="text-default-900 hover:text-primary">Sophia Kim</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">sophia&#64;pixelhub.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>UI Kit - Commercial License</td>
+                                            <td>$749.00 USD</td>
+                                            <td>
+                                                <span class="badge badge-label bg-danger/15 text-danger">Overdue</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="invoices"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

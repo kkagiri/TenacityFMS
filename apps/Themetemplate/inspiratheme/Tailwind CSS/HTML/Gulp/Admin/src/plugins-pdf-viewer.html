@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "PDF Viewer"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Plugins", "title":"PDF Viewer"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Plugins", "title":"PDF Viewer"})
+
+                    <div class="container-fluid">
+                        <div class="grid lg:grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="inline-flex text-nowrap">
+                                            <button id="prev" class="btn bg-dark rounded-e-none text-white">
+                                                <i class="iconify tabler--arrow-left"></i>
+                                                <span class="hidden sm:inline">Previous</span>
+                                            </button>
+
+                                            <button id="next" class="btn bg-dark rounded-none text-white">
+                                                <i class="iconify tabler--arrow-right"></i>
+                                                <span class="hidden sm:inline">Next</span>
+                                            </button>
+
+                                            <button id="zoomin" class="btn bg-dark rounded-none text-white">
+                                                <i class="iconify tabler--zoom-in"></i>
+                                                <span class="hidden sm:inline">Zoom In</span>
+                                            </button>
+
+                                            <button id="zoomout" class="btn bg-dark rounded-none text-white">
+                                                <i class="iconify tabler--zoom-in"></i>
+                                                <span class="hidden sm:inline">Zoom Out</span>
+                                            </button>
+
+                                            <button id="zoomfit" class="btn bg-dark rounded-s-none text-white">100%</button>
+
+                                            <div class="flex">
+                                                <input type="number" class="form-input ms-3 rounded-e-none!" id="page_num" style="width: 50px" />
+                                                <span class="border-default-300 flex rounded-e border border-s-0 px-3 py-1.5 bg-light/15" id="page_count">/ 00</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 flex justify-center overflow-auto text-center">
+                                        <canvas id="the-canvas" class="pdfcanvas border-default-300 rounded-lg border"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end card -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- PDF Plugin Js-->
+        <script src="assets/plugins/pdfjs/pdf.min.js"></script>
+
+        <!-- PDF Viewer init js -->
+        <script src="assets/js/pages/plugins-pdf-viewer.js"></script>
+    </body>
+</html>

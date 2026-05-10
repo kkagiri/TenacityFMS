@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Clients"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Clients"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Clients"})
+
+                    <div class="container">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <!-- card-header -->
+                            <div class="card-header">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" type="search" placeholder="Search clients..." class="form-input" />
+                                    </div>
+
+                                    <button class="btn bg-secondary btn-icon text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="addClientModal" data-hs-overlay="#addClientModal">
+                                        <i class="iconify tabler--plus text-base"></i>
+                                    </button>
+
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5">
+                                    <span class="me-2.5 font-semibold">Filter By:</span>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--world input-icon"></i>
+                                        <select data-table-filter="country" class="form-select">
+                                            <option value="All">Country</option>
+                                            <option value="US">USA</option>
+                                            <option value="UK">UK</option>
+                                            <option value="AU">Australia</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="IN">India</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--briefcase input-icon"></i>
+                                        <select data-table-filter="type" class="form-select">
+                                            <option value="All">Project Type</option>
+                                            <option value="Project">Project</option>
+                                            <option value="Contract">Contract</option>
+                                            <option value="Retainer">Retainer</option>
+                                            <option value="Dashboard">Dashboard</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <select data-table-set-rows-per-page class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover table-custom table-select">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="checkAll" />
+                                            </th>
+                                            <th data-table-sort="name">Clients Name</th>
+                                            <th data-table-sort>Phone</th>
+                                            <th data-table-sort data-column="country" class="flex p-2 text-start">Country</th>
+                                            <th data-table-sort>Enrolled</th>
+                                            <th data-table-sort data-column="type">Type</th>
+                                            <th data-table-sort>Job Title</th>
+                                            <th data-table-sort>Status</th>
+                                            <th class="text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <!-- row-1 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-7.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Emily Parker</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">emily&#64;startupwave.io</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+1 (415) 992-3412</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/us.svg" class="me-1.25 size-3 rounded-full" />
+                                                    US
+                                                </div>
+                                            </td>
+                                            <td>Feb 2, 2024</td>
+                                            <td>Project</td>
+                                            <td>Frontend Developer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-2 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-3.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Liam Scott</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">liam&#64;creativelogic.net</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+44 20 7946 0958</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/gb.svg" class="me-1.25 size-3 rounded-full" />
+                                                    UK
+                                                </div>
+                                            </td>
+                                            <td>Jan 15, 2024</td>
+                                            <td>Contract</td>
+                                            <td>UI/UX Designer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-3 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-4.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Sofia Müller</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">sofia&#64;designhub.de</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+49 89 1234 5678</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/de.svg" class="me-1.25 size-3 rounded-full" />
+                                                    DE
+                                                </div>
+                                            </td>
+                                            <td>Mar 12, 2024</td>
+                                            <td>Project</td>
+                                            <td>Visual Designer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-4 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-5.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Carlos Méndez</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">carlos&#64;techlaunch.mx</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+52 55 1234 9876</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/mx.svg" class="me-1.25 size-3 rounded-full" />
+                                                    MX
+                                                </div>
+                                            </td>
+                                            <td>Jan 8, 2024</td>
+                                            <td>Contract</td>
+                                            <td>Full Stack Developer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-danger/15 text-danger">Inactive</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-5 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-6.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Nina Patel</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">nina&#64;pixelhype.in</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+91 99876 54321</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/in.svg" class="me-1.25 size-3 rounded-full" />
+                                                    IN
+                                                </div>
+                                            </td>
+                                            <td>Feb 19, 2024</td>
+                                            <td>Project</td>
+                                            <td>Brand Strategist</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-6 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-8.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Oliver Chen</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">oliver&#64;brandflow.sg</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+65 6789 1234</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/sg.svg" class="me-1.25 size-3 rounded-full" />
+                                                    SG
+                                                </div>
+                                            </td>
+                                            <td>Jan 30, 2024</td>
+                                            <td>Retainer</td>
+                                            <td>Creative Director</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-7 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-9.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Maya Tanaka</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">maya&#64;visiontokyo.jp</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+81 3 1234 5678</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/jp.svg" class="me-1.25 size-3 rounded-full" />
+                                                    JP
+                                                </div>
+                                            </td>
+                                            <td>Mar 5, 2024</td>
+                                            <td>Project</td>
+                                            <td>Product Designer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-8 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-10.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Lucas Ferreira</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">lucas&#64;devstudio.br</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+55 11 99876 5432</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/br.svg" class="me-1.25 size-3 rounded-full" />
+                                                    BR
+                                                </div>
+                                            </td>
+                                            <td>Feb 24, 2024</td>
+                                            <td>Contract</td>
+                                            <td>Backend Engineer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-9 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-1.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Anna Schmidt</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">anna&#64;uxhaus.de</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+49 30 4567 8910</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/de.svg" class="me-1.25 size-3 rounded-full" />
+                                                    DE
+                                                </div>
+                                            </td>
+                                            <td>Mar 9, 2024</td>
+                                            <td>Retainer</td>
+                                            <td>UX Consultant</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-warning/15 text-warning">Pending</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <!-- row-10 -->
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <img src="assets/images/users/user-2.jpg" alt="" class="size-8 rounded-full" />
+                                                    <div>
+                                                        <h5>
+                                                            <a data-sort="name" href="#!" class="hover:text-primary">Jason Lee</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">jason&#64;webfoundry.au</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>+61 2 9876 1234</td>
+                                            <td>
+                                                <div class="inline-flex items-center font-bold">
+                                                    <img src="assets/images/flags/au.svg" class="me-1.25 size-3 rounded-full" />
+                                                    AU
+                                                </div>
+                                            </td>
+                                            <td>Mar 14, 2024</td>
+                                            <td>Contract</td>
+                                            <td>Web Developer</td>
+                                            <td>
+                                                <span class="badge font-semibold badge-label bg-success/15 text-success">Active</span>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- card-footer -->
+                            <div class="card-footer">
+                                <div data-table-pagination-info="clients"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+
+                <div id="addClientModal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto" role="dialog" tabindex="-1" aria-labelledby="addClientModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] max-w-sm scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-2xl lg:max-w-3xl">
+                        <div class="card pointer-events-auto flex w-full flex-col">
+                            <div class="card-header p-5">
+                                <h3 id="addClientModalLabel" class="card-title uppercase font-bold text-sm">Add New Client</h3>
+                                <button type="button" aria-label="Close" data-hs-overlay="#addClientModal">
+                                    <i class="iconify tabler--x text-xl"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body overflow-y-auto">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-base">
+                                    <!-- Client Name -->
+                                    <div>
+                                        <label for="clientName" class="form-label">Client Name</label>
+                                        <input type="text" class="form-input" id="clientName" name="client_name" placeholder="Enter full name" required="" />
+                                    </div>
+
+                                    <!-- Email -->
+                                    <div>
+                                        <label for="clientEmail" class="form-label">Email</label>
+                                        <input type="email" class="form-input" id="clientEmail" name="email" placeholder="client&#64;example.com" required="" />
+                                    </div>
+
+                                    <!-- Phone -->
+                                    <div>
+                                        <label for="clientPhone" class="form-label">Phone</label>
+                                        <input type="tel" class="form-input" id="clientPhone" name="phone" placeholder="+1 (000) 000-0000" />
+                                    </div>
+
+                                    <!-- Country -->
+                                    <div>
+                                        <label for="clientCountry" class="form-label">Country</label>
+                                        <select class="form-input" id="clientCountry" name="country" required="">
+                                            <option value="">Select country...</option>
+                                            <option value="US">United States</option>
+                                            <option value="UK">United Kingdom</option>
+                                            <option value="DE">Germany</option>
+                                            <option value="MX">Mexico</option>
+                                            <option value="IN">India</option>
+                                            <!-- add more -->
+                                        </select>
+                                    </div>
+
+                                    <!-- Enrolled Date -->
+                                    <div>
+                                        <label for="clientEnrolled" class="form-label">Enrolled Date</label>
+                                        <input type="hidden" class="form-input" data-provider="flatpickr" data-altformat="F j, Y" id="clientEnrolled" name="enrolled_date" value="2025-11-08" />
+                                    </div>
+
+                                    <!-- Type -->
+                                    <div>
+                                        <label for="clientType" class="form-label">Type</label>
+                                        <select class="form-input" id="clientType" name="type" required="">
+                                            <option value="">Select type...</option>
+                                            <option value="Project">Project</option>
+                                            <option value="Contract">Contract</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Job Title -->
+                                    <div>
+                                        <label for="clientJobTitle" class="form-label">Job Title</label>
+                                        <input type="text" class="form-input" id="clientJobTitle" name="job_title" placeholder="Frontend Developer" />
+                                    </div>
+
+                                    <!-- Status -->
+                                    <div>
+                                        <label for="clientStatus" class="form-label">Status</label>
+                                        <select class="form-input" id="clientStatus" name="status">
+                                            <option value="Active">Active</option>
+                                            <option value="Pending" selected="">Pending</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-default-300 flex items-center justify-end gap-x-2 border-t p-5">
+                                <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#addClientModal">Cancel</button>
+
+                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">Add Client</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Custom table -->
+        <script src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

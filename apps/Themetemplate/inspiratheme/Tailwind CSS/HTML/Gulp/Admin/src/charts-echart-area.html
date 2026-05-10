@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Area Echart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Area Echart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Area Echart"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Area Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-line" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Stacked Area Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-line-stacked" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Area with Marker</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-line-marker" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dynamic Area</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-dynamic-line" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Step Area</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-step-line" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- E Charts Demo js -->
+        <script src="assets/js/pages/chart-echart-area.js"></script>
+    </body>
+</html>

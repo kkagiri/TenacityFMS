@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Scrollspy" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Base UI" title="Scrollspy" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Base UI" title="Scrollspy" }}
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Example in Navbar</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="navbar-example2" class="max-h-73 overflow-y-auto">
+                                        <header class="bg-default-100 sticky inset-x-0 top-0 z-20 mb-3 flex w-full flex-wrap px-6 py-3 text-sm lg:flex-nowrap lg:justify-start">
+                                            <nav class="w-full md:flex md:items-center md:justify-between">
+                                                <div class="flex items-center justify-between">
+                                                    <a class="me-4 flex-none py-1.25 text-lg font-semibold focus:opacity-80 focus:outline-hidden" href="#" aria-label="Brand">Navbar</a>
+                                                </div>
+
+                                                <div id="hs-scrollspy-example-heading" class="basis-full overflow-hidden transition-all duration-300" aria-labelledby="hs-scrollspy-example">
+                                                    <div data-hs-scrollspy="#scrollspy-example" data-hs-scrollspy-scrollable-parent="#navbar-example2" class="flex flex-wrap items-center justify-center [--scrollspy-offset:220] md:justify-end md:[--scrollspy-offset:70]">
+                                                        <a class="text-default-700 hover:text-default-500 focus:text-primary hs-scrollspy-active:text-white hs-scrollspy-active:bg-primary active rounded px-4 py-2 text-sm leading-6 focus:outline-hidden" href="#fat">&#64;fat</a>
+                                                        <a class="text-default-700 hover:text-default-500 focus:text-primary hs-scrollspy-active:text-white hs-scrollspy-active:bg-primary rounded px-4 py-2 text-sm leading-6 focus:outline-hidden" href="#mdo">&#64;mdo</a>
+
+                                                        <div class="hs-dropdown [--adaptive:none] [--strategy:static] lg:[--adaptive:adaptive] lg:[--placement:bottom-right] lg:[--strategy:fixed]">
+                                                            <button
+                                                                id="hs-dropdown-scrollspy"
+                                                                type="button"
+                                                                class="group hs-scrollspy-active:text-white hs-scrollspy-active:bg-primary text-default-700 hover:text-default-500 focus:text-primary inline-flex items-center justify-center gap-x-1 rounded px-4 py-2 text-sm leading-6 focus:outline-hidden"
+                                                                aria-haspopup="menu"
+                                                                aria-expanded="false"
+                                                                aria-label="Dropdown"
+                                                            >
+                                                                Dropdown <i class="iconify tabler--chevron-down"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical" aria-labelledby="hs-dropdown-scrollspy">
+                                                                <a class="dropdown-item" href="#one">one</a>
+                                                                <a class="dropdown-item" href="#two">two</a>
+                                                                <hr class="dropdown-divider" />
+                                                                <a class="dropdown-item" href="#three">three</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </nav>
+                                        </header>
+
+                                        <div id="scrollspy-example" class="space-y-4">
+                                            <h4 id="fat" class="text-default-700 mb-2 text-lg font-bold">&#64;fat</h4>
+                                            <p>
+                                                Ad leggings keytar, brunch id art party dolor labore. Pitchfork yr enim lo-fi before they sold out qui. Tumblr farm-to-table bicycle rights whatever. Anim keffiyeh carles cardigan. Velit seitan mcsweeney's photo booth 3 wolf moon
+                                                irure. Cosby sweater lomo jean shorts, williamsburg hoodie minim qui you probably haven't heard of them et cardigan trust fund culpa biodiesel wes anderson aesthetic. Nihil tattooed accusamus, cred irony biodiesel keffiyeh artisan
+                                                ullamco consequat.
+                                            </p>
+                                            <h4 id="mdo" class="text-default-700 mb-2 text-lg font-bold">&#64;mdo</h4>
+                                            <p>
+                                                Veniam marfa mustache skateboard, adipisicing fugiat velit pitchfork beard. Freegan beard aliqua cupidatat mcsweeney's vero. Cupidatat four loko nisi, ea helvetica nulla carles. Tattooed cosby sweater food truck, mcsweeney's quis
+                                                non freegan vinyl. Lo-fi wes anderson +1 sartorial. Carles non aesthetic exercitation quis gentrify. Brooklyn adipisicing craft beer vice keytar deserunt.
+                                            </p>
+                                            <h4 id="one" class="text-default-700 mb-2 text-lg font-bold">one</h4>
+                                            <p>
+                                                Occaecat commodo aliqua delectus. Fap craft beer deserunt skateboard ea. Lomo bicycle rights adipisicing banh mi, velit ea sunt next level locavore single-origin coffee in magna veniam. High life id vinyl, echo park consequat quis
+                                                aliquip banh mi pitchfork. Vero VHS est adipisicing. Consectetur nisi DIY minim messenger bag. Cred ex in, sustainable delectus consectetur fanny pack iphone.
+                                            </p>
+                                            <h4 id="two" class="text-default-700 mb-2 text-lg font-bold">two</h4>
+                                            <p>
+                                                In incididunt echo park, officia deserunt mcsweeney's proident master cleanse thundercats sapiente veniam. Excepteur VHS elit, proident shoreditch +1 biodiesel laborum craft beer. Single-origin coffee wayfarers irure four loko,
+                                                cupidatat terry richardson master cleanse. Assumenda you probably haven't heard of them art party fanny pack, tattooed nulla cardigan tempor ad. Proident wolf nesciunt sartorial keffiyeh eu banh mi sustainable. Elit wolf voluptate,
+                                                lo-fi ea portland before they sold out four loko. Locavore enim nostrud mlkshk brooklyn nesciunt.
+                                            </p>
+                                            <h4 id="three" class="text-default-700 mb-2 text-lg font-bold">three</h4>
+                                            <p>
+                                                Ad leggings keytar, brunch id art party dolor labore. Pitchfork yr enim lo-fi before they sold out qui. Tumblr farm-to-table bicycle rights whatever. Anim keffiyeh carles cardigan. Velit seitan mcsweeney's photo booth 3 wolf moon
+                                                irure. Cosby sweater lomo jean shorts, williamsburg hoodie minim qui you probably haven't heard of them et cardigan trust fund culpa biodiesel wes anderson aesthetic. Nihil tattooed accusamus, cred irony biodiesel keffiyeh artisan
+                                                ullamco consequat.
+                                            </p>
+                                            <p>
+                                                Keytar twee blog, culpa messenger bag marfa whatever delectus food truck. Sapiente synth id assumenda. Locavore sed helvetica cliche irony, thundercats you probably haven't heard of them consequat hoodie gluten-free lo-fi fap
+                                                aliquip. Labore elit placeat before they sold out, terry richardson proident brunch nesciunt quis cosby sweater pariatur keffiyeh ut helvetica artisan. Cardigan craft beer seitan readymade velit. VHS chambray laboris tempor veniam.
+                                                Anim mollit minim commodo ullamco thundercats.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Example with Nested Nav</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="scrollspy-scrollable-parent-2" class="max-h-75 overflow-y-auto">
+                                        <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-base">
+                                            <div class="border-default-300 md:border-e md:pe-2 lg:pe-7.5">
+                                                <ul class="sticky top-0" data-hs-scrollspy="#scrollspy-2" data-hs-scrollspy-scrollable-parent="#scrollspy-scrollable-parent-2">
+                                                    <li data-hs-scrollspy-group="">
+                                                        <a href="#item-1" class="focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white active mb-1 block rounded px-4 py-2 font-medium focus:outline-hidden">Item 1</a>
+                                                        <ul>
+                                                            <li class="ms-6">
+                                                                <a href="#item-1-1" class="group focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 text-sm leading-6 focus:outline-hidden">Item 1-1</a>
+                                                            </li>
+                                                            <li class="ms-6">
+                                                                <a href="#item-1-2" class="group focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 text-sm leading-6 focus:outline-hidden">Item 1-2</a>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                    <li>
+                                                        <a href="#item-2" class="focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 font-medium focus:outline-hidden">Item 2</a>
+                                                    </li>
+                                                    <li data-hs-scrollspy-group="">
+                                                        <a href="#item-3" class="focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 font-medium focus:outline-hidden">Item 3</a>
+                                                        <ul>
+                                                            <li class="ms-6">
+                                                                <a href="#item-3-1" class="group focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 text-sm leading-6 focus:outline-hidden">Item 3-1</a>
+                                                            </li>
+                                                            <li class="ms-6">
+                                                                <a href="#item-3-2" class="group focus:text-primary hs-scrollspy-active:bg-primary hs-scrollspy-active:text-white mb-1 block rounded px-4 py-2 text-sm leading-6 focus:outline-hidden">Item 3-2</a>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            <div class="md:col-span-3 lg:col-span-5">
+                                                <div id="scrollspy-2" class="space-y-4">
+                                                    <h4 id="item-1" class="text-default-700 mb-2 text-lg font-bold">Item 1</h4>
+                                                    <p>
+                                                        Ex consequat commodo adipisicing exercitation aute excepteur occaecat ullamco duis aliqua id magna ullamco eu. Do aute ipsum ipsum ullamco cillum consectetur ut et aute consectetur labore. Fugiat laborum incididunt tempor eu
+                                                        consequat enim dolore proident. Qui laborum do non excepteur nulla magna eiusmod consectetur in. Aliqua et aliqua officia quis et incididunt voluptate non anim reprehenderit adipisicing dolore ut consequat deserunt mollit
+                                                        dolore. Aliquip nulla enim veniam non fugiat id cupidatat nulla elit cupidatat commodo velit ut eiusmod cupidatat elit dolore.
+                                                    </p>
+                                                    <h5 id="item-1-1" class="text-default-700 mb-2 text-sm font-bold">Item 1-1</h5>
+                                                    <p>
+                                                        Amet tempor mollit aliquip pariatur excepteur commodo do ea cillum commodo Lorem et occaecat elit qui et. Aliquip labore ex ex esse voluptate occaecat Lorem ullamco deserunt. Aliqua cillum excepteur irure consequat id quis
+                                                        ea. Sit proident ullamco aute magna pariatur nostrud labore. Reprehenderit aliqua commodo eiusmod aliquip est do duis amet proident magna consectetur consequat eu commodo fugiat non quis. Enim aliquip exercitation ullamco
+                                                        adipisicing voluptate excepteur minim exercitation minim minim commodo adipisicing exercitation officia nisi adipisicing. Anim id duis qui consequat labore adipisicing sint dolor elit cillum anim et fugiat.
+                                                    </p>
+                                                    <h5 id="item-1-2" class="text-default-700 mb-2 text-sm font-bold">Item 1-2</h5>
+                                                    <p>
+                                                        Cillum nisi deserunt magna eiusmod qui eiusmod velit voluptate pariatur laborum sunt enim. Irure laboris mollit consequat incididunt sint et culpa culpa incididunt adipisicing magna magna occaecat. Nulla ipsum cillum eiusmod
+                                                        sint elit excepteur ea labore enim consectetur in labore anim. Proident ullamco ipsum esse elit ut Lorem eiusmod dolor et eiusmod. Anim occaecat nulla in non consequat eiusmod velit incididunt.
+                                                    </p>
+                                                    <h4 id="item-2" class="text-default-700 mb-2 text-lg font-bold">Item 2</h4>
+                                                    <p>
+                                                        Quis magna Lorem anim amet ipsum do mollit sit cillum voluptate ex nulla tempor. Laborum consequat non elit enim exercitation cillum aliqua consequat id aliqua. Esse ex consectetur mollit voluptate est in duis laboris ad sit
+                                                        ipsum anim Lorem. Incididunt veniam velit elit elit veniam Lorem aliqua quis ullamco deserunt sit enim elit aliqua esse irure. Laborum nisi sit est tempor laborum mollit labore officia laborum excepteur commodo non commodo
+                                                        dolor excepteur commodo. Ipsum fugiat ex est consectetur ipsum commodo tempor sunt in proident.
+                                                    </p>
+                                                    <h4 id="item-3" class="text-default-700 mb-2 text-lg font-bold">Item 3</h4>
+                                                    <p>
+                                                        Quis anim sit do amet fugiat dolor velit sit ea ea do reprehenderit culpa duis. Nostrud aliqua ipsum fugiat minim proident occaecat excepteur aliquip culpa aute tempor reprehenderit. Deserunt tempor mollit elit ex pariatur
+                                                        dolore velit fugiat mollit culpa irure ullamco est ex ullamco excepteur.
+                                                    </p>
+                                                    <h5 id="item-3-1" class="text-default-700 mb-2 text-sm font-bold">Item 3-1</h5>
+                                                    <p>
+                                                        Deserunt quis elit Lorem eiusmod amet enim enim amet minim Lorem proident nostrud. Ea id dolore anim exercitation aute fugiat labore voluptate cillum do laboris labore. Ex velit exercitation nisi enim labore reprehenderit
+                                                        labore nostrud ut ut. Esse officia sunt duis aliquip ullamco tempor eiusmod deserunt irure nostrud irure. Ullamco proident veniam laboris ea consectetur magna sunt ex exercitation aliquip minim enim culpa occaecat
+                                                        exercitation. Est tempor excepteur aliquip laborum consequat do deserunt laborum esse eiusmod irure proident ipsum esse qui.
+                                                    </p>
+                                                    <h5 id="item-3-2" class="text-default-700 mb-2 text-sm font-bold">Item 3-2</h5>
+                                                    <p>
+                                                        Labore sit culpa commodo elit adipisicing sit aliquip elit proident voluptate minim mollit nostrud aute reprehenderit do. Mollit excepteur eu Lorem ipsum anim commodo sint labore Lorem in exercitation velit incididunt.
+                                                        Occaecat consectetur nisi in occaecat proident minim enim sunt reprehenderit exercitation cupidatat et do officia. Aliquip consequat ad labore labore mollit ut amet. Sit pariatur tempor proident in veniam culpa aliqua
+                                                        excepteur elit magna fugiat eiusmod amet officia.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Example with Nested Nav</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div id="navbar-example4" class="max-h-50 overflow-y-auto">
+                                        <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-base">
+                                            <div>
+                                                <ul class="border-default-300 sticky top-0 rounded border" data-hs-scrollspy="#scrollspy-3" data-hs-scrollspy-scrollable-parent="#navbar-example4">
+                                                    <li data-hs-scrollspy-group="">
+                                                        <a href="#list-item-1" class="hs-scrollspy-active:bg-default-100 border-default-300 active block rounded border-b px-4.75 py-3 font-medium">Item 1</a>
+                                                    </li>
+
+                                                    <li>
+                                                        <a href="#list-item-2" class="hs-scrollspy-active:bg-default-100 border-default-300 block rounded border-b px-4.75 py-3 font-medium">Item 2</a>
+                                                    </li>
+
+                                                    <li data-hs-scrollspy-group="">
+                                                        <a href="#list-item-3" class="hs-scrollspy-active:bg-default-100 border-default-300 block rounded border-b px-4.75 py-3 font-medium">Item 3</a>
+                                                    </li>
+
+                                                    <li data-hs-scrollspy-group="">
+                                                        <a href="#list-item-4" class="hs-scrollspy-active:bg-default-100 block rounded px-4.75 py-3 font-medium">Item 4</a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+
+                                            <div class="md:col-span-3 lg:col-span-5">
+                                                <div id="scrollspy-3" class="space-y-4">
+                                                    <div id="list-item-1">
+                                                        <h4 class="text-default-700 mb-2 text-lg font-bold">Item 1</h4>
+                                                        <p class="mb-4">
+                                                            Ex consequat commodo adipisicing exercitation aute excepteur occaecat ullamco duis aliqua id magna ullamco eu. Do aute ipsum ipsum ullamco cillum consectetur ut et aute consectetur labore. Fugiat laborum incididunt
+                                                            tempor eu consequat enim dolore proident. Qui laborum do non excepteur nulla magna eiusmod consectetur in. Aliqua et aliqua officia quis et incididunt voluptate non anim reprehenderit adipisicing dolore ut consequat
+                                                            deserunt mollit dolore. Aliquip nulla enim veniam non fugiat id cupidatat nulla elit cupidatat commodo velit ut eiusmod cupidatat elit dolore.
+                                                        </p>
+                                                    </div>
+
+                                                    <div id="list-item-2">
+                                                        <h4 class="text-default-700 mb-2 text-lg font-bold">Item 2</h4>
+                                                        <p class="mb-4">
+                                                            Quis magna Lorem anim amet ipsum do mollit sit cillum voluptate ex nulla tempor. Laborum consequat non elit enim exercitation cillum aliqua consequat id aliqua. Esse ex consectetur mollit voluptate est in duis laboris ad
+                                                            sit ipsum anim Lorem. Incididunt veniam velit elit elit veniam Lorem aliqua quis ullamco deserunt sit enim elit aliqua esse irure. Laborum nisi sit est tempor laborum mollit labore officia laborum excepteur commodo non
+                                                            commodo dolor excepteur commodo. Ipsum fugiat ex est consectetur ipsum commodo tempor sunt in proident.
+                                                        </p>
+                                                    </div>
+
+                                                    <div id="list-item-3">
+                                                        <h4 class="text-default-700 mb-2 text-lg font-bold">Item 3</h4>
+                                                        <p class="mb-4">
+                                                            Quis anim sit do amet fugiat dolor velit sit ea ea do reprehenderit culpa duis. Nostrud aliqua ipsum fugiat minim proident occaecat excepteur aliquip culpa aute tempor reprehenderit. Deserunt tempor mollit elit ex
+                                                            pariatur dolore velit fugiat mollit culpa irure ullamco est ex ullamco excepteur.
+                                                        </p>
+                                                    </div>
+
+                                                    <div id="list-item-4">
+                                                        <h4 class="text-default-700 mb-2 text-lg font-bold">Item 4</h4>
+                                                        <p class="mb-4">
+                                                            Quis anim sit do amet fugiat dolor velit sit ea ea do reprehenderit culpa duis. Nostrud aliqua ipsum fugiat minim proident occaecat excepteur aliquip culpa aute tempor reprehenderit. Deserunt tempor mollit elit ex
+                                                            pariatur dolore velit fugiat mollit culpa irure ullamco est ex ullamco excepteur.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

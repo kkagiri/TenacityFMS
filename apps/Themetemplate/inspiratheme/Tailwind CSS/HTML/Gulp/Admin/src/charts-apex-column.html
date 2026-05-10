@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Column Apexchart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Column Apexchart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Column Apexchart"})
+
+                    <div class="container-fluid">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Column Charts</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="basic-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Column Chart with Datalabels</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="datalabels-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Stacked Column Charts</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="stacked-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">100% Stacked Column Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="full-stacked-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Grouped Stacked Columns Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="grouped-stacked-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dumbbell Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="dumbbell-chart" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Column with Markers</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="column-with-markers" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Column with Group Label</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="column-with-group-label" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Column Chart with rotated labels & Annotations</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="rotate-labels-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Column Chart with negative values</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="negative-value-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Distributed Column Charts</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="distributed-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Range Column Charts</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div dir="ltr">
+                                        <div id="range-column" class="apex-charts"></div>
+                                    </div>
+                                </div>
+                                <!-- end card body-->
+                            </div>
+                            <!-- end card -->
+
+                            <div class="col-span-1 lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header flex justify-between">
+                                        <h4 class="card-title">Dynamic Loaded Chart</h4>
+                                        <div class="shrink-0">
+                                            <select id="model" class="form-select">
+                                                <option value="iphone5">iPhone 5</option>
+                                                <option value="iphone6">iPhone 6</option>
+                                                <option value="iphone7">iPhone 7</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div dir="ltr">
+                                            <div class="grid grid-cols-2 gap-base">
+                                                <div id="chart-year"></div>
+                                                <div id="chart-quarter"></div>
+                                            </div>
+                                            <!-- end row-->
+                                        </div>
+                                    </div>
+                                    <!-- end card body-->
+                                </div>
+                                <!-- end card -->
+                            </div>
+                            <!-- end col-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- Apex Charts js -->
+        <script src="assets/plugins/apexcharts/apexcharts.min.js"></script>
+
+        <!-- Apex Chart Column Demo js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.0/dayjs.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.0/plugin/quarterOfYear.min.js"></script>
+
+        <!-- Apex Chart Area Demo js -->
+        <script src="assets/js/pages/chart-apex-column.js"></script>
+    </body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Other Echart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Other Echart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Other Echart"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header border-none">
+                                    <h4 class="card-title">Pictorialbar Dotted Chart</h4>
+                                </div>
+                                <div class="card-body p-3 pt-0">
+                                    <div id="echart-pictorialbar-dotted" class="rounded-md overflow-hidden" style="min-height: 400px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Sunburst Chart</h4>
+                                </div>
+                                <div class="card-body p-2 pt-0">
+                                    <div id="echar-basic-sunburst" style="min-height: 399px"></div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Nested Pie Chart</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="chart-pie-nest" style="min-height: 600px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end col -->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- E Charts Demo js -->
+        <script src="assets/js/pages/chart-echart-other.js"></script>
+    </body>
+</html>

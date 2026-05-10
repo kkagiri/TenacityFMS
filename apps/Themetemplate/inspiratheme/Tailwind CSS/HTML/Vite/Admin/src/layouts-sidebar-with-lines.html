@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" class="sidebar-with-line">
+    <head>
+        {{> title-meta title="Sidebar with Lines" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Base UI" title="Sidebar with Lines" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Base UI" title="Sidebar with Lines" }}
+
+                    <div class="container-fluid">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                If you want to display a line with each menu item, add the class
+                                <code>"sidebar-with-line"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag.
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

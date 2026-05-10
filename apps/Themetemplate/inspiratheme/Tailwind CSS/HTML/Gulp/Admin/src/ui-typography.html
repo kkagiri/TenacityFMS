@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Typography"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Typography"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Typography"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-6 gap-base">
+                            <div class="lg:col-span-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Display Headings</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="space-y-3 grid grid-cols-2">
+                                            <h1 class="text-xs">text-xs</h1>
+                                            <h1 class="text-sm">text-sm</h1>
+                                            <h1 class="text-base">text-base</h1>
+                                            <h1 class="text-lg">text-lg</h1>
+                                            <h1 class="text-xl">text-xl</h1>
+                                            <h1 class="text-2xl">text-2xl</h1>
+                                            <h1 class="text-3xl">text-3xl</h1>
+                                            <h1 class="text-4xl">text-4xl</h1>
+                                            <h1 class="text-5xl">text-5xl</h1>
+                                            <h1 class="text-6xl">text-6xl</h1>
+                                            <h1 class="text-7xl">text-7xl</h1>
+                                            <h1 class="text-8xl">text-8xl</h1>
+                                            <h1 class="text-9xl">text-9xl</h1>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Inline Text Elements</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="space-y-4">
+                                            <p class="text-default-400">Styling for common inline HTML5 elements.</p>
+                                            <p class="text-lg font-light">Your title goes here</p>
+                                            <p class="font-light">
+                                                You can use the mark tag to
+                                                <mark class="bg-warning/15 p-1">highlight</mark>
+                                                text.
+                                            </p>
+                                            <p class="font-light">
+                                                <del>This line of text is meant to be treated as deleted text.</del>
+                                            </p>
+                                            <p class="font-light">
+                                                <s>This line of text is meant to be treated as no longer accurate.</s>
+                                            </p>
+                                            <p class="font-light">
+                                                <ins>This line of text is meant to be treated as an addition to thedocument.</ins>
+                                            </p>
+                                            <p class="font-light">
+                                                <u>This line of text will render as underlined</u>
+                                            </p>
+                                            <p class="font-light">
+                                                <small>This line of text is meant to be treated as fine print.</small>
+                                            </p>
+                                            <p class="font-light">
+                                                <strong>This line rendered as bold text.</strong>
+                                            </p>
+                                            <p class="font-light">
+                                                <em>This line rendered as italicized text.</em>
+                                            </p>
+                                            <p class="mb-0 font-light">
+                                                Nulla
+                                                <abbr title="attribute">attr</abbr>
+                                                vitae elit libero, a pharetra augue.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Unordered</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">A list of items in which the order does not explicitly matter.</p>
+                                        <ul class="list-inside list-disc space-y-1">
+                                            <li>Fully responsive design</li>
+                                            <li>Built with TailwindCSS 4 framework</li>
+                                            <li>Clean and modern UI components</li>
+                                            <li>Cross-browser compatibility</li>
+                                            <li>
+                                                Multiple form elements and validations
+                                                <ul class="ms-10 list-inside list-disc">
+                                                    <li>Rich input controls</li>
+                                                    <li>Step-based form wizards</li>
+                                                    <li>Real-time validation</li>
+                                                    <li>Customizable styles</li>
+                                                </ul>
+                                            </li>
+                                            <li>Advanced chart and graph libraries</li>
+                                            <li>Integrated data tables and sorting</li>
+                                            <li>Developer-friendly code structure</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Ordered</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">A list of items in which the order does explicitly matter.</p>
+                                        <ol class="list-inside list-decimal space-y-1">
+                                            <li>Install all dependencies</li>
+                                            <li>Configure project environment settings</li>
+                                            <li>Set up folder structure and routing</li>
+                                            <li>Integrate UI components and layout</li>
+                                            <li>
+                                                Implement core modules
+                                                <ol class="ms-10 list-inside list-decimal space-y-1">
+                                                    <li>Authentication &amp; Authorization</li>
+                                                    <li>Dashboard widgets and metrics</li>
+                                                    <li>User profile management</li>
+                                                    <li>Notification &amp; messaging systems</li>
+                                                </ol>
+                                            </li>
+                                            <li>Connect backend APIs and test data flow</li>
+                                            <li>Optimize performance and responsive design</li>
+                                            <li>Final testing and deployment</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Unstyled</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            <strong>This only applies to immediate children list items</strong>
+                                            , meaning you will need to add the class for any nested lists as well.
+                                        </p>
+
+                                        <div class="space-y-4">
+                                            <ul class="list-none">
+                                                <li>Install project dependencies</li>
+                                                <li>
+                                                    Configure build settings
+                                                    <ul class="list-inside list-disc">
+                                                        <li>Update environment variables</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Setup project structure and routes</li>
+                                                <li>Launch local development server</li>
+                                            </ul>
+
+                                            <h5>Inline List</h5>
+                                            <p class="text-default-400">
+                                                Display list items horizontally using
+                                                <code>display: inline-block;</code>
+                                                and appropriate spacing.
+                                            </p>
+
+                                            <ul class="flex items-center gap-4">
+                                                <li class="list-inline-item">HTML</li>
+                                                <li class="list-inline-item">CSS</li>
+                                                <li class="list-inline-item">JavaScript</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Alignment</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use text utilities as needed to change the alignment of your blockquote.</p>
+                                        <figure class="mb-5 text-center">
+                                            <blockquote class="blockquote">
+                                                <p class="mb-1 text-lg">"Design is not just what it looks like and feels like. Design is how it works."</p>
+                                            </blockquote>
+
+                                            <figcaption class="text-default-400">
+                                                -Steve Jobs in
+                                                <cite title="Steve Jobs Biography">Steve Jobs Biography</cite>
+                                            </figcaption>
+                                        </figure>
+
+                                        <figure class="text-end">
+                                            <blockquote class="blockquote">
+                                                <p class="mb-1 text-lg">"Simplicity is the ultimate sophistication."</p>
+                                            </blockquote>
+
+                                            <figcaption class="text-default-400">
+                                                Leonardo da Vinci in
+                                                <cite title="Design Philosophy">Design Philosophy</cite>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Inline</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Remove a list's bullets and apply some light margin with a combination of two classes, .list-inline and .list-inline-item.</p>
+                                        <ul class="list-inside">
+                                            <li>This is a list item.</li>
+                                            <li>And another one.</li>
+                                            <li>But they're displayed inline.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Naming a Source</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">A well-known quote, contained in a blockquote element.</p>
+                                        <figure>
+                                            <blockquote>
+                                                <p class="mb-1 text-lg">"Design is not just what it looks like and feels like. Design is how it works."</p>
+                                            </blockquote>
+
+                                            <figcaption class="text-default-400">
+                                                -Steve Jobs in
+                                                <cite title="Design Philosophy">Design Philosophy</cite>
+                                            </figcaption>
+                                        </figure>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Blockquotes</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <!-- Default -->
+                                        <blockquote>
+                                            <p class="text-lg">"Good design is obvious. Great design is transparent."</p>
+                                        </blockquote>
+                                        <figcaption class="mt-1 mb-5 text-default-400">
+                                            — Joe Sparano in
+                                            <cite class="italic">Design Principles</cite>
+                                        </figcaption>
+
+                                        <p class="text-default-400 mb-4">Use text utilities as needed to change the alignment of your blockquote.</p>
+
+                                        <!-- Center -->
+                                        <blockquote class="text-center">
+                                            <p class="text-lg">"First, solve the problem. Then, write the code."</p>
+                                        </blockquote>
+                                        <figcaption class="mt-1 mb-5 text-default-400 text-center">
+                                            — John Johnson in
+                                            <cite class="italic">Developer Wisdom</cite>
+                                        </figcaption>
+
+                                        <!-- Right -->
+                                        <blockquote class="text-end">
+                                            <p class="text-lg">"Simplicity is the soul of efficiency."</p>
+                                        </blockquote>
+                                        <figcaption class="mt-1 mb-5 text-default-400 text-end">
+                                            — Austin Freeman in
+                                            <cite class="italic">Efficiency in Design</cite>
+                                        </figcaption>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

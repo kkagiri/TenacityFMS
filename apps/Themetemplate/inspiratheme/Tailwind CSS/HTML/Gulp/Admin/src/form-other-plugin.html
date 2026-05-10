@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Other Plugins"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Forms", "title":"Other Plugins"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Forms", "title":"Other Plugins"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header block">
+                                    <h4 class="card-title mb-1.25">Form Inputmask</h4>
+                                    <p class="text-default-400">Inputmask is a javascript library that creates an input mask. Inputmask can run against vanilla javascript, jQuery, and jqlite. (Hoverable Inputmask)</p>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Date</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="00/00/0000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="00/00/0000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Hour</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="00:00:00"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="00:00:00" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Date & Hour</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="00/00/0000 00:00:00"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="00/00/0000 00:00:00" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">ZIP Code</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="00000-000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="00000-000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Crazy ZIP Code</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="0-00-00-00"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="0-00-00-00" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Money</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="000.000.000.000.000,00"</code>
+                                                ,
+                                                <code>data-reverse="true"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="000.000.000.000.000,00" data-reverse="true" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Money 2</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="#.##0,00"</code>
+                                                ,
+                                                <code>data-reverse="true"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="#.##0,00" data-reverse="true" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Telephone</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="0000-0000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="0000-0000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">Telephone with Area Code</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="(00) 0000-0000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="(00) 0000-0000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">US Telephone</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="(000) 000-0000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="(000) 000-0000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">São Paulo Cellphones</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="(00) 00000-0000"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="(00) 00000-0000" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">CPF</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="000.000.000-00"</code>
+                                                ,
+                                                <code>data-reverse="true"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="000.000.000-00" data-reverse="true" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">CNPJ</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="00.000.000/0000-00"</code>
+                                                ,
+                                                <code>data-reverse="true"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="00.000.000/0000-00" data-reverse="true" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <div>
+                                            <h5 class="mb-2">IP Address</h5>
+                                            <p class="text-default-400">
+                                                Add attribute
+                                                <code>data-toggle="input-mask"</code>
+                                                <code>data-mask-format="099.099.099.099"</code>
+                                                ,
+                                                <code>data-reverse="true"</code>
+                                            </p>
+                                        </div>
+                                        <input type="text" class="form-input" data-toggle="input-mask" data-mask-format="099.099.099.099" data-reverse="true" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Typeahead</h4>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-3">a flexible JavaScript library that provides a strong foundation for building robust typeaheads</p>
+                                    <a class="font-semibold text-primary" href="https://twitter.github.io/typeahead.js/" target="_blank">
+                                        Typeahead on View Official Website
+                                        <i class="iconify tabler--chevron-right"></i>
+                                    </a>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Basic</h5>
+                                        <input class="form-input typeahead" type="text" autocomplete="off" placeholder="Enter states from USA" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">BloodHound (Suggestion Engine)</h5>
+                                        <input class="form-input bloodhound-typeahead" type="text" autocomplete="off" placeholder="Enter states from USA" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Prefetch</h5>
+                                        <input class="form-input prefetch-typeahead" type="text" autocomplete="off" placeholder="Enter states from USA" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Default Suggestions</h5>
+                                        <input class="form-input default-suggestions-typeahead" type="text" autocomplete="off" placeholder="Default Suggestions" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Custom Template</h5>
+                                        <input class="form-input custom-template-typeahead" type="text" autocomplete="off" placeholder="Search For Oscar Winner" />
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Multiple Datasets</h5>
+                                        <input class="form-input multi-datasets-typeahead" type="text" autocomplete="off" placeholder="NBA and NHL Teams" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex justify-between items-center">
+                                    <h4 class="card-title">Input Touchspin</h4>
+                                    <span class="badge badge-label bg-success/15 text-success">Exclusive</span>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Default Touchspin</h5>
+                                        <div class="flex flex-col gap-3">
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Sizes</h5>
+                                        <div class="flex flex-col gap-3">
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Colors</h5>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-secondary text-white hover:bg-secondary-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-secondary text-white hover:bg-secondary-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-info text-white hover:bg-info-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-info text-white hover:bg-info-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-success text-white hover:bg-success-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-success text-white hover:bg-success-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-warning text-white hover:bg-warning-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-warning text-white hover:bg-warning-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-danger text-white hover:bg-danger-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-danger text-white hover:bg-danger-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-dark text-light hover:bg-dark-hover" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-dark text-light hover:bg-dark-hover" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn bg-primary/15 text-primary hover:bg-primary hover:text-white" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn bg-primary/15 text-primary hover:bg-primary hover:text-white" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Readonly</h5>
+                                        <div class="input-group" data-touchspin>
+                                            <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                            <input type="text" class="form-input" value="100" max="800000" readonly />
+                                            <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Disabled</h5>
+                                        <div class="input-group" data-touchspin>
+                                            <button type="button" class="btn bg-light hover:text-primary" data-minus><i class="iconify tabler--minus"></i></button>
+                                            <input type="text" class="form-input" value="100" max="800000" disabled />
+                                            <button type="button" class="btn bg-light hover:text-primary" data-plus><i class="iconify tabler--plus"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Style</h5>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="input-group" data-touchspin>
+                                                <button type="button" class="btn rounded-full! bg-primary text-white hover:bg-primary-hover hover:text-white" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn rounded-full! bg-primary text-white hover:bg-primary-hover hover:text-white" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group rounded-full!" data-touchspin>
+                                                <button type="button" class="btn rounded-full! bg-primary/15 text-primary hover:bg-primary hover:text-white" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn rounded-full! bg-primary/15 text-primary hover:bg-primary hover:text-white" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+
+                                            <div class="input-group p-0!" data-touchspin>
+                                                <button type="button" class="btn rounded-e-none! bg-primary/15 text-primary hover:bg-primary hover:text-white" data-minus><i class="iconify tabler--minus"></i></button>
+                                                <input type="text" class="form-input" value="100" max="800000" />
+                                                <button type="button" class="btn rounded-s-none! bg-primary/15 text-primary hover:bg-primary hover:text-white" data-plus><i class="iconify tabler--plus"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="my-7.5 border-t border-dashed border-default-300"></div>
+
+                                    <div class="grid md:grid-cols-2 grid-cols-1 gap-base">
+                                        <h5 class="mb-2">Vertical Style</h5>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center overflow-hidden" data-touchspin>
+                                                <div class="flex-col flex">
+                                                    <button type="button" class="btn rounded-none rounded-s-sm btn-icon w-7 h-4.75 bg-success/15 text-success" data-plus>
+                                                        <i class="iconify tabler--plus"></i>
+                                                    </button>
+                                                    <button type="button" class="btn rounded-none rounded-e-sm btn-icon w-7 h-4.75 bg-danger/15 text-danger" data-minus>
+                                                        <i class="iconify tabler--minus"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="number" class="form-input rounded-s-none! text-center w-full" value="1" min="0" max="10" />
+                                            </div>
+
+                                            <div class="flex items-center overflow-hidden" data-touchspin>
+                                                <div class="flex-col flex">
+                                                    <button type="button" class="btn rounded-none rounded-s-sm btn-icon w-7 h-4.75 bg-success text-white" data-plus>
+                                                        <i class="iconify tabler--plus"></i>
+                                                    </button>
+                                                    <button type="button" class="btn rounded-none rounded-e-sm btn-icon w-7 h-4.75 bg-danger text-white hover:bg-danger-hover" data-minus>
+                                                        <i class="iconify tabler--minus"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="number" class="form-input rounded-s-none! text-center w-full" value="1" min="0" max="10" />
+                                            </div>
+
+                                            <div class="flex items-center overflow-hidden" data-touchspin>
+                                                <div class="flex-col flex bg-dark rounded-s-sm">
+                                                    <button type="button" class="btn rounded-none btn-icon w-7 h-4.75 text-white" data-plus>
+                                                        <i class="iconify tabler--plus"></i>
+                                                    </button>
+                                                    <button type="button" class="btn rounded-none btn-icon w-7 h-4.75 text-white" data-minus>
+                                                        <i class="iconify tabler--minus"></i>
+                                                    </button>
+                                                </div>
+                                                <input type="number" class="form-input rounded-s-none! text-center w-full" value="1" min="0" max="10" />
+                                            </div>
+
+                                            <div class="flex items-center overflow-hidden" data-touchspin>
+                                                <input type="number" class="form-input rounded-e-none! text-center w-full" value="1" min="0" max="10" />
+
+                                                <div class="flex-col flex bg-dark rounded-e-sm">
+                                                    <button type="button" class="btn rounded-none btn-icon w-7 h-4.75 text-white" data-plus>
+                                                        <i class="iconify tabler--plus"></i>
+                                                    </button>
+                                                    <button type="button" class="btn rounded-none btn-icon w-7 h-4.75 text-white" data-minus>
+                                                        <i class="iconify tabler--minus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- InputMask Plugin js -->
+        <script src="assets/plugins/inputmask/inputmask.min.js"></script>
+
+        <!-- Jquery for Typehead-->
+        <script src="assets/plugins/jquery/jquery.min.js"></script>
+
+        <!-- Typehead Plugin js -->
+        <script src="assets/plugins/handlebars/handlebars.min.js"></script>
+        <script src="assets/plugins/typeahead/typeahead.bundle.min.js"></script>
+
+        <!-- Inputmask Demo js -->
+        <script src="assets/js/pages/form-inputmask.js"></script>
+
+        <!-- Typehead Demo js -->
+        <script src="assets/js/pages/form-typehead.js"></script>
+    </body>
+</html>

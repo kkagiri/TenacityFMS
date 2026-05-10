@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Gauge Echart"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Charts", "title":"Gauge Echart"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Charts", "title":"Gauge Echart"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Basic Gauge Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-basic-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Speed Stage Gauge Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-speed-stage-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Ring Gauge Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-ring-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Temperature Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-temperature-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Multi Ring Gauge Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-multiring-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Multi Gauge Chart</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div id="chart-multi-gauge" style="min-height: 300px"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- E Charts Demo js -->
+        <script src="assets/js/pages/chart-echart-gauge.js"></script>
+    </body>
+</html>

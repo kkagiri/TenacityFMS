@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Attributes" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Ecommerce" title="Attributes" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Ecommerce" title="Attributes" }}
+
+                    <div class="container">
+                        <div data-table data-table-rows-per-page="8" class="card">
+                            <div class="card-header">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search type="search" class="form-input" placeholder="Search Attributes..." />
+                                    </div>
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5">
+                                    <span class="font-semibold me-2.5">Filter By:</span>
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--wand input-icon"></i>
+                                        <select data-table-filter="attri-type" data-table-filter="warehouse-status" class="form-select">
+                                            <option value="All">Type</option>
+                                            <option value="Dropdown">Dropdown</option>
+                                            <option value="Text">Text</option>
+                                            <option value="Number">Number</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="relative">
+                                        <select data-table-set-rows-per-page class="form-select">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-1">
+                                    <a href="#addAttributeModal" class="btn bg-danger text-white hover:bg-danger-hover" aria-haspopup="dialog" aria-expanded="false" aria-controls="addAttributeForm" data-hs-overlay="#addAttributeForm">
+                                        <i class="iconify tabler--plus"></i>
+                                        Add Attribute
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-attributes" />
+                                            </th>
+                                            <th data-table-sort>Attribute Name</th>
+                                            <th data-table-sort data-column="attri-type">Type</th>
+                                            <th data-table-sort>Values</th>
+                                            <th>Status</th>
+                                            <th data-table-sort>Created Date</th>
+                                            <th data-table-sort>Last Updated</th>
+                                            <th data-table-sort>Last Modified By</th>
+                                            <th class="text-center w-[1%]">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Color</h6>
+                                            </td>
+                                            <td>Dropdown</td>
+                                            <td>
+                                                <span class="text-default-400">Red, Blue, Green, Black</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                04 Oct, 2025
+                                                <small class="text-default-400 text-xs">10:00 AM</small>
+                                            </td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-xs">11:30 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-4.jpg" alt="avatar-4" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Liam Becker</h6>
+                                                        <p class="text-default-400 text-xs">Admin</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Size</h6>
+                                            </td>
+                                            <td>Dropdown</td>
+                                            <td>
+                                                <span class="text-default-400">S, M, L, XL</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                03 Oct, 2025
+                                                <small class="text-default-400 text-xs">01:20 PM</small>
+                                            </td>
+                                            <td>
+                                                08 Oct, 2025
+                                                <small class="text-default-400 text-xs">10:45 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-2.jpg" alt="avatar-4" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Emma Johnson</h6>
+                                                        <p class="text-default-400 text-xs">Manager</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Material</h6>
+                                            </td>
+                                            <td>Text</td>
+                                            <td>
+                                                <span class="text-default-400">Cotton, Leather, Metal</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                02 Oct, 2025
+                                                <small class="text-default-400 text-xs">04:40 PM</small>
+                                            </td>
+                                            <td>
+                                                06 Oct, 2025
+                                                <small class="text-default-400 text-xs">04:10 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-3.jpg" alt="avatar-3" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Sophia Turner</h6>
+                                                        <p class="text-default-400 text-xs">Editor</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Brand</h6>
+                                            </td>
+                                            <td>Dropdown</td>
+                                            <td>
+                                                <span class="text-default-400">Nike, Apple, Samsung</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                01 Oct, 2025
+                                                <small class="text-default-400 text-xs">11:05 AM</small>
+                                            </td>
+                                            <td>
+                                                05 Oct, 2025
+                                                <small class="text-default-400 text-xs">01:25 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-6.jpg" alt="avatar-6" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Oliver Hayes</h6>
+                                                        <p class="text-default-400 text-xs">Moderator</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Warranty</h6>
+                                            </td>
+                                            <td>Number</td>
+                                            <td>
+                                                <span class="text-default-400">6 Months, 1 Year, 2 Years</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                03 Oct, 2025
+                                                <small class="text-default-400 text-xs">08:50 AM</small>
+                                            </td>
+                                            <td>
+                                                07 Oct, 2025
+                                                <small class="text-default-400 text-xs">09:10 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-1.jpg" alt="avatar-1" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Ava Mitchell</h6>
+                                                        <p class="text-default-400 text-xs">Admin</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Weight</h6>
+                                            </td>
+                                            <td>Number</td>
+                                            <td>
+                                                <span class="text-default-400">500g, 1kg, 2kg, 5kg</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                05 Oct, 2025
+                                                <small class="text-default-400 text-xs">09:00 AM</small>
+                                            </td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-xs">01:15 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-7.jpg" alt="avatar-7" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Noah Carter</h6>
+                                                        <p class="text-default-400 text-xs">Editor</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Fabric Type</h6>
+                                            </td>
+                                            <td>Text</td>
+                                            <td>
+                                                <span class="text-default-400">Cotton, Silk, Linen, Polyester</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                04 Oct, 2025
+                                                <small class="text-default-400 text-xs">02:30 PM</small>
+                                            </td>
+                                            <td>
+                                                08 Oct, 2025
+                                                <small class="text-default-400 text-xs">03:10 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-8.jpg" alt="avatar-8" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Chloe Anderson</h6>
+                                                        <p class="text-default-400 text-xs">Designer</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Voltage</h6>
+                                            </td>
+                                            <td>Number</td>
+                                            <td>
+                                                <span class="text-default-400">110V, 220V, 240V</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                01 Oct, 2025
+                                                <small class="text-default-400 text-xs">10:20 AM</small>
+                                            </td>
+                                            <td>
+                                                07 Oct, 2025
+                                                <small class="text-default-400 text-xs">09:30 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-9.jpg" alt="avatar-9" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Liam Becker</h6>
+                                                        <p class="text-default-400 text-xs">Admin</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Capacity</h6>
+                                            </td>
+                                            <td>Dropdown</td>
+                                            <td>
+                                                <span class="text-default-400">250ml, 500ml, 1L, 2L</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                03 Oct, 2025
+                                                <small class="text-default-400 text-xs">09:40 AM</small>
+                                            </td>
+                                            <td>
+                                                08 Oct, 2025
+                                                <small class="text-default-400 text-xs">05:20 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-10.jpg" alt="avatar-4" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Amelia Scott</h6>
+                                                        <p class="text-default-400 text-xs">Supervisor</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <h6>Origin</h6>
+                                            </td>
+                                            <td>Dropdown</td>
+                                            <td>
+                                                <span class="text-default-400">USA, Germany, China, Japan</span>
+                                            </td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-switch" type="checkbox" checked />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                02 Oct, 2025
+                                                <small class="text-default-400 text-xs">03:15 PM</small>
+                                            </td>
+                                            <td>
+                                                09 Oct, 2025
+                                                <small class="text-default-400 text-xs">06:45 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2.5">
+                                                    <div class="size-8">
+                                                        <img src="/images/users/user-5.jpg" alt="avatar-5" class="rounded-full" />
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="text-xs font-semibold">Ethan Brooks</h6>
+                                                        <p class="text-default-400 text-xs">Admin</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="products"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+
+                <div
+                    id="addAttributeForm"
+                    class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto"
+                    role="dialog"
+                    tabindex="-1"
+                    aria-labelledby="addAttributeFormLabel"
+                >
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-2xl lg:max-w-3xl">
+                        <div class="card pointer-events-auto flex w-full flex-col">
+                            <div class="card-header p-5">
+                                <h3 id="addAttributeFormLabel" class="flex items-center font-semibold">
+                                    <i class="iconify tabler--circle-dashed-plus me-2.5"></i>
+                                    Add New Attribute
+                                </h3>
+
+                                <button type="button" aria-label="Close" data-hs-overlay="#addAttributeForm">
+                                    <i class="iconify tabler--x text-2xl align-middle text-default-600"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <label for="attributeName" class="form-label">Attribute Name</label>
+                                        <input type="text" id="attributeName" class="form-input" placeholder="e.g. Color, Size, Material" required />
+                                    </div>
+
+                                    <div>
+                                        <label for="attributeType" class="form-label">Type</label>
+                                        <select id="attributeType" class="form-input" required>
+                                            <option value="">Select Type</option>
+                                            <option value="Dropdown">Dropdown</option>
+                                            <option value="Text">Text</option>
+                                            <option value="Number">Number</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-span-1 md:col-span-2">
+                                        <label for="attributeValues" class="form-label">Values</label>
+                                        <textarea id="attributeValues" class="form-textarea" rows="2" placeholder="Separate multiple values with commas (e.g. Red, Blue, Green)"></textarea>
+                                        <small class="text-default-400 mt-1 block">Applicable only for Dropdown or selectable attributes.</small>
+                                    </div>
+
+                                    <div class="col-span-1 md:col-span-2">
+                                        <div class="flex items-center gap-2">
+                                            <input class="form-switch" type="checkbox" id="attributeStatus" checked />
+                                            <label class="form-check-label font-semibold" for="attributeStatus">Active</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-default-300 flex items-center justify-end gap-2 border-t p-5">
+                                <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#addAttributeForm">Close</button>
+
+                                <button type="button" class="btn bg-danger text-white hover:bg-danger-hover">
+                                    <i class="iconify tabler--device-floppy"></i>
+                                    Save Attribute
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

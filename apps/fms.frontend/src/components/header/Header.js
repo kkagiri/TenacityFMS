@@ -43,7 +43,7 @@ export default function Header({ menuToggleEnabled, toggleMenu, title }) {
   };
 
   return (
-    <header className={"header-component"}>
+    <header className={"header-component app-header"}>
       <Toolbar height className={"header-toolbar"}>
         <Item
           visible={true}

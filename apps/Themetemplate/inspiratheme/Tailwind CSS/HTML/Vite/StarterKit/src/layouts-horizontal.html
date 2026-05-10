@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" data-layout="horizontal">
+    <head>
+        {{> title-meta title="Horizontal" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="Horizontal" }} {{> horizontal-nav }}
+
+            <div class="page-content">
+                <main>
+                    <div class="container-fluid">
+                        {{> page-title subtitle="Layouts" title="Horizontal" }}
+
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4 class="text-lg">Your custom content here</h4>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

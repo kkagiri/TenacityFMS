@@ -1,0 +1,132 @@
+flowchart LR
+    %% FMS project dependency and runtime context diagram.
+    %% Derived from frontend API clients and .NET ProjectReference entries.
+
+    subgraph Frontend[Frontend clients]
+        FmsFrontend["apps/fms.frontend\nReact main FMS web app"]
+        FmsAdmin["apps/FMS.Admin\nReact admin/operator app"]
+        FmsLanding["apps/FMS.Landing\nPublic landing app"]
+        FmsMobile["apps/fms.mobile\nReact Native mobile app"]
+    end
+
+    subgraph ApiHosts[API and process hosts]
+        WebClient["apps/FMS.WebClient\nMain .NET API host"]
+        SalesApi["FMS.Sales/FMS.Sales.Api\nSales API host"]
+        BackgroundHost["services/FMS.BackgroundServices\nBackground processing host"]
+        TrackingHost["services/FMS.Devices.Tracking.Host\nTracking worker host"]
+        PtsHost["services/FMS.PTS.WindowsService\nFueling/PTS Windows Service"]
+    end
+
+    subgraph CoreLayers[Main FMS clean architecture packages]
+        Application["packages/FMS.Application\nCQRS, features, DTOs, services"]
+        Domain["packages/FMS.Domain\nDomain entities and core models"]
+        Persistence["packages/FMS.Persistence\nEF data access, GPSDataContext"]
+        Infrastructure["packages/FMS.Infrastructure\nExternal integrations and infrastructure services"]
+    end
+
+    subgraph DevicePlatform[Device provider platform packages]
+        DeviceAbstractions["packages/FMS.Devices.Abstractions\nProvider interfaces and canonical contracts"]
+        DeviceCore["packages/FMS.Devices.Core\nProvider registry, routing, config repositories"]
+        DeviceFueling["packages/FMS.Devices.Fueling\nFueling providers, PTS protocol, channels"]
+        DeviceTracking["packages/FMS.Devices.Tracking\nTracking providers, GPS integrations, channels"]
+    end
+
+    subgraph SalesContext[Sales bounded context]
+        SalesApplication["FMS.Sales/FMS.Sales.Application\nSales application layer"]
+        SalesDomain["FMS.Sales/FMS.Sales.Domain\nSales domain layer"]
+        SalesPersistence["FMS.Sales/FMS.Sales.Persistence\nSales persistence layer"]
+    end
+
+    subgraph ExternalSystems[External systems and data stores]
+        MainDb[("MySQL / GPSDataContext\nFMS operational data")]
+        Redis[("Redis\nCommands and messaging")]
+        RabbitMq[("RabbitMQ\nTracking/event messaging")]
+        SignalR["SignalR hubs\nLive web/mobile updates"]
+        PtsDevices["PTS fueling devices\nPumps, probes, ATG"]
+        TrackingVendors["Tracking vendors\nGPSGate, GPSWox, provider APIs"]
+        SalesDb[("Sales database\nSales bounded context data")]
+    end
+
+    FmsFrontend -->|Axios API base from REACT_APP_* or /api| WebClient
+    FmsAdmin -->|Axios API base from VITE_FMS_API_URL or /api| WebClient
+    FmsAdmin -.->|Target sales admin: plans, subscriptions, leads, onboarding| SalesApi
+    FmsMobile -->|API_CONFIG.BASE_URL, /api/v1 endpoints| WebClient
+    FmsLanding -->|Login redirect via VITE_APP_LOGIN_URL| FmsFrontend
+    FmsLanding -->|Target public sales API via VITE_SALES_API_URL| SalesApi
+
+    FmsFrontend <-->|SignalR live dashboards and tracking| SignalR
+    FmsMobile <-->|SignalR mobile updates| SignalR
+    SignalR --> WebClient
+
+    WebClient --> Application
+    WebClient --> Infrastructure
+    WebClient --> BackgroundHost
+    WebClient --> DeviceAbstractions
+    WebClient --> DeviceCore
+    WebClient --> DeviceFueling
+    WebClient --> DeviceTracking
+
+    BackgroundHost --> Application
+    BackgroundHost --> Persistence
+    TrackingHost --> Application
+    TrackingHost --> DeviceCore
+    TrackingHost --> DeviceTracking
+    TrackingHost --> Persistence
+    PtsHost --> Application
+    PtsHost --> Domain
+    PtsHost --> Infrastructure
+    PtsHost --> BackgroundHost
+    PtsHost --> DeviceFueling
+
+    Application --> DeviceAbstractions
+    Application --> Domain
+    Application --> Persistence
+    Persistence --> Domain
+    Infrastructure --> Domain
+    Infrastructure --> Application
+    Infrastructure --> DeviceTracking
+    Infrastructure --> Persistence
+
+    DeviceCore --> DeviceAbstractions
+    DeviceCore --> Domain
+    DeviceCore --> Persistence
+    DeviceFueling --> DeviceAbstractions
+    DeviceFueling --> DeviceCore
+    DeviceFueling --> Application
+    DeviceFueling --> Domain
+    DeviceFueling --> Persistence
+    DeviceTracking --> DeviceAbstractions
+    DeviceTracking --> Application
+    DeviceTracking --> Domain
+    DeviceTracking --> Persistence
+
+    Persistence --> MainDb
+    Application --> Redis
+    DeviceFueling --> Redis
+    DeviceFueling --> PtsDevices
+    DeviceTracking --> RabbitMq
+    DeviceTracking --> TrackingVendors
+    TrackingHost --> RabbitMq
+    WebClient --> SignalR
+
+    SalesApi --> SalesDomain
+    SalesApi --> SalesApplication
+    SalesApi --> SalesPersistence
+    SalesApplication --> SalesDomain
+    SalesPersistence --> SalesDomain
+    SalesPersistence --> SalesApplication
+    SalesPersistence --> SalesDb
+
+    classDef frontend fill:#e8f3ff,stroke:#0078d4,color:#201f1e
+    classDef host fill:#fff4ce,stroke:#ca5010,color:#201f1e
+    classDef package fill:#f3f2f1,stroke:#605e5c,color:#201f1e
+    classDef device fill:#ecfdf3,stroke:#107c10,color:#201f1e
+    classDef sales fill:#f5f0ff,stroke:#5c2d91,color:#201f1e
+    classDef external fill:#ffffff,stroke:#8a8886,color:#201f1e
+
+    class FmsFrontend,FmsAdmin,FmsLanding,FmsMobile frontend
+    class WebClient,SalesApi,BackgroundHost,TrackingHost,PtsHost host
+    class Application,Domain,Persistence,Infrastructure package
+    class DeviceAbstractions,DeviceCore,DeviceFueling,DeviceTracking device
+    class SalesApplication,SalesDomain,SalesPersistence sales
+    class MainDb,Redis,RabbitMq,SignalR,PtsDevices,TrackingVendors,SalesDb external

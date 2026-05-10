@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Order Details"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Ecommerce", "title":"Order Details"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Ecommerce", "title":"Order Details"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-base">
+                            <!-- Project Main Details -->
+                            <div class="space-y-base lg:col-span-3">
+                                <div class="card">
+                                    <div class="card-header block items-start p-7.5 md:flex">
+                                        <div>
+                                            <h3 class="mb-1.25 flex items-center text-lg">Order #WB20100</h3>
+
+                                            <p class="text-default-400 mb-5">
+                                                <i class="iconify tabler--calendar align-middle"></i>
+                                                24 Apr, 2025
+                                                <small class="text-default-400">10:10 AM</small>
+                                            </p>
+
+                                            <div class="flex items-center gap-1">
+                                                <span class="badge badge-label text-2xs font-semibold bg-success/15 text-success"> <i class="iconify tabler--circle-filled text-sm"></i> Paid </span>
+
+                                                <span class="badge badge-label text-2xs font-semibold bg-info/15 text-info"> <i class="iconify tabler--truck text-sm"></i> Shipped </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 md:ms-auto md:mt-0">
+                                            <a href="javascript: void(0);" class="btn bg-light hover:text-primary"> <i class="iconify tabler--pencil text-sm"></i> Modify </a>
+                                            <a href="javascript: void(0);" class="btn bg-danger text-white hover:bg-danger-hover"> <i class="iconify tabler--trash text-sm"></i> Delete </a>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body px-7.5!">
+                                        <h4 class="mb-5">Order Summary</h4>
+                                        <div class="table-wrapper">
+                                            <table class="table table-bordered">
+                                                <thead class="thead-sm text-2xs uppercase bg-light/25">
+                                                    <tr>
+                                                        <th>Product</th>
+                                                        <th>Price</th>
+                                                        <th>QTY</th>
+                                                        <th class="text-end">Total</th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody>
+                                                    <!-- Product 1 -->
+                                                    <tr>
+                                                        <td>
+                                                            <div class="flex items-start gap-base">
+                                                                <img src="assets/images/products/1.png" alt="Wireless Earbuds" class="size-9 rounded-md" />
+                                                                <div>
+                                                                    <h5 class="text-default-800 font-medium mb-1.25">
+                                                                        <a href="apps-ecommerce-product-details.html" class="hover:text-primary">Wireless Earbuds</a>
+                                                                    </h5>
+                                                                    <p class="text-default-400 text-2xs">by: My Furniture</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>$79.99</td>
+                                                        <td>2</td>
+                                                        <td class="text-end font-medium">$159.98</td>
+                                                    </tr>
+
+                                                    <!-- Product 2 -->
+                                                    <tr>
+                                                        <td>
+                                                            <div class="flex items-start gap-base">
+                                                                <img src="assets/images/products/2.png" alt="Smart Watch" class="size-9 rounded-md" />
+                                                                <div>
+                                                                    <h5 class="text-default-800 font-medium mb-1.25">
+                                                                        <a href="apps-ecommerce-product-details.html" class="hover:text-primary">Smart Watch</a>
+                                                                    </h5>
+                                                                    <p class="text-default-400 text-2xs">by: Tech World</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>$199.00</td>
+                                                        <td>1</td>
+                                                        <td class="text-end font-medium">$199.00</td>
+                                                    </tr>
+
+                                                    <!-- Product 3 -->
+                                                    <tr>
+                                                        <td>
+                                                            <div class="flex items-start gap-base">
+                                                                <img src="assets/images/products/3.png" alt="Gaming Mouse" class="size-9 rounded-md" />
+                                                                <div>
+                                                                    <h5 class="text-default-800 font-medium mb-1.25">
+                                                                        <a href="apps-ecommerce-product-details.html" class="hover:text-primary">Gaming Mouse</a>
+                                                                    </h5>
+                                                                    <p class="text-default-400 text-2xs">by: Pro Gamerz</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td>$49.50</td>
+                                                        <td>3</td>
+                                                        <td class="text-end font-medium">$148.50</td>
+                                                    </tr>
+
+                                                    <!-- Subtotal -->
+                                                    <tr class="border-default-300 border-t">
+                                                        <td colspan="3" class="text-default-800 px-4 py-3 text-right font-medium">Subtotal</td>
+                                                        <td class="text-end">$507.48</td>
+                                                    </tr>
+
+                                                    <!-- Tax -->
+                                                    <tr>
+                                                        <td colspan="3" class="text-default-800 px-4 py-3 text-right font-medium">Tax (10%)</td>
+                                                        <td class="text-end">$50.75</td>
+                                                    </tr>
+
+                                                    <!-- Discount -->
+                                                    <tr>
+                                                        <td colspan="3" class="text-default-800 px-4 py-3 text-right font-medium">Discount (5%)</td>
+                                                        <td class="text-danger px-4 py-3 text-right font-semibold">- $25.37</td>
+                                                    </tr>
+
+                                                    <!-- Shipping -->
+                                                    <tr>
+                                                        <td colspan="3" class="text-default-800 px-4 py-3 text-right font-medium">Shipping Fee</td>
+                                                        <td class="text-end">$10.00</td>
+                                                    </tr>
+
+                                                    <!-- Grand Total -->
+                                                    <tr class="border-default-300 border-t">
+                                                        <td colspan="3" class="text-end font-bold uppercase">Grand Total</td>
+                                                        <td class="text-end font-bold bg-default-50">$543.86</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Shipping Activity</h4>
+                                    </div>
+                                    <div class="card-body p-7.5">
+                                        <div>
+                                            <!-- Event 1 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span></span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-light size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Pending Delivery</h5>
+                                                    <p class="text-default-400 mb-1.25">The package is out for delivery and will reach you shortly.</p>
+                                                    <p class="text-default-400 mb-1.25 text-xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Delivery Agent</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 2 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Today, 9:00 AM</span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Out for Delivery</h5>
+                                                    <p class="text-default-400 mb-1.25">Courier picked up the package for final delivery.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Local Courier</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 3 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Yesterday, 3:15 PM</span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Arrived at Local Hub</h5>
+                                                    <p class="text-default-400 mb-1.25">Courier picked up the package for final delivery.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Sorting Facility</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 4 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Monday, 6:00 PM</span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Departed Transit Facility</h5>
+                                                    <p class="text-default-400 mb-1.25">Package left the main transit facility and is en route to the local hub.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Central Logistics</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 5 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Monday, 8:00 AM</span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Arrived at Transit Facility</h5>
+                                                    <p class="text-default-400 mb-1.25">Package arrived at the central distribution hub for processing.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Transit Center</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 6 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Last Saturday, 2:00 PM</span>
+                                                </div>
+                                                <div class="after:border-default-300 relative after:absolute after:start-1/2 after:top-4 after:bottom-0 after:w-px after:border-e -ms-px after:border-dashed last:after:hidden">
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1 pb-15">
+                                                    <h5 class="mb-1.25">Dispatched from Warehouse</h5>
+                                                    <p class="text-default-400 mb-1.25">Package was picked up and dispatched by carrier from warehouse.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Fulfillment Center</span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Event 7 -->
+                                            <div class="flex gap-x-base">
+                                                <div class="w-15 text-end md:w-25">
+                                                    <span class="text-default-400">Last Friday, 5:00 PM</span>
+                                                </div>
+                                                <div>
+                                                    <div class="relative z-10 flex items-center justify-center">
+                                                        <div class="bg-success size-3.5 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h5 class="mb-1.25">Order Confirmed</h5>
+                                                    <p class="text-default-400 mb-1.25">The order was successfully placed and is now being processed.</p>
+                                                    <p class="text-default-400 mb-1.25 text-2xs">
+                                                        Tracking No:
+                                                        <a href="#!" class="text-primary underline">TRK123456789</a>
+                                                    </p>
+                                                    <span class="text-xs font-semibold">By Order System</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sidebar -->
+                            <div class="space-y-base">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Customer Details</h4>
+                                        <a href="#!" class="btn btn-icon border-default-300 size-8! rounded-full border">
+                                            <i class="iconify tabler--pencil text-lg"></i>
+                                        </a>
+                                    </div>
+                                    <!-- end card-header-->
+
+                                    <div class="card-body">
+                                        <!-- Header -->
+                                        <div class="mb-7.5 flex items-center">
+                                            <div class="relative me-2.5">
+                                                <img src="assets/images/users/user-5.jpg" alt="avatar-5" class="size-11 rounded-full object-cover" />
+                                            </div>
+
+                                            <div>
+                                                <h5 class="flex items-center mb-1.25">
+                                                    <a href="#" class="text-default-800 hover:text-primary text-sm font-medium transition">Sophia Carter</a>
+                                                    <img src="assets/images/flags/gb.svg" alt="UK" class="ms-2.5 size-4 rounded-full" />
+                                                </h5>
+                                                <p class="text-default-400 text-sm">Since 2020</p>
+                                            </div>
+
+                                            <!-- Dropdown -->
+                                            <div class="relative ms-auto">
+                                                <div class="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                                    <button type="button" class="hs-dropdown-toggle btn btn-icon size-9.5 text-default-400 hover:bg-default-100" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                        <i class="iconify tabler--dots-vertical text-xl"></i>
+                                                    </button>
+
+                                                    <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                        <div class="space-y-0.5">
+                                                            <a class="dropdown-item" href="#">
+                                                                <i class="iconify tabler--share"></i>
+                                                                Share
+                                                            </a>
+
+                                                            <a class="dropdown-item" href="#">
+                                                                <i class="iconify tabler--edit"></i>
+                                                                Edit
+                                                            </a>
+
+                                                            <a class="dropdown-item" href="#">
+                                                                <i class="iconify tabler--ban"></i>
+                                                                Block
+                                                            </a>
+
+                                                            <a class="dropdown-item text-danger" href="#">
+                                                                <i class="iconify tabler--trash"></i>
+                                                                Delete
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Contact Info -->
+                                        <ul class="text-default-400 space-y-2.5">
+                                            <li>
+                                                <div class="flex items-center gap-2.5">
+                                                    <span class="btn btn-icon bg-light text-default-800 size-6! rounded-full">
+                                                        <i class="iconify tabler--mail text-sm"></i>
+                                                    </span>
+                                                    <h5>
+                                                        <a href="#" class="text-default-400 hover:text-primary font-medium text-sm transition-all">sophia&#64;designhub.com</a>
+                                                    </h5>
+                                                </div>
+                                            </li>
+
+                                            <li>
+                                                <div class="flex items-center gap-2.5">
+                                                    <span class="btn btn-icon bg-light text-default-800 size-6! rounded-full">
+                                                        <i class="iconify tabler--phone text-sm"></i>
+                                                    </span>
+                                                    <h5>
+                                                        <a href="#" class="text-default-400 hover:text-primary font-medium text-sm transition-all">+44 7911 123456</a>
+                                                    </h5>
+                                                </div>
+                                            </li>
+
+                                            <li>
+                                                <div class="flex items-center gap-2.5">
+                                                    <span class="btn btn-icon bg-light text-default-800 size-6! rounded-full">
+                                                        <i class="iconify tabler--map-pin text-sm"></i>
+                                                    </span>
+                                                    <h5>
+                                                        <span class="text-default-400 font-medium">London, UK</span>
+                                                    </h5>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Shipping Address</h4>
+                                        <a href="#!" class="btn btn-icon border-default-300 size-8! rounded-full border">
+                                            <i class="iconify tabler--pencil text-lg"></i>
+                                        </a>
+                                    </div>
+                                    <div class="card-body">
+                                        <iframe src="https://www.google.com/maps/embed/v1/place?q=New+York+University&key=AIzaSyBSFRN6WWGYwmFi498qXXsD2UwkbmD74v4" style="width: 100%; height: 180px; margin-bottom: 1.5rem; overflow: hidden; border: 0"></iframe>
+                                        <div class="my-5">
+                                            <div class="flex items-center justify-between">
+                                                <div class="mb-2.5">
+                                                    <h5 class="text-default-800">John Doe</h5>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-success/15 font-semibold text-success">Primary Address</span>
+                                                </div>
+                                            </div>
+                                            <p class="text-default-400 mb-1.25">
+                                                1234 Elm Street,
+                                                <br />
+                                                Apt 567,
+                                                <br />
+                                                Springfield, IL 62704,
+                                                <br />
+                                                United States
+                                            </p>
+                                            <p class="text-default-400 mb-5">
+                                                <strong>Phone:</strong>
+                                                (123) 456-7890
+                                                <br />
+                                                <strong>Email:</strong>
+                                                john.doe&#64;example.com
+                                            </p>
+                                        </div>
+                                        <div class="bg-warning/15 rounded px-4 py-3 text-warning">
+                                            <h6 class="mb-2.5 text-xs">Delivery Instructions:</h6>
+                                            <p class="italic">Please leave the package at the front door if no one is home. Call upon arrival.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Billing Details</h4>
+                                        <a href="#!" class="btn btn-icon border-default-300 size-8! rounded-full border">
+                                            <i class="iconify tabler--pencil text-lg"></i>
+                                        </a>
+                                    </div>
+                                    <div class="card-body">
+                                        <!-- Billing Address -->
+                                        <div class="mb-2.5 flex items-center justify-between">
+                                            <div>
+                                                <h5 class="text-default-800">John Doe</h5>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-primary/15 font-semibold text-primary">Billing Details</span>
+                                            </div>
+                                        </div>
+                                        <p class="text-default-400 border-default-300 border-b pb-4">
+                                            5678 Oak Avenue,
+                                            <br />
+                                            Suite 101,
+                                            <br />
+                                            Chicago, IL 60611,
+                                            <br />
+                                            United States
+                                        </p>
+                                        <!-- Card Details -->
+                                        <div class="flex items-center justify-between pt-4">
+                                            <div class="flex items-center gap-2.5">
+                                                <img src="assets/images/cards/mastercard.svg" alt="Mastercard" class="size-8 rounded" />
+                                                <div>
+                                                    <h5 class="mb-1.25 text-xs">Mastercard Ending in 4242</h5>
+                                                    <p class="text-default-400 text-xs">Expiry: 08/26</p>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span class="badge bg-success/15 text-success">Paid</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

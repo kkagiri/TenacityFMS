@@ -1,0 +1,525 @@
+/**
+ * File:          admin.scss
+ * Purpose:       Shared styling for the FMS.Admin operator portal.
+ * Dependencies:  Tailwind CSS, SCSS
+ * Last Modified: 2026-05-10
+ *
+ * Key Functions:
+ * - Defines theme tokens, form controls, buttons, banners, and table styling.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "./inspinia-shell";
+
+:root {
+  --theme-primary: #1ab394;
+  --theme-secondary: #1c84c6;
+  --theme-sidenav-width: 235px;
+  --theme-sidenav-width-sm: 75px;
+  --theme-topbar-height: 65px;
+  --theme-sidenav-bg: #23303c;
+  --theme-sidenav-border-color: #23303c;
+  --theme-sidenav-item-color: #8495ab;
+  --theme-sidenav-item-hover-color: #ced6df;
+  --theme-sidenav-item-hover-bg: #2f3742;
+  --theme-sidenav-item-active-color: #ced6df;
+  --theme-sidenav-item-active-bg: #1c262f;
+  --theme-sidenav-item-padding-x: 10px;
+  --theme-sidenav-item-padding-y: 10px;
+  --theme-box-shadow: none;
+  --inspinia-sidebar-text: var(--theme-sidenav-item-color);
+  --inspinia-accent: #1ab394;
+  --inspinia-accent-hover: #18a689;
+  --inspinia-secondary-accent: #1c84c6;
+  --inspinia-content-bg: #f6f7fb;
+  --inspinia-topbar-bg: #ffffff;
+  --inspinia-topbar-border: #e7e9eb;
+  --inspinia-heading: #313a46;
+  --m365-primary: var(--inspinia-accent);
+  --m365-primary-hover: var(--inspinia-accent-hover);
+  --m365-text: #313a46;
+  --m365-text-secondary: #676a6c;
+  --m365-text-tertiary: #a19f9d;
+  --m365-border: #c8c6c4;
+  --m365-border-light: #e7e9eb;
+  --m365-bg-hover: #f6f7fb;
+  --m365-bg-surface: var(--inspinia-content-bg);
+  --m365-bg-card: #ffffff;
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    sans-serif;
+  color: var(--m365-text);
+  background: var(--m365-bg-surface);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.m365-btn {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid var(--m365-border);
+  border-radius: 4px;
+  background: #fff;
+  color: #323130;
+  cursor: pointer;
+  text-decoration: none;
+
+  &:disabled {
+    color: var(--m365-text-tertiary);
+    background: var(--m365-bg-hover);
+    cursor: not-allowed;
+  }
+}
+
+.m365-btn--primary {
+  border-color: var(--m365-primary);
+  background: var(--m365-primary);
+  color: #fff;
+
+  &:hover:not(:disabled) {
+    background: var(--m365-primary-hover);
+  }
+}
+
+.m365-btn--ghost:hover:not(:disabled) {
+  background: var(--m365-bg-hover);
+}
+
+.m365-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--m365-text);
+  background: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: 4px;
+  outline: none;
+
+  &:hover {
+    border-color: var(--m365-text-secondary);
+  }
+
+  &:focus {
+    border-color: var(--m365-primary);
+    box-shadow: 0 0 0 1px var(--m365-primary);
+  }
+}
+
+.m365-select {
+  width: 100%;
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+  color: var(--m365-text);
+  background-color: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: 4px;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:hover {
+    border-color: var(--m365-text-secondary);
+  }
+
+  &:focus {
+    border-color: var(--m365-primary);
+    box-shadow: 0 0 0 1px var(--m365-primary);
+  }
+}
+
+.m365-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--m365-text);
+  font-weight: 600;
+}
+
+.m365-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(26, 179, 148, 0.28);
+  border-radius: 4px;
+  background: rgba(26, 179, 148, 0.1);
+  color: var(--m365-text);
+}
+
+.m365-info-banner--error {
+  border-color: #f3b3b6;
+  background: #fde7e9;
+}
+
+.m365-info-banner__icon {
+  color: var(--m365-primary);
+  line-height: 18px;
+}
+
+.m365-info-banner__text {
+  line-height: 18px;
+}
+
+.m365-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 0;
+}
+
+.m365-page-header__left,
+.m365-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m365-page-header__icon {
+  color: var(--m365-primary);
+  font-size: 16px;
+}
+
+.m365-page-header__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.operator-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--m365-bg-surface);
+}
+
+.operator-login__panel {
+  width: min(100%, 380px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-login__panel h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.operator-login__panel p {
+  margin: 0;
+  color: var(--m365-text-secondary);
+}
+
+.operator-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.operator-login__submit {
+  width: 100%;
+}
+
+.operator-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.operator-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 160px 150px auto;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-form-panel,
+.operator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-form-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.operator-form-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.operator-filters__refresh {
+  white-space: nowrap;
+}
+
+.operator-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.operator-summary-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-summary-tile i {
+  color: var(--m365-primary);
+  font-size: 18px;
+}
+
+.operator-summary-tile__value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.operator-summary-tile__label {
+  color: var(--m365-text-secondary);
+}
+
+.operator-table {
+  overflow: hidden;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-table__header,
+.operator-table__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+  min-height: 38px;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.operator-table--tenants .operator-table__header,
+.operator-table--tenants .operator-table__row {
+  grid-template-columns:
+    minmax(160px, 2fr) minmax(90px, 1fr) minmax(80px, 0.8fr)
+    minmax(90px, 0.8fr) minmax(70px, 0.6fr) minmax(90px, 0.8fr);
+}
+
+.operator-table__primary {
+  font-weight: 600;
+}
+
+.operator-table__primary a {
+  color: var(--m365-primary);
+  text-decoration: none;
+}
+
+.operator-table__primary a:hover {
+  text-decoration: underline;
+}
+
+.operator-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.operator-status--active {
+  color: #107c10;
+  background: #dff6dd;
+}
+
+.operator-status--inactive {
+  color: #605e5c;
+  background: #f3f2f1;
+}
+
+.operator-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--m365-text-secondary);
+}
+
+.operator-pagination__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: var(--m365-border-light);
+}
+
+.operator-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 64px;
+  padding: 12px;
+  background: #fff;
+}
+
+.operator-detail-row span {
+  color: var(--m365-text-secondary);
+}
+
+.operator-detail-row strong {
+  font-weight: 600;
+}
+
+.operator-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-section__header i {
+  color: var(--m365-primary);
+}
+
+.operator-section__header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.operator-hierarchy,
+.operator-hierarchy__children {
+  margin: 0;
+  padding-left: 18px;
+  list-style: none;
+}
+
+.operator-hierarchy {
+  padding-left: 0;
+}
+
+.operator-hierarchy__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.operator-hierarchy__node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 4px;
+}
+
+.operator-hierarchy__node i {
+  color: var(--m365-primary);
+}
+
+.operator-hierarchy__meta {
+  color: var(--m365-text-secondary);
+  margin-left: auto;
+}
+
+.operator-table__header {
+  color: var(--m365-text-secondary);
+  background: var(--inspinia-content-bg);
+  border-bottom: 1px solid var(--m365-border-light);
+  font-weight: 600;
+}
+
+.operator-table__row:not(:last-child) {
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+.operator-table__empty {
+  padding: 16px 12px;
+  color: var(--m365-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .operator-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-form-panel__grid,
+  .operator-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-table__header,
+  .operator-table__row,
+  .operator-table--tenants .operator-table__header,
+  .operator-table--tenants .operator-table__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 10px 12px;
+  }
+
+  .operator-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Spinners"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/sidenav.html') @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Spinners"})
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Spinners"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="space-y-base">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Border Spinner</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">Use border spinners as lightweight loading indicators.</p>
+                                        <div class="border-dark inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Colors</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            These spinners use border color utilities like
+                                            <code>.border-primary</code>
+                                            ,
+                                            <code>.border-success</code>
+                                            , or
+                                            <code>.border-danger</code>
+                                            to display different color variations. Each spinner’s top border is transparent to create a smooth rotating effect.
+                                        </p>
+
+                                        <div class="flex gap-base flex-wrap items-center">
+                                            <div class="border-primary inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-secondary inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-success inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-danger inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-warning inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-info inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-light inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+
+                                            <div class="border-dark inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                <span class="sr-only">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Alignment</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            These spinners use simple utility classes like
+                                            <code>animate-spin</code>
+                                            ,
+                                            <code>border-dark</code>
+                                            , and
+                                            <code>border-t-transparent</code>
+                                            to create a rotating loading indicator. The
+                                            <code>rounded-full</code>
+                                            class keeps the spinner perfectly circular and neatly aligned.
+                                        </p>
+
+                                        <div class="flex gap-base flex-wrap items-center">
+                                            <strong>Loading...</strong>
+                                            <div class="border-dark ms-auto inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading"></div>
+                                        </div>
+
+                                        <div class="mt-5 flex items-center justify-center gap-base">
+                                            <div class="border-dark inline-block size-8 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Buttons Spinner</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="grid md:grid-cols-2 gap-base">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <button class="btn btn-icon bg-primary">
+                                                    <div class="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </button>
+
+                                                <button class="btn btn-icon bg-primary rounded-full">
+                                                    <div class="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </button>
+
+                                                <button class="btn bg-primary">
+                                                    <div class="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </button>
+
+                                                <button class="btn bg-primary">
+                                                    <div class="flex items-center gap-3">
+                                                        <div class="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" role="status" aria-label="loading">
+                                                            <span class="sr-only">Loading...</span>
+                                                        </div>
+                                                        <span class="text-white">Loading..</span>
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <button class="btn btn-icon bg-primary">
+                                                    <span class="size-4 animate-[spinner-grow_0.75s_linear_infinite] rounded-full bg-white"></span>
+                                                </button>
+
+                                                <button class="btn btn-icon bg-primary rounded-full">
+                                                    <span class="size-4 animate-[spinner-grow_0.75s_linear_infinite] rounded-full bg-white"></span>
+                                                </button>
+
+                                                <button class="btn bg-primary">
+                                                    <span class="size-4 animate-[spinner-grow_0.75s_linear_infinite] rounded-full bg-white"></span>
+                                                </button>
+
+                                                <button class="btn bg-primary">
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="size-4 animate-[spinner-grow_0.75s_linear_infinite] rounded-full bg-white"></span>
+                                                        <strong class="text-white">Loading...</strong>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-base">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Growing Spinner</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">A simple growing spinner built with Tailwind CSS. You can easily change its size, color, and alignment using utility classes.</p>
+
+                                        <div class="flex items-center justify-start">
+                                            <span class="bg-dark size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Color Growing Spinner</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="text-default-400 mb-4">
+                                            These growing spinners use different background color classes to display various color themes. You can apply any color class like
+                                            <code>.bg-primary</code>
+                                            ,
+                                            <code>.bg-success</code>
+                                            , or
+                                            <code>.bg-warning</code>
+                                            to customize the spinner appearance.
+                                        </p>
+
+                                        <div class="flex gap-base flex-wrap items-center">
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-primary size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-secondary size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-success size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-danger size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-warning size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-info size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-default-200 size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-dark size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+
+                                            <div class="flex items-center justify-center">
+                                                <span class="bg-purple size-8 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h4 class="card-title">Size</h4>
+                                        <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                            <i class="iconify tabler--chevron-up text-base"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <div class="grid md:grid-cols-2 gap-base">
+                                            <div class="flex items-center gap-base">
+                                                <div class="flex items-center justify-center">
+                                                    <div class="border-primary inline-block size-11 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-center">
+                                                    <span class="bg-secondary size-11 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center gap-base">
+                                                <div class="flex items-center justify-center">
+                                                    <div class="border-primary inline-block size-9 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-center">
+                                                    <span class="bg-secondary size-7 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center gap-base">
+                                                <div class="flex items-center justify-center">
+                                                    <div class="border-primary inline-block size-7 animate-spin rounded-full border-3 border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-center">
+                                                    <span class="bg-secondary size-6 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center gap-base">
+                                                <div class="flex items-center justify-center">
+                                                    <div class="border-dark inline-block size-4 animate-spin rounded-full border-2 border-t-transparent" role="status" aria-label="loading">
+                                                        <span class="sr-only">Loading...</span>
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex items-center justify-center">
+                                                    <span class="bg-dark size-4 animate-[spinner-grow_0.75s_linear_infinite] rounded-full"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Sign In"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Start Page Content here -->
+        <div class="min-h-screen">
+            <div class="flex h-full w-full">
+                <div class="hidden w-full md:block">
+                    <div class="relative h-full overflow-hidden bg-[url('../images/auth.jpg')] bg-cover bg-center bg-no-repeat">
+                        <div class="from-zinc-800 via-zinc-800/80 to-zinc-800/50 absolute inset-0 flex items-end justify-center bg-linear-to-t p-9"></div>
+                    </div>
+                </div>
+                <div class="min-w-full md:min-w-106 md:max-w-118">
+                    <div class="card relative flex min-h-screen flex-col justify-between rounded-none p-12.5">
+                        <!-- Auth Brand Logo -->
+                        <div class="mb-7.5 flex flex-col items-center justify-center text-center">
+                            <a href="index.html" class="auth-logo">
+                                <img src="assets/images/logo-black.png" alt="logo" class="flex dark:hidden" />
+                                <img src="assets/images/logo.png" alt="dark logo" class="hidden dark:flex" />
+                            </a>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold mb-2 text-default-900 text-lg text-center">Welcome to Admin</h4>
+                            <p class="text-default-400 mb-4 mx-auto w-full text-center lg:w-3/4">You’re just one step away - sign in to continue.</p>
+
+                            <form action="index.html" class="mt-9">
+                                <div class="mb-6">
+                                    <label for="userEmail" class="form-label">
+                                        Email address
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--mail input-icon"></i>
+                                        <input type="email" class="form-input" id="userEmail" placeholder="you&#64;example.com" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-6">
+                                    <label for="userPassword" class="form-label">
+                                        Password
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--lock-password input-icon"></i>
+                                        <input type="password" class="form-input" id="userPassword" placeholder="••••••••" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-5 flex items-center justify-between">
+                                    <div class="flex items-start gap-2 lg:items-center">
+                                        <input class="form-checkbox form-checkbox-light mt-1 size-4.25 lg:mt-0" type="checkbox" id="rememberMe" checked />
+                                        <label class="form-check-label" for="rememberMe">Keep me signed in</label>
+                                    </div>
+                                    <a href="auth-split-reset-pass.html" class="text-default-400 underline underline-offset-4">Forgot Password?</a>
+                                </div>
+
+                                <div>
+                                    <button type="submit" class="btn bg-primary w-full py-3 font-semibold text-white hover:bg-primary-hover">Sign In</button>
+                                </div>
+                            </form>
+
+                            <p class="text-default-400 mt-7.5 text-center">
+                                New here?
+                                <a href="auth-split-sign-up.html" class="text-primary font-semibold underline underline-offset-4">Create an account</a>
+                            </p>
+                        </div>
+
+                        <!-- Auth Footer -->
+                        <p class="text-default-400 mt-7.5 text-center">
+                            &copy;
+                            <script>
+                                document.write(new Date().getFullYear())
+                            </script>
+                            Inspinia - by
+                            <span>WebAppLayers</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html')
+    </body>
+</html>

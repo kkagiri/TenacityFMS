@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Offcanvas"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Base UI", "title":"Offcanvas"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Base UI", "title":"Offcanvas"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Offcanvas</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">The Offcanvas (Drawer) component provides a hidden sidebar for menus, carts, and more - enhancing UI and saving space.</p>
+
+                                    <button data-hs-overlay="#offcanvasExample" class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasExample">Open (Left) Offcanvas</button>
+
+                                    <div
+                                        id="offcanvasExample"
+                                        class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-e transition-all duration-300"
+                                        role="dialog"
+                                        tabindex="-1"
+                                        aria-labelledby="offcanvasExampleLabel"
+                                    >
+                                        <div class="flex items-center justify-between p-5">
+                                            <h3 id="offcanvasExampleLabel">Offcanvas</h3>
+
+                                            <button type="button" aria-label="Close" data-hs-overlay="#offcanvasExample">
+                                                <span class="sr-only">Close</span>
+                                                <i class="iconify tabler--x text-xl"></i>
+                                            </button>
+                                        </div>
+
+                                        <div class="p-5">
+                                            <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+
+                                            <h5 class="mt-5 mb-2">List</h5>
+                                            <ul class="mb-4 list-disc ps-5">
+                                                <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                <li>Neque porro quisquam est, qui dolorem</li>
+                                                <li>Quis autem vel eum iure qui in ea</li>
+                                            </ul>
+
+                                            <ul class="mb-4 list-disc ps-5">
+                                                <li>At vero eos et accusamus et iusto odio dignissimos</li>
+                                                <li>Et harum quidem rerum facilis</li>
+                                                <li>Temporibus autem quibusdam et aut officiis</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Offcanvas Backdrop</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Scrolling the
+                                        <code>&lt;body&gt;</code>
+                                        element is disabled when an offcanvas and its backdrop are visible. Use the
+                                        <code>[--body-scroll:true]</code>
+                                        attribute to toggle
+                                        <code>&lt;body&gt;</code>
+                                        scrolling and
+                                        <code>[--overlay-backdrop:false]</code>
+                                        to toggle the backdrop.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2.5">
+                                        <div>
+                                            <button type="button" class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasScrolling" data-hs-overlay="#offcanvasScrolling">Enable body scrolling</button>
+
+                                            <div
+                                                id="offcanvasScrolling"
+                                                class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-e transition-all duration-300 [--body-scroll:true] [--overlay-backdrop:false]"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasScrollingLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasScrollingLabel">Colored with scrolling</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasScrolling">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>At vero eos et accusamus et iusto odio dignissimos</li>
+                                                        <li>Et harum quidem rerum facilis</li>
+                                                        <li>Temporibus autem quibusdam et aut officiis</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasWithBackdrop" data-hs-overlay="#offcanvasWithBackdrop">Enable backdrop (default)</button>
+
+                                            <div
+                                                id="offcanvasWithBackdrop"
+                                                class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-e transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasWithBackdropLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasWithBackdropLabel">Offcanvas with backdrop</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasWithBackdrop">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>At vero eos et accusamus et iusto odio dignissimos</li>
+                                                        <li>Et harum quidem rerum facilis</li>
+                                                        <li>Temporibus autem quibusdam et aut officiis</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button type="button" class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasWithBothOptions" data-hs-overlay="#offcanvasWithBothOptions">
+                                                Enable both scrolling & backdrop
+                                            </button>
+
+                                            <div
+                                                id="offcanvasWithBothOptions"
+                                                class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-e transition-all duration-300 [--body-scroll:true]"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasWithBothOptionsLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasWithBothOptionsLabel">Backdroped with scrolling</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasWithBothOptions">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>At vero eos et accusamus et iusto odio dignissimos</li>
+                                                        <li>Et harum quidem rerum facilis</li>
+                                                        <li>Temporibus autem quibusdam et aut officiis</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- end card-->
+                                </div>
+                                <!-- end col-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Offcanvas Placement</h4>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">Try the top, right, and bottom examples out below.</p>
+
+                                    <div class="flex flex-wrap gap-2.5">
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasTop" data-hs-overlay="#offcanvasTop">Toggle Top offcanvas</button>
+
+                                            <div
+                                                id="offcanvasTop"
+                                                class="hs-overlay hs-overlay-open:translate-y-0 bg-card border-default-300 fixed inset-x-0 top-0 z-80 hidden size-full max-h-60 -translate-y-full transform border-b transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasTopLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasTopLabel">Offcanvas Top</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasTop">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasRight" data-hs-overlay="#offcanvasRight">Toggle right offcanvas</button>
+
+                                            <div
+                                                id="offcanvasRight"
+                                                class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed end-0 top-0 z-80 hidden h-full w-full max-w-sm translate-x-full transform border-s transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasRightLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasRightLabel">Offcanvas right</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasRight">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasBottom" data-hs-overlay="#offcanvasBottom">Toggle bottom offcanvas</button>
+
+                                            <div
+                                                id="offcanvasBottom"
+                                                class="hs-overlay hs-overlay-open:translate-y-0 bg-card border-default-300 fixed inset-x-0 bottom-0 z-80 hidden size-full max-h-60 translate-y-full transform border-t transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasBottomLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasBottomLabel">Offcanvas bottom</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasBottom">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasLeft" data-hs-overlay="#offcanvasLeft">Toggle left offcanvas</button>
+
+                                            <div
+                                                id="offcanvasLeft"
+                                                class="hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-s transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasLeftLabel"
+                                            >
+                                                <div class="flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasLeftLabel">Offcanvas left</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasLeft">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4 class="card-title">Dark Offcanvas</h4>
+
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <p class="text-default-400 mb-4">
+                                        Customize the look of offcanvases using utility classes to suit different themes, such as dark navbars. Add
+                                        <code>.dark</code>
+                                        or
+                                        <code>data-theme="dark"</code>
+                                        in offcanvas components for dark styling.
+                                    </p>
+
+                                    <div class="flex flex-wrap gap-2.5">
+                                        <div>
+                                            <button class="btn bg-primary hover:bg-primary-hover text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="offcanvasDark" data-hs-overlay="#offcanvasDark">Dark offcanvas</button>
+
+                                            <div
+                                                id="offcanvasDark"
+                                                class="dark hs-overlay hs-overlay-open:translate-x-0 bg-card border-default-300 fixed start-0 top-0 z-80 hidden h-full w-full max-w-sm -translate-x-full transform border-s transition-all duration-300"
+                                                role="dialog"
+                                                tabindex="-1"
+                                                aria-labelledby="offcanvasDarkLabel"
+                                            >
+                                                <div class="text-default-700 flex items-center justify-between p-5">
+                                                    <h3 id="offcanvasDarkLabel">Dark Offcanvas</h3>
+
+                                                    <button type="button" aria-label="Close" data-hs-overlay="#offcanvasDark">
+                                                        <span class="sr-only">Close</span>
+                                                        <i class="iconify tabler--x text-xl"></i>
+                                                    </button>
+                                                </div>
+
+                                                <div class="text-default-900 p-5">
+                                                    <div>Some text as placeholder. In real life you can have the elements you have chosen. Like, text, images, lists, etc.</div>
+                                                    <h5 class="mt-5 mb-2">List</h5>
+                                                    <ul class="mb-4 list-disc ps-5">
+                                                        <li>Nemo enim ipsam voluptatem quia aspernatur</li>
+                                                        <li>Neque porro quisquam est, qui dolorem</li>
+                                                        <li>Quis autem vel eum iure qui in ea</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- end card-body-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

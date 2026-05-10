@@ -1,0 +1,527 @@
+<div class="sidenav-menu">
+    <!-- Brand Logo -->
+    <a href="index.html" class="logo">
+        <span class="logo logo-light">
+            <span class="logo-lg"><img src="assets/images/logo.png" alt="logo" /></span>
+            <span class="logo-sm"><img src="assets/images/logo-sm.png" alt="small logo" /></span>
+        </span>
+
+        <span class="logo logo-dark">
+            <span class="logo-lg"><img src="assets/images/logo-black.png" alt="dark logo" /></span>
+            <span class="logo-sm"><img src="assets/images/logo-sm.png" alt="small logo" /></span>
+        </span>
+    </a>
+
+    <!-- Sidebar Hover Menu Toggle Button -->
+    <button class="button-on-hover">
+        <span class="btn-on-hover-icon"></span>
+    </button>
+
+    <!-- Full Sidebar Menu Close Button -->
+    <button class="button-close-offcanvas">
+        <i class="ti ti-menu-4 align-middle"></i>
+    </button>
+
+    <div class="scrollbar" data-simplebar="">
+        <div id="user-profile-settings" class="sidenav-user" style="background: url(assets/images/user-bg-pattern.svg)">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="#!" class="link-reset">
+                        <img src="assets/images/users/user-1.jpg" alt="user-image" class="rounded-circle mb-2 avatar-md" />
+                        <span class="sidenav-user-name fw-bold">Damian D.</span>
+                        <span class="fs-12 fw-semibold" data-lang="user-role">Art Director</span>
+                    </a>
+                </div>
+                <div>
+                    <a class="dropdown-toggle drop-arrow-none link-reset sidenav-user-set-icon" data-bs-toggle="dropdown" data-bs-offset="0,12" href="#!" aria-haspopup="false" aria-expanded="false">
+                        <i class="ti ti-settings fs-24 align-middle ms-1"></i>
+                    </a>
+
+                    <div class="dropdown-menu">
+                        <!-- Header -->
+                        <div class="dropdown-header noti-title">
+                            <h6 class="text-overflow m-0">Welcome back!</h6>
+                        </div>
+
+                        <!-- My Profile -->
+                        <a href="#!" class="dropdown-item">
+                            <i class="ti ti-user-circle me-1 fs-lg align-middle"></i>
+                            <span class="align-middle">Profile</span>
+                        </a>
+
+                        <!-- Settings -->
+                        <a href="javascript:void(0);" class="dropdown-item">
+                            <i class="ti ti-settings-2 me-1 fs-lg align-middle"></i>
+                            <span class="align-middle">Account Settings</span>
+                        </a>
+
+                        <!-- Lock -->
+                        <a href="auth-lock-screen.html" class="dropdown-item">
+                            <i class="ti ti-lock me-1 fs-lg align-middle"></i>
+                            <span class="align-middle">Lock Screen</span>
+                        </a>
+
+                        <!-- Logout -->
+                        <a href="javascript:void(0);" class="dropdown-item text-danger fw-semibold">
+                            <i class="ti ti-logout me-1 fs-lg align-middle"></i>
+                            <span class="align-middle">Log Out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--- Sidenav Menu -->
+        <div id="sidenav-menu">
+            <ul class="side-nav">
+                <li class="side-nav-title mt-2" data-lang="main">Main</li>
+                <li class="side-nav-item">
+                    <a href="index.html" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-dashboard"></i></span>
+                        <span class="menu-text" data-lang="dashboard-projects">Projects</span>
+                    </a>
+                </li>
+                <li class="side-nav-title mt-2" data-lang="custom-pages">Custom Pages</li>
+                <li class="side-nav-item">
+                    <a href="pages-empty.html" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-files"></i></span>
+                        <span class="menu-text" data-lang="pages-empty">Empty Page</span>
+                    </a>
+                </li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#authentication" aria-expanded="false" aria-controls="authentication" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-password-user"></i></span>
+                        <span class="menu-text" data-lang="authentication">Authentication</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="authentication">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#auth-basic" aria-expanded="false" aria-controls="auth-basic" class="side-nav-link">
+                                    <span class="menu-text" data-lang="auth-basic">Basic</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="auth-basic">
+                                    <ul class="sub-menu">
+                                        <li class="side-nav-item">
+                                            <a href="auth-sign-in.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-sign-in">Sign In</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-sign-up.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-sign-up">Sign Up</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-reset-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-reset-pass">Reset Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-new-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-new-pass">New Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-two-factor.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-two-factor">Two Factor</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-lock-screen.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-lock-screen">Lock Screen</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-success-mail.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-success-mail">Success Mail</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-login-pin.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-login-pin">Login with PIN</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-delete-account.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-delete-account">Delete Account</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#auth-card" aria-expanded="false" aria-controls="auth-card" class="side-nav-link">
+                                    <span class="menu-text" data-lang="auth-card">Card</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="auth-card">
+                                    <ul class="sub-menu">
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-sign-in.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-sign-in">Sign In</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-sign-up.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-sign-up">Sign Up</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-reset-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-reset-pass">Reset Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-new-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-new-pass">New Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-two-factor.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-two-factor">Two Factor</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-lock-screen.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-lock-screen">Lock Screen</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-success-mail.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-success-mail">Success Mail</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-login-pin.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-login-pin">Login with PIN</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-card-delete-account.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-card-delete-account">Delete Account</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#auth-split" aria-expanded="false" aria-controls="auth-split" class="side-nav-link">
+                                    <span class="menu-text" data-lang="auth-split">Split</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="auth-split">
+                                    <ul class="sub-menu">
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-sign-in.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-sign-in">Sign In</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-sign-up.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-sign-up">Sign Up</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-reset-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-reset-pass">Reset Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-new-pass.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-new-pass">New Password</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-two-factor.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-two-factor">Two Factor</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-lock-screen.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-lock-screen">Lock Screen</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-success-mail.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-success-mail">Success Mail</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-login-pin.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-login-pin">Login with PIN</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="auth-split-delete-account.html" class="side-nav-link">
+                                                <span class="menu-text" data-lang="auth-split-delete-account">Delete Account</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#error-pages" aria-expanded="false" aria-controls="error-pages" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-alert-triangle"></i></span>
+                        <span class="menu-text" data-lang="error-pages">Error Pages</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="error-pages">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="error-400.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-400">400 Bad Request</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-401.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-401">401 Unauthorized</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-403.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-403">403 Forbidden</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-404.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-404">404 Not Found</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-408.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-408">408 Request Timeout</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-500.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-500">500 Internal Server</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="error-maintenance.html" class="side-nav-link">
+                                    <span class="menu-text" data-lang="error-maintenance">Maintenance</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-title mt-2" data-lang="layouts">Layouts</li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#layout-options" aria-expanded="false" aria-controls="layout-options" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-layout"></i></span>
+                        <span class="menu-text" data-lang="layout-options">Layout Options</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="layout-options">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="layouts-scrollable.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-scrollable">Scrollable</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-compact.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-compact">Compact</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-boxed.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-boxed">Boxed</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-horizontal.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-horizontal">Horizontal</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-preloader.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-preloader">Preloader</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebars" aria-expanded="false" aria-controls="sidebars" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-layout-sidebar-inactive"></i></span>
+                        <span class="menu-text" data-lang="sidebars">Sidebars</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebars">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-light.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-light">Light Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-gradient.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-gradient">Gradient Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-gray.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-gray">Gray Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-image.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-image">Image Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-compact.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-compact">Compact Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-on-hover.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-on-hover">On Hover Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-on-hover-active.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-on-hover-active">On Hover Active</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-offcanvas.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-offcanvas">Offcanvas Menu</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-no-icons.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-no-icons">No Icons with Lines</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-sidebar-with-lines.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-sidebar-with-lines">Sidebar with Lines</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#topbar" aria-expanded="false" aria-controls="topbar" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-layout-bottombar"></i></span>
+                        <span class="menu-text" data-lang="topbar">Topbar</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="topbar">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a href="layouts-topbar-dark.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-dark">Dark Topbar</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-topbar-gray.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-gray">Gray Topbar</span>
+                                </a>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="layouts-topbar-gradient.html" class="side-nav-link" target="_blank">
+                                    <span class="menu-text" data-lang="layouts-topbar-gradient">Gradient Topbar</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-title mt-2" data-lang="components">Components</li>
+                <li class="side-nav-item">
+                    <a href="icons-tabler.html" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-icons"></i></span>
+                        <span class="menu-text" data-lang="icons-tabler">Tabler</span>
+                    </a>
+                </li>
+                <li class="side-nav-title mt-2" data-lang="menu-items">Menu Items</li>
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#menu-levels" aria-expanded="false" aria-controls="menu-levels" class="side-nav-link">
+                        <span class="menu-icon"><i class="ti ti-sitemap"></i></span>
+                        <span class="menu-text" data-lang="menu-levels">Menu Levels</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="menu-levels">
+                        <ul class="sub-menu">
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#second-level" aria-expanded="false" aria-controls="second-level" class="side-nav-link">
+                                    <span class="menu-text" data-lang="second-level">Second Level</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="second-level">
+                                    <ul class="sub-menu">
+                                        <li class="side-nav-item">
+                                            <a href="#" class="side-nav-link">
+                                                <span class="menu-text" data-lang="menu-item-1">Item 2.1</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a href="#" class="side-nav-link">
+                                                <span class="menu-text" data-lang="menu-item-2">Item 2.2</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#second-level-2" aria-expanded="false" aria-controls="second-level-2" class="side-nav-link">
+                                    <span class="menu-text" data-lang="second-level-2">Second Level</span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="second-level-2">
+                                    <ul class="sub-menu">
+                                        <li class="side-nav-item">
+                                            <a href="#" class="side-nav-link">
+                                                <span class="menu-text" data-lang="menu-item-3">Item 2.1</span>
+                                            </a>
+                                        </li>
+                                        <li class="side-nav-item">
+                                            <a data-bs-toggle="collapse" href="#menu-item-4" aria-expanded="false" aria-controls="menu-item-4" class="side-nav-link">
+                                                <span class="menu-text" data-lang="menu-item-4">Item 2.2</span>
+                                                <span class="menu-arrow"></span>
+                                            </a>
+                                            <div class="collapse" id="menu-item-4">
+                                                <ul class="sub-menu">
+                                                    <li class="side-nav-item">
+                                                        <a href="#" class="side-nav-link">
+                                                            <span class="menu-text" data-lang="menu-item-5">Item 3.1</span>
+                                                        </a>
+                                                    </li>
+                                                    <li class="side-nav-item">
+                                                        <a href="#" class="side-nav-link">
+                                                            <span class="menu-text" data-lang="menu-item-6">Item 3.2</span>
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="side-nav-item">
+                    <a href="#" class="side-nav-link disabled">
+                        <span class="menu-icon"><i class="ti ti-ban"></i></span>
+                        <span class="menu-text" data-lang="disabled-menu">Disabled Menu</span>
+                    </a>
+                </li>
+                <li class="side-nav-item">
+                    <a href="#" class="side-nav-link special-menu">
+                        <span class="menu-icon"><i class="ti ti-star"></i></span>
+                        <span class="menu-text" data-lang="special-menu">Special Menu</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+<!-- Sidenav Menu End -->

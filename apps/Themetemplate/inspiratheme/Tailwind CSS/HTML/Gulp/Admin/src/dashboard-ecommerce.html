@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "eCommerce Dashboard"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Dashboard", "title":"eCommerce"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Dashboard", "title":"eCommerce"})
+
+                    <div class="container-fluid">
+                        <div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Sales</h5>
+                                    <span class="badge bg-success/15 text-success"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="250">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Total Sales</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Total Orders</h5>
+                                    <span class="badge bg-primary/15 text-primary"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="180">0</span></h3>
+                                            <p class="text-default-400"><span>Monthly Total Orders</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">New Customers</h5>
+                                    <span class="badge bg-info/15 text-info"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl"><span data-target="50,895">0</span></h3>
+                                            <p class="text-default-400"><span>Monthly New Customers</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header flex border-dashed justify-between items-center">
+                                    <h5 class="card-title">Revenue</h5>
+                                    <span class="badge bg-warning/15 text-warning"> Monthly</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="flex justify-between items-center">
+                                        <div class="donut-chart" data-chart="donut" style="min-height: 60px; width: 60px"></div>
+                                        <div class="text-end">
+                                            <h3 class="mb-2.5 font-normal text-xl">$<span data-target="50.33">0</span>K</h3>
+                                            <p class="text-default-400"><span>Monthly Revenue</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-5">
+                            <div class="card-header py-0 border-dashed card-tabs flex items-center">
+                                <div class="grow">
+                                    <h4 class="card-title">Orders Statics</h4>
+                                </div>
+                                <nav id="hs-tabs" class="flex gap-x-1" aria-label="Tabs" role="tablist" aria-orientation="horizontal">
+                                    <button
+                                        type="button"
+                                        class="hs-tab-active:text-primary hs-tab-active:border-b py-4.25 font-medium hs-tab-active:border-primary relative px-4 text-sm whitespace-nowrap hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none"
+                                        id="today"
+                                        aria-selected="true"
+                                        data-hs-tab="#today-tab"
+                                        aria-controls="today-tab"
+                                        role="tab"
+                                    >
+                                        <i class="iconify tabler--home md:hidden block"></i>
+                                        Today
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="hs-tab-active:text-primary hs-tab-active:border-b py-4.25 font-medium hs-tab-active:border-primary relative px-4 text-sm whitespace-nowrap hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none active"
+                                        id="monthly"
+                                        aria-selected="false"
+                                        data-hs-tab="#monthly-tab"
+                                        aria-controls="monthly-tab"
+                                        role="tab"
+                                    >
+                                        <i class="iconify tabler--user-circle md:hidden block"></i>
+                                        Monthly
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="hs-tab-active:text-primary hs-tab-active:border-b py-4.25 font-medium hs-tab-active:border-primary relative px-4 text-sm whitespace-nowrap hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none"
+                                        id="annual"
+                                        aria-selected="false"
+                                        data-hs-tab="#annual-tab"
+                                        aria-controls="annual-tab"
+                                        role="tab"
+                                    >
+                                        <i class="iconify tabler--settings md:hidden block"></i>
+                                        Annual
+                                    </button>
+                                </nav>
+                            </div>
+
+                            <div class="grid xl:grid-cols-3 grid-cols-1">
+                                <div class="xl:col-span-2 border-e border-dashed border-default-300">
+                                    <div id="orders-chart" style="min-height: 405px"></div>
+                                </div>
+
+                                <div class="col-span-1">
+                                    <div class="p-5 bg-light/20 border-b border-dashed border-default-300">
+                                        <div class="flex justify-between items-center">
+                                            <div class="col">
+                                                <h4 class="text-sm mb-1.25">Would you like the full report?</h4>
+                                                <small class="text-default-400 text-xs"> All 120 orders have been successfully delivered </small>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <div class="hs-tooltip [--placement:top] inline-block">
+                                                    <button type="button" class="hs-tooltip-toggle size-7.75 flex justify-center items-center rounded-full border border-default-300 text-default-700 hover:bg-default-50 hover:border-default-400 focus:outline-hidden">
+                                                        <i class="iconify tabler--download text-xl"></i>
+                                                        <span
+                                                            class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-default-800 border border-tooltip-line text-xs font-medium text-body-bg rounded-md shadow-2xs"
+                                                            role="tooltip"
+                                                        >
+                                                            Download
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-1.25 grid md:grid-cols-2 grid-cols-1 gap-1.25">
+                                        <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                            <div class="card-body">
+                                                <div class="mb-5 flex justify-between items-center">
+                                                    <h5 class="text-lg">$24,500</h5>
+                                                    <span>18.45% <i class="iconify tabler--arrow-up text-success"></i></span>
+                                                </div>
+                                                <p class="text-default-400 mb-2.5"><span>Total sales in period</span></p>
+                                                <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                    <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 18.45%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                            <div class="card-body">
+                                                <div class="mb-5 flex justify-between items-center">
+                                                    <h5 class="text-lg">1,240</h5>
+                                                    <span>10.35% <i class="iconify tabler--arrow-down text-danger"></i></span>
+                                                </div>
+                                                <p class="text-default-400 mb-2.5"><span>Number of customers</span></p>
+                                                <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                    <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 10.35%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                            <div class="card-body">
+                                                <div class="mb-5 flex justify-between items-center">
+                                                    <h5 class="text-lg">3,750</h5>
+                                                    <span>22.61% <i class="iconify tabler--bolt text-primary"></i></span>
+                                                </div>
+                                                <p class="text-default-400 mb-2.5 truncate"><span>Products sold in the period</span></p>
+                                                <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                    <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 22.61%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="card rounded-none border shadow-none border-dashed border-default-300 mb-0">
+                                            <div class="card-body">
+                                                <div class="mb-5 flex justify-between items-center">
+                                                    <h5 class="text-lg">$65.49 <small class="fs-6">USD</small></h5>
+                                                    <span>5.92% <i class="iconify tabler--arrow-up text-success"></i></span>
+                                                </div>
+                                                <p class="text-default-400 mb-2.5"><span>Average order value</span></p>
+                                                <div class="w-full bg-default-200 rounded-full h-1.25 mb-1.25">
+                                                    <div class="bg-secondary h-1.25 rounded-full" role="progressbar" style="width: 5.92%"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-center my-5">
+                                        <a href="chat.html" class="underline font-semibold flex gap-1 justify-center items-center hover:text-primary link-offset-3"> View all Reports <i class="iconify tabler--send-2"></i> </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid xl:grid-cols-2 grid-cols-1 gap-base mb-5">
+                            <div data-table data-table-rows-per-page="5" class="card">
+                                <div class="card-header justify-between items-center border-dashed">
+                                    <h4 class="card-title mb-0">Product Inventory</h4>
+                                    <div class="flex gap-2.5">
+                                        <a href="#!" class="btn btn-sm text-sm bg-secondary/15 text-secondary hover:text-white hover:bg-secondary"> <i class="iconify tabler--plus me-1"></i> Add Product </a>
+                                        <a href="javascript:void(0);" class="btn btn-sm text-sm bg-primary text-white hover:bg-primary-hover"> <i class="iconify tabler--file-export"></i> Export CSV </a>
+                                    </div>
+                                </div>
+
+                                <div class="table-wrapper whitespace-nowrap">
+                                    <table class="table table-sm table-hover">
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/products/1.png" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-default-800">Smart Watch</a></h5>
+                                                            <span class="text-default-400 text-xs">Wearables</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Stock</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">120 units</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Price</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$89.99</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Ratings</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">
+                                                        <span class="text-warning">
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star"></span>
+                                                        </span>
+                                                        <span class="ms-1.25"><a href="#!" class="font-semibold hover:text-primary">(45)</a></span>
+                                                    </h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Active</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> Edit Product </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Remove </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/products/2.png" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-default-800">Bluetooth Speaker</a></h5>
+                                                            <span class="text-default-400 text-xs">Audio</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Stock</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">75 units</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Price</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$39.50</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Ratings</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">
+                                                        <span class="text-warning">
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star"></span>
+                                                            <span class="iconify tabler--star"></span>
+                                                        </span>
+                                                        <span class="ms-1.25"><a href="#!" class="font-semibold hover:text-primary">(20)</a></span>
+                                                    </h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-warning"></i> Low Stock</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> Edit Product </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Remove </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/products/4.png" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-default-800">Gaming Mouse</a></h5>
+                                                            <span class="text-default-400 text-xs">Accessories</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Stock</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">0 units</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Price</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$24.99</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Ratings</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">
+                                                        <span class="text-warning">
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                        </span>
+                                                        <span class="ms-1.25"><a href="#!" class="font-semibold hover:text-primary">(14)</a></span>
+                                                    </h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-danger"></i> Out of Stock</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> Edit Product </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Remove </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/products/5.png" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-default-800">4K Action Camera</a></h5>
+                                                            <span class="text-default-400 text-xs">Cameras</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Stock</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">60 units</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Price</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$149.00</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Ratings</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">
+                                                        <span class="text-warning">
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star"></span>
+                                                        </span>
+                                                        <span class="ms-1.25"><a href="#!" class="font-semibold hover:text-primary">(31)</a></span>
+                                                    </h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Active</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> Edit Product </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Remove </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/products/6.png" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-default-800">Fitness Tracker Band</a></h5>
+                                                            <span class="text-default-400 text-xs">Wearables</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Stock</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">220 units</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Price</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$34.95</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Ratings</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">
+                                                        <span class="text-warning">
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                            <span class="iconify tabler--star-filled"></span>
+                                                        </span>
+                                                        <span class="ms-1.25"><a href="#!" class="font-semibold hover:text-primary">(18)</a></span>
+                                                    </h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Active</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> Edit Product </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Remove </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- end table-responsive-->
+                                <div class="card-footer">
+                                    <div class="items-center justify-between flex text-center w-full md:text-start">
+                                        <div>
+                                            <div data-table-pagination-info="products"></div>
+                                        </div>
+                                        <div class="mt-5 sm:mt-0">
+                                            <div data-table-pagination></div>
+                                        </div>
+                                        <!-- end col-->
+                                    </div>
+                                    <!-- end row-->
+                                </div>
+                                <!-- end card-footer-->
+                            </div>
+                            <!-- end card-->
+
+                            <div data-table data-table-rows-per-page="5" class="card">
+                                <div class="card-header justify-between items-center border-dashed">
+                                    <h4 class="card-title mb-0">Product Inventory</h4>
+                                    <div class="flex gap-2.5">
+                                        <a href="#!" class="btn btn-sm text-sm bg-secondary/15 text-secondary hover:text-white hover:bg-secondary"> <i class="iconify tabler--plus"></i> Add Order </a>
+                                        <a href="javascript:void(0);" class="btn btn-sm text-sm bg-primary text-white hover:bg-primary-hover"> <i class="iconify tabler--file-export"></i> Export CSV </a>
+                                    </div>
+                                </div>
+
+                                <div class="table-wrapper whitespace-nowrap">
+                                    <table class="table table-sm table-hover">
+                                        <tbody>
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/users/user-1.jpg" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-body">#ORD-1001</a></h5>
+                                                            <span class="text-default-400 text-xs">John Doe</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Product</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">Smart Watch</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Date</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">2025-04-29</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Amount</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$89.99</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Delivered</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> View Details </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Cancel Order </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Repeat for other orders -->
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/users/user-2.jpg" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-body">#ORD-1002</a></h5>
+                                                            <span class="text-default-400 text-xs">Emma Watson</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Product</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">Bluetooth Speaker</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Date</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">2025-04-28</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Amount</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$39.50</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-warning"></i> Pending</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> View Details </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Cancel Order </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/users/user-4.jpg" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-body">#ORD-1003</a></h5>
+                                                            <span class="text-default-400 text-xs">Liam Johnson</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Product</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">Smart Watch</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Date</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">2025-04-27</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Amount</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$89.99</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Completed</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> View Details </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Cancel Order </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/users/user-6.jpg" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-body">#ORD-1004</a></h5>
+                                                            <span class="text-default-400 text-xs">Olivia Brown</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Product</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">Gaming Mouse</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Date</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">2025-04-26</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Amount</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$24.99</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-danger"></i> Cancelled</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> View Details </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Cancel Order </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <tr>
+                                                <td class="ps-4">
+                                                    <div class="flex items-center">
+                                                        <img src="assets/images/users/user-5.jpg" alt="" class="size-8 rounded-full me-2.5" />
+                                                        <div>
+                                                            <h5 class="text-sm my-1.25"><a href="#!" class="text-body">#ORD-1005</a></h5>
+                                                            <span class="text-default-400 text-xs">Noah Smith</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Product</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">Fitness Tracker Band</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Date</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">2025-04-25</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Amount</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal">$34.95</h5>
+                                                </td>
+                                                <td>
+                                                    <span class="text-default-400 text-xs">Status</span>
+                                                    <h5 class="text-sm mt-1.25 mb-2 font-normal"><i class="iconify tabler--circle-filled fs-xs text-success"></i> Completed</h5>
+                                                </td>
+                                                <td style="width: 30px" class="text-end pe-4.5">
+                                                    <div class="relative ms-auto">
+                                                        <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                            <button type="button" class="hs-dropdown-toggle" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                                <i class="iconify tabler--dots-vertical text-lg text-default-400"></i>
+                                                            </button>
+
+                                                            <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                                <div class="space-y-0.5">
+                                                                    <a href="#" class="dropdown-item" href="#"> View Details </a>
+
+                                                                    <a href="#" class="dropdown-item" href="#"> Cancel Order </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- end table-responsive-->
+                                <div class="card-footer">
+                                    <div class="items-center justify-between flex text-center w-full md:text-start">
+                                        <div>
+                                            <div data-table-pagination-info="orders"></div>
+                                        </div>
+                                        <div class="mt-5 sm:mt-0">
+                                            <div data-table-pagination></div>
+                                        </div>
+                                        <!-- end col-->
+                                    </div>
+                                    <!-- end row-->
+                                </div>
+                                <!-- end card-footer-->
+                            </div>
+                            <!-- end card-->
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header justify-between items-center">
+                                <h5 class="card-title">Transactions Worldwide</h5>
+                                <div class="flex gap-1">
+                                    <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up"></i>
+                                    </a>
+
+                                    <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-refresh">
+                                        <i class="iconify tabler--refresh"></i>
+                                    </a>
+
+                                    <a href="#!" class="btn size-6 rounded-full bg-light text-dark hover:text-primary hover:bg-primary/15" data-action="card-close">
+                                        <i class="iconify tabler--x"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="grid xl:grid-cols-2 grid-cols-1 gap-base">
+                                    <div>
+                                        <div class="overflow-x-auto">
+                                            <table class="table table-custom table-nowrap table-hover table-centered whitespace-nowrap min-w-full">
+                                                <thead class="bg-light/25 align-middle thead-sm">
+                                                    <tr class="uppercase text-2xs">
+                                                        <th class="text-default-400">Tran. No.</th>
+                                                        <th class="text-default-400">Order</th>
+                                                        <th class="text-default-400">Date</th>
+                                                        <th class="text-default-400">Amount</th>
+                                                        <th class="text-default-400">Status</th>
+                                                        <th class="text-default-400">Payment Method</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="border-b border-default-300">
+                                                    <tr>
+                                                        <td><a href="#!" class="hover:text-primary font-semibold">#TR-3468</a></td>
+                                                        <td>#ORD-1003 - Smart Watch</td>
+                                                        <td>27 Apr 2025 <small class="text-default-400">02:15 PM</small></td>
+                                                        <td class="font-semibold">$89.99</td>
+                                                        <td>
+                                                            <span class="badge bg-success/15 text-success text-2xs"> <i class="iconify tabler--point-filled"></i> Paid</span>
+                                                        </td>
+                                                        <td class="flex items-center"><img src="assets/images/cards/mastercard.svg" alt="" class="me-2.5 h-7" /> xxxx 1123</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><a href="#!" class="hover:text-primary font-semibold">#TR-3469</a></td>
+                                                        <td>#ORD-1004 - Gaming Mouse</td>
+                                                        <td>26 Apr 2025 <small class="text-default-400">09:42 AM</small></td>
+                                                        <td class="font-semibold">$24.99</td>
+                                                        <td>
+                                                            <span class="badge bg-danger/15 text-danger text-2xs"> <i class="iconify tabler--point-filled"></i> Failed</span>
+                                                        </td>
+                                                        <td class="flex items-center"><img src="assets/images/cards/visa.svg" alt="" class="me-2.5 h-7" /> xxxx 3490</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><a href="#!" class="hover:text-primary font-semibold">#TR-3470</a></td>
+                                                        <td>#ORD-1005 - Fitness Tracker Band</td>
+                                                        <td>25 Apr 2025 <small class="text-default-400">11:10 AM</small></td>
+                                                        <td class="font-semibold">$34.95</td>
+                                                        <td>
+                                                            <span class="badge bg-success/15 text-success text-2xs"> <i class="iconify tabler--point-filled"></i> Paid</span>
+                                                        </td>
+                                                        <td class="flex items-center"><img src="assets/images/cards/american-express.svg" alt="" class="me-2.5 h-7" /> xxxx 8765</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><a href="#!" class="hover:text-primary font-semibold">#TR-3471</a></td>
+                                                        <td>#ORD-1006 - Wireless Keyboard</td>
+                                                        <td>24 Apr 2025 <small class="text-default-400">08:58 PM</small></td>
+                                                        <td class="font-semibold">$59.00</td>
+                                                        <td>
+                                                            <span class="badge bg-warning/15 text-warning text-2xs"> <i class="iconify tabler--point-filled"></i> Pending</span>
+                                                        </td>
+                                                        <td class="flex items-center"><img src="assets/images/cards/mastercard.svg" alt="" class="me-2.5 h-7" /> xxxx 5566</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td><a href="#!" class="hover:text-primary font-semibold">#TR-3472</a></td>
+                                                        <td>#ORD-1007 - Portable Charger</td>
+                                                        <td>23 Apr 2025 <small class="text-default-400">05:37 PM</small></td>
+                                                        <td class="font-semibold">$45.80</td>
+                                                        <td>
+                                                            <span class="badge bg-success/15 text-success text-2xs"><i class="iconify tabler--point-filled"></i> Paid</span>
+                                                        </td>
+                                                        <td class="flex items-center"><img src="assets/images/cards/visa.svg" alt="" class="me-2.5 h-7" /> xxxx 9012</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <!-- end table-responsive-->
+
+                                        <div class="text-center mt-5">
+                                            <a href="#!" class="underline font-semibold hover:text-primary flex gap-1 items-center justify-center"> View All Transactions <i class="iconify tabler--send-2"></i> </a>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div id="map_1" class="w-full mt-7.5 xl:mt-0" style="height: 297px"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+
+        <!-- E Charts js -->
+        <script src="assets/plugins/echarts/echarts.min.js"></script>
+
+        <!-- Custom table -->
+        <script src="assets/js/pages/custom-table.js"></script>
+
+        <!-- Vector Map Js -->
+        <script src="assets/plugins/jsvectormap/jsvectormap.min.js"></script>
+        <script src="assets/js/maps/world-merc.js"></script>
+        <script src="assets/js/maps/world.js"></script>
+
+        <!-- Dashboard js -->
+        <script src="assets/js/pages/dashboard-ecommerce.js"></script>
+    </body>
+</html>

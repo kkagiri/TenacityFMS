@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Carousel"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "UI", "title":"Carousel"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "UI", "title":"Carousel"})
+
+                    <div class="container">
+                        <div class="grid grid-cols-1 xl:grid-cols-2 gap-base">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Slides Only</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "size-3 rounded-full cursor-pointer",
+                                "isAutoPlay": true
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-1.jpg" alt="First slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-2.jpg" alt="Second slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-3.jpg" alt="Third slide" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">With Controls</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "size-3 rounded-full cursor-pointer",
+                                "isAutoPlay": true   
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-4.jpg" alt="First slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-1.jpg" alt="Second slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-2.jpg" alt="Third slide" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-left size-8 text-white"></i>
+                                            <span class="sr-only">Previous</span>
+                                        </button>
+
+                                        <button type="button" class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-right size-8 text-white"></i>
+                                            <span class="sr-only">Next</span>
+                                        </button>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">With Indicators</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "hs-carousel-active:bg-white bg-white/50 w-7.5 h-0.75 cursor-pointer",
+                                "isAutoPlay": true
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden bg-white">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-3.jpg" alt="First slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-2.jpg" alt="Second slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-1.jpg" alt="Third slide" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-left size-8 text-white"></i>
+                                            <span class="sr-only">Previous</span>
+                                        </button>
+
+                                        <button type="button" class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-right size-8 text-white"></i>
+                                            <span class="sr-only">Next</span>
+                                        </button>
+
+                                        <div class="hs-carousel-pagination absolute start-0 end-0 bottom-3 flex justify-center gap-x-2"></div>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">With Captions</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "size-3 rounded-full cursor-pointer",
+                                "isAutoPlay": true
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-1.jpg" alt="First slide" />
+                                                    <div class="absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="mb-2 text-center text-2xl text-white">First slide label</h3>
+                                                        <p class="mb-4 text-center text-white">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-3.jpg" alt="Second slide" />
+                                                    <div class="absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="mb-2 text-center text-2xl text-white">Second slide label</h3>
+                                                        <p class="mb-4 text-center text-white">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-2.jpg" alt="Third slide" />
+                                                    <div class="absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="mb-2 text-center text-2xl text-white">Third slide label</h3>
+                                                        <p class="mb-4 text-center text-white">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-left size-8 text-white"></i>
+                                            <span class="sr-only">Previous</span>
+                                        </button>
+
+                                        <button type="button" class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-right size-8 text-white"></i>
+                                            <span class="sr-only">Next</span>
+                                        </button>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Individual Interval</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "rounded-full cursor-pointer",
+                                "isAutoPlay": true
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden bg-white">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-4.jpg" alt="First slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-2.jpg" alt="Second slide" />
+                                                </div>
+
+                                                <div class="hs-carousel-slide">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-1.jpg" alt="Third slide" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-left size-8 text-white"></i>
+                                            <span class="sr-only">Previous</span>
+                                        </button>
+
+                                        <button type="button" class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-right size-8 text-white"></i>
+                                            <span class="sr-only">Next</span>
+                                        </button>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">Dark Variant</h5>
+                                    <button class="btn size-6 rounded-full bg-light text-dark hover:text-primary" data-action="card-toggle">
+                                        <i class="iconify tabler--chevron-up text-base"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Slider -->
+                                    <div
+                                        data-hs-carousel='{
+                                "loadingClasses": "opacity-0",
+                                "dotsItemClasses": "hs-carousel-active:bg-dark bg-dark/50 w-7.5 h-0.75 cursor-pointer",
+                                "isAutoPlay": true
+                                }'
+                                        class="relative"
+                                    >
+                                        <div class="hs-carousel relative min-h-94 w-full overflow-hidden">
+                                            <div class="hs-carousel-body absolute start-0 top-0 bottom-0 flex flex-nowrap opacity-0 transition-transform duration-700">
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- First slide -->
+                                                    <img src="assets/images/stock/small-8.jpg" alt="First slide" />
+                                                    <div class="text-dark absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="text-dark mb-2 text-center text-lg">First slide label</h3>
+                                                        <p class="mb-4 text-center">Some representative placeholder content for the first slide.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- Second slide -->
+                                                    <img src="assets/images/stock/small-9.jpg" alt="Second slide" />
+                                                    <div class="absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="text-dark mb-2 text-center text-lg">Second slide label</h3>
+                                                        <p class="text-dark mb-4 text-center">Some representative placeholder content for the second slide.</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="hs-carousel-slide relative">
+                                                    <!-- Third slide -->
+                                                    <img src="assets/images/stock/small-10.jpg" alt="Third slide" />
+                                                    <div class="absolute bottom-0 w-full pt-4 pb-4">
+                                                        <h3 class="text-dark mb-2 text-center text-lg">Third slide label</h3>
+                                                        <p class="text-dark mb-4 text-center">Some representative placeholder content for the third slide.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button type="button" class="hs-carousel-prev hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 start-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-left size-8"></i>
+                                            <span class="sr-only">Previous</span>
+                                        </button>
+
+                                        <button type="button" class="hs-carousel-next hs-carousel-disabled:opacity-50 hs-carousel-disabled:pointer-events-none absolute inset-y-0 end-5 inline-flex items-center justify-center">
+                                            <i class="iconify tabler--chevron-right size-8"></i>
+                                            <span class="sr-only">Next</span>
+                                        </button>
+                                        <div class="hs-carousel-pagination absolute start-0 end-0 bottom-3 flex justify-center gap-x-2"></div>
+                                    </div>
+                                    <!-- End Slider -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

@@ -1,0 +1,44 @@
+import BaseVectorMap from '@/components/maps/BaseVectorMap'
+import 'jsvectormap'
+import { useEffect, useState } from 'react'
+import { getIndiaMapOptions } from './data'
+const IndiaVectorMap = () => {
+  const [mapLoaded, setMapLoaded] = useState(false)
+  useEffect(() => {
+    if (window.jsVectorMap?.maps?.in_mill) {
+      setMapLoaded(true)
+      return
+    }
+    const script = document.createElement('script')
+    script.src = import.meta.env.VITE_BASE_URL || '' + '/data/in-mill-en.js'
+    script.async = true
+    script.onload = () => {
+      setMapLoaded(true)
+    }
+    document.body.appendChild(script)
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, [])
+  if (!mapLoaded) {
+    return (
+      <div
+        style={{
+          height: 360,
+        }}
+      >
+        Loading map…
+      </div>
+    )
+  }
+  return (
+    <BaseVectorMap
+      id="india-map"
+      options={getIndiaMapOptions()}
+      style={{
+        height: 360,
+      }}
+    />
+  )
+}
+export default IndiaVectorMap

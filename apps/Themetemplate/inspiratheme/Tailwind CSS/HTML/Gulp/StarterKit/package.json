@@ -1,0 +1,46 @@
+{
+  "name": "inspinia",
+  "version": "5.0.0",
+  "description": "Inspinia is the #1 best-selling admin dashboard template on Wrapmarket. Perfect for building CRM, CMS, project management tools, and custom web apps with clean UI, responsive design, and powerful features.",
+  "author": "WebAppLayers",
+  "scripts": {
+    "dev": "gulp",
+    "build": "gulp build"
+  },
+  "devDependencies": {
+    "@svgdotjs/svg.panzoom.js": "^2.1.2",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/typography": "^0.5.19",
+    "autoprefixer": "^10.4.23",
+    "browser-sync": "^3.0.3",
+    "clean-css": "^5.3.1",
+    "cssnano": "^7.1.1",
+    "del": "^6.1.1",
+    "gulp": "^4.0.2",
+    "gulp-autoprefixer": "^8.0.0",
+    "gulp-clean-css": "^4.2.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-file-include": "^2.3.0",
+    "gulp-imagemin": "^7.1.0",
+    "gulp-newer": "^1.4.0",
+    "gulp-npm-dist": "^1.0.3",
+    "gulp-postcss": "^10.0.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-replace": "^1.1.4",
+    "gulp-sourcemaps": "^3.0.0",
+    "gulp-uglify": "^3.0.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
+  },
+  "dependencies": {
+    "@iconify/json": "^2.2.384",
+    "@iconify/tailwind4": "^1.0.6",
+    "apexcharts": "^5.3.5",
+    "choices.js": "^11.1.0",
+    "flatpickr": "^4.6.13",
+    "preline": "4.0.1",
+    "prismjs": "^1.30.0",
+    "simplebar": "^6.3.3"
+  }
+}

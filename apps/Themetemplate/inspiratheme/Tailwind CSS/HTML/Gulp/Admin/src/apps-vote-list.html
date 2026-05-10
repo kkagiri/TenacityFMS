@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Vote List"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <div class="wrapper">
+            @@include('./partials/topbar.html', {"subtitle": "Apps", "title":"Vote List"}) @@include('./partials/sidenav.html')
+
+            <!-- Start Page Content here -->
+            <div class="page-content">
+                <main>
+                    @@include("./partials/page-title.html", {"subtitle": "Apps", "title":"Vote List"})
+
+                    <div class="container">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="input-icon-group">
+                                    <i class="iconify tabler--search input-icon"></i>
+                                    <input data-table-search type="text" type="search" placeholder="Search topics..." class="form-input" />
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5">
+                                    <span class="font-semibold me-2.5">Filter By:</span>
+                                    <!-- Region Filter -->
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--filter-2 input-icon"></i>
+                                        <select class="form-select">
+                                            <option selected="">Sort By</option>
+                                            <option value="North America">Latest</option>
+                                            <option value="Europe">Popular</option>
+                                            <option value="Asia">Low Votes</option>
+                                            <option value="Africa">High Votes</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Vote Status Filter -->
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--circle-check input-icon"></i>
+                                        <select class="form-select">
+                                            <option selected="">Vote Status</option>
+                                            <option value="Voted">Voted</option>
+                                            <option value="Not Voted">Not Voted</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Disqualified">Disqualified</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn bg-success text-white hover:bg-success-hover">Add New Topics</button>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-0">
+                                <!-- voting section -->
+                                <div>
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <!-- Voting Section -->
+                                            <div>
+                                                <div class="flex flex-col items-stretch gap-1.5 text-center">
+                                                    <button type="button" class="btn p-0">
+                                                        <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                    </button>
+                                                    <h5 class="text-base font-bold">35</h5>
+                                                    <button type="button" class="btn p-0">
+                                                        <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Content Section -->
+                                            <div>
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Should remote work be a permanent option for all employees?</a>
+                                                </h4>
+
+                                                <!-- Short Description -->
+                                                <p class="text-default-400 mb-2.5 text-sm">Remote work has seen a massive rise in popularity since 2020. This vote explores whether it should remain a flexible option moving forward.</p>
+
+                                                <!-- Meta Info -->
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-7.jpg" alt="avatar-7" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Emily Parker</a>
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        <span>Posted on: Jan 12, 2025</span>
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Workplace</span>
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 89</a>
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 5 days
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 1,284
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-warning text-white">Closed</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <!-- Voting -->
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-danger text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">52</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Content -->
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Should companies implement a 4-day workweek?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">As work-life balance becomes a higher priority, many advocate for a shorter workweek to improve productivity and employee well-being.</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-4.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Daniel Stone</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Feb 1, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Productivity</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 54</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 4 days
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 985
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-success text-white">Open</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+
+                                            <!-- Thank you Icon -->
+                                            <span class="text-success/25 ms-auto text-4xl">
+                                                <i class="iconify tabler--checks"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">78</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Should AI be part of everyday business operations?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">As AI becomes more accessible, businesses are debating its integration into daily operations for tasks like customer support and analysis.</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-8.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Liam Torres</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Mar 3, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Technology</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 112</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 2 days
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 1,140
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-success text-white">Open</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">21</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Should companies go fully remote?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">With the success of remote setups, some argue that physical offices are no longer necessary. Others miss in-person collaboration.</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-6.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Sophia Ray</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Jan 28, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Remote</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 40</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 3 days
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 800
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-warning text-white">Closed</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">96</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Is a degree still essential in tech hiring?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">Many argue that skills matter more than formal education in today’s tech industry. Should degrees still be a hiring requirement?</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-9.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Jordan Smith</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Jan 10, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Career</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 87</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 1 day
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 1,004
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-success text-white">Open</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="border-b border-dashed border-default-300 px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <!-- Voting -->
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">40</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-danger text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Content -->
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Should meetings be reduced to increase efficiency?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">Teams spend hours in meetings weekly. Is cutting down on them the secret to improved focus and output?</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-10.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Rachel Lee</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Feb 5, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Efficiency</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 33</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 6 days
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 728
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-info text-white">Ending Soon</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+
+                                            <!-- Thank you icon -->
+                                            <span class="text-success/25 ms-auto text-4xl">
+                                                <i class="iconify tabler--checks"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="px-7.5 py-5">
+                                        <div class="flex items-center gap-7.5">
+                                            <!-- Voting -->
+                                            <div>
+                                                <div class="flex flex-col gap-1.5 text-center">
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-up text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+
+                                                    <h5 class="text-base font-bold">65</h5>
+
+                                                    <div>
+                                                        <button type="button">
+                                                            <i class="iconify tabler--chevron-down text-primary text-xl"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Content -->
+                                            <div class="grow">
+                                                <h4 class="text-md mb-1.25">
+                                                    <a href="#!" class="hover:text-primary">Is hybrid work the best model moving forward?</a>
+                                                </h4>
+
+                                                <p class="text-default-400 mb-2.5 text-sm">Hybrid setups offer flexibility and collaboration—but do they satisfy everyone? Let’s vote on the future of work.</p>
+
+                                                <p class="text-default-400 mb-1.25 flex flex-wrap items-center gap-base">
+                                                    <span class="flex items-center gap-1.25">
+                                                        <img src="assets/images/users/user-3.jpg" class="size-6 rounded-full" />
+                                                        <a href="#!" class="hover:text-primary font-semibold">Harvey Nash</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--calendar"></i>
+                                                        Posted on: Jan 18, 2025
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--tag"></i>
+                                                        <span class="badge font-semibold bg-light text-primary">Hybrid</span>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--messages"></i>
+                                                        <a href="#!" class="hover:text-primary text-sm">Comments: 61</a>
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--clock"></i>
+                                                        Ends in: 2 days
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--users"></i>
+                                                        Votes: 887
+                                                    </span>
+
+                                                    <span class="flex items-center gap-1">
+                                                        <i class="iconify tabler--lock"></i>
+                                                        <span class="badge font-semibold bg-warning text-white">Closed</span>
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                @@include('./partials/footer.html')
+            </div>
+            <!-- End Page content -->
+        </div>
+
+        @@include('./partials/customizer.html') @@include('./partials/footer-scripts.html')
+    </body>
+</html>

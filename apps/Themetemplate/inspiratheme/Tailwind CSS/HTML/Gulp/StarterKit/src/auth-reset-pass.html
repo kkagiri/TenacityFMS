@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        @@include("partials/title-meta.html", {"title": "Reset Password"}) @@include('./partials/head-css.html')
+    </head>
+
+    <body>
+        <!-- Start Page Content here -->
+        <div class="flex min-h-screen items-center p-12.5">
+            <div class="container">
+                <div class="flex justify-center px-2.5">
+                    <div class="2xl:w-4/10 md:w-1/2 sm:w-2/3 w-full">
+                        <!-- Auth Brand Logo -->
+                        <div class="mb-3 flex flex-col items-center justify-center text-center">
+                            <a href="index.html" class="auth-logo">
+                                <img src="assets/images/logo-black.png" alt="logo" class="flex dark:hidden" />
+                                <img src="assets/images/logo.png" alt="dark logo" class="hidden dark:flex" />
+                            </a>
+
+                            <h4 class="font-bold text-base text-dark mt-5 mb-2">Forgot Password?</h4>
+                            <p class="text-default-400 mx-auto w-full lg:w-3/4 mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+                        </div>
+                        <div class="card p-7.5 rounded-2xl">
+                            <form action="index.html">
+                                <div class="mb-5">
+                                    <label for="userEmail" class="form-label">
+                                        Email address
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="email" class="form-input" id="userEmail" placeholder="you&#64;example.com" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-6">
+                                    <div class="flex items-center gap-2">
+                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="rememberMe" />
+                                        <label class="form-check-label" for="rememberMe">Agree the Terms & Policy</label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <button type="submit" class="btn bg-primary w-full py-3 font-semibold text-white hover:bg-primary-hover">Send Request</button>
+                                </div>
+                            </form>
+
+                            <p class="text-default-400 mt-7.5 text-center">
+                                Return to
+                                <a href="auth-sign-in.html" class="text-primary font-semibold underline underline-offset-4">Sign in</a>
+                            </p>
+                        </div>
+
+                        <!-- Auth Footer -->
+                        <p class="text-default-400 mt-7.5 text-center">
+                            &copy;
+                            <script>
+                                document.write(new Date().getFullYear())
+                            </script>
+                            Inspinia - by
+                            <span>WebAppLayers</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Page content -->
+
+        @@include('./partials/customizer.html')
+    </body>
+</html>

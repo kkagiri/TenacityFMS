@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Role Details" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Pages" title="Role Details" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    <div class="container">
+                        <div class="flex flex-wrap justify-between items-center gap-3 my-5">
+                            <div>
+                                <h4 class="page-main-title mb-1.25">Role Details</h4>
+                                <p class="text-default-400">Define and manage roles to streamline operations and ensure secure access control.</p>
+                            </div>
+
+                            <div>
+                                <a href="javascript: void(0);" class="btn bg-success text-white hover:bg-success-hover" aria-haspopup="dialog" aria-expanded="false" aria-inputs="addRoleModal" data-hs-overlay="#addRoleModal">
+                                    <i class="iconify tabler--plus"></i>
+                                    Add New Role
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="grid lg:grid-cols-4 grid-cols-1 gap-base">
+                            <div class="col-span-1">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="flex items-start mb-7.5">
+                                            <div>
+                                                <div class="size-12 bg-primary/15 text-primary flex justify-center items-center rounded-full">
+                                                    <i class="iconify tabler--shield-lock text-2xl"></i>
+                                                </div>
+                                            </div>
+
+                                            <div class="ms-6">
+                                                <h5 class="text-sm mb-1.25">Security Officer</h5>
+                                                <p class="text-default-400">Handles platform safety and protocol reviews.</p>
+                                            </div>
+
+                                            <div class="ms-auto relative">
+                                                <div class="hs-dropdown [--placement:bottom-right] relative inline-flex">
+                                                    <button type="button" class="hs-dropdown-toggle text-lg text-default-400" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                        <i class="iconify tabler--dots-vertical text-lg"></i>
+                                                    </button>
+
+                                                    <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                        <a class="dropdown-item" href="#"> <i class="iconify tabler--edit"></i> Edit </a>
+
+                                                        <a class="dropdown-item text-danger" href="#"> <i class="iconify tabler--trash"></i> Remove </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <ul class="flex flex-col gap-y-3 mb-base">
+                                            <li class="flex items-center gap-3">
+                                                <i class="iconify tabler--check text-base text-success"></i>
+                                                Daily Risk Assessment
+                                            </li>
+
+                                            <li class="flex items-center gap-3">
+                                                <i class="iconify tabler--check text-base text-success"></i>
+                                                Manage Security Logs
+                                            </li>
+
+                                            <li class="flex items-center gap-3">
+                                                <i class="iconify tabler--check text-base text-success"></i>
+                                                Control Access Rights
+                                            </li>
+
+                                            <li class="flex items-center gap-3">
+                                                <i class="iconify tabler--check text-base text-success"></i>
+                                                Emergency Protocols
+                                            </li>
+                                        </ul>
+
+                                        <p class="text-sm text-default-400 mb-3">Total 17 users</p>
+
+                                        <div class="flex -space-x-2 items-center mb-base">
+                                            <img src="/images/users/user-7.jpg" alt="" class="size-8 rounded-full hover:-translate-y-1 transition-all duration-200" />
+                                            <img src="/images/users/user-8.jpg" alt="" class="size-8 rounded-full hover:-translate-y-1 transition-all duration-200" />
+                                            <img src="/images/users/user-9.jpg" alt="" class="size-8 rounded-full hover:-translate-y-1 transition-all duration-200" />
+                                            <img src="/images/users/user-10.jpg" alt="" class="size-8 rounded-full hover:-translate-y-1 transition-all duration-200" />
+                                        </div>
+
+                                        <div class="flex justify-between">
+                                            <span class="flex items-center gap-1.5 text-default-400 text-xs">
+                                                <i class="iconify tabler--clock"></i>
+                                                Updated 1 hour ago
+                                            </span>
+
+                                            <div>
+                                                <a href="#" class="btn btn-sm border border-primary text-primary hover:bg-primary hover:text-white rounded-full" aria-haspopup="dialog" aria-expanded="false" aria-controls="editRoleModal" data-hs-overlay="#editRoleModal"
+                                                    >Edit Role</a
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lg:col-span-3">
+                                <div data-table data-table-rows-per-page="8" class="card">
+                                    <div class="card-header">
+                                        <div class="flex gap-2">
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--search input-icon"></i>
+                                                <input data-table-search type="search" type="search" placeholder="Search Users..." class="form-input" />
+                                            </div>
+                                            <button data-table-delete-selected class="hidden btn bg-danger text-white hover:bg-danger-hover">Delete</button>
+                                        </div>
+
+                                        <div class="flex flex-wrap items-center gap-3">
+                                            <div class="md:flex items-center gap-3">
+                                                <span class="me-3 font-semibold text-nowrap">Filter By:</span>
+
+                                                <div class="input-icon-group">
+                                                    <i class="iconify tabler--user-check input-icon"></i>
+                                                    <select data-table-filter="status" class="form-select">
+                                                        <option value="">Status</option>
+                                                        <option value="Active">Active</option>
+                                                        <option value="Inactive">Inactive</option>
+                                                        <option value="Suspended">Suspended</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <select data-table-set-rows-per-page class="form-select">
+                                                    <option value="5">5</option>
+                                                    <option value="8">8</option>
+                                                    <option value="10">10</option>
+                                                    <option value="15">15</option>
+                                                    <option value="20">20</option>
+                                                </select>
+                                            </div>
+
+                                            <button class="btn bg-secondary text-white hover:bg-secondary-hover" type="button" aria-haspopup="dialog" aria-expanded="false" aria-inputs="addUserModal" data-hs-overlay="#addUserModal">Add User</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-wrapper">
+                                        <table class="table table-hover">
+                                            <thead class="thead-sm">
+                                                <tr class="bg-light/25 text-2xs uppercase">
+                                                    <th class="w-[1%]">
+                                                        <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-products" />
+                                                    </th>
+                                                    <th data-table-sort>ID</th>
+                                                    <th data-table-sort="user">User</th>
+                                                    <th data-table-sort>Joined Date</th>
+                                                    <th data-table-sort data-column="status">Status</th>
+                                                    <th class="text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR76129</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-1.jpg" alt="Elena Carter" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="#!" class="hover:text-primary">Elena Carter</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">elena&#64;webcore.dev</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        19 Jul, 2025
+                                                        <small class="text-default-400"> 11:00 AM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/15 text-success"> Active </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR58647</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-2.jpg" alt="Jordan Smith" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Jordan Smith</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">jordan&#64;mediaflow.com</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        21 Jul, 2025
+                                                        <small class="text-default-400">9:15 AM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/15 text-warning"> Inactive </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR94715</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-3.jpg" alt="Lucas Brown" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Lucas Brown</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">lucas&#64;intechlabs.com</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        20 Jul, 2025
+                                                        <small class="text-default-400">3:00 PM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-danger/15 text-danger"> Suspended </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR40289</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-4.jpg" alt="Sophia Green" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Sophia Green</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">sophia&#64;skygrid.org</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        18 Jul, 2025
+                                                        <small class="text-default-400">10:30 AM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/15 text-success"> Active </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR23981</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-5.jpg" alt="Ethan Ross" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Ethan Ross</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">ethan&#64;logico.io</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        17 Jul, 2025
+                                                        <small class="text-default-400">5:55 PM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/15 text-warning"> Inactive </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR83742</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-6.jpg" alt="Zara Mitchell" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Zara Mitchell</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">zara&#64;fusionui.com</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        22 Jul, 2025
+                                                        <small class="text-default-400">9:10 AM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/15 text-success"> Active </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR51268</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-7.jpg" alt="Benjamin Gray" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Benjamin Gray</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">benjamin&#64;stackpulse.dev</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        20 Jul, 2025
+                                                        <small class="text-default-400">6:25 PM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-warning/15 text-warning"> Inactive </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR17456</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-8.jpg" alt="Ava Patel" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Ava Patel</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">ava&#64;cleardash.io</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        23 Jul, 2025
+                                                        <small class="text-default-400">8:45 AM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/15 text-success"> Active </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR96421</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-9.jpg" alt="Mason Rivera" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Mason Rivera</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">mason&#64;softmeta.app</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        21 Jul, 2025
+                                                        <small class="text-default-400">2:10 PM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-danger/15 text-danger"> Suspended </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+
+                                                <tr>
+                                                    <td>
+                                                        <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                                    </td>
+                                                    <td>
+                                                        <h5><a href="apps-users-profile.html" class="text-sm font-semibold hover:text-primary">#USR71539</a></h5>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex gap-3 items-center">
+                                                            <img src="/images/users/user-10.jpg" alt="Chloe Walker" class="size-8 rounded-full" />
+                                                            <div>
+                                                                <h5>
+                                                                    <a href="apps-users-profile.html" class="hover:text-primary">Chloe Walker</a>
+                                                                </h5>
+                                                                <p class="text-default-400 text-xs">chloe&#64;flowbase.org</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        19 Jul, 2025
+                                                        <small class="text-default-400">12:35 PM</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge badge-label bg-success/15 text-success"> Active </span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="flex justify-center gap-1.5">
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--eye text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                                <i class="iconify tabler--edit text-base"></i>
+                                                            </a>
+                                                            <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                                <i class="iconify tabler--trash text-base"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <div class="card-footer">
+                                        <div data-table-pagination-info="roles"></div>
+                                        <div data-table-pagination></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+
+                <div id="editRoleModal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden fixed inset-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none">
+                    <div class="flex items-start justify-center min-h-screen p-4 pointer-events-none">
+                        <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 scale-95 opacity-0 transition-all duration-200 pointer-events-auto w-full max-w-3xl">
+                            <div class="flex flex-col card">
+                                <div class="card-header p-5">
+                                    <h3 id="editRoleModal-label" class="font-semibold text-default-600">Edit Role</h3>
+                                    <button type="button" class="text-default-800" aria-label="Close" data-hs-overlay="#editRoleModal">
+                                        <i class="iconify tabler--x text-2xl"></i>
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="editRoleName" class="form-label">Role Name</label>
+                                            <input type="text" class="form-input" id="editRoleName" value="Developer" required />
+                                        </div>
+
+                                        <div>
+                                            <label for="editRoleDescription" class="form-label">Description</label>
+                                            <input type="text" class="form-input" id="editRoleDescription" value="Builds and maintains the platform core features." required />
+                                        </div>
+
+                                        <div class="md:col-span-2">
+                                            <label for="editRoleResponsibilities" class="form-label">Responsibilities</label>
+                                            <textarea class="form-textarea" id="editRoleResponsibilities" rows="4" required>
+                                            Codebase Maintenance
+                                            API Integration
+                                            Unit Testing
+                                            Feature Deployment</textarea
+                                            >
+                                            <small class="text-default-400">Separate each item by comma or line</small>
+                                        </div>
+
+                                        <div class="md:col-span-1">
+                                            <label for="editRoleUsers" class="form-label">Assign Users</label>
+                                            <select class="form-input min-h-20" id="editRoleUsers" multiple>
+                                                <option value="1" selected>Leah Kim</option>
+                                                <option value="2" selected>David Tran</option>
+                                                <option value="3">Michael Brown</option>
+                                                <option value="4">Emma Wilson</option>
+                                            </select>
+                                            <small class="text-default-400">Hold Ctrl (Windows) or Cmd (Mac) to select multiple users</small>
+                                        </div>
+
+                                        <div class="md:col-span-1">
+                                            <label for="editRoleIcon" class="form-label">Role Icon</label>
+                                            <input type="text" class="form-input" id="editRoleIcon" value="ti ti-code" />
+                                            <small class="text-default-400">Use icon class from your icon library</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-end items-center gap-x-2 border-t border-dashed border-default-300 p-5">
+                                    <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#editRoleModal">Cancel</button>
+
+                                    <button type="button" class="btn bg-primary text-white m-1">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="addUserModal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 hidden size-full fixed top-0 start-0 z-80 overflow-x-hidden overflow-y-auto pointer-events-none" role="dialog" tabindex="-1" aria-labelledby="addUserModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 scale-95 opacity-0 ease-in-out transition-all duration-200 lg:max-w-3xl md:max-w-2xl max-w-sm md:w-full m-3 md:mx-auto flex items-center">
+                        <div class="w-full flex flex-col card pointer-events-auto">
+                            <div class="card-header p-5">
+                                <h3 id="addUserModalLabel" class="text-sm">Add New User</h3>
+
+                                <button type="button" aria-label="Close" data-hs-overlay="#addUserModal">
+                                    <i class="iconify tabler--x text-xl"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body overflow-y-auto">
+                                <div class="grid grid-cols-2 gap-base">
+                                    <div>
+                                        <label for="userFullName" class="form-label">Full Name</label>
+                                        <input type="text" class="form-input" id="userFullName" placeholder="Enter full name" required="" />
+                                    </div>
+
+                                    <div>
+                                        <label for="userEmail" class="form-label">Email Address</label>
+                                        <input type="email" class="form-input" id="userEmail" placeholder="Enter email" required="" />
+                                    </div>
+
+                                    <div>
+                                        <label for="userRole" class="form-label">Role</label>
+                                        <select class="form-input" id="userRole" required="">
+                                            <option value="">Select role</option>
+                                            <option value="Project Manager">Project Manager</option>
+                                            <option value="Developer">Developer</option>
+                                            <option value="Support Lead">Support Lead</option>
+                                            <option value="Security Officer">Security Officer</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="userStatus" class="form-label">Status</label>
+                                        <select class="form-input" id="userStatus" required="">
+                                            <option value="">Select status</option>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                            <option value="Suspended">Suspended</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="userAvatar" class="form-label">User Avatar</label>
+                                        <input type="file" name="file-input" id="userAvatar" class="block w-full border border-default-300 rounded disabled:opacity-50 disabled:pointer-events-none file:bg-default-100 file:border-0 file:me-4 file:py-2 file:px-3" />
+                                        <small class="text-default-400 text-xs">Optional: Upload avatar image</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end items-center gap-x-2 p-5 border-t border-default-300">
+                                <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#addUserModal">Cancel</button>
+
+                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">Add User</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

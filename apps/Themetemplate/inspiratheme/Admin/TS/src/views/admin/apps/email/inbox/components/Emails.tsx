@@ -1,0 +1,130 @@
+import Icon from '@/components/wrappers/Icon'
+import { SimpleBar } from '@/components/wrappers/SimpleBar'
+import clsx from 'clsx'
+import { Link } from 'react-router'
+import { useState } from 'react'
+import { Card, CardHeader, FormControl, Offcanvas, OverlayTrigger, Tooltip } from 'react-bootstrap'
+import EmailSidebar from '../../components/EmailSidebar'
+import { actionData, emailData, type EmailType } from './data'
+
+const Inboxes = () => {
+  const [show, setShow] = useState(false)
+  return (
+    <>
+      <Offcanvas responsive="lg" show={show} onHide={() => setShow(false)} className="offcanvas-lg offcanvas-start outlook-left-menu outlook-left-menu-sm" tabIndex={-1} id="emailSidebaroffcanvas">
+        <EmailSidebar />
+      </Offcanvas>
+
+      <EmailList toggleSidebar={() => setShow(!show)} />
+    </>
+  )
+}
+
+export default Inboxes
+
+const EmailList = ({ toggleSidebar }: { toggleSidebar: () => void }) => {
+  const [search, setSearch] = useState('')
+
+  const filteredEmails = emailData.filter((e: EmailType) => e.user.name.toLowerCase().includes(search.toLowerCase()) || e.subject.toLowerCase().includes(search.toLowerCase()) || e.snippet.toLowerCase().includes(search.toLowerCase()))
+
+  const [selected, setSelected] = useState<number[]>([])
+  const isAllSelected = filteredEmails.length > 0 && selected.length === filteredEmails.length
+
+  const handleSelectAll = () => {
+    setSelected(isAllSelected ? [] : filteredEmails.map((e) => e.id))
+  }
+
+  const handleSelect = (id: number) => {
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+  return (
+    <Card className="h-100 mb-0 rounded-start-0 flex-grow-1 border-start-0">
+      <CardHeader className="d-lg-none d-flex gap-2">
+        <button className="btn btn-default btn-icon" type="button" onClick={() => toggleSidebar()} aria-controls="emailSidebaroffcanvas">
+          <Icon icon="menu-4" className="fs-lg" />
+        </button>
+        <div className="app-search">
+          <input type="text" className="form-control" placeholder="Search mails..." />
+          <Icon icon="search" className="app-search-icon text-muted" />
+        </div>
+      </CardHeader>
+      <CardHeader className="card-header card-bg justify-content-between">
+        <div className="d-flex flex-wrap align-items-center gap-1">
+          <input checked={isAllSelected} onChange={handleSelectAll} className="form-check-input form-check-input-light fs-14 mt-0 me-3" type="checkbox" id="select-all-email" />
+
+          {actionData.map(({ label, icon }, idx) => (
+            <OverlayTrigger overlay={<Tooltip>{label}</Tooltip>} placement="top" key={idx}>
+              <button type="button" className="btn btn-default btn-icon btn-sm">
+                <Icon icon={icon} className="fs-lg" />
+              </button>
+            </OverlayTrigger>
+          ))}
+        </div>
+        <div className="app-search d-none d-lg-inline-flex">
+          <FormControl value={search} onChange={(e) => setSearch(e.target.value)} type="text" placeholder="Search mails..." />
+          <Icon icon="search" className="app-search-icon text-muted" />
+        </div>
+      </CardHeader>
+      <SimpleBar className="card-body p-0" style={{ height: 'calc(100% - 100px)' }}>
+        <div className="table-responsive">
+          <table className="table table-hover table-select mb-0">
+            <tbody>
+              {filteredEmails.length === 0 ? (
+                <tr className="no-results">
+                  <td colSpan={0} className="text-center text-muted py-3">
+                    Nothing found.
+                  </td>
+                </tr>
+              ) : (
+                filteredEmails.map((email) => (
+                  <tr className={`position-relative ${email.isRead ? 'mark-as-read' : ''}`} key={email.id}>
+                    <td className="ps-3" style={{ width: '1%' }}>
+                      <div className="d-flex gap-3">
+                        <input className="form-check-input form-check-input-light fs-14 position-relative z-2 mt-0 email-item-check" type="checkbox" checked={selected.includes(email.id)} onChange={() => handleSelect(email.id)} />
+                        <button className="btn p-0  fs-xl">{email.isStarred ? <Icon icon="star-filled" className="text-warning" /> : <Icon icon="star" className="text-muted" />}</button>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        {email.user.image ? (
+                          <img src={email.user.image} alt="user avatar" className="avatar-xs rounded-circle" />
+                        ) : (
+                          <div className="avatar-xs">
+                            <span className={clsx('avatar-title  rounded-circle', email.className)}>{email.user.name.charAt(0)}</span>
+                          </div>
+                        )}
+                        <h5 className="fs-base mb-0 fw-medium">{email.user.name}</h5>
+                      </div>
+                    </td>
+                    <td>
+                      <Link to="/apps/email/details" className="link-reset fs-base fw-medium stretched-link">
+                        {email.subject}
+                      </Link>
+                      &nbsp;<span className="d-xl-inline-block d-none">—</span>&nbsp;
+                      <span className="fs-base text-muted d-xl-inline-block d-none mb-0">{email.snippet}</span>
+                    </td>
+                    <td style={{ width: '1%' }}>
+                      <div className={`d-flex align-items-center gap-1 ${email.attachments === 0 ? 'opacity-25' : ''}`}>
+                        <Icon icon="paperclip" />
+                        <span className="fw-semibold">{email.attachments}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <p className="fs-xs text-muted mb-0 text-end pe-2">
+                        {email.date}, {email.time}
+                      </p>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="d-flex align-items-center justify-content-center gap-2 p-3">
+          <strong>Loading...</strong>
+          <div className="spinner-border spinner-border-sm text-danger" role="status" aria-hidden="true" />
+        </div>
+      </SimpleBar>
+    </Card>
+  )
+}

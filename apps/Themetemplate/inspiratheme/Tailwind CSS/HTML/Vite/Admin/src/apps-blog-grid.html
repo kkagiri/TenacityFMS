@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Blog Grid" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Blog" title="Blog Grid" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Blog" title="Blog Grid" }}
+
+                    <div class="container-fluid">
+                        <div class="flex flex-wrap *:w-full md:*:w-1/2 xl:*:w-1/4 -mx-3" data-masonry='{"percentPosition": true }'>
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="card-body">
+                                        <span class="badge badge-label bg-dark text-white mb-5">Design</span>
+
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Mastering Figma: 7 Pro Tips for Better UI Design</a>
+                                        </h6>
+                                        <p class="text-default-400 mb-5">Unlock advanced techniques in Figma that can speed up your workflow and help you create pixel-perfect designs every time.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">Figma</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">UX</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Tips</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                Jan 20, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">23</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                3,842
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-6.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">Emma Blake</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="relative h-full overflow-hidden rounded-t-md">
+                                        <div class="badge badge-label bg-dark text-white absolute start-6 top-6">Technology</div>
+                                        <img src="/images/blog/blog-4.jpg" class="h-full w-full object-cover" alt="Building APIs" />
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">The Future of Artificial Intelligence</a>
+                                        </h6>
+                                        <p class="text-default-400 mb-5">Discover how AI is transforming industries and what the future holds for this cutting-edge technology.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">AI</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Technology</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Innovation</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                May 28, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">89</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                8,654
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-4.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">Michael Turner</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="relative h-full overflow-hidden rounded-t-md">
+                                        <div class="badge badge-label bg-dark text-white absolute start-6 top-6">Development</div>
+                                        <img src="/images/blog/blog-1.jpg" class="h-full w-full object-cover" alt="Building APIs" />
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Building REST APIs with Node.js</a>
+                                        </h6>
+
+                                        <p class="text-default-400 mb-5">Learn how to design and build scalable REST APIs with Node.js and Express in this step-by-step tutorial.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">Node.js</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">API</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Tutorial</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                Feb 2, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">16</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                8,974
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-3.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">John Doe</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="relative h-full overflow-hidden rounded-s-md">
+                                        <div class="badge badge-label bg-dark text-white absolute start-6 top-6">Marketing</div>
+                                        <img src="/images/blog/blog-2.jpg" class="h-full w-full object-cover" alt="Marketing Strategies" />
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">SEO Strategies for 2025: How to Rank Higher</a>
+                                        </h6>
+
+                                        <p class="text-default-400 mb-5">Boost your website's search engine ranking with these proven SEO techniques for 2025.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">SEO</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Marketing</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Growth</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar"></i>
+                                                Feb 14, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">22</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye"></i>
+                                                3,090
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <img src="/images/users/user-2.jpg" class="size-6 rounded-full" alt="avatar-8" />
+                                            <h5>
+                                                <a href="#!" class="text-sm hover:text-primary">Sophie Green</a>
+                                            </h5>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="relative h-full overflow-hidden rounded-t-md">
+                                        <div class="badge badge-label bg-dark text-white absolute start-6 top-6">Data Science</div>
+                                        <img src="/images/blog/blog-5.jpg" class="h-full w-full object-cover" alt="Building APIs" />
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Top Data Science Trends in 2025</a>
+                                        </h6>
+                                        <p class="text-default-400 mb-5">Get ahead in the data science field with the latest trends, technologies, and tools that are reshaping the industry.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">Data Science</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Trends</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">2025</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                Aug 17, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">20</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                6,870
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-1.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">Olivia Brown</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card !bg-primary bg-linear-to-b from-white/30 to-white/0">
+                                    <div class="card-body">
+                                        <span class="badge badge-label bg-white/25 text-white mb-5">Data Science</span>
+
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base text-white">Top Data Science Trends in 2025</a>
+                                        </h6>
+                                        <p class="mb-5 text-white/50">Get ahead in the data science field with the latest trends, technologies, and tools that are reshaping the industry.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label rounded border border-white/25 text-white">Data Science</a>
+                                            <a href="#!" class="badge badge-label rounded border border-white/25 text-white">Trends</a>
+                                            <a href="#!" class="badge badge-label rounded border border-white/25 text-white">2025</a>
+                                        </div>
+
+                                        <p class="mt-5 flex flex-wrap items-center gap-base text-sm text-white/50">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                Jun 05, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!">55</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                9,875
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-1.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm text-white">Olivia Brown</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="flex items-center gap-1.25 font-semibold text-white" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="card-body">
+                                        <span class="badge badge-label bg-dark text-white mb-5">Design</span>
+
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">Web Design Trends to Watch in 2025</a>
+                                        </h6>
+                                        <p class="text-default-400 mb-5">Explore the top web design trends that will shape the user experience in 2025.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">Web Design</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">UX/UI</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Trends</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                Apr 16, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">36</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                1,102
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-5.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">Anna White</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+
+                            <div class="px-3 mb-base">
+                                <article class="card">
+                                    <div class="relative h-full overflow-hidden rounded-t-md">
+                                        <div class="badge badge-label bg-dark text-white absolute start-6 top-6">Business</div>
+                                        <img src="/images/blog/blog-3.jpg" class="h-full w-full object-cover" alt="Building APIs" />
+                                    </div>
+
+                                    <div class="card-body">
+                                        <h6 class="card-title mb-2.5">
+                                            <a href="apps-blog-article.html" class="text-base hover:text-primary">5 Key Tips for New Entrepreneurs</a>
+                                        </h6>
+                                        <p class="text-default-400 mb-5">Start your entrepreneurial journey with these 5 essential tips that will guide you through the first year of business.</p>
+
+                                        <div>
+                                            <a href="#!" class="badge badge-label border border-default-300">Business</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Entrepreneur</a>
+                                            <a href="#!" class="badge badge-label border border-default-300">Startup</a>
+                                        </div>
+
+                                        <p class="text-default-400 text-sm mt-5 flex flex-wrap items-center gap-base">
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--calendar text-md"></i>
+                                                May 10, 2025
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--message-circle text-md"></i>
+                                                <a href="#!" class="hover:text-primary">88</a>
+                                            </span>
+                                            <span class="flex items-center gap-1.25">
+                                                <i class="iconify tabler--eye text-md"></i>
+                                                15,842
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div class="card-footer items-center border-t-0 bg-transparent">
+                                        <div class="flex items-center gap-2.5">
+                                            <div>
+                                                <img src="/images/users/user-7.jpg" alt="avatar-3" class="size-6 rounded-full" />
+                                            </div>
+                                            <div>
+                                                <h5>
+                                                    <a href="#!" class="text-sm hover:text-primary">David Clark</a>
+                                                </h5>
+                                            </div>
+                                        </div>
+                                        <a class="text-primary flex items-center gap-1.25 font-semibold" href="apps-blog-article.html">
+                                            Read more
+                                            <i class="iconify tabler--arrow-right"></i>
+                                        </a>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/apps-blog-grid.js"></script>
+    </body>
+</html>

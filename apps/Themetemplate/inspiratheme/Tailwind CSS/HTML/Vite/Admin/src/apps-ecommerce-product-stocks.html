@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Stocks" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Ecommerce" title="Stocks" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Ecommerce" title="Stocks" }}
+
+                    <div class="container-fluid">
+                        <div data-table data-table-rows-per-page="10" class="card">
+                            <div class="card-header">
+                                <div class="flex gap-2.5">
+                                    <div class="input-icon-group">
+                                        <i class="iconify tabler--search input-icon"></i>
+                                        <input data-table-search class="form-input" placeholder="Search product name or SKU..." />
+                                    </div>
+
+                                    <button data-table-delete-selected class="btn bg-danger text-white hover:bg-danger-hover hidden">Delete</button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2.5 lg:flex-nowrap">
+                                    <div class="flex flex-wrap items-center gap-2.5 md:flex-nowrap">
+                                        <div class="items-center gap-2.5 md:flex">
+                                            <span class="font-semibold me-2.5">Filter By:</span>
+
+                                            <div class="input-icon-group">
+                                                <i class="iconify tabler--tag input-icon"></i>
+                                                <select data-table-filter="category" class="form-select">
+                                                    <option value="All">Category</option>
+                                                    <option value="Electronics">Electronics</option>
+                                                    <option value="Mobiles">Mobiles</option>
+                                                    <option value="Audio">Audio</option>
+                                                    <option value="Furniture">Furniture</option>
+                                                    <option value="Appliances">Appliances</option>
+                                                    <option value="Wearables">Wearables</option>
+                                                    <option value="Cameras">Cameras</option>
+                                                    <option value="Computers">Computers</option>
+                                                    <option value="Accessories">Accessories</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--activity input-icon"></i>
+                                            <select data-table-filter="status" class="form-select">
+                                                <option value="All">Stock Status</option>
+                                                <option value="In Stock">In Stock</option>
+                                                <option value="Low Stock">Low Stock</option>
+                                                <option value="Out of Stock">Out of Stock</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="input-icon-group">
+                                            <i class="iconify tabler--currency-dollar input-icon"></i>
+                                            <select data-table-range-filter="price" class="form-select">
+                                                <option value="All">Price Range</option>
+                                                <option value="0-50">$0 - $50</option>
+                                                <option value="51-150">$51 - $150</option>
+                                                <option value="151-500">$151 - $500</option>
+                                                <option value="501-1000">$501 - $1,000</option>
+                                                <option value="1000+">$1,000+</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <select data-table-set-rows-per-page class="form-select">
+                                                <option value="5">5</option>
+                                                <option value="10">10</option>
+                                                <option value="15">15</option>
+                                                <option value="20">20</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a href="apps-ecommerce-product-add.html" class="btn bg-danger text-white hover:bg-danger-hover">
+                                    <i class="iconify tabler--plus"></i>
+                                    Add Product
+                                </a>
+                            </div>
+
+                            <div class="table-wrapper">
+                                <table class="table-custom table-select table table-hover">
+                                    <thead class="thead-sm">
+                                        <tr class="bg-light/25 text-2xs uppercase">
+                                            <th class="w-[1%]">
+                                                <input data-table-select-all class="form-checkbox form-checkbox-light size-4.5" type="checkbox" id="select-all-products" />
+                                            </th>
+                                            <th data-table-sort>Product</th>
+                                            <th>SKU</th>
+                                            <th data-table-sort data-column="category">Category</th>
+                                            <th data-table-sort>Available Stock</th>
+                                            <th data-table-sort>Low Stock</th>
+                                            <th data-table-sort data-column="price">Unit Price</th>
+                                            <th data-table-sort data-column="status">Stock Status</th>
+                                            <th data-table-sort>Last Updated</th>
+                                            <th class="text-center w-[1%]">Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/1.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Smart LED TV 55"</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: VisionTech</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1001</td>
+                                            <td>Electronics</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">320</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">24</td>
+                                            <td>$749.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                08 Oct, 2025
+                                                <small class="text-default-400 text-2xs">10:30 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/2.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Wireless Noise Cancel Headphones"</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: SoundMax</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1002</td>
+                                            <td>Audio</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">220</td>
+                                            <td class="text-warning px-2.25 py-3 font-semibold">15</td>
+                                            <td>$199.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                07 Oct, 2025
+                                                <small class="text-default-400 text-2xs">02:45 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/3.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Ergonomic Office Chair</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: ComfortLine</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1003</td>
+                                            <td>Furniture</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">0</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">0</td>
+                                            <td>$249.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-danger/15 text-danger">Out of Stock</span>
+                                            </td>
+                                            <td>
+                                                06 Oct, 2025
+                                                <small class="text-default-400 text-2xs">09:10 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/4.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Smartphone 12 Pro</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: TechNova</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1004</td>
+                                            <td>Mobiles</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">510</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">30</td>
+                                            <td>$999.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                05 Oct, 2025
+                                                <small class="text-default-400 text-2xs">04:00 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/5.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Bluetooth Speaker Mini</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: AudioPro</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1005</td>
+                                            <td>Audio</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">420</td>
+                                            <td class="text-warning px-2.25 py-3 font-semibold">25</td>
+                                            <td>$79.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                04 Oct, 2025
+                                                <small class="text-default-400 text-2xs">01:20 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/6.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Portable Air Cooler</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: CoolWave</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1006</td>
+                                            <td>Appliances</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">85</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">8</td>
+                                            <td>$129.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-warning/15 text-warning">Low Stock</span>
+                                            </td>
+                                            <td>
+                                                03 Oct, 2025
+                                                <small class="text-default-400 text-2xs">11:05 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/7.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Gaming Laptop GTX 4070</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: ByteForce</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1007</td>
+                                            <td>Computers</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">90</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">6</td>
+                                            <td>$1,899.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                02 Oct, 2025
+                                                <small class="text-default-400 text-2xs">05:15 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/8.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Wireless Mouse Pro</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: ClickTech</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1008</td>
+                                            <td>Accessories</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">410</td>
+                                            <td class="text-warning px-2.25 py-3 font-semibold">20</td>
+                                            <td>$49.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                01 Oct, 2025
+                                                <small class="text-default-400 text-2xs">03:40 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/9.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">4K Action Camera</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: VisionGo</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1009</td>
+                                            <td>Cameras</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">155</td>
+                                            <td class="text-warning px-2.25 py-3 font-semibold">12</td>
+                                            <td>$349.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                30 Sep, 2025
+                                                <small class="text-default-400 text-2xs">01:20 PM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/10.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Smart Fitness Watch</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: FitLife</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1010</td>
+                                            <td>Wearables</td>
+                                            <td class="text-success px-2.25 py-3 font-semibold">240</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">18</td>
+                                            <td>$149.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-success/15 text-success">In Stock</span>
+                                            </td>
+                                            <td>
+                                                29 Sep, 2025
+                                                <small class="text-default-400 text-2xs">10:45 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <td>
+                                                <input class="form-checkbox form-checkbox-light size-4.5" type="checkbox" value="option" />
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center">
+                                                    <div class="me-base size-9">
+                                                        <img src="/images/products/3.png" alt="Product" class="rounded" />
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-1.25">
+                                                            <a data-sort="product" href="apps-ecommerce-product-details.html" class="hover:text-primary">Cordless Vacuum Cleaner</a>
+                                                        </h5>
+                                                        <p class="text-default-400 text-xs">Supplier: CleanHome</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>STK-1011</td>
+                                            <td>Home Appliances</td>
+                                            <td class="text-warning px-2.25 py-3 font-semibold">25</td>
+                                            <td class="text-danger px-2.25 py-3 font-semibold">5</td>
+                                            <td>$249.00</td>
+                                            <td>
+                                                <span class="badge badge-label font-semibold text-2xs bg-warning/15 text-warning">Low Stock</span>
+                                            </td>
+                                            <td>
+                                                28 Sep, 2025
+                                                <small class="text-default-400 text-2xs">09:30 AM</small>
+                                            </td>
+                                            <td>
+                                                <div class="flex justify-center gap-1.25">
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--eye text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400">
+                                                        <i class="iconify tabler--edit text-base"></i>
+                                                    </a>
+                                                    <a href="#" class="btn btn-icon btn-sm border border-default-300 hover:border-default-400" data-table-delete-row>
+                                                        <i class="iconify tabler--trash text-base"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="card-footer">
+                                <div data-table-pagination-info="products"></div>
+                                <div data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/custom-table.js"></script>
+    </body>
+</html>

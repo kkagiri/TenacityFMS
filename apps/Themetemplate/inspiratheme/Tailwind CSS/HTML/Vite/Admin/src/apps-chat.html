@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Chat" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Apps" title="Chat" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main class="pb-0!">
+                    {{> page-title subtitle="Apps" title="Chat" }}
+
+                    <div class="container-fluid">
+                        <div class="flex h-[calc(100vh-190px)]">
+                            <div
+                                id="chatSidebaroffcanvas"
+                                class="hs-overlay hs-overlay-open:translate-x-0 fixed start-0 top-0 bottom-0 z-70 h-full w-80 -translate-x-full transform transition-all duration-300 [--auto-close:lg] lg:static lg:block lg:translate-x-0"
+                                role="dialog"
+                                tabindex="-1"
+                                aria-label="Sidebar"
+                            >
+                                <div class="card rounded-e-none">
+                                    <div class="card-header p-5 gap-3">
+                                        <div class="input-icon-group grow">
+                                            <i class="iconify tabler--search input-icon"></i>
+                                            <input type="search" placeholder="Search here..." class="form-input bg-light/30" />
+                                        </div>
+
+                                        <a href="#!" class="btn bg-dark btn-icon size-9.25 text-white" aria-haspopup="dialog" aria-expanded="false" aria-controls="createSingleChatModal" data-hs-overlay="#createSingleChatModal">
+                                            <i class="iconify tabler--pencil text-lg"></i>
+                                        </a>
+                                    </div>
+
+                                    <div id="chat-sidebar" class="lg:h-[calc(100vh-265px)] h-screen p-2.5" data-simplebar>
+                                        <div class="*:[.active]:bg-default-100 *:hover:bg-default-100 space-y-0.5">
+                                            <a href="#" data-chat-id="chat1" class="block w-full rounded active">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-4.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Ava Thompson</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">I'll send the invoice by evening. Please check and confirm.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">Just Now</span>
+                                                        <span class="badge text-2xs bg-primary text-white">2</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat2" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-5.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Noah Smith</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Can you check the shared doc? Added some feedback.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">5 Min</span>
+                                                        <span class="badge text-2xs bg-primary text-white">1</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat3" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-7.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Liam Johnson</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Please approve the design so we can move to development.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">3:45 PM</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat4" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <div class="bg-primary flex size-8 items-center justify-center rounded-full font-semibold text-white">EW</div>
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Emma Wilson</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">All tasks are completed. Do you want me to deploy?</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">2 hr</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat5" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-8.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Olivia Martinez</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Meeting rescheduled to Friday at 11 AM.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">4 hr</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat6" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <div class="bg-secondary flex size-8 items-center justify-center rounded-full font-semibold text-white">WD</div>
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">William Davis</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">I'm working on the bug fix, will update soon.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">Yesterday</span>
+                                                        <span class="badge text-2xs bg-primary text-white">3</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat7" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-10.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Sophia Moore</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Final draft is ready. Let me know your thoughts.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">Yesterday</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat8" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-2.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Jackson Lee</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">I've uploaded the assets. Please review them tonight.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">12 Jun</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat9" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-3.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Chloe Anderson</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Need your approval before pushing this live.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">10 Jun</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat10" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <div class="bg-info flex size-8 items-center justify-center rounded-full font-semibold text-white">LW</div>
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Lucas Wright</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Client call moved to tomorrow. Will share notes later.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">9 May</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat11" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-6.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Mia Scott</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Everything looks good. Waiting for your go-ahead.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">13 Apr</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+
+                                            <a href="#" data-chat-id="chat12" class="block w-full rounded">
+                                                <div class="flex justify-between gap-2.5 px-3.75 py-3">
+                                                    <div class="flex items-center gap-2.5">
+                                                        <img src="/images/users/user-9.jpg" alt="avatar-4" class="size-8 rounded-full" />
+
+                                                        <span class="text-start overflow-hidden">
+                                                            <span data-chat-search-field class="font-semibold text-nowrap">Benjamin Clark</span>
+                                                            <span class="text-default-400 block truncate text-xs max-w-40">Checked your updates. Left a few suggestions.</span>
+                                                        </span>
+                                                    </div>
+
+                                                    <span class="flex shrink-0 flex-col items-end justify-center gap-1.25">
+                                                        <span class="text-default-400 text-xs">10 Mar</span>
+                                                        <span class="badge text-2xs bg-primary text-white">2</span>
+                                                    </span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card min-w-0 flex-1 rounded-s-none">
+                                <div class="card-header">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center gap-2 text-start lg:hidden!">
+                                            <button class="btn btn-sm btn-icon border-default-300">
+                                                <i class="iconify tabler--menu-4 text-default-600 size-6" aria-haspopup="dialog" aria-expanded="false" aria-controls="chatSidebaroffcanvas" aria-label="Toggle navigation" data-hs-overlay="#chatSidebaroffcanvas"></i>
+                                            </button>
+                                        </div>
+
+                                        <div>
+                                            <h5 class="text-base mb-1.25">
+                                                <a data-chat-username href="#!" class="hover:text-primary">Ava Thompson</a>
+                                            </h5>
+
+                                            <p class="text-default-400 flex items-center leading-tight gap-1.5"><i class="iconify tabler--circle-filled text-success"></i> Active</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-1.25">
+                                        <button class="btn btn-icon border-default-300 hover:border-default-400/75 hover:bg-default-50" aria-haspopup="dialog" aria-expanded="false" aria-controls="videoCallModal" data-hs-overlay="#videoCallModal">
+                                            <i class="iconify tabler--video size-4.25"></i>
+                                        </button>
+
+                                        <button class="btn btn-icon border-default-300 hover:border-default-400/75 hover:bg-default-50" aria-haspopup="dialog" aria-expanded="false" aria-controls="audioCallModal" data-hs-overlay="#audioCallModal">
+                                            <i class="iconify tabler--phone-call size-4.25"></i>
+                                        </button>
+
+                                        <div class="relative">
+                                            <div class="hs-dropdown inline-flex [--placement:bottom-right]">
+                                                <button type="button" class="hs-dropdown-toggle btn btn-icon border-default-300 hover:border-default-400/75 hover:bg-default-50" aria-haspopup="menu" aria-expanded="false" aria-label="Dropdown">
+                                                    <i class="iconify tabler--dots-vertical text-sm"></i>
+                                                </button>
+
+                                                <div class="hs-dropdown-menu" role="menu" aria-orientation="vertical">
+                                                    <div class="space-y-0.5">
+                                                        <a href="#" class="dropdown-item" href="#">
+                                                            <i class="iconify tabler--user"></i>
+                                                            Export as PDF
+                                                        </a>
+
+                                                        <a href="#" class="dropdown-item" href="#">
+                                                            <i class="iconify tabler--bell-off"></i>
+                                                            Export as CSV
+                                                        </a>
+
+                                                        <a href="#" class="dropdown-item" href="#">
+                                                            <i class="iconify tabler--trash"></i>
+                                                            Export as Excel
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="h-[calc(100vh-333px)]" data-simplebar>
+                                    <div id="chat-container" data-chat class="card-body pb-2.5 py-0">
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">Hey! Are you available for a quick call? 📞</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs"><i class="iconify tabler--clock"></i> 08:55 am</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Sure, give me 5 minutes. Just wrapping something up.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    08:57 am
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">Perfect. Let me know when you're ready 👍</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    08:58 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Ready now. Calling you!</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:00 am
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">Thanks for your time earlier!</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:45 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Of course! It was a productive discussion.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:46 am
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">I’ll send over the updated files by noon.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:50 am
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Great, I’ll review them once they arrive.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    09:52 am
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">Just sent them via Drive. Let me know if you have issues accessing.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:03 pm
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Got them. Everything looks good so far!</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:10 pm
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">Awesome 😊 Looking forward to your feedback!</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:12 pm
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Will get back to you after lunch 🍴</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:13 pm
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+
+                                        <div class="my-5 flex items-start gap-2.5">
+                                            <img src="/images/users/user-4.jpg" class="size-9 rounded-full" alt="User" />
+                                            <div>
+                                                <div class="bg-warning/15 rounded px-6 py-3">No rush, enjoy your lunch! 😄</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:14 pm
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="my-5 flex items-start justify-end gap-2.5">
+                                            <div>
+                                                <div class="bg-info/15 rounded px-6 py-3">Thanks! Talk soon.</div>
+                                                <div class="text-default-400 mt-1.5 flex items-center justify-end gap-1 text-xs">
+                                                    <i class="iconify tabler--clock"></i>
+                                                    12:15 pm
+                                                </div>
+                                            </div>
+                                            <img src="/images/users/user-2.jpg" class="size-9 rounded-full" alt="User" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-default-300 border-dashed px-6 py-3.75">
+                                    <div class="flex gap-2">
+                                        <div class="input-icon-group grow">
+                                            <i class="iconify tabler--message input-icon"></i>
+                                            <input type="text" class="form-input bg-light/20" placeholder="Enter message..." />
+                                        </div>
+                                        <a data-send href="#!" class="btn bg-primary text-white hover:bg-primary-hover"> Send <i class="iconify tabler--send-2 ms-1 text-xl"></i> </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+
+                <div
+                    id="createSingleChatModal"
+                    class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto"
+                    role="dialog"
+                    tabindex="-1"
+                    aria-labelledby="createSingleChatModalLabel"
+                >
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-lg">
+                        <div class="card pointer-events-auto flex w-full flex-col">
+                            <div class="card-header">
+                                <h3 id="createSingleChatModalLabel" class="text-sm font-bold">Start New Chat</h3>
+                                <button type="button" aria-label="Close" data-hs-overlay="#createSingleChatModal">
+                                    <i class="iconify tabler--x text-xl"></i>
+                                </button>
+                            </div>
+
+                            <div class="card-body overflow-y-auto">
+                                <div class="mb-5">
+                                    <label for="recipientUser" class="form-label">Recipient</label>
+                                    <input type="text" class="form-input" id="recipientUser" placeholder="Enter username or email" required />
+                                </div>
+
+                                <div>
+                                    <label for="initialMessage" class="form-label">Message</label>
+                                    <textarea class="form-textarea" id="initialMessage" rows="3" placeholder="Type your message here..." required></textarea>
+                                </div>
+                            </div>
+
+                            <div class="border-default-300 flex items-center justify-end gap-x-2 border-t border-dashed p-5">
+                                <button type="button" class="btn bg-light hover:text-primary" data-hs-overlay="#createSingleChatModal">Cancel</button>
+
+                                <button type="button" class="btn bg-primary text-white hover:bg-primary-hover">Send Message</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="videoCallModal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto" role="dialog" tabindex="-1" aria-labelledby="videoCallModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] max-w-sm scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:max-w-xl lg:max-w-5xl">
+                        <div class="card !bg-dark pointer-events-auto flex w-full flex-col">
+                            <div class="card-header border-0!">
+                                <h3 id="videoCallModalLabel" class="text-sm font-bold text-white">Starting Video Call</h3>
+                                <button type="button" aria-label="Close" data-hs-overlay="#videoCallModal">
+                                    <i class="iconify tabler--x text-xl text-white"></i>
+                                </button>
+                            </div>
+
+                            <div class="overflow-y-auto px-6 py-18">
+                                <div class="mb-7.5">
+                                    <img src="/images/users/user-3.jpg" class="mx-auto size-37.5 rounded-full" alt="User Photo" />
+                                </div>
+
+                                <h3 class="mb-1.25 text-center text-2xl font-semibold text-white">Alex Johnson</h3>
+                                <p class="text-default-400 mb-7.5 text-center">Connecting to call...</p>
+
+                                <div class="flex flex-wrap justify-center gap-3">
+                                    <button type="button" class="btn bg-light hover:text-primary">
+                                        <i class="iconify tabler--video"></i>
+                                        Camera On
+                                    </button>
+
+                                    <button type="button" class="btn bg-light hover:text-primary">
+                                        <i class="iconify tabler--microphone"></i>
+                                        Mic On
+                                    </button>
+
+                                    <button type="button" class="btn bg-danger text-white hover:bg-danger-hover" data-hs-overlay="#videoCallModal">
+                                        <i class="iconify tabler--phone-call"></i>
+                                        End Call
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card-footer flex justify-center border-0!">
+                                <span class="text-default-300 text-center italic">Make sure your devices are connected before starting the call</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="audioCallModal" class="hs-overlay hs-overlay-open:opacity-100 hs-overlay-open:duration-500 pointer-events-none fixed start-0 top-0 z-80 hidden size-full overflow-x-hidden overflow-y-auto" role="dialog" tabindex="-1" aria-labelledby="audioCallModalLabel">
+                    <div class="hs-overlay-animation-target hs-overlay-open:scale-100 hs-overlay-open:opacity-100 m-3 flex min-h-[calc(100%-56px)] scale-95 items-center opacity-0 transition-all duration-200 ease-in-out md:mx-auto md:w-full md:max-w-lg">
+                        <div class="card !bg-dark pointer-events-auto flex w-full flex-col">
+                            <div class="card-header border-0!">
+                                <h3 id="audioCallModalLabel" class="text-sm font-bold text-white">Starting Audio Call</h3>
+                                <button type="button" aria-label="Close" data-hs-overlay="#audioCallModal">
+                                    <i class="iconify tabler--x text-xl text-white"></i>
+                                </button>
+                            </div>
+
+                            <div class="overflow-y-auto px-6 py-18">
+                                <div class="mb-7.5">
+                                    <img src="/images/users/user-3.jpg" class="mx-auto size-37.5 rounded-full" alt="User Photo" />
+                                </div>
+
+                                <h3 class="mb-1.25 text-center text-2xl font-semibold text-white">Alex Johnson</h3>
+                                <p class="text-default-400 mb-7.5 text-center">Calling...</p>
+
+                                <div class="flex flex-wrap justify-center gap-3">
+                                    <button type="button" class="btn bg-light hover:text-primary">
+                                        <i class="iconify tabler--microphone"></i>
+                                        Mic On
+                                    </button>
+
+                                    <button type="button" class="btn bg-light hover:text-primary">
+                                        <i class="iconify tabler--volume"></i>
+                                        Speaker On
+                                    </button>
+
+                                    <button type="button" class="btn bg-danger text-white hover:bg-danger-hover" data-hs-overlay="#audioCallModal">
+                                        <i class="iconify tabler--phone-call"></i>
+                                        End Call
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="card-footer flex justify-center border-0!">
+                                <span class="text-default-300 text-center italic">Ensure your microphone is working properly</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/apps-chat.js"></script>
+    </body>
+</html>

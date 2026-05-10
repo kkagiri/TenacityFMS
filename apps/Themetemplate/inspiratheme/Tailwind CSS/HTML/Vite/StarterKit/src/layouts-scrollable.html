@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" data-layout-position="scrollable">
+    <head>
+        {{> title-meta title="Scrollable" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Layouts" title="Scrollable" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Layouts" title="Scrollable" }}
+
+                    <div class="container-fluid">
+                        <div class="bg-info/10 text-info border-s-3 border-info rounded-md flex items-start gap-3 py-3 px-4 mb-4">
+                            <div>
+                                <i class="iconify tabler--info-circle text-xl"></i>
+                            </div>
+                            <div>
+                                To enable full scrolling and view all content, please add
+                                <code>data-layout-position="scrollable"</code>
+                                to the
+                                <code>&lt;html&gt;</code>
+                                tag.
+                            </div>
+                        </div>
+
+                        <div style="min-height: 100vh"></div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+    </body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        {{> title-meta title="Range Slider" }} {{> head-css }}
+    </head>
+
+    <body>
+        <div class="wrapper">
+            {{> topbar subtitle="Forms" title="Range Slider" }} {{> sidenav }}
+
+            <div class="page-content">
+                <main>
+                    {{> page-title subtitle="Forms" title="Range Slider" }}
+
+                    <div class="container">
+                        <div class="card">
+                            <div class="card-header block!">
+                                <h4 class="card-title mb-1.25">Examples</h4>
+                                <p class="text-default-400">
+                                    noUiSlider is a lightweight, ARIA-accessible JavaScript range slider with multi-touch and keyboard support. It is fully GPU animated: no reflows, so it is fast; even on older devices. It also fits wonderfully in responsive designs and has no
+                                    dependencies
+                                </p>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Basic Range Slider</h5>
+                                        <p class="text-default-400">A simple single-value slider.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div data-slider="default" data-value="150"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Sizes</h5>
+                                        <p class="text-default-400">Adjust element size using different slider sizes.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div data-slider="default" data-slider-size="sm" data-value="180"></div>
+                                        <div data-slider="default" data-slider-size="lg" data-value="90" class="mt-7.5"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Line Style</h5>
+                                        <p class="text-default-400">Customize line handle style using sliders.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div data-slider="default" data-slider-style="line"></div>
+                                        <div data-slider="default" data-slider-style="line" data-slider-size="sm" data-value="180" class="mt-5"></div>
+                                        <div data-slider="default" data-slider-style="line" data-slider-size="lg" data-value="90" class="mt-7.5"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Color Scheme Sliders</h5>
+                                        <p class="text-default-400">Sliders styled with theme colors.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div data-slider="default" data-slider-color="primary" data-value="240" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="secondary" data-value="185" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="success" data-value="90" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="info" data-slider-style="line" data-value="125" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="warning" data-value="155" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="danger" data-value="70" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="purple" data-value="180" class="mb-7.5"></div>
+                                        <div data-slider="default" data-slider-color="dark" data-value="77"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Multi Elements Range</h5>
+                                        <p class="text-default-400">Dual-handle slider for selecting a range.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div id="rangeslider_multielement"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Value Range Slider (nonlinear)</h5>
+                                        <p class="text-default-400">Shows selected value range below the slider.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div id="nonlinear"></div>
+                                        <div class="flex justify-between mt-3">
+                                            <div class="py-1 font-semibold" id="lower-value"></div>
+                                            <div class="py-1 font-semibold" id="upper-value"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Locking Sliders Together</h5>
+                                        <p class="text-default-400">Synchronize two sliders with a toggle lock.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div id="slider1" class="slider mb-2"></div>
+                                        <span class="example-val block mb-2" id="slider1-span"></span>
+                                        <div id="slider2" class="slider mb-2"></div>
+                                        <span class="example-val block mb-2" id="slider2-span"></span>
+                                        <button id="lockbutton" class="btn btn-sm bg-primary text-white hover:bg-primary-hover">Lock</button>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Tooltip Slider</h5>
+                                        <p class="text-default-400">Displays tooltips with merged slider values.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div class="slider mt-4" id="slider-merging-tooltips"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Soft Limits Slider</h5>
+                                        <p class="text-default-400">Allows overflow beyond defined min/max.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div class="slider mb-4" id="soft"></div>
+                                    </div>
+                                </div>
+
+                                <div class="my-7.5 border-t border-default-300 border-dashed"></div>
+
+                                <div class="grid lg:grid-cols-3 md:grid-cols-2 gap-base">
+                                    <div>
+                                        <h5 class="mb-1.25">Vertical Sliders</h5>
+                                        <p class="text-default-400">Sliders arranged vertically.</p>
+                                    </div>
+
+                                    <div class="col-span-2">
+                                        <div class="flex gap-18 overflow-hidden p-5">
+                                            <div id="slider-vertical"></div>
+                                            <div id="slider-connect-upper" data-slider-color="warning" class="me-5"></div>
+                                            <div id="slider-vertical-tooltip"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+
+                {{> footer }}
+            </div>
+        </div>
+
+        {{> customizer }}
+
+        <script type="module" src="assets/js/pages/form-range-slider.js"></script>
+    </body>
+</html>
