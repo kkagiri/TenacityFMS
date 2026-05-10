@@ -1,4 +1,4 @@
-﻿# SignalR External Connection Fix - Action Plan Checklist
+# SignalR External Connection Fix - Action Plan Checklist
 
 **Server**: 197.254.33.227 (Public IP)
 **Date**: ******\_\_\_******
@@ -6,30 +6,30 @@
 
 ---
 
-## 🎯 OBJECTIVE
+## ?? OBJECTIVE
 
 Fix SignalR WebSocket connection failure from external networks by rebuilding frontend with public IP.
 
 **Current Problem**:
 
-- ❌ `ws://10.0.10.153:7009/ptsHub` → 404 Not Found
-- ❌ Internal IP hardcoded in production build
+- ? `ws://10.0.10.153:7009/ptsHub` ? 404 Not Found
+- ? Internal IP hardcoded in production build
 
 **Target Result**:
 
-- ✅ `ws://197.254.33.227/ptsHub` → 101 Switching Protocols
-- ✅ SignalR connects from external networks
+- ? `ws://197.254.33.227/ptsHub` ? 101 Switching Protocols
+- ? SignalR connects from external networks
 
 ---
 
-## 📋 PRE-FLIGHT CHECKS
+## ?? PRE-FLIGHT CHECKS
 
 **Location**: Production Server (197.254.33.227)
 
 - [ ] Logged in as **Administrator**
 - [ ] Backend service is **running** (port 7009)
 - [ ] IIS is **running** and site accessible locally
-- [ ] Have access to: `C:\dev\Tenacy.FMS\`
+- [ ] Have access to: `C:\dev\Tenacity.FMS\`
 - [ ] Node.js and npm installed (check: `npm --version`)
 - [ ] PowerShell open as Administrator
 
@@ -47,7 +47,7 @@ netstat -ano | findstr :7009
 ### Task 1.1: Run Diagnostic Script
 
 ```powershell
-cd C:\dev\Tenacy.FMS\Documentation\Frontend
+cd C:\dev\Tenacity.FMS\Documentation\Frontend
 .\SIGNALR_DIAGNOSTICS.ps1
 ```
 
@@ -66,9 +66,9 @@ Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern 
 
 **Current URL**: ****************\_****************
 
-- [ ] Contains `10.0.10.153` → WRONG (needs fix)
-- [ ] Contains `197.254.33.227` → OK (but check why SignalR still fails)
-- [ ] Contains `localhost` → WRONG (needs fix)
+- [ ] Contains `10.0.10.153` ? WRONG (needs fix)
+- [ ] Contains `197.254.33.227` ? OK (but check why SignalR still fails)
+- [ ] Contains `localhost` ? WRONG (needs fix)
 
 ---
 
@@ -76,10 +76,10 @@ Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern 
 
 ### Task 2.1: Edit .env.production
 
-**File Location**: `C:\dev\Tenacy.FMS\fms.frontend\.env.production`
+**File Location**: `C:\dev\Tenacity.FMS\fms.frontend\.env.production`
 
 ```powershell
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 notepad .env.production
 ```
 
@@ -116,7 +116,7 @@ cat .env.production
 ### Task 3.1: Clean Previous Build
 
 ```powershell
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 Remove-Item -Recurse -Force build\
 ```
 
@@ -168,7 +168,7 @@ cat .env.production
 
 # Verify you're in correct directory
 pwd
-# Should be: C:\dev\Tenacy.FMS\fms.frontend
+# Should be: C:\dev\Tenacity.FMS\fms.frontend
 ```
 
 ---
@@ -357,31 +357,31 @@ Invoke-WebRequest -Uri "http://localhost/ptsHub/negotiate?negotiateVersion=1" -M
 **Option A: Browser Test**
 
 1. Open: `http://197.254.33.227`
-2. Press F12 → Console tab
+2. Press F12 ? Console tab
 3. Look for SignalR logs
 
 - [ ] Website loads
 - [ ] No CORS errors
 - [ ] SignalR connection logs appear
-- [ ] Sees: `[PTS SignalR] ✓ Connected successfully`
+- [ ] Sees: `[PTS SignalR] ? Connected successfully`
 
 **Option B: Use Test Tool**
 
 1. Open: `http://197.254.33.227/SIGNALR_TEST_EXTERNAL.html`
    (Or open local copy from `Documentation/Frontend/SIGNALR_TEST_EXTERNAL.html`)
-2. Click "1️⃣ Test Negotiate" → Should be ✅
-3. Click "2️⃣ Test WebSocket" → Check result
-4. Click "3️⃣ Connect SignalR" → Should connect
+2. Click "1?? Test Negotiate" ? Should be ?
+3. Click "2?? Test WebSocket" ? Check result
+4. Click "3?? Connect SignalR" ? Should connect
 
 **Test Results**:
 
-- [ ] Negotiate: ✅ Success / ❌ Failed
-- [ ] WebSocket: ✅ Success / ❌ Failed
-- [ ] SignalR: ✅ Success / ❌ Failed
+- [ ] Negotiate: ? Success / ? Failed
+- [ ] WebSocket: ? Success / ? Failed
+- [ ] SignalR: ? Success / ? Failed
 
 ### Task 9.2: Check Network Tab
 
-**Browser DevTools → Network Tab → Filter: WS**
+**Browser DevTools ? Network Tab ? Filter: WS**
 
 **Expected**: See WebSocket connection with status `101 Switching Protocols`
 
@@ -418,15 +418,15 @@ Get-Content "c:\inetpub\logs\LogFiles\W3SVC1\*.log" -Tail 20 | Select-String "pt
 
 **Overall Status**:
 
-- [ ] ✅ **SUCCESS** - SignalR connects from external network
-- [ ] ⚠️ **PARTIAL** - Works but using LongPolling (not WebSocket)
-- [ ] ❌ **FAILED** - Still getting errors
+- [ ] ? **SUCCESS** - SignalR connects from external network
+- [ ] ?? **PARTIAL** - Works but using LongPolling (not WebSocket)
+- [ ] ? **FAILED** - Still getting errors
 
 **If PARTIAL or FAILED, proceed to troubleshooting**
 
 ---
 
-## 🐛 TROUBLESHOOTING
+## ?? TROUBLESHOOTING
 
 ### Issue: Negotiate Returns 404
 
@@ -462,9 +462,9 @@ Get-WindowsFeature | Where-Object {$_.Name -like "*WebSocket*"}
 
 1. Download Application Request Routing (ARR) 3.0
 2. Install ARR on IIS server
-3. IIS Manager → Server Name → Application Request Routing Cache
-4. Click "Server Proxy Settings" → Check "Enable proxy"
-5. Server Manager → Add Features → Web Server (IIS) → Application Development → WebSocket Protocol
+3. IIS Manager ? Server Name ? Application Request Routing Cache
+4. Click "Server Proxy Settings" ? Check "Enable proxy"
+5. Server Manager ? Add Features ? Web Server (IIS) ? Application Development ? WebSocket Protocol
 6. Restart IIS: `iisreset /noforce`
 
 **OR Use LongPolling Fallback** (temporary solution):
@@ -485,7 +485,7 @@ Then rebuild (go back to Phase 3).
 **Fix**:
 
 ```powershell
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 
 # Verify file exists
 Test-Path .env.production
@@ -529,7 +529,7 @@ REACT_APP_SIGNALR_URL=http://197.254.33.227
 
 ---
 
-## 📋 ROLLBACK PROCEDURE (If Needed)
+## ?? ROLLBACK PROCEDURE (If Needed)
 
 If new deployment causes issues:
 
@@ -550,12 +550,12 @@ iisreset /noforce
 
 ---
 
-## ✅ SUCCESS CRITERIA
+## ? SUCCESS CRITERIA
 
 **Mark complete when ALL are true**:
 
 - [ ] External browser loads `http://197.254.33.227` without errors
-- [ ] Browser console shows: `[PTS SignalR] ✓ Connected successfully`
+- [ ] Browser console shows: `[PTS SignalR] ? Connected successfully`
 - [ ] Network tab shows WebSocket or SSE connection (NOT 404)
 - [ ] Real-time data updates work (check PTS dashboard)
 - [ ] No internal IP (`10.0.10.153`) in any browser URLs
@@ -564,7 +564,7 @@ iisreset /noforce
 
 ---
 
-## 📝 POST-IMPLEMENTATION NOTES
+## ?? POST-IMPLEMENTATION NOTES
 
 **Date Completed**: ******\_\_\_******
 **Time Taken**: **\_\_\_** minutes
@@ -573,8 +573,8 @@ iisreset /noforce
 **Final Configuration**:
 
 - Frontend API URL: ************\_\_\_************
-- SignalR Transport Used: ☐ WebSocket ☐ LongPolling ☐ SSE
-- ARR Installed: ☐ Yes ☐ No
+- SignalR Transport Used: ? WebSocket ? LongPolling ? SSE
+- ARR Installed: ? Yes ? No
 - Any Issues Encountered: **********\_**********
 
 ---

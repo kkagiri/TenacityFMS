@@ -1,6 +1,6 @@
-﻿# FMS Frontend Build Commands
+# FMS Frontend Build Commands
 
-## 🎯 Quick Reference
+## ?? Quick Reference
 
 ### Development Build
 
@@ -19,7 +19,7 @@ npm run build
 
 ---
 
-## 📋 Build Process Overview
+## ?? Build Process Overview
 
 The React build process:
 
@@ -33,7 +33,7 @@ The React build process:
 
 ---
 
-## 🌍 Environment-Specific Builds
+## ?? Environment-Specific Builds
 
 ### Local Development (Dev Machine)
 
@@ -71,7 +71,7 @@ npm run build
 
 ---
 
-## 🔧 Complete Production Build Steps
+## ?? Complete Production Build Steps
 
 ### Step 1: Update Environment Variables
 
@@ -193,7 +193,7 @@ if ($LASTEXITCODE -eq 0) {
 
 ---
 
-## 🧪 Post-Build Verification
+## ?? Post-Build Verification
 
 ### 1. Verify Environment Variables in Build
 
@@ -239,7 +239,7 @@ curl http://197.254.33.227/api/ -v
 
 ---
 
-## ⚠️ Common Build Issues
+## ?? Common Build Issues
 
 ### Issue 1: Build Shows Wrong API URL
 
@@ -262,7 +262,7 @@ curl http://197.254.33.227/api/ -v
 **Causes**:
 
 - Using `.env` instead of `.env.production` for production builds
-- Spaces around `=` sign: `REACT_APP_FMS_API_URL = http://...` ❌
+- Spaces around `=` sign: `REACT_APP_FMS_API_URL = http://...` ?
 - Wrong variable name: `REACT_APP_API_URL` vs `REACT_APP_FMS_API_URL`
 - `.env.production` not in `fms.frontend/` directory
 
@@ -310,24 +310,24 @@ npm run build
 
 ---
 
-## 📦 Build Output Structure
+## ?? Build Output Structure
 
 ```
 build/
-├── index.html                 # Entry point (contains API URL meta tag)
-├── favicon.ico
-├── manifest.json
-├── robots.txt
-├── asset-manifest.json        # Asset mapping
-├── static/
-│   ├── css/
-│   │   └── main.[hash].css   # Minified styles
-│   ├── js/
-│   │   ├── main.[hash].js    # Bundled app code (env vars baked in)
-│   │   └── *.chunk.js        # Code-split chunks
-│   └── media/
-│       └── *                  # Images, fonts, etc.
-└── web.config                 # IIS configuration (if exists in public/)
++-- index.html                 # Entry point (contains API URL meta tag)
++-- favicon.ico
++-- manifest.json
++-- robots.txt
++-- asset-manifest.json        # Asset mapping
++-- static/
+�   +-- css/
+�   �   +-- main.[hash].css   # Minified styles
+�   +-- js/
+�   �   +-- main.[hash].js    # Bundled app code (env vars baked in)
+�   �   +-- *.chunk.js        # Code-split chunks
+�   +-- media/
+�       +-- *                  # Images, fonts, etc.
++-- web.config                 # IIS configuration (if exists in public/)
 ```
 
 **Important Files**:
@@ -338,7 +338,7 @@ build/
 
 ---
 
-## 🚀 Production Deployment Checklist
+## ?? Production Deployment Checklist
 
 Before deploying to production:
 
@@ -358,7 +358,7 @@ Before deploying to production:
 
 ---
 
-## 🔄 Quick Rebuild & Deploy Command
+## ?? Quick Rebuild & Deploy Command
 
 Save this as `build-and-deploy.ps1`:
 
@@ -454,7 +454,7 @@ Write-Host "Verify SignalR connection in browser console" -ForegroundColor Yello
 
 ---
 
-## 📞 Troubleshooting
+## ?? Troubleshooting
 
 ### Build succeeds but wrong URL
 
@@ -480,4 +480,4 @@ Write-Host "Verify SignalR connection in browser console" -ForegroundColor Yello
 ---
 
 **Last Updated**: 2025-10-31
-**For**: Tenacy FMS Production Deployment
+**For**: Tenacity FMS Production Deployment

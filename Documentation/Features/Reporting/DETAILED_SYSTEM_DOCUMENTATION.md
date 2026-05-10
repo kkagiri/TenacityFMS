@@ -38,32 +38,32 @@ The FMS Reporting System provides **server-side report generation** with multi-f
 
 ### Capabilities at a Glance
 
-| Capability | Description |
-|-----------|-------------|
-| **10 Built-in Report Sources** | Fuel, fleet, device, and operations reports |
-| **Multi-Format Output** | HTML preview, PDF download, Excel download, CSV export |
-| **Server-Side Rendering** | Handlebars → HTML (jsreport), HTML → PDF (PuppeteerSharp/Chrome), Data → XLSX (ClosedXML) |
-| **Template Management** | File-based Handlebars templates with Monaco editor UI |
-| **Letterhead Branding** | Auto-injected company logo into every rendered report |
-| **Scheduled Delivery** | Email delivery via integration with the Notification system |
-| **Execution Monitoring** | Audit trail with performance stats and error tracking |
-| **Async Job System** | Background report generation with SignalR real-time progress |
-| **Report Job Manager** | In-memory job orchestration with auto-cleanup and concurrency limits |
+| Capability                     | Description                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------- |
+| **10 Built-in Report Sources** | Fuel, fleet, device, and operations reports                                               |
+| **Multi-Format Output**        | HTML preview, PDF download, Excel download, CSV export                                    |
+| **Server-Side Rendering**      | Handlebars → HTML (jsreport), HTML → PDF (PuppeteerSharp/Chrome), Data → XLSX (ClosedXML) |
+| **Template Management**        | File-based Handlebars templates with Monaco editor UI                                     |
+| **Letterhead Branding**        | Auto-injected company logo into every rendered report                                     |
+| **Scheduled Delivery**         | Email delivery via integration with the Notification system                               |
+| **Execution Monitoring**       | Audit trail with performance stats and error tracking                                     |
+| **Async Job System**           | Background report generation with SignalR real-time progress                              |
+| **Report Job Manager**         | In-memory job orchestration with auto-cleanup and concurrency limits                      |
 
 ### Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| Template Engine | jsreport.Local + jsreport.Binary | Handlebars → HTML rendering |
-| PDF Conversion | PuppeteerSharp + System Chrome/Edge | HTML → PDF (high-fidelity CSS3 support) |
-| Excel Generation | ClosedXML | Structured data → XLSX (no Chrome needed) |
-| Template Storage | File system at `C:\FMSData\reports\templates\` | `.html` Handlebars files |
-| Template Editor | Monaco Editor (in-browser) | Syntax-highlighted editing with live preview |
-| Branding | `C:\FMSData\reports\branding\letterhead-logo.png` | Auto-injected into all renders |
-| Scheduling | Notification system (Type:2, CategoryId:20) | Reuses existing notification infrastructure |
-| Real-time Progress | SignalR via `FrontEndHub` | Job status broadcasts to connected clients |
-| Frontend | React 18 + DevExtreme + Redux Toolkit | UI components |
-| API Client | `reportingService.js` (singleton class, 780+ lines) | Axios-based HTTP client |
+| Component          | Technology                                          | Purpose                                      |
+| ------------------ | --------------------------------------------------- | -------------------------------------------- |
+| Template Engine    | jsreport.Local + jsreport.Binary                    | Handlebars → HTML rendering                  |
+| PDF Conversion     | PuppeteerSharp + System Chrome/Edge                 | HTML → PDF (high-fidelity CSS3 support)      |
+| Excel Generation   | ClosedXML                                           | Structured data → XLSX (no Chrome needed)    |
+| Template Storage   | File system at `C:\FMSData\reports\templates\`      | `.html` Handlebars files                     |
+| Template Editor    | Monaco Editor (in-browser)                          | Syntax-highlighted editing with live preview |
+| Branding           | `C:\FMSData\reports\branding\letterhead-logo.png`   | Auto-injected into all renders               |
+| Scheduling         | Notification system (Type:2, CategoryId:20)         | Reuses existing notification infrastructure  |
+| Real-time Progress | SignalR via `FrontEndHub`                           | Job status broadcasts to connected clients   |
+| Frontend           | React 18 + DevExtreme + Redux Toolkit               | UI components                                |
+| API Client         | `reportingService.js` (singleton class, 780+ lines) | Axios-based HTTP client                      |
 
 ---
 
@@ -174,16 +174,16 @@ The core rendering engine. Handles Handlebars template rendering (via jsreport) 
 
 #### Key Methods
 
-| Method | Input | Output | Description |
-|--------|-------|--------|-------------|
-| `RenderPdfAsync(templateName, data, landscape)` | Template name + data object | `byte[]` (PDF) | Template → HTML (jsreport) → PDF (PuppeteerSharp) |
-| `RenderExcelAsync(templateName, data)` | Template name + data object | `byte[]` (XLSX) | Structured data → Excel via ClosedXML |
-| `RenderHtmlAsync(templateName, data)` | Template name + data object | `string` (HTML) | Template → HTML for preview |
-| `RenderInlinePdfAsync(htmlTemplate, data, landscape)` | Raw HTML string + data | `byte[]` (PDF) | Arbitrary HTML → PDF |
-| `GetTemplateListAsync()` | — | `IEnumerable<string>` | List all template names |
-| `GetTemplateAsync(name)` | Template name | `string?` | Read template content |
-| `SaveTemplateAsync(name, content)` | Name + HTML | — | Write/overwrite template file |
-| `DeleteTemplateAsync(name)` | Template name | `bool` | Delete template file |
+| Method                                                | Input                       | Output                | Description                                       |
+| ----------------------------------------------------- | --------------------------- | --------------------- | ------------------------------------------------- |
+| `RenderPdfAsync(templateName, data, landscape)`       | Template name + data object | `byte[]` (PDF)        | Template → HTML (jsreport) → PDF (PuppeteerSharp) |
+| `RenderExcelAsync(templateName, data)`                | Template name + data object | `byte[]` (XLSX)       | Structured data → Excel via ClosedXML             |
+| `RenderHtmlAsync(templateName, data)`                 | Template name + data object | `string` (HTML)       | Template → HTML for preview                       |
+| `RenderInlinePdfAsync(htmlTemplate, data, landscape)` | Raw HTML string + data      | `byte[]` (PDF)        | Arbitrary HTML → PDF                              |
+| `GetTemplateListAsync()`                              | —                           | `IEnumerable<string>` | List all template names                           |
+| `GetTemplateAsync(name)`                              | Template name               | `string?`             | Read template content                             |
+| `SaveTemplateAsync(name, content)`                    | Name + HTML                 | —                     | Write/overwrite template file                     |
+| `DeleteTemplateAsync(name)`                           | Template name               | `bool`                | Delete template file                              |
 
 #### Internal Architecture
 
@@ -204,11 +204,11 @@ RenderPdfAsync()
 
 #### Configuration Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `DefaultRenderTimeoutMs` | 120,000 (2 min) | Standard rendering timeout |
-| `LargePayloadRenderTimeoutMs` | 300,000 (5 min) | Timeout for payloads >750KB |
-| `LargePayloadThresholdBytes` | 750,000 | Threshold to switch to extended timeout |
+| Constant                      | Value           | Description                             |
+| ----------------------------- | --------------- | --------------------------------------- |
+| `DefaultRenderTimeoutMs`      | 120,000 (2 min) | Standard rendering timeout              |
+| `LargePayloadRenderTimeoutMs` | 300,000 (5 min) | Timeout for payloads >750KB             |
+| `LargePayloadThresholdBytes`  | 750,000         | Threshold to switch to extended timeout |
 
 #### Chrome Detection
 
@@ -226,19 +226,20 @@ If no browser is found, PDF rendering will fail (HTML preview still works).
 
 Set during constructor to configure the jsreport child process:
 
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `extensions_fs-store_dataDirectory` | `C:\FMSData\JsReport_Temp\data` | Writable data directory |
-| `tempDirectory` | `C:\FMSData\JsReport_Temp` | Temp directory |
-| `extensions_chrome-pdf_enabled` | `false` | Disable Chrome-PDF recipe |
-| `extensions_phantom-pdf_enabled` | `false` | Disable Phantom-PDF recipe |
-| `extensions_scripts_enabled` | `false` | Disable script extension |
-| `httpPort` | `0` | Random port (avoids EADDRINUSE) |
-| `workers_timeout` | `60000` | Worker init timeout (60s) |
+| Variable                            | Value                           | Purpose                         |
+| ----------------------------------- | ------------------------------- | ------------------------------- |
+| `extensions_fs-store_dataDirectory` | `C:\FMSData\JsReport_Temp\data` | Writable data directory         |
+| `tempDirectory`                     | `C:\FMSData\JsReport_Temp`      | Temp directory                  |
+| `extensions_chrome-pdf_enabled`     | `false`                         | Disable Chrome-PDF recipe       |
+| `extensions_phantom-pdf_enabled`    | `false`                         | Disable Phantom-PDF recipe      |
+| `extensions_scripts_enabled`        | `false`                         | Disable script extension        |
+| `httpPort`                          | `0`                             | Random port (avoids EADDRINUSE) |
+| `workers_timeout`                   | `60000`                         | Worker init timeout (60s)       |
 
 #### Stale Process Management
 
 On startup and on WORKER_TIMEOUT recovery:
+
 - Cleans stale `wSock` daemon socket files
 - Removes orphaned jsreport binary copies (random-prefix `.exe` files)
 - Deletes unprocessed `autocleanup` request JSON files
@@ -251,28 +252,28 @@ File-based template storage with writable path resolution and default seeding.
 
 #### Path Resolution Priority
 
-| Priority | Path | Description |
-|----------|------|-------------|
-| 1 | `C:\FMSData\reports\templates\` | Shared FMS data root (preferred) |
-| 2 | `C:\Logs\FMS.Webclient\ReportTemplates\` | Legacy location |
-| 3 | `%TEMP%\FMS_ReportTemplates\` | User temp folder (always writable) |
-| 4 | `%ProgramData%\Tenacy\FMS\ReportTemplates\` | System-wide |
-| 5 | `{ContentRoot}\App_Data\ReportTemplates\` | App data fallback |
+| Priority | Path                                          | Description                        |
+| -------- | --------------------------------------------- | ---------------------------------- |
+| 1        | `C:\FMSData\reports\templates\`               | Shared FMS data root (preferred)   |
+| 2        | `C:\Logs\FMS.Webclient\ReportTemplates\`      | Legacy location                    |
+| 3        | `%TEMP%\FMS_ReportTemplates\`                 | User temp folder (always writable) |
+| 4        | `%ProgramData%\Tenacity\FMS\ReportTemplates\` | System-wide                        |
+| 5        | `{ContentRoot}\App_Data\ReportTemplates\`     | App data fallback                  |
 
 #### Default Template Seeding
 
 On startup, `EnsureSampleTemplatesAsync()` seeds/overwrites 9 built-in templates:
 
-| Template Name | Source Constant |
-|--------------|----------------|
-| `pump-transaction-report` | `JsReportHtmlTemplates.PumpTransaction()` |
-| `vehicle-consumption-report` | `JsReportHtmlTemplates.VehicleConsumption()` |
-| `fuel-refill-report` | `JsReportHtmlTemplates.FuelRefill()` |
-| `fuel-delivery-report` | `JsReportHtmlTemplates.FuelDelivery()` |
-| `device-offline-report` | `JsReportHtmlTemplates.DeviceOffline()` |
-| `pts-device-status-report` | `JsReportHtmlTemplates.PtsDeviceStatus()` |
-| `tank-volume-history-report` | `JsReportHtmlTemplates.TankVolumeHistory()` |
-| `issue-tracker-report` | `JsReportHtmlTemplates.IssueTracker()` |
+| Template Name                   | Source Constant                                |
+| ------------------------------- | ---------------------------------------------- |
+| `pump-transaction-report`       | `JsReportHtmlTemplates.PumpTransaction()`      |
+| `vehicle-consumption-report`    | `JsReportHtmlTemplates.VehicleConsumption()`   |
+| `fuel-refill-report`            | `JsReportHtmlTemplates.FuelRefill()`           |
+| `fuel-delivery-report`          | `JsReportHtmlTemplates.FuelDelivery()`         |
+| `device-offline-report`         | `JsReportHtmlTemplates.DeviceOffline()`        |
+| `pts-device-status-report`      | `JsReportHtmlTemplates.PtsDeviceStatus()`      |
+| `tank-volume-history-report`    | `JsReportHtmlTemplates.TankVolumeHistory()`    |
+| `issue-tracker-report`          | `JsReportHtmlTemplates.IssueTracker()`         |
 | `consumption-by-refills-report` | `JsReportHtmlTemplates.ConsumptionByRefills()` |
 
 > Built-in templates are **always overwritten** with the latest embedded version on startup to prevent stale templates.
@@ -285,11 +286,11 @@ Automatically injects company branding into every rendered report.
 
 #### Logo Resolution
 
-| Priority | Path |
-|----------|------|
-| 1 | `C:\FMSData\reports\branding\letterhead-logo.png` |
-| 2 | `%ProgramData%\Tenacy\FMS\reports\branding\letterhead-logo.png` |
-| 3 | `%TEMP%\FMS_Reports\branding\letterhead-logo.png` |
+| Priority | Path                                                              |
+| -------- | ----------------------------------------------------------------- |
+| 1        | `C:\FMSData\reports\branding\letterhead-logo.png`                 |
+| 2        | `%ProgramData%\Tenacity\FMS\reports\branding\letterhead-logo.png` |
+| 3        | `%TEMP%\FMS_Reports\branding\letterhead-logo.png`                 |
 
 Supported formats: PNG, JPG, SVG, GIF, WebP.
 
@@ -310,11 +311,11 @@ The logo is converted to a **base64 data URI** at startup and embedded directly 
 
 A thin bridge between the Notification system and JsReport. Implements `INotificationReportRenderer`.
 
-| Method | Delegates To |
-|--------|-------------|
-| `RenderPdfAsync(template, data)` | `IJsReportService.RenderPdfAsync()` |
+| Method                             | Delegates To                          |
+| ---------------------------------- | ------------------------------------- |
+| `RenderPdfAsync(template, data)`   | `IJsReportService.RenderPdfAsync()`   |
 | `RenderExcelAsync(template, data)` | `IJsReportService.RenderExcelAsync()` |
-| `RenderHtmlAsync(template, data)` | `IJsReportService.RenderHtmlAsync()` |
+| `RenderHtmlAsync(template, data)`  | `IJsReportService.RenderHtmlAsync()`  |
 
 Called by the notification scheduler when a **scheduled report email** fires.
 
@@ -326,14 +327,14 @@ In-memory async job orchestrator for background report generation.
 
 #### Features
 
-| Feature | Implementation |
-|---------|---------------|
-| Job Store | `ConcurrentDictionary<string, ReportJobDTO>` |
-| Result Cache | `ConcurrentDictionary<string, (byte[], DateTime)>` with 30-min TTL |
-| Cancellation | `ConcurrentDictionary<string, CancellationTokenSource>` |
-| Concurrency | Max 3 concurrent jobs per user |
-| Progress | SignalR broadcasts via `IReportJobProgressService` |
-| Email Delivery | Optional email of finished PDF/Excel via `IEmailService` |
+| Feature        | Implementation                                                     |
+| -------------- | ------------------------------------------------------------------ |
+| Job Store      | `ConcurrentDictionary<string, ReportJobDTO>`                       |
+| Result Cache   | `ConcurrentDictionary<string, (byte[], DateTime)>` with 30-min TTL |
+| Cancellation   | `ConcurrentDictionary<string, CancellationTokenSource>`            |
+| Concurrency    | Max 3 concurrent jobs per user                                     |
+| Progress       | SignalR broadcasts via `IReportJobProgressService`                 |
+| Email Delivery | Optional email of finished PDF/Excel via `IEmailService`           |
 
 #### Job Lifecycle
 
@@ -355,12 +356,12 @@ SubmitJobAsync()
 
 #### SignalR Events (via IReportJobProgressService)
 
-| Event | Payload | When |
-|-------|---------|------|
-| `ReportJobStarted` | `{ jobId, userId, status }` | Job created |
-| `ReportJobProgress` | `{ jobId, status, progressPercent, statusMessage }` | Each phase change |
-| `ReportJobCompleted` | `{ jobId, status, progressPercent }` | Successful completion |
-| `ReportJobError` | `{ jobId, status, errorMessage }` | Failure |
+| Event                | Payload                                             | When                  |
+| -------------------- | --------------------------------------------------- | --------------------- |
+| `ReportJobStarted`   | `{ jobId, userId, status }`                         | Job created           |
+| `ReportJobProgress`  | `{ jobId, status, progressPercent, statusMessage }` | Each phase change     |
+| `ReportJobCompleted` | `{ jobId, status, progressPercent }`                | Successful completion |
+| `ReportJobError`     | `{ jobId, status, errorMessage }`                   | Failure               |
 
 ---
 
@@ -370,14 +371,14 @@ Located in `FMS.Application/Features/Reporting/`
 
 ### 4.1 Commands (Write Operations)
 
-| Command | Handler | Response Type | Purpose |
-|---------|---------|--------------|---------|
-| `GenerateReportCommand` | `GenerateReportCommandHandler` | `GenerateReportResponseDTO` | Generate a report (resolves definition → fetches data → renders → logs execution) |
-| `SaveReportTemplateCommand` | `SaveReportTemplateCommandHandler` | `ReportTemplateDTO` | Save user's custom report template configuration |
-| `DeleteReportTemplateCommand` | — (inline) | `bool` | Delete a user's template |
-| `CreateReportScheduleCommand` | `CreateReportScheduleCommandHandler` | `FMSResponse<ReportScheduleDTO>` | Create a scheduled report email delivery |
-| `CancelReportScheduleCommand` | `CancelReportScheduleCommandHandler` | `FMSResponse<bool>` | Cancel (soft-delete) an active schedule |
-| `LogReportExecutionCommand` | `LogReportExecutionCommandHandler` | `FMSResponse<ReportExecutionHistoryDTO>` | Explicitly log a report execution with metadata |
+| Command                       | Handler                              | Response Type                            | Purpose                                                                           |
+| ----------------------------- | ------------------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------- |
+| `GenerateReportCommand`       | `GenerateReportCommandHandler`       | `GenerateReportResponseDTO`              | Generate a report (resolves definition → fetches data → renders → logs execution) |
+| `SaveReportTemplateCommand`   | `SaveReportTemplateCommandHandler`   | `ReportTemplateDTO`                      | Save user's custom report template configuration                                  |
+| `DeleteReportTemplateCommand` | — (inline)                           | `bool`                                   | Delete a user's template                                                          |
+| `CreateReportScheduleCommand` | `CreateReportScheduleCommandHandler` | `FMSResponse<ReportScheduleDTO>`         | Create a scheduled report email delivery                                          |
+| `CancelReportScheduleCommand` | `CancelReportScheduleCommandHandler` | `FMSResponse<bool>`                      | Cancel (soft-delete) an active schedule                                           |
+| `LogReportExecutionCommand`   | `LogReportExecutionCommandHandler`   | `FMSResponse<ReportExecutionHistoryDTO>` | Explicitly log a report execution with metadata                                   |
 
 #### GenerateReportCommand Flow
 
@@ -395,22 +396,22 @@ GenerateReportCommandHandler.Handle()
 
 ### 4.2 Queries (Read Operations)
 
-| Query | Handler | Response Type | Purpose |
-|-------|---------|--------------|---------|
-| `GetReportDefinitionQuery` | `GetReportDefinitionQueryHandler` | `ReportDefinitionDTO?` | Get single definition by string ID |
-| `GetAllReportDefinitionsQuery` | `GetAllReportDefinitionsQueryHandler` | `List<ReportDefinitionDTO>` | List all definitions (optional category/active filter) |
-| `GetReportTemplatesQuery` | `GetReportTemplatesQueryHandler` | `List<ReportTemplateDTO>` | User's templates + shared ones |
-| `GetReportSchedulesQuery` | `GetReportSchedulesQueryHandler` | `FMSResponse<List<ReportScheduleDTO>>` | All schedules (optional status filter) |
-| `GetExecutionHistoryQuery` | `GetExecutionHistoryQueryHandler` | `FMSResponse<List<ReportExecutionHistoryDTO>>` | Execution log (optional date range, capped at 500) |
+| Query                          | Handler                               | Response Type                                  | Purpose                                                |
+| ------------------------------ | ------------------------------------- | ---------------------------------------------- | ------------------------------------------------------ |
+| `GetReportDefinitionQuery`     | `GetReportDefinitionQueryHandler`     | `ReportDefinitionDTO?`                         | Get single definition by string ID                     |
+| `GetAllReportDefinitionsQuery` | `GetAllReportDefinitionsQueryHandler` | `List<ReportDefinitionDTO>`                    | List all definitions (optional category/active filter) |
+| `GetReportTemplatesQuery`      | `GetReportTemplatesQueryHandler`      | `List<ReportTemplateDTO>`                      | User's templates + shared ones                         |
+| `GetReportSchedulesQuery`      | `GetReportSchedulesQueryHandler`      | `FMSResponse<List<ReportScheduleDTO>>`         | All schedules (optional status filter)                 |
+| `GetExecutionHistoryQuery`     | `GetExecutionHistoryQueryHandler`     | `FMSResponse<List<ReportExecutionHistoryDTO>>` | Execution log (optional date range, capped at 500)     |
 
 ### 4.3 Services
 
-| Interface | Implementation | Purpose |
-|-----------|---------------|---------|
-| `IReportDefinitionService` | `ReportDefinitionService` | In-memory catalog of built-in report definitions |
-| `IReportGenerationService` | `ReportGenerationService` | Data fetching + rendering orchestration |
-| `IReportJobManager` | `ReportJobManager` (in WebClient) | Async job lifecycle |
-| `IReportJobProgressService` | `ReportJobProgressService` | SignalR event broadcasting |
+| Interface                   | Implementation                    | Purpose                                          |
+| --------------------------- | --------------------------------- | ------------------------------------------------ |
+| `IReportDefinitionService`  | `ReportDefinitionService`         | In-memory catalog of built-in report definitions |
+| `IReportGenerationService`  | `ReportGenerationService`         | Data fetching + rendering orchestration          |
+| `IReportJobManager`         | `ReportJobManager` (in WebClient) | Async job lifecycle                              |
+| `IReportJobProgressService` | `ReportJobProgressService`        | SignalR event broadcasting                       |
 
 ---
 
@@ -423,54 +424,54 @@ GenerateReportCommandHandler.Handle()
 
 #### Template Management Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/templates` | `GET` | List all template names |
-| `/templates/{name}` | `GET` | Get template HTML content |
-| `/templates` | `POST` | Save/update template (body: `{ name, content }`) |
-| `/templates/{name}` | `DELETE` | Delete template |
+| Endpoint            | Method   | Description                                      |
+| ------------------- | -------- | ------------------------------------------------ |
+| `/templates`        | `GET`    | List all template names                          |
+| `/templates/{name}` | `GET`    | Get template HTML content                        |
+| `/templates`        | `POST`   | Save/update template (body: `{ name, content }`) |
+| `/templates/{name}` | `DELETE` | Delete template                                  |
 
 #### Rendering Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/render/pdf/{templateName}` | `POST` | Render PDF (body: data JSON → returns PDF stream) |
+| Endpoint                       | Method | Description                                          |
+| ------------------------------ | ------ | ---------------------------------------------------- |
+| `/render/pdf/{templateName}`   | `POST` | Render PDF (body: data JSON → returns PDF stream)    |
 | `/render/excel/{templateName}` | `POST` | Render Excel (body: data JSON → returns XLSX stream) |
-| `/preview/{templateName}` | `POST` | HTML preview (body: data JSON → returns HTML string) |
-| `/render/inline` | `POST` | Inline HTML → PDF (body: `{ template, data }`) |
+| `/preview/{templateName}`      | `POST` | HTML preview (body: data JSON → returns HTML string) |
+| `/render/inline`               | `POST` | Inline HTML → PDF (body: `{ template, data }`)       |
 
 #### Data Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/pump-transactions` | `GET` | Pump transaction data for reports |
-| `/issue-tracker/data` | `GET` | Issue tracker data for reports |
+| Endpoint              | Method | Description                       |
+| --------------------- | ------ | --------------------------------- |
+| `/pump-transactions`  | `GET`  | Pump transaction data for reports |
+| `/issue-tracker/data` | `GET`  | Issue tracker data for reports    |
 
 #### Async Job Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/jobs/submit` | `POST` | Submit async background job |
-| `/jobs/{jobId}/status` | `GET` | Check job status + progress |
-| `/jobs/{jobId}/result` | `GET` | Download completed result |
-| `/jobs/{jobId}/result/html` | `GET` | Get HTML result content |
-| `/jobs/{jobId}/cancel` | `POST` | Cancel running job |
-| `/jobs/{jobId}/email` | `POST` | Email completed result |
+| Endpoint                    | Method | Description                 |
+| --------------------------- | ------ | --------------------------- |
+| `/jobs/submit`              | `POST` | Submit async background job |
+| `/jobs/{jobId}/status`      | `GET`  | Check job status + progress |
+| `/jobs/{jobId}/result`      | `GET`  | Download completed result   |
+| `/jobs/{jobId}/result/html` | `GET`  | Get HTML result content     |
+| `/jobs/{jobId}/cancel`      | `POST` | Cancel running job          |
+| `/jobs/{jobId}/email`       | `POST` | Email completed result      |
 
 ### 5.2 ReportingController
 
 **Route:** `api/v1/Reporting`
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/definitions` | `GET` | List report definitions (optional category filter) |
-| `/definitions/{reportId}` | `GET` | Get specific definition |
-| `/generate` | `POST` | Generate report with filters |
-| `/templates` | `GET` | User's saved templates |
-| `/templates` | `POST` | Save template config |
-| `/categories` | `GET` | Report categories |
-| `/execution-history` | `GET` | Execution log (date range filter) |
-| `/execution-log` | `POST` | Log execution manually |
+| Endpoint                  | Method | Description                                        |
+| ------------------------- | ------ | -------------------------------------------------- |
+| `/definitions`            | `GET`  | List report definitions (optional category filter) |
+| `/definitions/{reportId}` | `GET`  | Get specific definition                            |
+| `/generate`               | `POST` | Generate report with filters                       |
+| `/templates`              | `GET`  | User's saved templates                             |
+| `/templates`              | `POST` | Save template config                               |
+| `/categories`             | `GET`  | Report categories                                  |
+| `/execution-history`      | `GET`  | Execution log (date range filter)                  |
+| `/execution-log`          | `POST` | Log execution manually                             |
 
 ### 5.3 StockReportController
 
@@ -537,61 +538,61 @@ Dedicated tank stock reports: summary, variance analysis, utilisation, and movem
 
 #### ReportDefinition (`report_definitions`)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `ReportDefinitionId` | INT PK | Auto-increment ID |
-| `ReportId` | VARCHAR(100) | Unique slug (e.g., `pump-transaction`) |
-| `ReportName` | VARCHAR(200) | Display name |
-| `Description` | TEXT | Detailed description |
-| `Category` | VARCHAR(100) | Category grouping |
-| `ReportType` | INT | 0=DataGrid, 1=PivotGrid, 2=Chart, 3=Dashboard |
-| `Icon` | VARCHAR | FontAwesome icon class |
-| `DataSourceEndpoint` | VARCHAR(500) | API endpoint for data |
-| `RequiredPermission` | VARCHAR | Permission key |
-| `Configuration` | JSON TEXT | Columns, groupings, summaries, pivot config |
-| `IsActive` | BOOL | Active flag |
-| `IsPublic` | BOOL | Public access flag |
-| `IsBuiltIn` | BOOL | System built-in flag |
-| Audit | — | CreatedAt/By, ModifiedAt/By, DeletedAt/By, IsDeleted |
+| Column               | Type         | Description                                          |
+| -------------------- | ------------ | ---------------------------------------------------- |
+| `ReportDefinitionId` | INT PK       | Auto-increment ID                                    |
+| `ReportId`           | VARCHAR(100) | Unique slug (e.g., `pump-transaction`)               |
+| `ReportName`         | VARCHAR(200) | Display name                                         |
+| `Description`        | TEXT         | Detailed description                                 |
+| `Category`           | VARCHAR(100) | Category grouping                                    |
+| `ReportType`         | INT          | 0=DataGrid, 1=PivotGrid, 2=Chart, 3=Dashboard        |
+| `Icon`               | VARCHAR      | FontAwesome icon class                               |
+| `DataSourceEndpoint` | VARCHAR(500) | API endpoint for data                                |
+| `RequiredPermission` | VARCHAR      | Permission key                                       |
+| `Configuration`      | JSON TEXT    | Columns, groupings, summaries, pivot config          |
+| `IsActive`           | BOOL         | Active flag                                          |
+| `IsPublic`           | BOOL         | Public access flag                                   |
+| `IsBuiltIn`          | BOOL         | System built-in flag                                 |
+| Audit                | —            | CreatedAt/By, ModifiedAt/By, DeletedAt/By, IsDeleted |
 
 #### ReportSchedule (`report_schedules`)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `ReportScheduleId` | BIGINT PK | Auto-increment ID |
-| `ScheduleName` | VARCHAR(200) | Schedule display name |
-| `Description` | TEXT | Description |
-| `ReportSourceId` | VARCHAR(100) | Source ID from registry |
-| `Filters` | JSON TEXT | Filter parameters as JSON |
-| `OutputFormat` | VARCHAR | `pdf`, `html`, `excel`, `csv` |
-| `Frequency` | VARCHAR | `once`, `daily`, `weekly`, `monthly` |
-| `RepeatCount` | INT | 0 = unlimited |
-| `ExecutedCount` | INT | Times executed so far |
-| `Recipients` | JSON TEXT | Array of email addresses |
-| `ScheduleConfig` | JSON TEXT | `{ periodType, days, weeks, time, timeZone }` |
-| `ScheduledAt` | DATETIME | When to first execute |
-| `LastExecutedAt` | DATETIME | Last execution timestamp |
-| `NextExecutionAt` | DATETIME | Calculated next execution |
-| `Status` | VARCHAR | `active`, `paused`, `completed`, `cancelled`, `failed` |
-| `ErrorMessage` | TEXT | Last error message |
-| Audit | — | CreatedBy/At, ModifiedBy/At, CancelledBy/At |
+| Column             | Type         | Description                                            |
+| ------------------ | ------------ | ------------------------------------------------------ |
+| `ReportScheduleId` | BIGINT PK    | Auto-increment ID                                      |
+| `ScheduleName`     | VARCHAR(200) | Schedule display name                                  |
+| `Description`      | TEXT         | Description                                            |
+| `ReportSourceId`   | VARCHAR(100) | Source ID from registry                                |
+| `Filters`          | JSON TEXT    | Filter parameters as JSON                              |
+| `OutputFormat`     | VARCHAR      | `pdf`, `html`, `excel`, `csv`                          |
+| `Frequency`        | VARCHAR      | `once`, `daily`, `weekly`, `monthly`                   |
+| `RepeatCount`      | INT          | 0 = unlimited                                          |
+| `ExecutedCount`    | INT          | Times executed so far                                  |
+| `Recipients`       | JSON TEXT    | Array of email addresses                               |
+| `ScheduleConfig`   | JSON TEXT    | `{ periodType, days, weeks, time, timeZone }`          |
+| `ScheduledAt`      | DATETIME     | When to first execute                                  |
+| `LastExecutedAt`   | DATETIME     | Last execution timestamp                               |
+| `NextExecutionAt`  | DATETIME     | Calculated next execution                              |
+| `Status`           | VARCHAR      | `active`, `paused`, `completed`, `cancelled`, `failed` |
+| `ErrorMessage`     | TEXT         | Last error message                                     |
+| Audit              | —            | CreatedBy/At, ModifiedBy/At, CancelledBy/At            |
 
 #### ReportExecutionHistory (`report_execution_history`)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `ReportExecutionId` | BIGINT PK | Auto-increment ID |
-| `ReportDefinitionId` | INT FK | Links to definition |
-| `ExecutedBy` | VARCHAR | User ID |
-| `ExecutedAt` | DATETIME | Execution timestamp |
-| `Filters` | JSON TEXT | Applied filter parameters |
-| `ExportFormat` | VARCHAR | `json`, `pdf`, `excel`, `csv`, `html` |
-| `RecordCount` | INT | Number of records in result |
-| `ExecutionTimeMs` | LONG | Duration in milliseconds |
-| `Success` | BOOL | Success flag |
-| `ErrorMessage` | TEXT | Error details (if failed) |
-| `IpAddress` | VARCHAR | Client IP |
-| `UserAgent` | VARCHAR | Client user agent |
+| Column               | Type      | Description                           |
+| -------------------- | --------- | ------------------------------------- |
+| `ReportExecutionId`  | BIGINT PK | Auto-increment ID                     |
+| `ReportDefinitionId` | INT FK    | Links to definition                   |
+| `ExecutedBy`         | VARCHAR   | User ID                               |
+| `ExecutedAt`         | DATETIME  | Execution timestamp                   |
+| `Filters`            | JSON TEXT | Applied filter parameters             |
+| `ExportFormat`       | VARCHAR   | `json`, `pdf`, `excel`, `csv`, `html` |
+| `RecordCount`        | INT       | Number of records in result           |
+| `ExecutionTimeMs`    | LONG      | Duration in milliseconds              |
+| `Success`            | BOOL      | Success flag                          |
+| `ErrorMessage`       | TEXT      | Error details (if failed)             |
+| `IpAddress`          | VARCHAR   | Client IP                             |
+| `UserAgent`          | VARCHAR   | Client user agent                     |
 
 ---
 
@@ -629,12 +630,17 @@ Every report template receives this standardised payload:
 #### Key Handlebars Helpers
 
 ```handlebars
-{{reportTitle}}              <!-- Simple value -->
-{{#each records}}            <!-- Loop over array -->
-  {{this.date}}              <!-- Access current item -->
-  {{@index}}                 <!-- Loop index (0-based) -->
+{{reportTitle}}
+<!-- Simple value -->
+{{#each records}}
+  <!-- Loop over array -->
+  {{this.date}}
+  <!-- Access current item -->
+  {{@index}}
+  <!-- Loop index (0-based) -->
 {{/each}}
-{{#if summary}}              <!-- Conditional block -->
+{{#if summary}}
+  <!-- Conditional block -->
   {{summary.totalVolume}}
 {{/if}}
 ```
@@ -708,28 +714,28 @@ If no logo file exists, the letterhead block is silently skipped.
 
 **Entry Point:** `ReportsMain.js` — defines all routes under `/reports/*`
 
-| Route | Component | Description |
-|-------|-----------|-------------|
-| `/reports` | `ReportsDashboard` | Landing page with quick-action cards |
-| `/reports/dashboard` | `ReportsDashboard` | Same as above |
-| `/reports/list` | `ReportListPage` | DataGrid listing of all reports |
-| `/reports/engine` | `ReportEngine` | Source picker + generation |
-| `/reports/engine/:sourceId` | `ReportEngine` | Generate report for specific source |
-| `/reports/templates` | `TemplateManager` | Template CRUD grid |
-| `/reports/templates/designer/:templateName` | `TemplateDesigner` | Monaco editor + preview |
-| `/reports/scheduling` | `ReportScheduleManager` | Schedule management |
-| `/reports/monitoring` | `ReportMonitorDashboard` | Execution history |
-| `/reports/fuel-importer` | `FuelReportImporter` | Data import |
-| `/reports/import-management` | `ImportManagementPage` | Import management |
+| Route                                       | Component                | Description                          |
+| ------------------------------------------- | ------------------------ | ------------------------------------ |
+| `/reports`                                  | `ReportsDashboard`       | Landing page with quick-action cards |
+| `/reports/dashboard`                        | `ReportsDashboard`       | Same as above                        |
+| `/reports/list`                             | `ReportListPage`         | DataGrid listing of all reports      |
+| `/reports/engine`                           | `ReportEngine`           | Source picker + generation           |
+| `/reports/engine/:sourceId`                 | `ReportEngine`           | Generate report for specific source  |
+| `/reports/templates`                        | `TemplateManager`        | Template CRUD grid                   |
+| `/reports/templates/designer/:templateName` | `TemplateDesigner`       | Monaco editor + preview              |
+| `/reports/scheduling`                       | `ReportScheduleManager`  | Schedule management                  |
+| `/reports/monitoring`                       | `ReportMonitorDashboard` | Execution history                    |
+| `/reports/fuel-importer`                    | `FuelReportImporter`     | Data import                          |
+| `/reports/import-management`                | `ImportManagementPage`   | Import management                    |
 
 **Legacy Routes (backward compatibility):**
 
-| Route | Component |
-|-------|-----------|
-| `/reports/tank-volume-history` | `TankVolumeHistoryReport` |
+| Route                          | Component                   |
+| ------------------------------ | --------------------------- |
+| `/reports/tank-volume-history` | `TankVolumeHistoryReport`   |
 | `/reports/consumption-refills` | `ConsumptionBasedOnRefills` |
-| `/reports/vehicle-consumption` | `VehicleConsumptionReport` |
-| `/reports/pts-offline` | `PTSOfflineReport` |
+| `/reports/vehicle-consumption` | `VehicleConsumptionReport`  |
+| `/reports/pts-offline`         | `PTSOfflineReport`          |
 
 ### Component Hierarchy
 
@@ -774,6 +780,7 @@ ReportsMain (Router)
 **File:** `reportingService.js` (780+ lines) — singleton `ReportingService` class
 
 **30 methods** covering:
+
 - Report definitions CRUD
 - JsReport template CRUD (list, get, save, delete)
 - JsReport rendering (preview HTML, render PDF, render Excel)
@@ -790,15 +797,15 @@ The `ReportEngine` component (`engine/ReportEngine.js`, 786 lines) is the centra
 
 ### State Management
 
-| State | Type | Purpose |
-|-------|------|---------|
-| `activeSourceId` | string | Currently selected source |
-| `filters` | object | Dynamic filter values |
-| `selectedFormat` | string | `html`, `pdf`, `excel`, `csv` |
-| `templateOverride` | string | Custom template (overrides source default) |
-| `generating` | boolean | Sync generation in progress |
-| `htmlContent` | string | Rendered HTML for viewer |
-| `lastGenerated` | Date | Timestamp of last generation |
+| State              | Type    | Purpose                                    |
+| ------------------ | ------- | ------------------------------------------ |
+| `activeSourceId`   | string  | Currently selected source                  |
+| `filters`          | object  | Dynamic filter values                      |
+| `selectedFormat`   | string  | `html`, `pdf`, `excel`, `csv`              |
+| `templateOverride` | string  | Custom template (overrides source default) |
+| `generating`       | boolean | Sync generation in progress                |
+| `htmlContent`      | string  | Rendered HTML for viewer                   |
+| `lastGenerated`    | Date    | Timestamp of last generation               |
 
 ### Generation Flow
 
@@ -870,13 +877,13 @@ A DataGrid-based CRUD interface for Handlebars templates.
 
 #### Features
 
-| Feature | Implementation |
-|---------|---------------|
-| List Templates | `GET /api/v1/ReportGenerator/templates` |
-| Create Template | Save with `DEFAULT_TEMPLATE` boilerplate, navigate to designer |
-| Edit Template | Navigate to `/reports/templates/designer/{name}` |
+| Feature         | Implementation                                                         |
+| --------------- | ---------------------------------------------------------------------- |
+| List Templates  | `GET /api/v1/ReportGenerator/templates`                                |
+| Create Template | Save with `DEFAULT_TEMPLATE` boilerplate, navigate to designer         |
+| Edit Template   | Navigate to `/reports/templates/designer/{name}`                       |
 | Delete Template | Confirmation popup → `DELETE /api/v1/ReportGenerator/templates/{name}` |
-| Preview | Navigate to designer with preview trigger |
+| Preview         | Navigate to designer with preview trigger                              |
 
 ### TemplateDesigner Component
 
@@ -886,14 +893,14 @@ Split-pane editor: Monaco Editor (left) + Live Preview iframe (right).
 
 #### Features
 
-| Feature | Implementation |
-|---------|---------------|
-| Code Editing | Monaco Editor with HTML + Handlebars syntax highlighting |
-| Live Preview | Save template → render with sample data → display in iframe |
-| Dirty Tracking | Compare current content vs. original; show save prompt |
-| Sample Data | Hardcoded `SAMPLE_DATA` object for preview rendering |
-| Save | `POST /api/v1/ReportGenerator/templates` |
-| Back Navigation | Return to TemplateManager |
+| Feature         | Implementation                                              |
+| --------------- | ----------------------------------------------------------- |
+| Code Editing    | Monaco Editor with HTML + Handlebars syntax highlighting    |
+| Live Preview    | Save template → render with sample data → display in iframe |
+| Dirty Tracking  | Compare current content vs. original; show save prompt      |
+| Sample Data     | Hardcoded `SAMPLE_DATA` object for preview rendering        |
+| Save            | `POST /api/v1/ReportGenerator/templates`                    |
+| Back Navigation | Return to TemplateManager                                   |
 
 #### Template Designer Flow
 
@@ -920,14 +927,14 @@ Full schedule management with M365 Admin Center design.
 
 #### Features
 
-| Feature | Implementation |
-|---------|---------------|
-| List Schedules | DataGrid with status badges, frequency, recipients, delivery stats |
+| Feature         | Implementation                                                                  |
+| --------------- | ------------------------------------------------------------------------------- |
+| List Schedules  | DataGrid with status badges, frequency, recipients, delivery stats              |
 | Create Schedule | Open `ScheduleReportPanel` (slide-in). Pre-populate if `?source=` param present |
-| Edit Schedule | Parse existing schedule → open edit panel → `PUT /scheduled-emails/{id}` |
-| View Details | Open `ReportScheduleDetailPanel` (slide-in) |
-| Cancel Schedule | `POST /scheduled-emails/{id}/cancel` |
-| Delete Schedule | `DELETE /scheduled-emails/{id}` |
+| Edit Schedule   | Parse existing schedule → open edit panel → `PUT /scheduled-emails/{id}`        |
+| View Details    | Open `ReportScheduleDetailPanel` (slide-in)                                     |
+| Cancel Schedule | `POST /scheduled-emails/{id}/cancel`                                            |
+| Delete Schedule | `DELETE /scheduled-emails/{id}`                                                 |
 
 #### Schedule Data Structure
 
@@ -956,6 +963,7 @@ Full schedule management with M365 Admin Center design.
 #### Integration with Notification System
 
 Schedules piggyback on the existing notification infrastructure:
+
 - Stored as notifications with `Type: 2` (Scheduled Report) and `CategoryId: 20`
 - The notification scheduler handles timing, retries, and delivery tracking
 - `NotificationReportRenderer` bridges to JsReport for rendering
@@ -973,14 +981,14 @@ M365 Admin Center-styled execution history dashboard.
 
 #### Features
 
-| Feature | Implementation |
-|---------|---------------|
-| Date Range Filter | `DateRangeBox` — defaults to last 7 days |
-| Stat Tiles | Total executions, success rate, average duration, format breakdown |
-| Execution Grid | DataGrid with columns: timestamp, user, source, format, duration, status |
-| Detail Panel | `ReportExecutionLog` in a SlidePanel — full execution details + filters |
-| User Resolution | Maps user GUIDs to display names using JWT claims |
-| Source Resolution | Extracts source name from JSON filters field |
+| Feature           | Implementation                                                           |
+| ----------------- | ------------------------------------------------------------------------ |
+| Date Range Filter | `DateRangeBox` — defaults to last 7 days                                 |
+| Stat Tiles        | Total executions, success rate, average duration, format breakdown       |
+| Execution Grid    | DataGrid with columns: timestamp, user, source, format, duration, status |
+| Detail Panel      | `ReportExecutionLog` in a SlidePanel — full execution details + filters  |
+| User Resolution   | Maps user GUIDs to display names using JWT claims                        |
+| Source Resolution | Extracts source name from JSON filters field                             |
 
 #### Data Flow
 
@@ -1232,18 +1240,18 @@ The frontend uses a **`Map`-based registry** (`reportSourceRegistry.js`) to defi
 
 ### Registered Sources
 
-| Source ID | Name | Category | Default Template | API Endpoint |
-|-----------|------|----------|-----------------|--------------|
-| `pump-transaction` | Pump Transaction Report | Fuel Management | `pump-transaction-report` | `/ReportGenerator/pump-transactions` |
-| `vehicle-consumption` | Vehicle Consumption Report | Fuel Management | `vehicle-consumption-report` | `/VehicleConsumption/filtered` |
-| `fuel-refill` | Fuel Refill Report | Fuel Management | `fuel-refill-report` | `/FuelRefill/filtered` |
-| `delivery` | Fuel Delivery Report | Fuel Management | `fuel-delivery-report` | `/FuelDelivery/filtered` |
-| `tank-volume-history` | Tank Volume History | Fuel Management | `tank-volume-history-report` | `/TankVolumeHistory/data` |
-| `consumption-by-refills` | Consumption by Refills | Fuel Management | `consumption-by-refills-report` | `/Consumption/by-refills` |
-| `device-offline` | Device Offline Report | Device Management | `device-offline-report` | `/DeviceOffline/filtered` |
-| `pts-device` | PTS Device Status | Device Management | `pts-device-status-report` | `/PTSDevice/status` |
-| `issue-tracker` | Issue Tracker Report | Operations | `issue-tracker-report` | `/ReportGenerator/issue-tracker/data` |
-| `transaction-history-summary` | Transaction History Summary | Fuel Management | `transaction-history-summary-report` | `/ReportGenerator/transaction-history-summary` |
+| Source ID                     | Name                        | Category          | Default Template                     | API Endpoint                                   |
+| ----------------------------- | --------------------------- | ----------------- | ------------------------------------ | ---------------------------------------------- |
+| `pump-transaction`            | Pump Transaction Report     | Fuel Management   | `pump-transaction-report`            | `/ReportGenerator/pump-transactions`           |
+| `vehicle-consumption`         | Vehicle Consumption Report  | Fuel Management   | `vehicle-consumption-report`         | `/VehicleConsumption/filtered`                 |
+| `fuel-refill`                 | Fuel Refill Report          | Fuel Management   | `fuel-refill-report`                 | `/FuelRefill/filtered`                         |
+| `delivery`                    | Fuel Delivery Report        | Fuel Management   | `fuel-delivery-report`               | `/FuelDelivery/filtered`                       |
+| `tank-volume-history`         | Tank Volume History         | Fuel Management   | `tank-volume-history-report`         | `/TankVolumeHistory/data`                      |
+| `consumption-by-refills`      | Consumption by Refills      | Fuel Management   | `consumption-by-refills-report`      | `/Consumption/by-refills`                      |
+| `device-offline`              | Device Offline Report       | Device Management | `device-offline-report`              | `/DeviceOffline/filtered`                      |
+| `pts-device`                  | PTS Device Status           | Device Management | `pts-device-status-report`           | `/PTSDevice/status`                            |
+| `issue-tracker`               | Issue Tracker Report        | Operations        | `issue-tracker-report`               | `/ReportGenerator/issue-tracker/data`          |
+| `transaction-history-summary` | Transaction History Summary | Fuel Management   | `transaction-history-summary-report` | `/ReportGenerator/transaction-history-summary` |
 
 ### Source Definition Shape
 
@@ -1282,14 +1290,14 @@ The frontend uses a **`Map`-based registry** (`reportSourceRegistry.js`) to defi
 
 ### Parameter Types
 
-| Type | UI Control | Description |
-|------|-----------|-------------|
-| `date` | DateBox | Date picker |
-| `lookup` | SelectBox | Dropdown loaded from Redux store |
-| `text` | TextBox | Free text input |
-| `number` | NumberBox | Numeric input |
-| `select` | SelectBox | Static option list |
-| `multiselect` | TagBox | Multi-select dropdown |
+| Type          | UI Control | Description                      |
+| ------------- | ---------- | -------------------------------- |
+| `date`        | DateBox    | Date picker                      |
+| `lookup`      | SelectBox  | Dropdown loaded from Redux store |
+| `text`        | TextBox    | Free text input                  |
+| `number`      | NumberBox  | Numeric input                    |
+| `select`      | SelectBox  | Static option list               |
+| `multiselect` | TagBox     | Multi-select dropdown            |
 
 ---
 
@@ -1326,6 +1334,7 @@ Add a case in the source-specific mapper switch and create a mapping function.
 #### Step 4: Create Handlebars Template
 
 Either:
+
 - **File-based:** Create `.html` at `C:\FMSData\reports\templates\{name}.html`
 - **Embedded:** Add constant in `JsReportHtmlTemplates.cs` and register in `JsReportTemplateManager.EnsureSampleTemplatesAsync()`
 
@@ -1339,14 +1348,14 @@ If no existing endpoint provides the data, create one in the relevant controller
 
 ### Modifying an Existing Report
 
-| What to Modify | Where | Impact |
-|---------------|-------|--------|
-| Filter parameters | Source definition file (frontend) | Changes the parameter form |
-| Data fields / mapping | `reportDataBuilder.js` | Changes how API data maps to template fields |
-| Template HTML/CSS | Template file on disk or via Template Designer UI | Changes rendered output appearance |
-| API endpoint | Source definition `apiEndpoint` field | Changes where data comes from |
-| Permissions | Source definition `permission` field | Changes who can access the report |
-| Supported formats | Source definition `supportedFormats` array | Changes format picker options |
+| What to Modify        | Where                                             | Impact                                       |
+| --------------------- | ------------------------------------------------- | -------------------------------------------- |
+| Filter parameters     | Source definition file (frontend)                 | Changes the parameter form                   |
+| Data fields / mapping | `reportDataBuilder.js`                            | Changes how API data maps to template fields |
+| Template HTML/CSS     | Template file on disk or via Template Designer UI | Changes rendered output appearance           |
+| API endpoint          | Source definition `apiEndpoint` field             | Changes where data comes from                |
+| Permissions           | Source definition `permission` field              | Changes who can access the report            |
+| Supported formats     | Source definition `supportedFormats` array        | Changes format picker options                |
 
 ---
 
@@ -1397,17 +1406,17 @@ If no existing endpoint provides the data, create one in the relevant controller
 
 ### Template Variables Reference
 
-| Variable | Available In | Source |
-|----------|-------------|--------|
-| `{{reportTitle}}` | All templates | Set by `buildJsReportPayload()` |
-| `{{generatedAt}}` | All templates | Current timestamp |
-| `{{generatedBy}}` | All templates | Current user name |
-| `{{dateFrom}}` / `{{dateTo}}` | All templates | Filter date range |
-| `{{reportId}}` | All templates | Generated report ID |
-| `{{records}}` | All templates | Array of normalised data rows |
-| `{{summary}}` | All templates | Calculated summary object |
-| `{{summary.totalRecords}}` | All templates | Record count |
-| Source-specific fields | Per-source | Defined by data mapper |
+| Variable                      | Available In  | Source                          |
+| ----------------------------- | ------------- | ------------------------------- |
+| `{{reportTitle}}`             | All templates | Set by `buildJsReportPayload()` |
+| `{{generatedAt}}`             | All templates | Current timestamp               |
+| `{{generatedBy}}`             | All templates | Current user name               |
+| `{{dateFrom}}` / `{{dateTo}}` | All templates | Filter date range               |
+| `{{reportId}}`                | All templates | Generated report ID             |
+| `{{records}}`                 | All templates | Array of normalised data rows   |
+| `{{summary}}`                 | All templates | Calculated summary object       |
+| `{{summary.totalRecords}}`    | All templates | Record count                    |
+| Source-specific fields        | Per-source    | Defined by data mapper          |
 
 ---
 
@@ -1481,23 +1490,23 @@ When the notification scheduler fires:
 
 Every report generation automatically logs to `report_execution_history`:
 
-| Source | Logging Mechanism |
-|--------|------------------|
-| Report Engine (frontend sync) | `reportingService.logExecution()` → `POST /Reporting/execution-log` |
-| Report Engine (frontend async) | Backend `ReportJobManager` logs on completion |
-| `GenerateReportCommand` (backend) | Handler auto-persists to `ReportExecutionHistories` |
-| Scheduled reports | Logged by notification system execution pipeline |
+| Source                            | Logging Mechanism                                                   |
+| --------------------------------- | ------------------------------------------------------------------- |
+| Report Engine (frontend sync)     | `reportingService.logExecution()` → `POST /Reporting/execution-log` |
+| Report Engine (frontend async)    | Backend `ReportJobManager` logs on completion                       |
+| `GenerateReportCommand` (backend) | Handler auto-persists to `ReportExecutionHistories`                 |
+| Scheduled reports                 | Logged by notification system execution pipeline                    |
 
 ### Monitoring Dashboard Features
 
-| Feature | Data Source |
-|---------|-----------|
-| **Total Executions** | Count of history records in date range |
-| **Success Rate** | `succeeded / total * 100` |
-| **Average Duration** | Mean of `ExecutionTimeMs` for successful runs |
+| Feature              | Data Source                                     |
+| -------------------- | ----------------------------------------------- |
+| **Total Executions** | Count of history records in date range          |
+| **Success Rate**     | `succeeded / total * 100`                       |
+| **Average Duration** | Mean of `ExecutionTimeMs` for successful runs   |
 | **Format Breakdown** | Count by `ExportFormat` (PDF, Excel, HTML, CSV) |
-| **Error Log** | Failed executions with `ErrorMessage` details |
-| **User Activity** | Execution count per user |
+| **Error Log**        | Failed executions with `ErrorMessage` details   |
+| **User Activity**    | Execution count per user                        |
 
 ### Execution History Record
 
@@ -1524,13 +1533,13 @@ Every report generation automatically logs to `report_execution_history`:
 
 ### When Async Jobs Are Used
 
-| Condition | Job Type |
-|-----------|---------|
-| Format is PDF or Excel (non-pump-transaction) | Async |
-| Large dataset (>200 records or >300KB payload) | Async (fallback from sync) |
-| HTML sync preview times out (12s) | Async (automatic fallback) |
-| Tank volume history & transaction summary reports | Always async |
-| Pump transaction reports | Always sync |
+| Condition                                         | Job Type                   |
+| ------------------------------------------------- | -------------------------- |
+| Format is PDF or Excel (non-pump-transaction)     | Async                      |
+| Large dataset (>200 records or >300KB payload)    | Async (fallback from sync) |
+| HTML sync preview times out (12s)                 | Async (automatic fallback) |
+| Tank volume history & transaction summary reports | Always async               |
+| Pump transaction reports                          | Always sync                |
 
 ### Job Status Lifecycle
 
@@ -1555,11 +1564,11 @@ The `useReportJobTracking` hook:
 
 ### Job Memory Management
 
-| Setting | Value | Description |
-|---------|-------|-------------|
-| Result TTL | 30 minutes | Completed results are cached for download |
-| Max concurrent per user | 3 | Prevents resource exhaustion |
-| Auto-cleanup | Periodic | Expired results and old job records are purged |
+| Setting                 | Value      | Description                                    |
+| ----------------------- | ---------- | ---------------------------------------------- |
+| Result TTL              | 30 minutes | Completed results are cached for download      |
+| Max concurrent per user | 3          | Prevents resource exhaustion                   |
+| Auto-cleanup            | Periodic   | Expired results and old job records are purged |
 
 ---
 
@@ -1571,12 +1580,12 @@ All report API endpoints require JWT Bearer authentication (inherited from contr
 
 ### Authorisation
 
-| Level | Mechanism |
-|-------|----------|
-| Controller | `[RequirePermission(Permissions.Report.VehicleConsumption)]` |
-| Source definitions | `RequiredPermission` field (e.g., `_Read_PumpTransaction`) |
-| Data endpoints | Enforce their own permissions independently |
-| Frontend | `usePermissions()` hook hides inaccessible report sources |
+| Level              | Mechanism                                                    |
+| ------------------ | ------------------------------------------------------------ |
+| Controller         | `[RequirePermission(Permissions.Report.VehicleConsumption)]` |
+| Source definitions | `RequiredPermission` field (e.g., `_Read_PumpTransaction`)   |
+| Data endpoints     | Enforce their own permissions independently                  |
+| Frontend           | `usePermissions()` hook hides inaccessible report sources    |
 
 ### Data Isolation
 
@@ -1590,40 +1599,40 @@ All report API endpoints require JWT Bearer authentication (inherited from contr
 
 ### Rendering Timeouts
 
-| Scenario | Timeout |
-|----------|---------|
-| Standard payload (<750KB) | 120 seconds |
-| Large payload (≥750KB) | 300 seconds |
-| Sync HTML preview | 12 seconds (then falls back to async) |
+| Scenario                  | Timeout                               |
+| ------------------------- | ------------------------------------- |
+| Standard payload (<750KB) | 120 seconds                           |
+| Large payload (≥750KB)    | 300 seconds                           |
+| Sync HTML preview         | 12 seconds (then falls back to async) |
 
 ### Retry Logic
 
-| Component | Retry Behaviour |
-|-----------|----------------|
-| jsreport WORKER_TIMEOUT | Kill & recreate service, retry once |
+| Component                    | Retry Behaviour                      |
+| ---------------------------- | ------------------------------------ |
+| jsreport WORKER_TIMEOUT      | Kill & recreate service, retry once  |
 | PuppeteerSharp browser crash | Close & relaunch browser, retry once |
-| Chrome process stale | Kill stale processes on startup |
+| Chrome process stale         | Kill stale processes on startup      |
 
 ### Error Handling
 
-| Layer | Error Strategy |
-|-------|---------------|
-| Backend Services | Log error + return `FMSResponse` with details |
-| Backend Controllers | Try/catch → status 500 with message |
-| Frontend `reportingService` | Try/catch → `{ success: false, error: message }` |
-| Frontend UI | Toast notifications via `notify()` + inline error messages |
-| Template not found | Fallback to embedded default (silent recovery) |
-| Logo not found | Skip letterhead silently |
-| Chrome not found | Log warning, PDF rendering unavailable |
+| Layer                       | Error Strategy                                             |
+| --------------------------- | ---------------------------------------------------------- |
+| Backend Services            | Log error + return `FMSResponse` with details              |
+| Backend Controllers         | Try/catch → status 500 with message                        |
+| Frontend `reportingService` | Try/catch → `{ success: false, error: message }`           |
+| Frontend UI                 | Toast notifications via `notify()` + inline error messages |
+| Template not found          | Fallback to embedded default (silent recovery)             |
+| Logo not found              | Skip letterhead silently                                   |
+| Chrome not found            | Log warning, PDF rendering unavailable                     |
 
 ### Caching Strategy
 
-| What | Where | Duration |
-|------|-------|----------|
-| Source definitions | Frontend `reportSourceRegistry` (static Map) | App lifetime |
-| Template content | Disk read per render | No cache (disk I/O is fast) |
-| Async job results | In-memory `ConcurrentDictionary` | 30 minutes |
-| API data responses | Not cached | Always fresh data |
+| What               | Where                                        | Duration                    |
+| ------------------ | -------------------------------------------- | --------------------------- |
+| Source definitions | Frontend `reportSourceRegistry` (static Map) | App lifetime                |
+| Template content   | Disk read per render                         | No cache (disk I/O is fast) |
+| Async job results  | In-memory `ConcurrentDictionary`             | 30 minutes                  |
+| API data responses | Not cached                                   | Always fresh data           |
 
 ---
 
@@ -1634,6 +1643,7 @@ All report API endpoints require JWT Bearer authentication (inherited from contr
 See [ADDING_REPORTS.md](./ADDING_REPORTS.md) for a step-by-step walkthrough.
 
 **Summary:**
+
 1. Create source definition file in `sources/`
 2. Register in `reportSourceRegistry.js`
 3. Add data mapper in `reportDataBuilder.js`
@@ -1666,43 +1676,43 @@ Replace the logo file at `C:\FMSData\reports\branding\letterhead-logo.png`. Supp
 
 ### Backend Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `FMS.WebClient/Services/Reporting/JsReportService.cs` | 1,391 | Core render engine |
-| `FMS.WebClient/Services/Reporting/JsReportTemplateManager.cs` | 242 | Template file CRUD + seeding |
-| `FMS.WebClient/Services/Reporting/JsReportHtmlTemplates.cs` | — | 9 embedded Handlebars templates |
-| `FMS.WebClient/Services/Reporting/JsReportLetterheadBranding.cs` | 130 | Logo injection |
-| `FMS.WebClient/Services/Reporting/NotificationReportRenderer.cs` | 45 | Notification → JsReport bridge |
-| `FMS.WebClient/Services/Reporting/IJsReportService.cs` | 50 | Rendering interface |
-| `FMS.WebClient/Services/ReportJobManager.cs` | 934 | Async job orchestrator |
-| `FMS.WebClient/Controllers/Reporting/ReportGeneratorController.cs` | 673 | JsReport API surface |
-| `FMS.WebClient/Controllers/Reporting/ReportingController.cs` | 395 | Definitions + history API |
-| `FMS.WebClient/Controllers/Reporting/StockReportController.cs` | — | Tank stock reports |
-| `FMS.Application/Features/Reporting/Commands/` | 8 files | CQRS write operations |
-| `FMS.Application/Features/Reporting/Queries/` | 6 files | CQRS read operations |
-| `FMS.Application/Features/Reporting/DTOs/` | 5 files | Data transfer objects |
-| `FMS.Application/Features/Reporting/Services/` | 7 files | Business logic services |
-| `FMS.Domain/Entities/Features/Reporting/` | 5 files | Domain entities |
+| File                                                               | Lines   | Purpose                         |
+| ------------------------------------------------------------------ | ------- | ------------------------------- |
+| `FMS.WebClient/Services/Reporting/JsReportService.cs`              | 1,391   | Core render engine              |
+| `FMS.WebClient/Services/Reporting/JsReportTemplateManager.cs`      | 242     | Template file CRUD + seeding    |
+| `FMS.WebClient/Services/Reporting/JsReportHtmlTemplates.cs`        | —       | 9 embedded Handlebars templates |
+| `FMS.WebClient/Services/Reporting/JsReportLetterheadBranding.cs`   | 130     | Logo injection                  |
+| `FMS.WebClient/Services/Reporting/NotificationReportRenderer.cs`   | 45      | Notification → JsReport bridge  |
+| `FMS.WebClient/Services/Reporting/IJsReportService.cs`             | 50      | Rendering interface             |
+| `FMS.WebClient/Services/ReportJobManager.cs`                       | 934     | Async job orchestrator          |
+| `FMS.WebClient/Controllers/Reporting/ReportGeneratorController.cs` | 673     | JsReport API surface            |
+| `FMS.WebClient/Controllers/Reporting/ReportingController.cs`       | 395     | Definitions + history API       |
+| `FMS.WebClient/Controllers/Reporting/StockReportController.cs`     | —       | Tank stock reports              |
+| `FMS.Application/Features/Reporting/Commands/`                     | 8 files | CQRS write operations           |
+| `FMS.Application/Features/Reporting/Queries/`                      | 6 files | CQRS read operations            |
+| `FMS.Application/Features/Reporting/DTOs/`                         | 5 files | Data transfer objects           |
+| `FMS.Application/Features/Reporting/Services/`                     | 7 files | Business logic services         |
+| `FMS.Domain/Entities/Features/Reporting/`                          | 5 files | Domain entities                 |
 
 ### Frontend Files
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `fms.frontend/src/pages/reports/ReportsMain.js` | 100 | Route definitions |
-| `fms.frontend/src/pages/reports/ReportsDashboard.js` | — | Landing page |
-| `fms.frontend/src/pages/reports/engine/ReportEngine.js` | 786 | Central orchestrator |
-| `fms.frontend/src/pages/reports/engine/ReportParameterForm.js` | — | Dynamic filter form |
-| `fms.frontend/src/pages/reports/engine/ReportFormatSelector.js` | — | Format picker |
-| `fms.frontend/src/pages/reports/engine/ReportOutputViewer.js` | — | HTML iframe viewer |
-| `fms.frontend/src/pages/reports/engine/reportDataBuilder.js` | 1,508 | Data normalisation |
-| `fms.frontend/src/pages/reports/sources/reportSourceRegistry.js` | 121 | Source registry |
-| `fms.frontend/src/pages/reports/sources/` | 10 files | Individual source configs |
-| `fms.frontend/src/pages/reports/templates/TemplateManager.js` | 287 | Template CRUD grid |
-| `fms.frontend/src/pages/reports/templates/TemplateDesigner.js` | 232 | Monaco editor + preview |
-| `fms.frontend/src/pages/reports/scheduling/ReportScheduleManager.js` | 541 | Schedule management |
-| `fms.frontend/src/pages/reports/monitoring/ReportMonitorDashboard.js` | 402 | Execution dashboard |
-| `fms.frontend/src/services/reportingService.js` | 780 | API client (30 methods) |
+| File                                                                  | Lines    | Purpose                   |
+| --------------------------------------------------------------------- | -------- | ------------------------- |
+| `fms.frontend/src/pages/reports/ReportsMain.js`                       | 100      | Route definitions         |
+| `fms.frontend/src/pages/reports/ReportsDashboard.js`                  | —        | Landing page              |
+| `fms.frontend/src/pages/reports/engine/ReportEngine.js`               | 786      | Central orchestrator      |
+| `fms.frontend/src/pages/reports/engine/ReportParameterForm.js`        | —        | Dynamic filter form       |
+| `fms.frontend/src/pages/reports/engine/ReportFormatSelector.js`       | —        | Format picker             |
+| `fms.frontend/src/pages/reports/engine/ReportOutputViewer.js`         | —        | HTML iframe viewer        |
+| `fms.frontend/src/pages/reports/engine/reportDataBuilder.js`          | 1,508    | Data normalisation        |
+| `fms.frontend/src/pages/reports/sources/reportSourceRegistry.js`      | 121      | Source registry           |
+| `fms.frontend/src/pages/reports/sources/`                             | 10 files | Individual source configs |
+| `fms.frontend/src/pages/reports/templates/TemplateManager.js`         | 287      | Template CRUD grid        |
+| `fms.frontend/src/pages/reports/templates/TemplateDesigner.js`        | 232      | Monaco editor + preview   |
+| `fms.frontend/src/pages/reports/scheduling/ReportScheduleManager.js`  | 541      | Schedule management       |
+| `fms.frontend/src/pages/reports/monitoring/ReportMonitorDashboard.js` | 402      | Execution dashboard       |
+| `fms.frontend/src/services/reportingService.js`                       | 780      | API client (30 methods)   |
 
 ---
 
-*This documentation reflects the state of the FMS reporting system as of 2026-03-11.*
+_This documentation reflects the state of the FMS reporting system as of 2026-03-11._

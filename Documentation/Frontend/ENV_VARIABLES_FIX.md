@@ -1,6 +1,6 @@
-﻿# FMS Environment Variables Configuration
+# FMS Environment Variables Configuration
 
-## 🎯 Overview
+## ?? Overview
 
 This guide explains how environment variables work in the FMS frontend and how to configure them for different deployment scenarios.
 
@@ -8,7 +8,7 @@ This guide explains how environment variables work in the FMS frontend and how t
 
 ---
 
-## 📋 How Environment Variables Work
+## ?? How Environment Variables Work
 
 ### Build-Time Process
 
@@ -20,14 +20,14 @@ This guide explains how environment variables work in the FMS frontend and how t
 
 ### Runtime Behavior
 
-- ✅ Variables are read from JavaScript bundle (fast)
-- ❌ Cannot be changed without rebuilding
-- ❌ `.env` files are NOT deployed to production
-- ❌ Changing `.env` on server has NO effect
+- ? Variables are read from JavaScript bundle (fast)
+- ? Cannot be changed without rebuilding
+- ? `.env` files are NOT deployed to production
+- ? Changing `.env` on server has NO effect
 
 ---
 
-## 🔑 Key Environment Variables
+## ?? Key Environment Variables
 
 ### Required Variables
 
@@ -49,16 +49,16 @@ This guide explains how environment variables work in the FMS frontend and how t
 
 ---
 
-## 📁 Environment File Structure
+## ?? Environment File Structure
 
 ```
 fms.frontend/
-├── .env                  # Default (never commit secrets)
-├── .env.development      # Development mode (npm start)
-├── .env.production       # Production mode (npm run build)
-├── .env.local            # Local overrides (git ignored)
-└── public/
-    └── index.html        # Contains %REACT_APP_*% placeholders
++-- .env                  # Default (never commit secrets)
++-- .env.development      # Development mode (npm start)
++-- .env.production       # Production mode (npm run build)
++-- .env.local            # Local overrides (git ignored)
++-- public/
+    +-- index.html        # Contains %REACT_APP_*% placeholders
 ```
 
 **Priority Order** (highest to lowest):
@@ -69,7 +69,7 @@ fms.frontend/
 
 ---
 
-## 🌍 Configuration by Environment
+## ?? Configuration by Environment
 
 ### 1. Local Development Machine
 
@@ -169,7 +169,7 @@ The application will try internal URL first (if accessible), then fall back to p
 
 ---
 
-## 🔍 How to Check Current Configuration
+## ?? How to Check Current Configuration
 
 ### Method 1: Browser Console (After Deployment)
 
@@ -206,16 +206,16 @@ Select-String -Path "c:\inetpub\wwwroot\tenacyFMS\reactApp\index.html" -Pattern 
 
 ### Method 4: Network Tab
 
-1. Open browser DevTools → Network tab
+1. Open browser DevTools ? Network tab
 2. Look for API requests
 3. Check the request URL:
-   - ✅ `http://197.254.33.227/api/...` (correct)
-   - ❌ `http://10.0.10.153:7009/api/...` (internal IP)
-   - ❌ `http://localhost:7009/api/...` (local)
+   - ? `http://197.254.33.227/api/...` (correct)
+   - ? `http://10.0.10.153:7009/api/...` (internal IP)
+   - ? `http://localhost:7009/api/...` (local)
 
 ---
 
-## 🐛 Common Issues & Solutions
+## ?? Common Issues & Solutions
 
 ### Issue 1: Wrong API URL After Build
 
@@ -264,19 +264,19 @@ grep "x-api-url" build/index.html
 **Common Mistakes**:
 
 ```bash
-# ❌ WRONG - Space around equals
+# ? WRONG - Space around equals
 REACT_APP_FMS_API_URL = http://197.254.33.227/api
 
-# ❌ WRONG - Quotes (not needed for URLs)
+# ? WRONG - Quotes (not needed for URLs)
 REACT_APP_FMS_API_URL="http://197.254.33.227/api"
 
-# ❌ WRONG - Wrong file name
+# ? WRONG - Wrong file name
 .env.prod (should be .env.production)
 
-# ❌ WRONG - Wrong location
+# ? WRONG - Wrong location
 fms.frontend/src/.env.production (should be in fms.frontend/)
 
-# ✅ CORRECT
+# ? CORRECT
 REACT_APP_FMS_API_URL=http://197.254.33.227/api
 ```
 
@@ -328,8 +328,8 @@ REACT_APP_SIGNALR_URL=http://197.254.33.227
 
 **Symptom**:
 
-- Internal network (10.0.10.x): ✅ Works
-- External network: ❌ Fails
+- Internal network (10.0.10.x): ? Works
+- External network: ? Fails
 
 **Root Cause**: Application built with internal IP
 
@@ -351,8 +351,8 @@ Internal users will connect via public URL (slight overhead) but it works everyw
 
 **Option B: Two Builds** (Not Recommended)
 
-- Build 1: Internal URL → Deploy to internal IIS
-- Build 2: Public URL → Deploy to external IIS
+- Build 1: Internal URL ? Deploy to internal IIS
+- Build 2: Public URL ? Deploy to external IIS
 
 This is complex and error-prone.
 
@@ -401,7 +401,7 @@ NODE_ENV=production
 
 ---
 
-## ✅ Verification Checklist
+## ? Verification Checklist
 
 Before deploying production build:
 
@@ -433,7 +433,7 @@ Before deploying production build:
 
 ---
 
-## 🔄 Complete Fix for Current Issue
+## ?? Complete Fix for Current Issue
 
 Your current issue: SignalR fails externally because app uses internal IP
 
@@ -442,7 +442,7 @@ Your current issue: SignalR fails externally because app uses internal IP
 #### 1. Update .env.production
 
 ```bash
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 notepad .env.production
 ```
 
@@ -496,14 +496,14 @@ iisreset /noforce
 From different network:
 
 1. Open `http://197.254.33.227`
-2. Open browser DevTools → Console
+2. Open browser DevTools ? Console
 3. Look for SignalR connection logs
 4. Check Network tab for WebSocket connection
 5. Verify no 404 errors
 
 ---
 
-## 📞 Quick Reference Commands
+## ?? Quick Reference Commands
 
 ```bash
 # Check current .env.production
@@ -524,7 +524,7 @@ document.querySelector('meta[name="x-api-url"]')?.content
 
 ---
 
-## 🎓 Key Takeaways
+## ?? Key Takeaways
 
 1. **Build-Time Only**: Environment variables are baked in at build time
 2. **Prefix Required**: Variables must start with `REACT_APP_`

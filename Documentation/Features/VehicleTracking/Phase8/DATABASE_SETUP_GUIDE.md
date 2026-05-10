@@ -1,20 +1,20 @@
-﻿# Database Setup Guide - Provider Management System
+# Database Setup Guide - Provider Management System
 
-## 📋 Prerequisites
+## ?? Prerequisites
 
 Before running the database scripts, ensure you have:
 
-- ✅ MySQL database access
-- ✅ Database connection credentials
-- ✅ GPSGate API credentials ready:
+- ? MySQL database access
+- ? Database connection credentials
+- ? GPSGate API credentials ready:
   - API Key
   - Base URL (e.g., `http://10.0.10.150/comGpsGate/api/v.1`)
   - Application ID (numeric)
-- ✅ Admin/DBA permissions
+- ? Admin/DBA permissions
 
 ---
 
-## 🗄️ Database Tables Required
+## ??? Database Tables Required
 
 ### 1. provider_configurations (Should exist from Phase 2)
 
@@ -50,7 +50,7 @@ DESC navigationitems;
 
 ---
 
-## 📝 Step-by-Step Setup
+## ?? Step-by-Step Setup
 
 ### Step 1: Connect to Database
 
@@ -131,9 +131,9 @@ INSERT INTO provider_configurations (
     1,  -- is_default: TRUE (this is the default provider)
     1,  -- priority_order: 1 (highest priority)
     JSON_OBJECT(
-        'ApiKey', 'YOUR_ACTUAL_API_KEY',        -- ⚠️ UPDATE THIS
-        'BaseUrl', 'YOUR_ACTUAL_BASE_URL',      -- ⚠️ UPDATE THIS
-        'ApplicationId', 'YOUR_APP_ID'          -- ⚠️ UPDATE THIS
+        'ApiKey', 'YOUR_ACTUAL_API_KEY',        -- ?? UPDATE THIS
+        'BaseUrl', 'YOUR_ACTUAL_BASE_URL',      -- ?? UPDATE THIS
+        'ApplicationId', 'YOUR_APP_ID'          -- ?? UPDATE THIS
     ),
     NOW(),
     NOW()
@@ -152,7 +152,7 @@ ON DUPLICATE KEY UPDATE
 
 ```powershell
 # Navigate to the SQL file location
-cd "C:\Users\admin\Documents\GitHub\Tenacy.FMS\Documentation\Features\VehicleTracking\Phase4"
+cd "C:\Users\admin\Documents\GitHub\Tenacity.FMS\Documentation\Features\VehicleTracking\Phase4"
 
 # Create a copy with your credentials
 $apiKey = "your-api-key-here"
@@ -352,7 +352,7 @@ Consult your existing navigation permission setup. You may need to:
 
 ---
 
-## ✅ Verification Checklist
+## ? Verification Checklist
 
 After completing all steps, verify:
 
@@ -396,7 +396,7 @@ After completing all steps, verify:
 
 ---
 
-## 🔧 Troubleshooting
+## ?? Troubleshooting
 
 ### Issue 1: Table 'provider_configurations' doesn't exist
 
@@ -453,7 +453,7 @@ configuration_data = '{"ApiKey":"your-key","BaseUrl":"your-url","ApplicationId":
 
 ---
 
-## 📊 Quick Setup Script (All-in-One)
+## ?? Quick Setup Script (All-in-One)
 
 **For Advanced Users** - Execute this in MySQL Workbench:
 
@@ -481,9 +481,9 @@ INSERT INTO provider_configurations (
     'Integration with GPSGate Vehicle Tracker system',
     1, 1, 1,
     JSON_OBJECT(
-        'ApiKey', 'YOUR_API_KEY_HERE',              -- ⚠️ UPDATE
-        'BaseUrl', 'http://10.0.10.150/comGpsGate/api/v.1',  -- ⚠️ UPDATE
-        'ApplicationId', '12'                       -- ⚠️ UPDATE
+        'ApiKey', 'YOUR_API_KEY_HERE',              -- ?? UPDATE
+        'BaseUrl', 'http://10.0.10.150/comGpsGate/api/v.1',  -- ?? UPDATE
+        'ApplicationId', '12'                       -- ?? UPDATE
     ),
     NOW(), NOW()
 )
@@ -493,7 +493,7 @@ ON DUPLICATE KEY UPDATE
 
 -- Step 2: Verify Provider
 SELECT 'Provider Configuration' AS Step,
-       CASE WHEN COUNT(*) = 1 THEN '✅ SUCCESS' ELSE '❌ FAILED' END AS Status
+       CASE WHEN COUNT(*) = 1 THEN '? SUCCESS' ELSE '? FAILED' END AS Status
 FROM provider_configurations WHERE provider_name = 'GPSGate';
 
 -- Step 3: Add Navigation Items
@@ -511,7 +511,7 @@ VALUES
 
 -- Step 4: Verify Navigation
 SELECT 'Navigation Items' AS Step,
-       CASE WHEN COUNT(*) = 4 THEN '✅ SUCCESS' ELSE '❌ FAILED' END AS Status
+       CASE WHEN COUNT(*) = 4 THEN '? SUCCESS' ELSE '? FAILED' END AS Status
 FROM navigationitems WHERE Title LIKE '%Provider%';
 
 -- Step 5: Summary
@@ -522,16 +522,16 @@ SELECT Title, Path, IsActive FROM navigationitems WHERE Title LIKE '%Provider%' 
 
 ---
 
-## 🎯 Next Steps
+## ?? Next Steps
 
 After database setup is complete:
 
-1. ✅ **Mark todo as complete**
-2. ➡️ **Proceed to "Deploy & Test Backend"**
+1. ? **Mark todo as complete**
+2. ?? **Proceed to "Deploy & Test Backend"**
    - Build frontend: `cd fms.frontend && npm run build:prod`
    - Start API: Open FMS.WebClient in Visual Studio and run
    - Check logs for provider discovery
-3. ➡️ **Proceed to "Test Frontend UI"**
+3. ?? **Proceed to "Test Frontend UI"**
    - Navigate to `/providermanagement`
    - Test all features
 

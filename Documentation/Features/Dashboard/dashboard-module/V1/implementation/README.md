@@ -1,8 +1,8 @@
-﻿# Dashboard Module Documentation
+# Dashboard Module Documentation
 
 ## 1. Purpose
 
-This document explains the current dashboard module architecture in Tenacy FMS, including:
+This document explains the current dashboard module architecture in Tenacity FMS, including:
 
 - day-to-day usage flow
 - backend and frontend structure
@@ -78,9 +78,9 @@ flowchart TD
 
 The dashboard works by combining three axes:
 
-- **what to show** → widget template or custom widget configuration
-- **where the data comes from** → data source identifier + metadata contract
-- **how it should render** → widget type and widget transformation logic
+- **what to show** ? widget template or custom widget configuration
+- **where the data comes from** ? data source identifier + metadata contract
+- **how it should render** ? widget type and widget transformation logic
 
 ---
 
@@ -152,18 +152,18 @@ Current dashboard feature structure:
 
 ```text
 FMS.Application/Features/Dashboard/
-├── Command/
-├── Commands/
-├── Contracts/
-├── Dtos/
-├── Factory/
-│   ├── Extensions/
-│   └── WidgetFactories/
-├── Queries/
-└── Services/
-    ├── Common/
-    ├── DataSourceManager/
-    └── Interface/
++-- Command/
++-- Commands/
++-- Contracts/
++-- Dtos/
++-- Factory/
+�   +-- Extensions/
+�   +-- WidgetFactories/
++-- Queries/
++-- Services/
+    +-- Common/
+    +-- DataSourceManager/
+    +-- Interface/
 ```
 
 ### Important backend areas
@@ -216,15 +216,15 @@ This is the central runtime engine for dashboard data sources.
 
 Current partial-file breakdown:
 
-- `DataSourceManager.cs` → main orchestration
-- `DataSourceManager.Metadata.cs` → base metadata catalog
-- `DataSourceManager.Metrics.cs` → change/metric helpers
-- `DataSourceManager.TimeSeries.cs` → time-series helpers
-- `DataSourceManager.Transformers.cs` → widget-specific transformation
-- `DataSourceManager.EventAlerts.cs` → event/alert runtime sources
-- `DataSourceManager.EventAlerts.Metadata.cs` → event/alert metadata
-- `DataSourceManager.IssueTracker.cs` → issue tracker runtime sources
-- `DataSourceManager.IssueTracker.Metadata.cs` → issue tracker metadata
+- `DataSourceManager.cs` ? main orchestration
+- `DataSourceManager.Metadata.cs` ? base metadata catalog
+- `DataSourceManager.Metrics.cs` ? change/metric helpers
+- `DataSourceManager.TimeSeries.cs` ? time-series helpers
+- `DataSourceManager.Transformers.cs` ? widget-specific transformation
+- `DataSourceManager.EventAlerts.cs` ? event/alert runtime sources
+- `DataSourceManager.EventAlerts.Metadata.cs` ? event/alert metadata
+- `DataSourceManager.IssueTracker.cs` ? issue tracker runtime sources
+- `DataSourceManager.IssueTracker.Metadata.cs` ? issue tracker metadata
 
 This partial split is important because the data-source catalog is now large and domain-specific sources should be isolated to keep files maintainable.
 
@@ -701,23 +701,23 @@ Key frontend folders involved:
 
 ```text
 fms.frontend/src/
-├── pages/dashboard/
-├── hooks/
-├── components/dashboard/
-├── services/
-├── services/core/
-├── signalR/
-└── redux/
++-- pages/dashboard/
++-- hooks/
++-- components/dashboard/
++-- services/
++-- services/core/
++-- signalR/
++-- redux/
 ```
 
 ### Important frontend folders
 
-- `pages/dashboard/` → page shell and page-specific components
-- `components/dashboard/` → renderers, dialogs, forms, widget shells
-- `hooks/` → dashboard orchestration hook
-- `services/` → dashboard API, data-source API, widget factory helpers
-- `signalR/` → live transport layer
-- `redux/` → saved layout state and dashboard preferences
+- `pages/dashboard/` ? page shell and page-specific components
+- `components/dashboard/` ? renderers, dialogs, forms, widget shells
+- `hooks/` ? dashboard orchestration hook
+- `services/` ? dashboard API, data-source API, widget factory helpers
+- `signalR/` ? live transport layer
+- `redux/` ? saved layout state and dashboard preferences
 
 ---
 
@@ -765,7 +765,7 @@ The more complete the defaults are, the better the one-touch setup will feel.
 
 ### Step 4: confirm metadata compatibility
 
-The chosen widget type must be present in the source metadata’s `CompatibleWidgetTypes` list.
+The chosen widget type must be present in the source metadata�s `CompatibleWidgetTypes` list.
 
 ### Step 5: confirm permission visibility
 
@@ -924,7 +924,7 @@ To work well with current frontend renderers, prefer one or more of these payloa
       "id": 1001,
       "name": "Issue #1001",
       "label": "Overdue Issue",
-      "description": "Open • High • Main Site",
+      "description": "Open � High � Main Site",
       "timestamp": "2026-03-09T08:00:00Z"
     }
   ],
@@ -980,7 +980,7 @@ The current event-alert and issue-tracker integrations show the preferred extens
 
 ## 12.1 Permissions
 
-Dashboard access depends on dashboard permissions. Template visibility also depends on the template’s configured permissions.
+Dashboard access depends on dashboard permissions. Template visibility also depends on the template�s configured permissions.
 
 ## 12.2 Metadata-first frontend behavior
 
@@ -1049,7 +1049,7 @@ The dashboard currently has several strong design choices:
    - renderers and transformers assume familiar fields like `current`, `items`, `categories`, and `timeSeries`
 
 5. Permission filtering happens at template level.
-   - a valid source may still look “missing” if the template is permission-restricted
+   - a valid source may still look �missing� if the template is permission-restricted
 
 ---
 

@@ -1,6 +1,6 @@
-﻿# SignalR External Network Connection Fix
+# SignalR External Network Connection Fix
 
-## 🚨 Problem Summary
+## ?? Problem Summary
 
 **Issue**: SignalR WebSocket connections fail from external networks (outside your local network)
 
@@ -10,7 +10,7 @@
 - **Internal IP**: 10.0.10.153
 - **Status**: Works on dev machine, fails on external networks
 
-## 🔍 Root Causes Identified
+## ?? Root Causes Identified
 
 ### 1. **Hardcoded Internal IP in Production Build**
 
@@ -56,9 +56,9 @@
 
 ---
 
-## ✅ SOLUTIONS (Choose One or Combine)
+## ? SOLUTIONS (Choose One or Combine)
 
-### **🎯 SOLUTION 1: Use Public URL + Enable IIS Application Request Routing (RECOMMENDED)**
+### **?? SOLUTION 1: Use Public URL + Enable IIS Application Request Routing (RECOMMENDED)**
 
 This is the proper production setup.
 
@@ -85,7 +85,7 @@ This is the proper production setup.
 
 1. Open Server Manager
 2. Add Roles and Features
-3. Web Server (IIS) → Application Development
+3. Web Server (IIS) ? Application Development
 4. Check "WebSocket Protocol"
 5. Install
 
@@ -194,7 +194,7 @@ Check the deployed `index.html`:
 
 ---
 
-### **🎯 SOLUTION 2: Open Port 7009 in Firewall (Quick but Less Secure)**
+### **?? SOLUTION 2: Open Port 7009 in Firewall (Quick but Less Secure)**
 
 If ARR is not an option, you can expose port 7009 directly:
 
@@ -230,7 +230,7 @@ REACT_APP_FMS_API_URL=http://197.254.33.227:7009/api
 REACT_APP_SIGNALR_URL=http://197.254.33.227:7009
 ```
 
-⚠️ **Security Warning**: This exposes your backend directly. Consider:
+?? **Security Warning**: This exposes your backend directly. Consider:
 
 - Adding authentication
 - Using HTTPS with SSL certificate
@@ -239,7 +239,7 @@ REACT_APP_SIGNALR_URL=http://197.254.33.227:7009
 
 ---
 
-### **🎯 SOLUTION 3: Force LongPolling Transport (Fallback)**
+### **?? SOLUTION 3: Force LongPolling Transport (Fallback)**
 
 If WebSocket cannot be configured, force SignalR to use LongPolling:
 
@@ -260,7 +260,7 @@ transport: process.env.NODE_ENV === 'production'
 
 ---
 
-## 🧪 Testing Steps
+## ?? Testing Steps
 
 ### 1. **Test from External Network**
 
@@ -286,8 +286,8 @@ Use browser console:
 
 ```javascript
 const ws = new WebSocket("ws://197.254.33.227/ptsHub?id=test");
-ws.onopen = () => console.log("✓ WebSocket connected");
-ws.onerror = (e) => console.error("✗ WebSocket error", e);
+ws.onopen = () => console.log("? WebSocket connected");
+ws.onerror = (e) => console.error("? WebSocket error", e);
 ```
 
 ### 4. **Check Firewall Port 7009**
@@ -309,17 +309,17 @@ Expected result:
 
 ---
 
-## 📊 Comparison Matrix
+## ?? Comparison Matrix
 
 | Solution              | Pros                                                                       | Cons                                                 | Security        | Setup Complexity |
 | --------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------- | --------------- | ---------------- |
-| **ARR + Public URL**  | ✓ Proper production setup<br>✓ Single port (80/443)<br>✓ WebSocket support | ✗ Requires ARR installation<br>✗ More complex config | ⭐⭐⭐⭐⭐ High | Medium           |
-| **Open Port 7009**    | ✓ Quick to implement<br>✓ WebSocket works                                  | ✗ Exposes backend directly<br>✗ Security risk        | ⭐⭐ Low        | Easy             |
-| **Force LongPolling** | ✓ Works with URL Rewrite<br>✓ No extra config                              | ✗ Less efficient<br>✗ Higher latency                 | ⭐⭐⭐⭐ High   | Easy             |
+| **ARR + Public URL**  | ? Proper production setup<br>? Single port (80/443)<br>? WebSocket support | ? Requires ARR installation<br>? More complex config | ????? High | Medium           |
+| **Open Port 7009**    | ? Quick to implement<br>? WebSocket works                                  | ? Exposes backend directly<br>? Security risk        | ?? Low        | Easy             |
+| **Force LongPolling** | ? Works with URL Rewrite<br>? No extra config                              | ? Less efficient<br>? Higher latency                 | ???? High   | Easy             |
 
 ---
 
-## 🎯 RECOMMENDED APPROACH
+## ?? RECOMMENDED APPROACH
 
 **For Production**: Use **Solution 1 (ARR + Public URL)**
 
@@ -337,7 +337,7 @@ Expected result:
 
 ---
 
-## 🔧 Quick Diagnostic Commands
+## ?? Quick Diagnostic Commands
 
 Run these on production server:
 
@@ -360,7 +360,7 @@ curl http://localhost:7009/ptsHub/negotiate?negotiateVersion=1
 
 ---
 
-## 📞 Next Steps
+## ?? Next Steps
 
 1. **Verify current setup**: Run diagnostic commands above
 2. **Choose solution**: Based on your infrastructure capabilities
@@ -370,7 +370,7 @@ curl http://localhost:7009/ptsHub/negotiate?negotiateVersion=1
 
 ---
 
-## 🐛 Common Issues After Fix
+## ?? Common Issues After Fix
 
 ### Issue: Still getting 404
 
@@ -396,4 +396,4 @@ curl http://localhost:7009/ptsHub/negotiate?negotiateVersion=1
 
 **Last Updated**: 2025-10-31
 **Server**: Production (197.254.33.227)
-**Application**: Tenacy FMS
+**Application**: Tenacity FMS

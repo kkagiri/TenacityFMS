@@ -1,6 +1,6 @@
-﻿# Physical Fueling Workflow Implementation - Complete
+# Physical Fueling Workflow Implementation - Complete
 
-## 🎯 Problem Statement
+## ?? Problem Statement
 
 **Issue**: 5 stuck transactions (300, 306, 307, 308, 309) accumulating without EOT (End of Transaction) packets from PTS devices.
 
@@ -8,17 +8,17 @@
 
 **User Requirement**: "The nozzle must be lifted for the user in the scan process has to be lifted so that he can proceed to fuel - in return we get transaction id... this is what we are going to be tracking and activate the scanstep.js"
 
-## ✅ Solution Overview
+## ? Solution Overview
 
 Enforce complete physical fueling workflow:
-1. **User lifts nozzle** → Device updates `IdleStatus.NozzlesUp` array
-2. **System validates nozzle UP** → Checks Redis UploadStatus before authorization
-3. **User enters vehicle details** → ScanStep shows nozzle state indicator
-4. **System authorizes pump** → Only if nozzle is physically lifted
-5. **Device returns transaction ID** → Tracked in fueling process
-6. **Fueling completes** → EOT packet or IdleStatus fallback
+1. **User lifts nozzle** ? Device updates `IdleStatus.NozzlesUp` array
+2. **System validates nozzle UP** ? Checks Redis UploadStatus before authorization
+3. **User enters vehicle details** ? ScanStep shows nozzle state indicator
+4. **System authorizes pump** ? Only if nozzle is physically lifted
+5. **Device returns transaction ID** ? Tracked in fueling process
+6. **Fueling completes** ? EOT packet or IdleStatus fallback
 
-## 🏗️ Architecture
+## ??? Architecture
 
 ### Data Flow
 
@@ -43,9 +43,9 @@ Physical World          Redis Store              Backend API            Frontend
                                                       |                      |
                                               [Validate Nozzle UP]           |
                                                       |                      |
-                                                  ✅ Authorize               |
+                                                  ? Authorize               |
                                                       OR                     |
-                                                  ❌ Reject                  |
+                                                  ? Reject                  |
                                                       |                      |
                                                       +--[Response]--------->|
                                                                              |
@@ -88,7 +88,7 @@ Success(new PumpNozzleStateDto {
     IsNozzleUp = true,
     NozzleNumber = 2,
     Status = "Up",
-    Message = "✅ Nozzle 2 is UP - Ready to fuel"
+    Message = "? Nozzle 2 is UP - Ready to fuel"
 })
 
 // Nozzle DOWN
@@ -96,7 +96,7 @@ Success(new PumpNozzleStateDto {
     IsNozzleUp = false,
     NozzleNumber = null,
     Status = "Down",
-    Message = "⚠️ Nozzle is DOWN - Please lift nozzle"
+    Message = "?? Nozzle is DOWN - Please lift nozzle"
 })
 
 // No Status Available
@@ -117,15 +117,15 @@ var nozzleStateResult = await _mediator.Send(
 
 if (!nozzleStateResult.IsSuccess || !nozzleState.IsNozzleUp)
 {
-    _logger.LogWarning("[PumpAuth] ⚠️ NOZZLE DOWN - Cannot authorize");
+    _logger.LogWarning("[PumpAuth] ?? NOZZLE DOWN - Cannot authorize");
     return FMSResponse<PumpAuthorizationConfirmation>.ValidationFailed(
         new Dictionary<string, string[]> {
-            ["Nozzle"] = new[] { "⚠️ Nozzle must be lifted before starting fueling" }
+            ["Nozzle"] = new[] { "?? Nozzle must be lifted before starting fueling" }
         }
     );
 }
 
-_logger.LogInformation("[PumpAuth] **NOZZLE UP** ✅ - Nozzle {NozzleNumber} is lifted",
+_logger.LogInformation("[PumpAuth] **NOZZLE UP** ? - Nozzle {NozzleNumber} is lifted",
     nozzleState.NozzleNumber);
 
 // STEP 2: CHECK FOR STUCK TRANSACTIONS (EXISTING)
@@ -263,8 +263,8 @@ useEffect(() => {
       nozzleNumber: nozzleValue > 0 ? nozzleValue : null,
       status: isNozzleUp ? "Up" : "Down",
       message: isNozzleUp
-        ? `✅ Nozzle ${nozzleValue} is UP - Ready to fuel`
-        : "⚠️ Please lift nozzle from pump",
+        ? `? Nozzle ${nozzleValue} is UP - Ready to fuel`
+        : "?? Please lift nozzle from pump",
       lastUpdated: new Date(),
     });
   };
@@ -301,7 +301,7 @@ useEffect(() => {
           Nozzle {nozzleState.nozzleNumber} is UP
         </p>
         <p className="tw-text-xs tw-text-green-600">
-          ✅ Ready to fuel - You may proceed
+          ? Ready to fuel - You may proceed
         </p>
       </div>
     </>
@@ -314,7 +314,7 @@ useEffect(() => {
           Nozzle Down
         </p>
         <p className="tw-text-xs tw-text-orange-600">
-          ⚠️ Please lift the nozzle from the pump before continuing
+          ?? Please lift the nozzle from the pump before continuing
         </p>
       </div>
     </>
@@ -329,7 +329,7 @@ const handleAcceptVehicle = useCallback(() => {
   // Validate nozzle is UP before proceeding
   if (!nozzleState.isUp) {
     notify({
-      message: "⚠️ Please lift the nozzle from the pump before starting fueling",
+      message: "?? Please lift the nozzle from the pump before starting fueling",
       type: "warning",
       displayTime: 4000,
     });
@@ -351,89 +351,89 @@ const handleAcceptVehicle = useCallback(() => {
   disabled={!nozzleState.isUp}
   hint={
     !nozzleState.isUp
-      ? "⚠️ Please lift the nozzle before continuing"
+      ? "?? Please lift the nozzle before continuing"
       : "Proceed to fueling details"
   }
 />
 ```
 
-## 🔄 Complete Workflow
+## ?? Complete Workflow
 
 ### Happy Path
 
 ```
 1. User approaches pump
-   └─> Lifts nozzle from pump
+   +-> Lifts nozzle from pump
 
 2. Device detects nozzle lift
-   └─> Sends UploadStatus with IdleStatus.NozzlesUp[0] = 2
-   └─> Stores in Redis: "upload-status:{deviceId}"
+   +-> Sends UploadStatus with IdleStatus.NozzlesUp[0] = 2
+   +-> Stores in Redis: "upload-status:{deviceId}"
 
 3. User opens fueling process in frontend
-   └─> Selects pump/nozzle
-   └─> Navigates to ScanStep
+   +-> Selects pump/nozzle
+   +-> Navigates to ScanStep
 
 4. ScanStep component loads
-   └─> useEffect calls getNozzleState(deviceId, pumpId)
-   └─> Backend reads Redis UploadStatus
-   └─> Returns: { IsNozzleUp: true, NozzleNumber: 2 }
-   └─> Frontend shows GREEN indicator: "✅ Nozzle 2 is UP - Ready to fuel"
+   +-> useEffect calls getNozzleState(deviceId, pumpId)
+   +-> Backend reads Redis UploadStatus
+   +-> Returns: { IsNozzleUp: true, NozzleNumber: 2 }
+   +-> Frontend shows GREEN indicator: "? Nozzle 2 is UP - Ready to fuel"
 
 5. SignalR subscription active
-   └─> Listens to uploadStatusUpdate events
-   └─> Updates nozzle state in real-time
+   +-> Listens to uploadStatusUpdate events
+   +-> Updates nozzle state in real-time
 
 6. User selects vehicle (lookup or RFID scan)
-   └─> Vehicle info displayed
-   └─> "Accept & Continue" button enabled (nozzle is UP)
+   +-> Vehicle info displayed
+   +-> "Accept & Continue" button enabled (nozzle is UP)
 
 7. User clicks "Accept & Continue"
-   └─> handleAcceptVehicle validates nozzleState.isUp = true
-   └─> Proceeds to FuelingDetailsStep
+   +-> handleAcceptVehicle validates nozzleState.isUp = true
+   +-> Proceeds to FuelingDetailsStep
 
 8. User enters fueling details (volume/amount)
-   └─> Clicks "Start Fueling"
+   +-> Clicks "Start Fueling"
 
 9. Backend receives PumpAuthorizeCommand
-   └─> STEP 1: GetPumpNozzleStateQuery validates nozzle UP
-   └─> STEP 2: CheckForStuckTransaction validates no active transactions
-   └─> STEP 3: Authorizes pump via PTSGateway
-   └─> Device sends PumpAuthorizeConfirmation with TransactionId
+   +-> STEP 1: GetPumpNozzleStateQuery validates nozzle UP
+   +-> STEP 2: CheckForStuckTransaction validates no active transactions
+   +-> STEP 3: Authorizes pump via PTSGateway
+   +-> Device sends PumpAuthorizeConfirmation with TransactionId
 
 10. Transaction tracked through fueling
-    └─> EOT packet received OR IdleStatus fallback used
-    └─> Transaction completes successfully
+    +-> EOT packet received OR IdleStatus fallback used
+    +-> Transaction completes successfully
 ```
 
 ### Error Path: Nozzle Down
 
 ```
 1. User opens fueling process
-   └─> Selects pump/nozzle
-   └─> Navigates to ScanStep
+   +-> Selects pump/nozzle
+   +-> Navigates to ScanStep
 
 2. ScanStep checks nozzle state
-   └─> Backend reads Redis: NozzlesUp[0] = 0 (nozzle DOWN)
-   └─> Returns: { IsNozzleUp: false }
-   └─> Frontend shows ORANGE indicator: "⚠️ Please lift nozzle from pump"
+   +-> Backend reads Redis: NozzlesUp[0] = 0 (nozzle DOWN)
+   +-> Returns: { IsNozzleUp: false }
+   +-> Frontend shows ORANGE indicator: "?? Please lift nozzle from pump"
 
 3. User selects vehicle
-   └─> Vehicle info displayed
-   └─> "Accept & Continue" button DISABLED (nozzle is DOWN)
-   └─> Button hint: "⚠️ Please lift the nozzle before continuing"
+   +-> Vehicle info displayed
+   +-> "Accept & Continue" button DISABLED (nozzle is DOWN)
+   +-> Button hint: "?? Please lift the nozzle before continuing"
 
 4. If user clicks button anyway (shouldn't be possible due to disabled state):
-   └─> handleAcceptVehicle checks nozzleState.isUp = false
-   └─> Shows warning notify: "⚠️ Please lift the nozzle from the pump..."
-   └─> Does NOT proceed to next step
+   +-> handleAcceptVehicle checks nozzleState.isUp = false
+   +-> Shows warning notify: "?? Please lift the nozzle from the pump..."
+   +-> Does NOT proceed to next step
 
 5. User lifts nozzle
-   └─> Device sends UploadStatus with NozzlesUp[0] = 2
-   └─> SignalR event fires: uploadStatusUpdate
-   └─> handleUploadStatusUpdate processes event
-   └─> Updates nozzleState: { isUp: true, nozzleNumber: 2 }
-   └─> Indicator changes to GREEN
-   └─> Button becomes enabled
+   +-> Device sends UploadStatus with NozzlesUp[0] = 2
+   +-> SignalR event fires: uploadStatusUpdate
+   +-> handleUploadStatusUpdate processes event
+   +-> Updates nozzleState: { isUp: true, nozzleNumber: 2 }
+   +-> Indicator changes to GREEN
+   +-> Button becomes enabled
 
 6. User can now proceed normally
 ```
@@ -442,29 +442,29 @@ const handleAcceptVehicle = useCallback(() => {
 
 ```
 1. Malicious user bypasses frontend validation (API call directly)
-   └─> Sends POST /pump/authorize without nozzle check
+   +-> Sends POST /pump/authorize without nozzle check
 
 2. Backend PumpAuthorizeCommand receives request
-   └─> STEP 1: Calls GetPumpNozzleStateQuery
-   └─> Query reads Redis: NozzlesUp[0] = 0 (nozzle DOWN)
-   └─> Returns: { IsNozzleUp: false }
+   +-> STEP 1: Calls GetPumpNozzleStateQuery
+   +-> Query reads Redis: NozzlesUp[0] = 0 (nozzle DOWN)
+   +-> Returns: { IsNozzleUp: false }
 
 3. Authorization REJECTED
-   └─> Returns ValidationFailed:
+   +-> Returns ValidationFailed:
        {
          "isSuccess": false,
          "validationErrors": {
-           "Nozzle": ["⚠️ Nozzle must be lifted before starting fueling"]
+           "Nozzle": ["?? Nozzle must be lifted before starting fueling"]
          }
        }
 
 4. No pump authorization sent to device
-   └─> No transaction ID generated
-   └─> No stuck transaction created
-   └─> User must lift nozzle and try again
+   +-> No transaction ID generated
+   +-> No stuck transaction created
+   +-> User must lift nozzle and try again
 ```
 
-## 📊 Data Structures
+## ?? Data Structures
 
 ### UploadStatus Structure (Redis)
 ```json
@@ -504,7 +504,7 @@ public class PumpNozzleStateDto
 }
 ```
 
-## 🧪 Testing Checklist
+## ?? Testing Checklist
 
 ### Backend Tests
 - [ ] GetPumpNozzleStateQuery returns correct state when nozzle UP
@@ -526,16 +526,16 @@ public class PumpNozzleStateDto
 - [ ] Last updated timestamp displays correctly
 
 ### Integration Tests
-- [ ] Complete workflow: Lift nozzle → Select vehicle → Authorize → Fuel → Complete
-- [ ] Error workflow: Try to authorize without lifting nozzle → Rejected
-- [ ] Real-time workflow: Nozzle DOWN → Lift nozzle → Indicator updates → Button enables
-- [ ] Device communication: UploadStatus received → Redis updated → Query returns correct state
-- [ ] Transaction tracking: Authorization → Transaction ID received → Tracked in process
+- [ ] Complete workflow: Lift nozzle ? Select vehicle ? Authorize ? Fuel ? Complete
+- [ ] Error workflow: Try to authorize without lifting nozzle ? Rejected
+- [ ] Real-time workflow: Nozzle DOWN ? Lift nozzle ? Indicator updates ? Button enables
+- [ ] Device communication: UploadStatus received ? Redis updated ? Query returns correct state
+- [ ] Transaction tracking: Authorization ? Transaction ID received ? Tracked in process
 
-## 🚀 Deployment
+## ?? Deployment
 
 ### Backend Deployment
-1. Compile solution: `dotnet build Tenacy.Fms.sln`
+1. Compile solution: `dotnet build Tenacity.Fms.sln`
 2. Run tests: `dotnet test`
 3. Deploy to production server
 4. Verify Redis connection
@@ -554,27 +554,27 @@ public class PumpNozzleStateDto
 4. **Authorization**: Verify pump cannot be authorized with nozzle down
 5. **Transaction**: Verify transaction ID received and tracked
 
-## 📝 Key Benefits
+## ?? Key Benefits
 
 ### Problem Prevention
-✅ **No More Stuck Transactions**: Cannot authorize without nozzle UP
-✅ **Physical Workflow Enforced**: Backend validates nozzle state
-✅ **Real-Time Feedback**: User sees nozzle status immediately
-✅ **Clear Error Messages**: User knows exactly what to do
+? **No More Stuck Transactions**: Cannot authorize without nozzle UP
+? **Physical Workflow Enforced**: Backend validates nozzle state
+? **Real-Time Feedback**: User sees nozzle status immediately
+? **Clear Error Messages**: User knows exactly what to do
 
 ### User Experience
-✅ **Visual Indicators**: Green (ready) vs Orange (not ready)
-✅ **Disabled Buttons**: Cannot proceed when conditions not met
-✅ **Instant Updates**: SignalR provides real-time nozzle state
-✅ **Helpful Hints**: Tooltips explain why buttons are disabled
+? **Visual Indicators**: Green (ready) vs Orange (not ready)
+? **Disabled Buttons**: Cannot proceed when conditions not met
+? **Instant Updates**: SignalR provides real-time nozzle state
+? **Helpful Hints**: Tooltips explain why buttons are disabled
 
 ### System Reliability
-✅ **Backend Validation**: API-level enforcement (not just UI)
-✅ **Redis-Based State**: Authoritative source for nozzle status
-✅ **Transaction Tracking**: Device-generated IDs prevent conflicts
-✅ **Fallback Mechanisms**: IdleStatus.LastVolumes when EOT missing
+? **Backend Validation**: API-level enforcement (not just UI)
+? **Redis-Based State**: Authoritative source for nozzle status
+? **Transaction Tracking**: Device-generated IDs prevent conflicts
+? **Fallback Mechanisms**: IdleStatus.LastVolumes when EOT missing
 
-## 🔍 Troubleshooting
+## ?? Troubleshooting
 
 ### Issue: Nozzle indicator always shows "DOWN"
 **Possible Causes**:
@@ -606,7 +606,7 @@ redis-cli
 **Debug Steps**:
 ```bash
 # Check backend logs for STEP 1
-# Should see: "[PumpAuth] **NOZZLE UP** ✅" OR "[PumpAuth] ⚠️ NOZZLE DOWN"
+# Should see: "[PumpAuth] **NOZZLE UP** ?" OR "[PumpAuth] ?? NOZZLE DOWN"
 
 # Verify PumpAuthorizeCommand has nozzle validation
 # Line ~111-145 should have GetPumpNozzleStateQuery call
@@ -639,7 +639,7 @@ const handleUploadStatusUpdate = (data) => {
 ptsSignalRService.getConnectionState(); // Should be "Connected"
 ```
 
-## 📚 Related Documentation
+## ?? Related Documentation
 
 - **PTSDeviceTerminal Fix**: `Documentation/Fixes/PTSDEVICE_TERMINAL_FIX.md`
 - **Physical Workflow Plan**: `Documentation/Fixes/PHYSICAL_FUELING_WORKFLOW_FIX.md`
@@ -647,18 +647,18 @@ ptsSignalRService.getConnectionState(); // Should be "Connected"
 - **Fueling Workflow**: `Documentation/fuelingWorkFlow.txt`
 - **PTS Protocol**: `Documentation/JsonPTSprotocal.txt`
 
-## 🎉 Success Criteria
+## ?? Success Criteria
 
-✅ **Backend validates nozzle UP before authorization**
-✅ **Frontend shows real-time nozzle state indicator**
-✅ **Authorization button disabled when nozzle DOWN**
-✅ **User receives clear error message if trying to proceed without nozzle UP**
-✅ **Transaction ID received from device and tracked in fueling process**
-✅ **No more stuck transactions accumulating**
-✅ **Physical workflow enforced at both UI and API levels**
+? **Backend validates nozzle UP before authorization**
+? **Frontend shows real-time nozzle state indicator**
+? **Authorization button disabled when nozzle DOWN**
+? **User receives clear error message if trying to proceed without nozzle UP**
+? **Transaction ID received from device and tracked in fueling process**
+? **No more stuck transactions accumulating**
+? **Physical workflow enforced at both UI and API levels**
 
 ---
 
 **Implementation Date**: January 27, 2025
-**Status**: ✅ COMPLETE - Backend and Frontend Implemented
+**Status**: ? COMPLETE - Backend and Frontend Implemented
 **Next Steps**: Test on production device, monitor for stuck transactions

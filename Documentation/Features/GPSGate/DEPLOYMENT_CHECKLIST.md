@@ -1,6 +1,6 @@
-﻿# GPSGate Integration - Final Setup Checklist
+# GPSGate Integration - Final Setup Checklist
 
-## ⚙️ Pre-Deployment Checklist
+## ?? Pre-Deployment Checklist
 
 ### 1. Code Review
 - [ ] Review all created files for correctness
@@ -46,13 +46,13 @@
 ### 5. Build & Compile
 - [ ] Build solution
   ```bash
-  dotnet build Tenacy.Fms.sln
+  dotnet build Tenacity.Fms.sln
   ```
 - [ ] Check for compilation errors
 - [ ] Resolve any missing references
 - [ ] Verify no warnings in GPSGate code
 
-## 🧪 Testing Checklist
+## ?? Testing Checklist
 
 ### 1. Unit Tests (Recommended)
 - [ ] Test LoginCommandHandler
@@ -80,8 +80,8 @@ curl -X POST "https://localhost:5001/api/gpsgate/login" \
     "applicationId": 1
   }'
 ```
-- [ ] Test with valid credentials → Should return sessionId
-- [ ] Test with invalid credentials → Should return error
+- [ ] Test with valid credentials ? Should return sessionId
+- [ ] Test with invalid credentials ? Should return error
 - [ ] Check database for session entry
 - [ ] Verify session expiration is set
 
@@ -96,8 +96,8 @@ curl -X POST "https://localhost:5001/api/gpsgate/reports/generate?sessionId=YOUR
     "endDate": "2024-01-31T23:59:59"
   }'
 ```
-- [ ] Test with valid session → Should return handleId
-- [ ] Test with invalid session → Should return error
+- [ ] Test with valid session ? Should return handleId
+- [ ] Test with invalid session ? Should return error
 - [ ] Check database for report entry
 - [ ] Verify status is "Processing"
 
@@ -137,7 +137,7 @@ FROM gpsgate_reports
 WHERE report_data IS NOT NULL;
 ```
 
-## 📋 Post-Deployment Checklist
+## ?? Post-Deployment Checklist
 
 ### 1. Monitoring Setup
 - [ ] Configure logging for GPSGate operations
@@ -169,7 +169,7 @@ WHERE report_data IS NOT NULL;
 - [ ] Test invalid report IDs
 - [ ] Test session expiration handling
 
-## 🚀 Deployment Steps
+## ?? Deployment Steps
 
 ### Development Environment
 1. [ ] Run database migration
@@ -194,7 +194,7 @@ WHERE report_data IS NOT NULL;
 7. [ ] Monitor for errors
 8. [ ] Notify team of completion
 
-## 🐛 Troubleshooting Guide
+## ?? Troubleshooting Guide
 
 ### Issue: "Could not connect to SOAP service"
 **Check:**
@@ -224,7 +224,7 @@ WHERE report_data IS NOT NULL;
 - [ ] GPSGate returned data
 - [ ] No SOAP errors
 
-## ✅ Sign-Off
+## ? Sign-Off
 
 ### Development Team
 - [ ] Code review completed
@@ -251,7 +251,7 @@ WHERE report_data IS NOT NULL;
 
 ---
 
-## 📝 Notes
+## ?? Notes
 
 **GPSGate Credentials:**
 - Username: _____________

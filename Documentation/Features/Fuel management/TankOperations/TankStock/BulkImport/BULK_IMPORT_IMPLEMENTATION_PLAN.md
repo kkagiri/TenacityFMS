@@ -1,20 +1,20 @@
-﻿# Tank Stock Bulk Import - Implementation Plan
+# Tank Stock Bulk Import - Implementation Plan
 
-## 📋 Overview
+## ?? Overview
 
 This document outlines the phased implementation plan for the Tank Stock Bulk Import feature. The feature allows users to import historical tank stock data from Excel files, with comprehensive backend validation using advanced anomaly detection.
 
 **Key Design Principles:**
-- ✅ Leverage existing reconciliation infrastructure (`DiscrepancyDetectionService`, `ReconciliationDiscrepancy`, etc.)
-- ✅ All anomaly detection happens in the **backend** (not frontend)
-- ✅ Frontend only displays validation results and collects user decisions
-- ✅ Use Excel Option B structure (separate Transfer IN and Transfer OUT columns)
-- ✅ No duplicates - user chooses to Skip or Replace
-- ✅ Tank identifier = `Tank.Name` (case-insensitive)
+- ? Leverage existing reconciliation infrastructure (`DiscrepancyDetectionService`, `ReconciliationDiscrepancy`, etc.)
+- ? All anomaly detection happens in the **backend** (not frontend)
+- ? Frontend only displays validation results and collects user decisions
+- ? Use Excel Option B structure (separate Transfer IN and Transfer OUT columns)
+- ? No duplicates - user chooses to Skip or Replace
+- ? Tank identifier = `Tank.Name` (case-insensitive)
 
 ---
 
-## 🎯 Feature Scope
+## ?? Feature Scope
 
 ### What This Feature Does:
 1. Import historical tank stock data from Excel files
@@ -26,44 +26,44 @@ This document outlines the phased implementation plan for the Tank Stock Bulk Im
 7. Provide detailed validation reports for user review
 
 ### What This Feature Does NOT Do (Initially):
-- ❌ Process `TankVolumeHistory` records (Phase 2 feature)
-- ❌ Update `Tank.CurrentStock` in real-time
-- ❌ Trigger automatic reconciliation actions
-- ❌ Send notifications during import (optional in Phase 3)
+- ? Process `TankVolumeHistory` records (Phase 2 feature)
+- ? Update `Tank.CurrentStock` in real-time
+- ? Trigger automatic reconciliation actions
+- ? Send notifications during import (optional in Phase 3)
 
 ---
 
-## 📊 Excel Template Structure
+## ?? Excel Template Structure
 
 ### Recommended Format: Option B
 
 ```
-┌────────┬────────────┬─────────┬────────────┬─────────────┬──────────────┬──────────┬─────────┬───────────────┬───────────────┬───────┐
-│ Tank   │ Date       │ Opening │ Dispensing │ Transfer IN │ Transfer OUT │ Delivery │ Closing │ Opening Meter │ Closing Meter │ Notes │
-├────────┼────────────┼─────────┼────────────┼─────────────┼──────────────┼──────────┼─────────┼───────────────┼───────────────┼───────┤
-│ FT02   │ 01/09/2025 │ 25400   │ 1726       │             │              │          │ 23674   │ 2718366       │ 2723592       │       │
-│ FT02   │ 02/09/2025 │ 23674   │ 620        │             │              │          │ 23054   │ 2723592       │ 2724212       │       │
-│ ST02   │ 01/09/2025 │ 15000   │ 800        │             │              │          │ 14200   │ 1234567       │ 1234890       │       │
-│ FT02   │ 06/09/2025 │ 1268    │ 168        │ 2000        │              │ 7000     │ 8100    │ 503531        │ 503694        │       │
-│ ST02   │ 06/09/2025 │ 10000   │ 500        │             │ 2000         │          │ 7500    │ 1000000       │ 1000500       │       │
-└────────┴────────────┴─────────┴────────────┴─────────────┴──────────────┴──────────┴─────────┴───────────────┴───────────────┴───────┘
++--------------------------------------------------------------------------------------------------------------------------------------+
+� Tank   � Date       � Opening � Dispensing � Transfer IN � Transfer OUT � Delivery � Closing � Opening Meter � Closing Meter � Notes �
++--------+------------+---------+------------+-------------+--------------+----------+---------+---------------+---------------+-------�
+� FT02   � 01/09/2025 � 25400   � 1726       �             �              �          � 23674   � 2718366       � 2723592       �       �
+� FT02   � 02/09/2025 � 23674   � 620        �             �              �          � 23054   � 2723592       � 2724212       �       �
+� ST02   � 01/09/2025 � 15000   � 800        �             �              �          � 14200   � 1234567       � 1234890       �       �
+� FT02   � 06/09/2025 � 1268    � 168        � 2000        �              � 7000     � 8100    � 503531        � 503694        �       �
+� ST02   � 06/09/2025 � 10000   � 500        �             � 2000         �          � 7500    � 1000000       � 1000500       �       �
++--------------------------------------------------------------------------------------------------------------------------------------+
 ```
 
 ### Column Definitions:
 
 | Column | Type | Required | Description | Validation |
 |--------|------|----------|-------------|------------|
-| **Tank** | Text | ✅ Yes | Tank name matching `Tank.Name` | Case-insensitive, must exist in DB |
-| **Date** | Date | ✅ Yes | Transaction date | DD/MM/YYYY or MM/DD/YYYY |
-| **Opening** | Decimal | ✅ Yes | Opening stock (liters) | > 0, <= Tank capacity |
-| **Dispensing** | Decimal | ❌ Optional | Dispensed volume (liters) | >= 0 or blank |
-| **Transfer IN** | Decimal | ❌ Optional | Volume transferred IN (liters) | >= 0 or blank |
-| **Transfer OUT** | Decimal | ❌ Optional | Volume transferred OUT (liters) | >= 0 or blank |
-| **Delivery** | Decimal | ❌ Optional | Delivery volume (liters) | >= 0 or blank |
-| **Closing** | Decimal | ✅ Yes | Closing stock (liters) | > 0, <= Tank capacity |
-| **Opening Meter** | Decimal | ❌ Optional | Meter reading at opening | Whole number |
-| **Closing Meter** | Decimal | ❌ Optional | Meter reading at closing | >= Opening Meter (unless reset) |
-| **Notes** | Text | ❌ Optional | Additional comments | Max 500 characters |
+| **Tank** | Text | ? Yes | Tank name matching `Tank.Name` | Case-insensitive, must exist in DB |
+| **Date** | Date | ? Yes | Transaction date | DD/MM/YYYY or MM/DD/YYYY |
+| **Opening** | Decimal | ? Yes | Opening stock (liters) | > 0, <= Tank capacity |
+| **Dispensing** | Decimal | ? Optional | Dispensed volume (liters) | >= 0 or blank |
+| **Transfer IN** | Decimal | ? Optional | Volume transferred IN (liters) | >= 0 or blank |
+| **Transfer OUT** | Decimal | ? Optional | Volume transferred OUT (liters) | >= 0 or blank |
+| **Delivery** | Decimal | ? Optional | Delivery volume (liters) | >= 0 or blank |
+| **Closing** | Decimal | ? Yes | Closing stock (liters) | > 0, <= Tank capacity |
+| **Opening Meter** | Decimal | ? Optional | Meter reading at opening | Whole number |
+| **Closing Meter** | Decimal | ? Optional | Meter reading at closing | >= Opening Meter (unless reset) |
+| **Notes** | Text | ? Optional | Additional comments | Max 500 characters |
 
 ### Data Conventions:
 
@@ -82,82 +82,82 @@ FT02 row: Transfer IN = 2000,   Transfer OUT = blank
 
 ---
 
-## 🏗️ Architecture Overview
+## ??? Architecture Overview
 
 ### Backend Components
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Bulk Import Flow                             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  TankStockController.cs                                         │
-│  POST /api/v1/tankstock/bulk-import                            │
-│  • Receives Excel file or parsed JSON                           │
-│  • Authenticates user                                           │
-│  • Delegates to MediatR command                                 │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  BulkImportTankStockCommand.cs                                 │
-│  • Orchestrates validation and import process                   │
-│  • Calls validation service                                     │
-│  • Returns detailed results                                     │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  BulkImportValidationService.cs  ⭐ CORE VALIDATOR              │
-│  • Runs all 11 anomaly detection checks                        │
-│  • Integrates with DiscrepancyDetectionService                 │
-│  • Generates comprehensive validation report                    │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Advanced Anomaly Detectors (11 types)                         │
-│  1. Daily Balance                  7. Zero/Negative Stock       │
-│  2. Continuity Break               8. Transfer Reciprocity      │
-│  3. Cumulative Drift ⭐            9. Zero Movement             │
-│  4. Meter Rollback ⭐              10. Implausible Dispensing   │
-│  5. Meter Mismatch ⭐              11. Delivery Without Space   │
-│  6. Capacity Overflow                                           │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Database Operations                                            │
-│  • Insert into Tankstock table                                  │
-│  • Create ReconciliationDiscrepancy records for anomalies      │
-│  • Create Dailytankreconciliation summaries                    │
-│  • Populate Discrepancy and ExpectedClosingLevel fields        │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+�                    Bulk Import Flow                             �
++-----------------------------------------------------------------+
+                              �
+                              ?
++-----------------------------------------------------------------+
+�  TankStockController.cs                                         �
+�  POST /api/v1/tankstock/bulk-import                            �
+�  � Receives Excel file or parsed JSON                           �
+�  � Authenticates user                                           �
+�  � Delegates to MediatR command                                 �
++-----------------------------------------------------------------+
+                           �
+                           ?
++-----------------------------------------------------------------+
+�  BulkImportTankStockCommand.cs                                 �
+�  � Orchestrates validation and import process                   �
+�  � Calls validation service                                     �
+�  � Returns detailed results                                     �
++-----------------------------------------------------------------+
+                           �
+                           ?
++-----------------------------------------------------------------+
+�  BulkImportValidationService.cs  ? CORE VALIDATOR              �
+�  � Runs all 11 anomaly detection checks                        �
+�  � Integrates with DiscrepancyDetectionService                 �
+�  � Generates comprehensive validation report                    �
++-----------------------------------------------------------------+
+                           �
+                           ?
++-----------------------------------------------------------------+
+�  Advanced Anomaly Detectors (11 types)                         �
+�  1. Daily Balance                  7. Zero/Negative Stock       �
+�  2. Continuity Break               8. Transfer Reciprocity      �
+�  3. Cumulative Drift ?            9. Zero Movement             �
+�  4. Meter Rollback ?              10. Implausible Dispensing   �
+�  5. Meter Mismatch ?              11. Delivery Without Space   �
+�  6. Capacity Overflow                                           �
++-----------------------------------------------------------------+
+                           �
+                           ?
++-----------------------------------------------------------------+
+�  Database Operations                                            �
+�  � Insert into Tankstock table                                  �
+�  � Create ReconciliationDiscrepancy records for anomalies      �
+�  � Create Dailytankreconciliation summaries                    �
+�  � Populate Discrepancy and ExpectedClosingLevel fields        �
++-----------------------------------------------------------------+
 ```
 
 ### Frontend Components
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Stock Management → Bulk Import Tab                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  BulkImportManager.js (React Component)                        │
-│  • Excel file upload                                            │
-│  • Client-side parsing (xlsx library)                          │
-│  • Data preview grid                                            │
-│  • Validation report display                                    │
-│  • User decision interface                                      │
-└─────────────────────────────────────────────────────────────────┘
++-----------------------------------------------------------------+
+�  Stock Management ? Bulk Import Tab                            �
++-----------------------------------------------------------------+
+                              �
+                              ?
++-----------------------------------------------------------------+
+�  BulkImportManager.js (React Component)                        �
+�  � Excel file upload                                            �
+�  � Client-side parsing (xlsx library)                          �
+�  � Data preview grid                                            �
+�  � Validation report display                                    �
+�  � User decision interface                                      �
++-----------------------------------------------------------------+
 ```
 
 ---
 
-## 🔍 Advanced Anomaly Detection (11 Types)
+## ?? Advanced Anomaly Detection (11 Types)
 
 All anomaly detection happens in the **backend**. Frontend only displays results.
 
@@ -182,7 +182,7 @@ Delivery:   +7,000 L
 Transfer IN: +2,000 L
 Dispensing:   -168 L
 Expected:   10,100 L
-Actual:      8,100 L  ❌ Variance: -2,000L (19.8%)
+Actual:      8,100 L  ? Variance: -2,000L (19.8%)
 ```
 
 **Severity:**
@@ -208,7 +208,7 @@ Variance = Current Day Opening - Previous Day Closing
 **Example:**
 ```
 Day 1 Closing:  21,164 L
-Day 2 Opening:   2,416 L  ❌ Break: -18,748L (88.6%)
+Day 2 Opening:   2,416 L  ? Break: -18,748L (88.6%)
 ```
 
 **Common Causes:**
@@ -219,14 +219,14 @@ Day 2 Opening:   2,416 L  ❌ Break: -18,748L (88.6%)
 
 ---
 
-### 3. Cumulative Drift Anomaly ⭐
+### 3. Cumulative Drift Anomaly ?
 
 **What:** Over a period (e.g., 10 days), the total doesn't add up.
 
 **Formula:**
 ```
-Expected Final = Initial Opening + ΣDeliveries + ΣTransfer IN
-                 - ΣDispensing - ΣTransfer OUT
+Expected Final = Initial Opening + SDeliveries + STransfer IN
+                 - SDispensing - STransfer OUT
 
 Cumulative Variance = Actual Final Closing - Expected Final
 ```
@@ -242,7 +242,7 @@ Initial:          0 L
 Total Deliveries: 10,000 L
 Total Dispensing: 7,000 L
 Expected Final:   3,000 L
-Actual Final:     2,500 L  ❌ Shortage: -500L (16.7%)
+Actual Final:     2,500 L  ? Shortage: -500L (16.7%)
 ```
 
 **Additional Analysis:**
@@ -252,14 +252,14 @@ Actual Final:     2,500 L  ❌ Shortage: -500L (16.7%)
 
 ---
 
-### 4. Meter Rollback Anomaly ⭐
+### 4. Meter Rollback Anomaly ?
 
 **What:** Meter reading decreased (possible reset/replacement).
 
 **Detection:**
 ```
 if (Closing Meter < Opening Meter)
-    → Meter Rollback Detected
+    ? Meter Rollback Detected
 ```
 
 **Classification:**
@@ -270,14 +270,14 @@ if (Closing Meter < Opening Meter)
 **Example:**
 ```
 Opening Meter: 2,731,002
-Closing Meter:   503,531  ⚠️ Decrease: -2,227,471 (Counter Rollover)
+Closing Meter:   503,531  ?? Decrease: -2,227,471 (Counter Rollover)
 ```
 
 **Action:** Flag as warning, cannot validate meter vs dispensing
 
 ---
 
-### 5. Meter Mismatch Anomaly ⭐
+### 5. Meter Mismatch Anomaly ?
 
 **What:** Meter change doesn't match recorded dispensing volume.
 
@@ -285,7 +285,7 @@ Closing Meter:   503,531  ⚠️ Decrease: -2,227,471 (Counter Rollover)
 ```
 Meter Dispensing = Closing Meter - Opening Meter
 Variance = |Meter Dispensing - Recorded Dispensing|
-Tolerance = Recorded Dispensing × 5%
+Tolerance = Recorded Dispensing � 5%
 ```
 
 **Threshold:**
@@ -298,12 +298,12 @@ Opening Meter:    503,531
 Closing Meter:    503,694
 Meter Dispensing: 163 L
 Recorded:         168 L
-Variance:         -5 L (2.98%)  ✓ Within tolerance
+Variance:         -5 L (2.98%)  ? Within tolerance
 
 Another case:
 Meter Dispensing: 200 L
 Recorded:         168 L
-Variance:         32 L (19%)  ❌ Exceeds 5% threshold
+Variance:         32 L (19%)  ? Exceeds 5% threshold
 ```
 
 **Common Causes:**
@@ -321,13 +321,13 @@ Variance:         32 L (19%)  ❌ Exceeds 5% threshold
 **Detection:**
 ```
 if (Opening > Tank.TankVolume || Closing > Tank.TankVolume)
-    → Capacity Overflow
+    ? Capacity Overflow
 ```
 
 **Example:**
 ```
 Tank Capacity: 10,000 L
-Closing Stock: 11,500 L  ❌ Overflow by 1,500L
+Closing Stock: 11,500 L  ? Overflow by 1,500L
 ```
 
 **Severity:** Critical (blocks import)
@@ -341,17 +341,17 @@ Closing Stock: 11,500 L  ❌ Overflow by 1,500L
 **Detection:**
 ```
 if (Closing < 0)
-    → Critical Error (negative stock impossible)
+    ? Critical Error (negative stock impossible)
 
 if (Closing == 0 && Dispensing > 0)
-    → Warning (complete depletion)
+    ? Warning (complete depletion)
 ```
 
 **Example:**
 ```
 Opening:    100 L
 Dispensing: 500 L
-Closing:   -400 L  ❌ Negative stock (impossible)
+Closing:   -400 L  ? Negative stock (impossible)
 ```
 
 **Severity:**
@@ -362,12 +362,12 @@ Closing:   -400 L  ❌ Negative stock (impossible)
 
 ### 8. Transfer Reciprocity Anomaly
 
-**What:** On same day, Transfer OUT from Tank A ≠ Transfer IN to Tank B.
+**What:** On same day, Transfer OUT from Tank A ? Transfer IN to Tank B.
 
 **Detection:**
 ```
 For each date:
-    Total Transfer OUT (all tanks) ≟ Total Transfer IN (all tanks)
+    Total Transfer OUT (all tanks) ? Total Transfer IN (all tanks)
 ```
 
 **Threshold:** 10L tolerance (for rounding)
@@ -376,7 +376,7 @@ For each date:
 ```
 06/09/2025:
 ST02 Transfer OUT: 2,000 L
-FT02 Transfer IN:  1,500 L  ❌ Imbalance: -500L
+FT02 Transfer IN:  1,500 L  ? Imbalance: -500L
 ```
 
 **Common Causes:**
@@ -395,7 +395,7 @@ FT02 Transfer IN:  1,500 L  ❌ Imbalance: -500L
 ```
 if (Delivery == 0 && Dispensing == 0 && Transfer IN == 0 && Transfer OUT == 0
     && Opening != Closing)
-    → Zero Movement with Stock Change
+    ? Zero Movement with Stock Change
 ```
 
 **Example:**
@@ -404,7 +404,7 @@ Opening:     5,000 L
 Delivery:    0 L
 Dispensing:  0 L
 Transfers:   0 L
-Closing:     4,500 L  ⚠️ Lost 500L with no activity
+Closing:     4,500 L  ?? Lost 500L with no activity
 ```
 
 **Possible Causes:**
@@ -423,13 +423,13 @@ Closing:     4,500 L  ⚠️ Lost 500L with no activity
 **Detection:**
 ```
 if (Dispensing > Tank.TankVolume)
-    → Implausible Dispensing
+    ? Implausible Dispensing
 ```
 
 **Example:**
 ```
 Tank Capacity: 10,000 L
-Dispensing:    15,000 L  ❌ More than tank can hold
+Dispensing:    15,000 L  ? More than tank can hold
 ```
 
 **Severity:** High (likely data entry error)
@@ -448,7 +448,7 @@ Available Space = Tank Capacity - Opening Stock
 **Detection:**
 ```
 if (Delivery > Available Space)
-    → Delivery Exceeds Space
+    ? Delivery Exceeds Space
 ```
 
 **Example:**
@@ -456,7 +456,7 @@ if (Delivery > Available Space)
 Tank Capacity:   10,000 L
 Opening Stock:    7,000 L
 Available Space:  3,000 L
-Delivery:         8,000 L  ❌ Exceeds space by 5,000L
+Delivery:         8,000 L  ? Exceeds space by 5,000L
 ```
 
 **Action:**
@@ -465,7 +465,7 @@ Delivery:         8,000 L  ❌ Exceeds space by 5,000L
 
 ---
 
-## 📈 Anomaly Severity Classification
+## ?? Anomaly Severity Classification
 
 | Severity | Description | User Action | Impact |
 |----------|-------------|-------------|---------|
@@ -477,7 +477,7 @@ Delivery:         8,000 L  ❌ Exceeds space by 5,000L
 
 ---
 
-## 🎯 Implementation Phases
+## ?? Implementation Phases
 
 ### **PHASE 1A: Foundation & Basic Import** (Week 1-2)
 **Goal:** Basic bulk import with minimal validation
@@ -505,9 +505,9 @@ Delivery:         8,000 L  ❌ Exceeds space by 5,000L
 No schema changes required (using existing `Tankstock` table)
 
 #### Deliverables:
-✅ Basic import functionality working
-✅ Excel template available
-✅ Basic error handling
+? Basic import functionality working
+? Excel template available
+? Basic error handling
 
 ---
 
@@ -518,9 +518,9 @@ No schema changes required (using existing `Tankstock` table)
 - [ ] Create `BulkImportValidationService.cs`
 - [ ] Implement **Daily Balance** validator (#1)
 - [ ] Implement **Continuity Break** validator (#2)
-- [ ] Implement **Cumulative Drift** validator (#3) ⭐
-- [ ] Implement **Meter Rollback** validator (#4) ⭐
-- [ ] Implement **Meter Mismatch** validator (#5) ⭐
+- [ ] Implement **Cumulative Drift** validator (#3) ?
+- [ ] Implement **Meter Rollback** validator (#4) ?
+- [ ] Implement **Meter Mismatch** validator (#5) ?
 - [ ] Implement **Capacity Overflow** validator (#6)
 - [ ] Implement **Zero/Negative Stock** validator (#7)
 - [ ] Implement **Transfer Reciprocity** validator (#8)
@@ -555,10 +555,10 @@ No schema changes required (using existing `Tankstock` table)
 ```
 
 #### Deliverables:
-✅ All 11 anomaly detections working
-✅ Comprehensive validation report
-✅ Frontend displays all anomalies clearly
-✅ User can review and decide per anomaly
+? All 11 anomaly detections working
+? Comprehensive validation report
+? Frontend displays all anomalies clearly
+? User can review and decide per anomaly
 
 ---
 
@@ -587,9 +587,9 @@ ADD ImportBatchId INT NULL;
 ```
 
 #### Deliverables:
-✅ Anomalies stored in reconciliation system
-✅ Historical tracking of imports
-✅ Integration with existing discrepancy workflows
+? Anomalies stored in reconciliation system
+? Historical tracking of imports
+? Integration with existing discrepancy workflows
 
 ---
 
@@ -617,10 +617,10 @@ ADD ImportBatchId INT NULL;
 - [ ] Display processing results
 
 #### Deliverables:
-✅ Full historical data processing
-✅ TankVolumeHistory populated
-✅ Tank.CurrentStock updated
-✅ Reconciliation triggered
+? Full historical data processing
+? TankVolumeHistory populated
+? Tank.CurrentStock updated
+? Reconciliation triggered
 
 ---
 
@@ -641,88 +641,88 @@ ADD ImportBatchId INT NULL;
 
 ---
 
-## 📊 Data Flow Diagram
+## ?? Data Flow Diagram
 
 ```
-┌─────────────────┐
-│ User uploads    │
-│ Excel file      │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│ Frontend: Parse Excel → JSON            │
-│ • Read rows                             │
-│ • Map columns                           │
-│ • Basic format validation              │
-└────────┬────────────────────────────────┘
-         │
-         ▼ HTTP POST /api/v1/tankstock/bulk-import
-┌─────────────────────────────────────────┐
-│ Backend: Receive Import Request        │
-│ • Authenticate user                     │
-│ • Validate request format               │
-└────────┬────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│ Validation Service: Run All Checks     │
-│ • Tank lookup (Name → TankId)          │
-│ • Daily Balance (#1)                    │
-│ • Continuity Break (#2)                 │
-│ • Cumulative Drift (#3) ⭐              │
-│ • Meter Rollback (#4) ⭐                │
-│ • Meter Mismatch (#5) ⭐                │
-│ • Capacity Overflow (#6)                │
-│ • Zero/Negative Stock (#7)              │
-│ • Transfer Reciprocity (#8)             │
-│ • Zero Movement (#9)                    │
-│ • Implausible Dispensing (#10)          │
-│ • Delivery Without Space (#11)          │
-│ • Duplicate detection                   │
-└────────┬────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│ Generate Validation Report              │
-│ • Group anomalies by severity           │
-│ • Calculate cumulative stats            │
-│ • Identify top contributors             │
-│ • Format user-friendly messages         │
-└────────┬────────────────────────────────┘
-         │
-         ▼ Return Report to Frontend
-┌─────────────────────────────────────────┐
-│ Frontend: Display Validation Report    │
-│ • Show errors (must fix)                │
-│ • Show warnings (user decides)          │
-│ • Show info (FYI)                       │
-│ • Per-row actions                       │
-└────────┬────────────────────────────────┘
-         │
-         ▼ User confirms import
-┌─────────────────────────────────────────┐
-│ Backend: Execute Import                 │
-│ • Create Tankstock entries              │
-│ • Populate Discrepancy fields           │
-│ • Create ReconciliationDiscrepancy      │
-│ • Create Dailytankreconciliation        │
-│ • Handle Skip/Replace for duplicates    │
-└────────┬────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────┐
-│ Return Import Results                   │
-│ • Success count                         │
-│ • Skipped count                         │
-│ • Failed count                          │
-│ • Anomaly summary                       │
-└─────────────────────────────────────────┘
++-----------------+
+� User uploads    �
+� Excel file      �
++-----------------+
+         �
+         ?
++-----------------------------------------+
+� Frontend: Parse Excel ? JSON            �
+� � Read rows                             �
+� � Map columns                           �
+� � Basic format validation              �
++-----------------------------------------+
+         �
+         ? HTTP POST /api/v1/tankstock/bulk-import
++-----------------------------------------+
+� Backend: Receive Import Request        �
+� � Authenticate user                     �
+� � Validate request format               �
++-----------------------------------------+
+         �
+         ?
++-----------------------------------------+
+� Validation Service: Run All Checks     �
+� � Tank lookup (Name ? TankId)          �
+� � Daily Balance (#1)                    �
+� � Continuity Break (#2)                 �
+� � Cumulative Drift (#3) ?              �
+� � Meter Rollback (#4) ?                �
+� � Meter Mismatch (#5) ?                �
+� � Capacity Overflow (#6)                �
+� � Zero/Negative Stock (#7)              �
+� � Transfer Reciprocity (#8)             �
+� � Zero Movement (#9)                    �
+� � Implausible Dispensing (#10)          �
+� � Delivery Without Space (#11)          �
+� � Duplicate detection                   �
++-----------------------------------------+
+         �
+         ?
++-----------------------------------------+
+� Generate Validation Report              �
+� � Group anomalies by severity           �
+� � Calculate cumulative stats            �
+� � Identify top contributors             �
+� � Format user-friendly messages         �
++-----------------------------------------+
+         �
+         ? Return Report to Frontend
++-----------------------------------------+
+� Frontend: Display Validation Report    �
+� � Show errors (must fix)                �
+� � Show warnings (user decides)          �
+� � Show info (FYI)                       �
+� � Per-row actions                       �
++-----------------------------------------+
+         �
+         ? User confirms import
++-----------------------------------------+
+� Backend: Execute Import                 �
+� � Create Tankstock entries              �
+� � Populate Discrepancy fields           �
+� � Create ReconciliationDiscrepancy      �
+� � Create Dailytankreconciliation        �
+� � Handle Skip/Replace for duplicates    �
++-----------------------------------------+
+         �
+         ?
++-----------------------------------------+
+� Return Import Results                   �
+� � Success count                         �
+� � Skipped count                         �
+� � Failed count                          �
+� � Anomaly summary                       �
++-----------------------------------------+
 ```
 
 ---
 
-## 🔧 Configuration & Thresholds
+## ?? Configuration & Thresholds
 
 ### System Configuration (Stored in Database)
 
@@ -787,7 +787,7 @@ ADD ImportBatchId INT NULL;
 
 ---
 
-## 🧪 Testing Strategy
+## ?? Testing Strategy
 
 ### Unit Tests
 
@@ -873,7 +873,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
     var tankstocks = await _context.Tankstocks
         .Where(t => t.RecordedBy == userId)
         .ToListAsync();
-    Assert.Equal(50, tankstocks.Count); // 10 rows × 5 entries per row
+    Assert.Equal(50, tankstocks.Count); // 10 rows � 5 entries per row
 }
 ```
 
@@ -882,7 +882,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 1. **Happy Path:** Import 10 rows of clean data
 2. **Meter Reset:** Import with counter rollover
 3. **Cumulative Drift:** 10-day period with 500L shortage
-4. **Transfer Mismatch:** Transfer OUT ≠ Transfer IN
+4. **Transfer Mismatch:** Transfer OUT ? Transfer IN
 5. **Duplicate Handling:** Import same data twice
 6. **Large File:** 1000+ rows performance test
 7. **Mixed Anomalies:** Multiple anomaly types in one import
@@ -890,7 +890,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 
 ---
 
-## 📝 API Specification
+## ?? API Specification
 
 ### Endpoint: Bulk Import
 
@@ -984,7 +984,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 
 ---
 
-## 🚀 Deployment Checklist
+## ?? Deployment Checklist
 
 ### Before Deployment
 
@@ -1004,7 +1004,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 1. **Backend Deployment:**
    ```powershell
    # Build solution
-   dotnet build Tenacy.Fms.sln --configuration Release
+   dotnet build Tenacity.Fms.sln --configuration Release
 
    # Run tests
    dotnet test
@@ -1032,12 +1032,12 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 
 ---
 
-## 📚 User Documentation
+## ?? User Documentation
 
 ### For End Users
 
 **Quick Start Guide:**
-1. Navigate to Stock Management → Bulk Import tab
+1. Navigate to Stock Management ? Bulk Import tab
 2. Download Excel template
 3. Fill in data following template structure
 4. Upload file
@@ -1060,12 +1060,12 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 |---------|---------|--------|
 | "Cumulative shortage detected" | More dispensing than deliveries over period | Verify dispensing volumes |
 | "Meter reading decreased" | Possible counter reset | Confirm if meter was replaced |
-| "Transfer imbalance" | Transfer OUT ≠ Transfer IN | Check if both tanks have entries |
+| "Transfer imbalance" | Transfer OUT ? Transfer IN | Check if both tanks have entries |
 | "Capacity overflow" | Stock exceeds tank size | Verify closing stock value |
 
 ---
 
-## 🔐 Security Considerations
+## ?? Security Considerations
 
 ### Authentication & Authorization
 - Requires `_Create_tankStock` permission
@@ -1086,7 +1086,7 @@ public async Task BulkImport_ValidData_SuccessfullyImports()
 
 ---
 
-## 📞 Support & Troubleshooting
+## ?? Support & Troubleshooting
 
 ### Common Issues
 
@@ -1115,7 +1115,7 @@ For larger imports, consider:
 
 ---
 
-## 📅 Timeline Summary
+## ?? Timeline Summary
 
 | Phase | Duration | Deliverables |
 |-------|----------|--------------|
@@ -1129,7 +1129,7 @@ For larger imports, consider:
 
 ---
 
-## ✅ Success Criteria
+## ? Success Criteria
 
 **Phase 1A:**
 - [ ] User can upload Excel file
@@ -1152,7 +1152,7 @@ For larger imports, consider:
 
 ---
 
-## 🎓 Training Materials Needed
+## ?? Training Materials Needed
 
 1. **Video Tutorial:** "How to Use Bulk Import"
 2. **Excel Template Guide:** Column-by-column explanation
@@ -1162,7 +1162,7 @@ For larger imports, consider:
 
 ---
 
-## 📊 Metrics & KPIs
+## ?? Metrics & KPIs
 
 **Track:**
 - Import success rate
@@ -1179,7 +1179,7 @@ For larger imports, consider:
 
 ---
 
-## 🔄 Future Enhancements (Post-Phase 3)
+## ?? Future Enhancements (Post-Phase 3)
 
 1. **AI-Powered Anomaly Detection:**
    - Machine learning to detect patterns
@@ -1203,7 +1203,7 @@ For larger imports, consider:
 
 ---
 
-## 📖 References
+## ?? References
 
 - **Related Documentation:**
   - `TANKSTOCK_METER_READING_IMPLEMENTATION.md`
@@ -1224,7 +1224,7 @@ For larger imports, consider:
 
 ---
 
-## 👥 Team Responsibilities
+## ?? Team Responsibilities
 
 | Role | Responsibilities |
 |------|------------------|

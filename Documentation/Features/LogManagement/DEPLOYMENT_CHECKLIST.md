@@ -1,8 +1,8 @@
-﻿# Log Management System - Deployment Checklist
+# Log Management System - Deployment Checklist
 
 ## Pre-Deployment Verification
 
-### 1. Files Created ✓
+### 1. Files Created ?
 
 **Backend Services:**
 - [x] `FMS.Application/Services/Logging/ILogCleanupService.cs`
@@ -96,7 +96,7 @@ WHERE ConfigurationKey = 'Logging.RetentionDays';
 
 #### Step 2.1: Build Solution
 ```bash
-cd "C:\Users\kkagiri\source\repos\Tenacy.Fms"
+cd "C:\Users\kkagiri\source\repos\Tenacity.Fms"
 dotnet clean
 dotnet restore
 dotnet build --configuration Release
@@ -128,7 +128,7 @@ Check application startup logs for:
 
 #### Step 3.1: Build React App
 ```bash
-cd "C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend"
+cd "C:\Users\kkagiri\source\repos\Tenacity.Fms\fms.frontend"
 npm install
 npm run build
 ```

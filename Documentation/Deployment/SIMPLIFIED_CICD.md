@@ -1,4 +1,4 @@
-﻿# Simplified CI/CD Using Proven Deployment Script
+# Simplified CI/CD Using Proven Deployment Script
 
 ## Overview
 
@@ -6,10 +6,10 @@ The GitHub Actions workflow has been simplified to use the **proven `deploy-alte
 
 This approach is:
 
-- ✅ **Simpler** - Less code in the workflow
-- ✅ **More reliable** - Uses tested, working script
-- ✅ **Easier to maintain** - Script changes don't require workflow updates
-- ✅ **Consistent** - Same script for manual and automated deployments
+- ? **Simpler** - Less code in the workflow
+- ? **More reliable** - Uses tested, working script
+- ? **Easier to maintain** - Script changes don't require workflow updates
+- ? **Consistent** - Same script for manual and automated deployments
 
 ## Architecture
 
@@ -17,21 +17,21 @@ This approach is:
 
 ```
 GitHub Actions Workflow
-├── Multiple inline PowerShell steps
-├── Complex folder swap logic
-├── Separate backend/frontend deployment steps
-└── Duplicated error handling
++-- Multiple inline PowerShell steps
++-- Complex folder swap logic
++-- Separate backend/frontend deployment steps
++-- Duplicated error handling
 ```
 
 ### After (Simple):
 
 ```
 GitHub Actions Workflow
-├── Pre-cleanup
-├── Checkout
-├── Setup .NET & Node.js
-├── Run deploy-alternative.ps1  ← Single proven script
-└── Post-cleanup
++-- Pre-cleanup
++-- Checkout
++-- Setup .NET & Node.js
++-- Run deploy-alternative.ps1  ? Single proven script
++-- Post-cleanup
 ```
 
 ## How It Works
@@ -62,7 +62,7 @@ Runs `scripts\deploy-alternative.ps1` which:
 1. Builds to temporary location
 2. Copies web.config from current deployment
 3. Stops IIS app pool
-4. Swaps folders atomically (current → old, temp → current)
+4. Swaps folders atomically (current ? old, temp ? current)
 5. Restarts IIS app pool
 6. Cleans up old deployment
 
@@ -122,7 +122,7 @@ Location: `.github/workflows/deploy-to-iis.yml`
 ### Workflow Triggers:
 
 - Automatic: On push to `productionv1`, `main`, or `master`
-- Manual: Via "Actions" tab → "Run workflow" button
+- Manual: Via "Actions" tab ? "Run workflow" button
 
 ## Benefits
 
@@ -156,7 +156,7 @@ You can still deploy manually using the same script:
 
 ```powershell
 # From the repository root
-cd C:\dev\Tenacy.FMS
+cd C:\dev\Tenacity.FMS
 
 # Deploy everything
 .\scripts\deploy-alternative.ps1
@@ -237,7 +237,7 @@ Total: ~95 lines, 6 steps
 
 ```powershell
 # From repository root
-cd C:\dev\Tenacy.FMS
+cd C:\dev\Tenacity.FMS
 
 # Test the script
 .\scripts\deploy-alternative.ps1
@@ -251,28 +251,28 @@ cd C:\dev\Tenacy.FMS
 
 ### What We Gained:
 
-✅ 64% less code in workflow
-✅ Proven, tested deployment logic
-✅ Easier to maintain and debug
-✅ Consistent manual/automated deployment
-✅ Better error handling and rollback
-✅ Clearer separation of concerns
+? 64% less code in workflow
+? Proven, tested deployment logic
+? Easier to maintain and debug
+? Consistent manual/automated deployment
+? Better error handling and rollback
+? Clearer separation of concerns
 
 ### What We Kept:
 
-✅ Automatic deployment on push
-✅ Manual workflow trigger
-✅ web.config preservation
-✅ Atomic folder swaps
-✅ Pre/post cleanup
-✅ Status reporting
+? Automatic deployment on push
+? Manual workflow trigger
+? web.config preservation
+? Atomic folder swaps
+? Pre/post cleanup
+? Status reporting
 
 ### What We Improved:
 
-✅ Reliability - using proven script
-✅ Simplicity - less complex logic
-✅ Maintainability - one source of truth
-✅ Testability - can test script separately
+? Reliability - using proven script
+? Simplicity - less complex logic
+? Maintainability - one source of truth
+? Testability - can test script separately
 
 ## Next Steps
 

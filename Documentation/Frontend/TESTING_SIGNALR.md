@@ -1,8 +1,8 @@
-﻿# Testing SignalR with Postman
+# Testing SignalR with Postman
 
 ## What You Can Test with Postman
 
-### ✅ 1. Negotiate Endpoint (Works)
+### ? 1. Negotiate Endpoint (Works)
 
 Test if the SignalR hub is registered and responding:
 
@@ -43,14 +43,14 @@ HTTP 401 Unauthorized
 WWW-Authenticate: Bearer
 ```
 
-### ✅ 2. Test Other Hubs
+### ? 2. Test Other Hubs
 
 ```
 POST http://10.0.10.153:7009/dashboardHub/negotiate
 POST http://10.0.10.153:7009/frontendHub/negotiate
 ```
 
-### ❌ What Postman CANNOT Test
+### ? What Postman CANNOT Test
 
 - **WebSocket connections** - Postman doesn't support WebSocket protocol properly
 - **Real-time messages** - Cannot receive SignalR push messages
@@ -65,8 +65,8 @@ Open browser console and run:
 ```javascript
 // Test raw WebSocket connection
 ws = new WebSocket("ws://10.0.10.153:7009/ptsHub");
-ws.onopen = () => console.log("✓ WebSocket CONNECTED");
-ws.onerror = (e) => console.error("✗ WebSocket ERROR:", e);
+ws.onopen = () => console.log("? WebSocket CONNECTED");
+ws.onerror = (e) => console.error("? WebSocket ERROR:", e);
 ws.onclose = (e) => console.log("WebSocket closed:", e.code, e.reason);
 ```
 
@@ -124,12 +124,12 @@ wscat -c ws://10.0.10.153:7009/ptsHub -H "Authorization: Bearer YOUR_TOKEN"
           .start()
           .then(() => {
             document.getElementById("status").innerText =
-              "✓ Connected via " + connection.transport;
+              "? Connected via " + connection.transport;
             document.getElementById("status").style.color = "green";
           })
           .catch((err) => {
             document.getElementById("status").innerText =
-              "✗ Connection failed: " + err;
+              "? Connection failed: " + err;
             document.getElementById("status").style.color = "red";
           });
       }
@@ -172,9 +172,9 @@ Headers:
   Content-Type: application/json
 ```
 
-**If you get 200 OK with connectionId** = Hub is working ✅
-**If you get 401 Unauthorized** = Hub exists but token invalid/expired ⚠️
-**If you get 404 Not Found** = Hub not registered ❌
+**If you get 200 OK with connectionId** = Hub is working ?
+**If you get 401 Unauthorized** = Hub exists but token invalid/expired ??
+**If you get 404 Not Found** = Hub not registered ?
 
 ### Step 3: Test All Three Hubs
 
@@ -189,16 +189,16 @@ Repeat Step 2 for:
 Run this now to verify firewall and endpoints:
 
 ```powershell
-cd c:\dev\Tenacy.FMS
+cd c:\dev\Tenacity.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 
 This will test:
 
-1. ✅ Port 7009 TCP connectivity
-2. ✅ All three negotiate endpoints
-3. ✅ Firewall rules
-4. ✅ Backend process running
+1. ? Port 7009 TCP connectivity
+2. ? All three negotiate endpoints
+3. ? Firewall rules
+4. ? Backend process running
 
 ## After Firewall Fix
 
@@ -207,14 +207,14 @@ Now that firewall rules are created, you should:
 1. **Rebuild frontend** (to include transport fallback):
 
    ```powershell
-   cd c:\dev\Tenacy.FMS\scripts
+   cd c:\dev\Tenacity.FMS\scripts
    .\quick-rebuild.ps1
    ```
 
 2. **Deploy**:
 
    ```powershell
-   Copy-Item -Path "c:\dev\Tenacy.FMS\fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
+   Copy-Item -Path "c:\dev\Tenacity.FMS\fms.frontend\build\*" -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" -Recurse -Force
    ```
 
 3. **Test in browser** (after clearing cache):

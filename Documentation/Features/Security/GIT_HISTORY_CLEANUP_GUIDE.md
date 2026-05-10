@@ -1,36 +1,36 @@
-﻿# Git History Cleanup Guide
+# Git History Cleanup Guide
 ## Removing Exposed Secrets from Repository History
 
-**Status**: 🔴 CRITICAL - Required to complete security remediation
+**Status**: ?? CRITICAL - Required to complete security remediation
 **Timeline**: Week 2 (after passwords are changed)
 **Complexity**: High - Requires team coordination
 **Risk Level**: Medium - Rewrites git history (requires force push)
 
 ---
 
-## ⚠️ CRITICAL: Read This First
+## ?? CRITICAL: Read This First
 
 ### Prerequisites (MUST be completed first!)
 
-- ✅ **Step 1**: All exposed passwords MUST be changed first!
+- ? **Step 1**: All exposed passwords MUST be changed first!
   - If passwords are not changed, this cleanup is pointless
   - See: `IMMEDIATE_ACTION_CHECKLIST.md`
 
-- ✅ **Step 2**: Environment variables MUST be configured
+- ? **Step 2**: Environment variables MUST be configured
   - Production server configured
   - Development environments configured
   - See: `SECURITY_SETUP_GUIDE.md`
 
-- ✅ **Step 3**: Team MUST be notified
+- ? **Step 3**: Team MUST be notified
   - All developers must be aware
   - Schedule a time when no one is committing
   - See communication template below
 
-**⚠️ DO NOT proceed if any prerequisites are incomplete!**
+**?? DO NOT proceed if any prerequisites are incomplete!**
 
 ---
 
-## 📋 Overview
+## ?? Overview
 
 ### What This Does
 
@@ -63,7 +63,7 @@ We'll use **BFG Repo-Cleaner** to:
 
 ---
 
-## 🛠️ Method 1: Using BFG Repo-Cleaner (Recommended)
+## ??? Method 1: Using BFG Repo-Cleaner (Recommended)
 
 BFG is faster and safer than `git filter-branch`. It's specifically designed for removing sensitive data.
 
@@ -77,10 +77,10 @@ mkdir -p /backups/git-cleanup-$(date +%Y%m%d)
 cd /backups/git-cleanup-$(date +%Y%m%d)
 
 # Backup the entire repository
-git clone --mirror https://github.com/your-org/Tenacy.FMS.git
+git clone --mirror https://github.com/your-org/Tenacity.FMS.git
 
 # Create archive
-tar -czf Tenacy.FMS-backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacy.FMS.git
+tar -czf Tenacity.FMS-backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacity.FMS.git
 
 # Verify backup
 ls -lh *.tar.gz
@@ -132,10 +132,10 @@ mkdir -p ~/git-cleanup
 cd ~/git-cleanup
 
 # Clone as mirror (includes all branches, tags, refs)
-git clone --mirror https://github.com/your-org/Tenacy.FMS.git
+git clone --mirror https://github.com/your-org/Tenacity.FMS.git
 
-# This creates: Tenacy.FMS.git/
-cd Tenacy.FMS.git
+# This creates: Tenacity.FMS.git/
+cd Tenacity.FMS.git
 ```
 
 ---
@@ -181,7 +181,7 @@ hy.gps@example.com
 EOF
 ```
 
-**⚠️ Important**: Add any other exposed passwords or sensitive data!
+**?? Important**: Add any other exposed passwords or sensitive data!
 
 ---
 
@@ -193,22 +193,22 @@ cd ~/git-cleanup
 # Remove sensitive files from history
 java -jar ~/tools/bfg.jar \
   --delete-files '{appsettings.json,appsettings.*.json,.env,setup-environment.ps1,setup-*.ps1}' \
-  Tenacy.FMS.git
+  Tenacity.FMS.git
 
 # Alternative: Use the files list
 java -jar ~/tools/bfg.jar \
   --delete-files files-to-delete.txt \
-  Tenacy.FMS.git
+  Tenacity.FMS.git
 
 # Replace passwords in ALL remaining files
 java -jar ~/tools/bfg.jar \
   --replace-text passwords-to-remove.txt \
-  Tenacy.FMS.git
+  Tenacity.FMS.git
 ```
 
 **Expected output:**
 ```
-Using repo : /path/to/Tenacy.FMS.git
+Using repo : /path/to/Tenacity.FMS.git
 
 Found 1234 commits
 Cleaning commits:       100% (1234/1234)
@@ -216,7 +216,7 @@ Cleaning commits completed in 12 seconds.
 
 Updating 8 Refs
         Ref                        Before     After
-        ─────────────────────────────────────────
+        -----------------------------------------
         refs/heads/main           | abc123 | def456
         refs/heads/productionv1   | xyz789 | uvw012
         ...
@@ -232,7 +232,7 @@ BFG run is complete! When ready, run: git reflog expire --expire=now --all && gi
 ### Step 7: Expire Reflogs and Garbage Collect
 
 ```bash
-cd ~/git-cleanup/Tenacy.FMS.git
+cd ~/git-cleanup/Tenacity.FMS.git
 
 # Expire all old reflog entries
 git reflog expire --expire=now --all
@@ -258,7 +258,7 @@ Total 45678 (delta 23456), reused 40000 (delta 20000)
 ### Step 8: Verify the Cleanup
 
 ```bash
-cd ~/git-cleanup/Tenacy.FMS.git
+cd ~/git-cleanup/Tenacity.FMS.git
 
 # Check that sensitive files are gone from history
 git log --all --full-history -- '**/setup-environment.ps1'
@@ -280,16 +280,16 @@ git ls-tree -r HEAD | grep -i 'example'
 # Should show: appsettings.example.json, .env.example, etc.
 ```
 
-**✅ If all checks pass, secrets are removed from history!**
+**? If all checks pass, secrets are removed from history!**
 
 ---
 
 ### Step 9: Force Push to Remote
 
-**⚠️ CRITICAL**: This rewrites history. Coordinate with your team!
+**?? CRITICAL**: This rewrites history. Coordinate with your team!
 
 ```bash
-cd ~/git-cleanup/Tenacy.FMS.git
+cd ~/git-cleanup/Tenacity.FMS.git
 
 # Force push all refs (branches, tags)
 git push --force --all
@@ -312,7 +312,7 @@ Compressing objects: 100% (12345/12345), done.
 Writing objects: 100% (45678/45678), done.
 Total 45678 (delta 23456), reused 40000 (delta 20000)
 remote: Resolving deltas: 100% (23456/23456), done.
-To https://github.com/your-org/Tenacy.FMS.git
+To https://github.com/your-org/Tenacity.FMS.git
  + abc123...def456 main -> main (forced update)
  + xyz789...uvw012 productionv1 -> productionv1 (forced update)
 ```
@@ -326,7 +326,7 @@ To https://github.com/your-org/Tenacy.FMS.git
 ```
 URGENT: Git Repository History Cleaned - Action Required
 
-The Tenacy.FMS repository history has been cleaned to remove exposed secrets.
+The Tenacity.FMS repository history has been cleaned to remove exposed secrets.
 All developers MUST follow these steps:
 
 1. COMMIT OR STASH your current work:
@@ -334,12 +334,12 @@ All developers MUST follow these steps:
 
 2. DELETE your local repository:
    cd ..
-   rm -rf Tenacy.FMS
-   # (or move it: mv Tenacy.FMS Tenacy.FMS.old)
+   rm -rf Tenacity.FMS
+   # (or move it: mv Tenacity.FMS Tenacity.FMS.old)
 
 3. CLONE fresh copy:
-   git clone https://github.com/your-org/Tenacy.FMS.git
-   cd Tenacy.FMS
+   git clone https://github.com/your-org/Tenacity.FMS.git
+   cd Tenacity.FMS
 
 4. RESTORE your work (if stashed):
    git stash pop
@@ -358,7 +358,7 @@ Questions? Contact: [Your contact info]
 
 ---
 
-## 🛠️ Method 2: Using git-filter-repo (Alternative)
+## ??? Method 2: Using git-filter-repo (Alternative)
 
 If you prefer `git-filter-repo` (more powerful, but more complex):
 
@@ -378,8 +378,8 @@ sudo mv git-filter-repo /usr/local/bin/
 
 ```bash
 # Clone fresh copy (NOT mirror)
-git clone https://github.com/your-org/Tenacy.FMS.git
-cd Tenacy.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
+cd Tenacity.FMS
 
 # Remove sensitive files
 git filter-repo --invert-paths \
@@ -394,20 +394,20 @@ git filter-repo --invert-paths \
 git filter-repo --replace-text ../passwords-to-remove.txt --force
 
 # Force push
-git remote add origin https://github.com/your-org/Tenacy.FMS.git
+git remote add origin https://github.com/your-org/Tenacity.FMS.git
 git push --force --all
 git push --force --tags
 ```
 
 ---
 
-## ✅ Post-Cleanup Verification
+## ? Post-Cleanup Verification
 
 After force pushing, verify the cleanup worked:
 
 ### On GitHub Website
 
-1. Go to: https://github.com/your-org/Tenacy.FMS
+1. Go to: https://github.com/your-org/Tenacity.FMS
 2. Use GitHub search: `"Niwewenamimi1000"`
 3. Should show: **No results**
 4. Try other passwords: `"Tenacy2030"`, `"Niwewe1000"`
@@ -417,7 +417,7 @@ After force pushing, verify the cleanup worked:
 
 ```bash
 # Clone fresh copy
-git clone https://github.com/your-org/Tenacy.FMS.git tenacy-verify
+git clone https://github.com/your-org/Tenacity.FMS.git tenacy-verify
 cd tenacy-verify
 
 # Search entire history for passwords
@@ -440,14 +440,14 @@ du -sh .git
 
 ---
 
-## 👥 Team Re-Sync Procedure
+## ?? Team Re-Sync Procedure
 
 ### For Each Developer
 
 **Step 1: Save Current Work**
 
 ```bash
-cd Tenacy.FMS
+cd Tenacity.FMS
 
 # Check for uncommitted changes
 git status
@@ -467,17 +467,17 @@ git commit -m "Temp: Save work before repo cleanup"
 cd ..
 
 # Option A: Delete completely
-rm -rf Tenacy.FMS
+rm -rf Tenacity.FMS
 
 # Option B: Archive for safety (recommended)
-mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
+mv Tenacity.FMS Tenacity.FMS.OLD-$(date +%Y%m%d)
 ```
 
 **Step 3: Clone Fresh Copy**
 
 ```bash
-git clone https://github.com/your-org/Tenacy.FMS.git
-cd Tenacy.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
+cd Tenacity.FMS
 
 # Verify cleaned history
 git log --oneline | head -20
@@ -502,19 +502,19 @@ cp FMS.WebClient/appsettings.example.json FMS.WebClient/appsettings.json
 
 ```bash
 # If you used stash (and old repo still exists)
-cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacity.FMS.OLD-$(date +%Y%m%d)
 git stash list
 # Note the stash you want
 
 # Apply to new repo
-cd ../Tenacy.FMS
+cd ../Tenacity.FMS
 # Copy files manually or use git apply
 
 # If you used temp branch
-cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacity.FMS.OLD-$(date +%Y%m%d)
 git diff main temp-before-cleanup > ../my-changes.patch
 
-cd ../Tenacy.FMS
+cd ../Tenacity.FMS
 git apply ../my-changes.patch
 ```
 
@@ -535,7 +535,7 @@ dotnet run --project FMS.WebClient
 
 ---
 
-## 🚨 Troubleshooting
+## ?? Troubleshooting
 
 ### Issue: "rejected (non-fast-forward)"
 
@@ -554,19 +554,19 @@ error: Your local changes to the following files would be overwritten by merge
 
 ```bash
 # DON'T do this:
-git pull  # ✗ Won't work
+git pull  # ? Won't work
 
 # DO this:
 cd ..
-rm -rf Tenacy.FMS
-git clone https://github.com/your-org/Tenacy.FMS.git
+rm -rf Tenacity.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
 ```
 
 ### Issue: "Still seeing passwords in history"
 
 ```bash
 # Make sure you cleaned the mirror clone
-cd ~/git-cleanup/Tenacy.FMS.git
+cd ~/git-cleanup/Tenacity.FMS.git
 git log --all -S "password123"
 
 # If still there, you may need to:
@@ -590,20 +590,20 @@ git log --all -S "password123"
 ```bash
 # Use your backup from Step 1
 cd /backups/git-cleanup-YYYYMMDD
-tar -xzf Tenacy.FMS-backup-*.tar.gz
+tar -xzf Tenacity.FMS-backup-*.tar.gz
 
 # Force push the backup
-cd Tenacy.FMS.git
-git remote add origin https://github.com/your-org/Tenacy.FMS.git
+cd Tenacity.FMS.git
+git remote add origin https://github.com/your-org/Tenacity.FMS.git
 git push --force --all
 git push --force --tags
 ```
 
 ---
 
-## 📊 Success Criteria
+## ?? Success Criteria
 
-### ✅ Cleanup is successful when:
+### ? Cleanup is successful when:
 
 - [ ] All sensitive files removed from history
 - [ ] All passwords removed from all files in history
@@ -616,7 +616,7 @@ git push --force --tags
 
 ---
 
-## 📅 Timeline and Checklist
+## ?? Timeline and Checklist
 
 ### Pre-Cleanup (Week 1)
 - [ ] All passwords changed on actual systems
@@ -644,7 +644,7 @@ git push --force --tags
 
 ---
 
-## 📞 Communication Template
+## ?? Communication Template
 
 ### Pre-Cleanup Notification (3 days before)
 
@@ -694,8 +694,8 @@ See attached document: Team_Resync_Instructions.md
 
 Or follow these steps:
 1. Stash your work: git stash
-2. Delete local repo: cd .. && rm -rf Tenacy.FMS
-3. Clone fresh: git clone https://github.com/your-org/Tenacy.FMS.git
+2. Delete local repo: cd .. && rm -rf Tenacity.FMS
+3. Clone fresh: git clone https://github.com/your-org/Tenacity.FMS.git
 4. Restore config: Copy .env.example to .env, etc.
 5. Restore work: git stash pop (if applicable)
 
@@ -712,7 +712,7 @@ Thanks,
 
 ---
 
-## 🔐 Security Notes
+## ?? Security Notes
 
 1. **Old clones are compromised**: Anyone who has an old clone still has the passwords
 2. **Backups may contain secrets**: Archive backups securely, delete after 90 days
@@ -722,7 +722,7 @@ Thanks,
 
 ---
 
-## 📚 Additional Resources
+## ?? Additional Resources
 
 - **BFG Repo-Cleaner**: https://rtyley.github.io/bfg-repo-cleaner/
 - **git-filter-repo**: https://github.com/newren/git-filter-repo

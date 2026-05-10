@@ -10,7 +10,7 @@
 ## 1. Purpose
 
 FMS.Sales is a **separate bounded context** that owns the commercial side of the
-Tenacy FMS platform: plans, pricing (multi-currency), subscriptions, quotas,
+Tenacity FMS platform: plans, pricing (multi-currency), subscriptions, quotas,
 usage metering, invoicing, payments (Stripe + manual), onboarding requests,
 coupons, and a sales audit trail.
 

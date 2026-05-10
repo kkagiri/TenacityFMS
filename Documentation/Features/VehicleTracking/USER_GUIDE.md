@@ -114,13 +114,11 @@ The Dashboard provides real-time visibility into all GPS tracking providers.
 **Status Indicators**:
 
 - 🟢 **Healthy**: Provider is working correctly
-
   - Green badge
   - Response time < 500ms
   - Recent successful requests
 
 - 🟡 **Degraded**: Provider is working but slow
-
   - Yellow badge
   - Response time 500ms - 2000ms
   - Some failed requests
@@ -269,13 +267,11 @@ The configuration table shows all providers with:
 **Sections**:
 
 1. **Provider Information** (Read-only)
-
    - Provider Name
    - Display Name
    - Current status
 
 2. **Configuration JSON Editor**
-
    - Large text area for JSON editing
    - Syntax highlighting (basic)
    - Validation on save
@@ -402,7 +398,7 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Assignment Table Shows**:
 
 - Vehicle ID
-- Vehicle Name (Tenacy Number)
+- Vehicle Name (Tenacity Number)
 - Number Plate
 - Assigned Provider (or "Not assigned")
 
@@ -459,13 +455,11 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
    ```
 
 2. **Reload Providers**:
-
    - Go to Dashboard
    - Click "Reload Providers"
    - Verify new provider appears
 
 3. **Configure Provider**:
-
    - Go to Configuration tab
    - Find the new provider
    - Click gear icon
@@ -473,7 +467,6 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
    - Save changes
 
 4. **Test Connection**:
-
    - Go to Dashboard
    - Click plug icon for new provider
    - Verify successful connection
@@ -493,12 +486,10 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Troubleshooting Steps**:
 
 1. **Check Connection**:
-
    - Click plug icon to test
    - Review error message
 
 2. **Verify Configuration**:
-
    - Go to Configuration tab
    - Click gear icon
    - Check API credentials
@@ -506,19 +497,16 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
    - Ensure no typos
 
 3. **Test Manually**:
-
    - Use Postman or curl to test API
    - Verify credentials work outside FMS
    - Check network connectivity
 
 4. **Review Logs**:
-
    - Check application logs
    - Look for initialization errors
    - Check for timeout messages
 
 5. **Restart Provider**:
-
    - Disable provider
    - Wait 10 seconds
    - Enable provider
@@ -536,26 +524,22 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Steps**:
 
 1. **Verify Backup Provider**:
-
    - Go to Dashboard
    - Check backup provider is Healthy
    - Test connection with plug icon
 
 2. **Set New Default**:
-
    - Go to Configuration tab
    - Find backup provider
    - Click star icon in Default column
    - Confirm change
 
 3. **Disable Old Provider** (Optional):
-
    - Find old default provider
    - Click "Enabled" badge to disable
    - System now uses new default
 
 4. **Monitor**:
-
    - Return to Dashboard
    - Watch statistics
    - Verify requests going to new provider
@@ -572,23 +556,19 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Steps**:
 
 1. **Analyze Statistics**:
-
    - Review Provider Statistics section
    - Identify slowest provider
    - Check success rates
 
 2. **Adjust Priorities**:
-
    - Give faster providers higher priority
    - Set slower providers as backup
 
 3. **Assign Vehicles**:
-
    - Distribute vehicles across providers
    - Balance load geographically if possible
 
 4. **Monitor Results**:
-
    - Enable auto-refresh
    - Watch response times
    - Check for improvements
@@ -626,7 +606,6 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
    ```
 
 2. **Verify Role Assignment**:
-
    - Contact administrator
    - Request Provider Management permissions
 
@@ -652,7 +631,6 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Solutions**:
 
 1. **Validate JSON**:
-
    - Use online JSON validator
    - Check for missing commas/quotes
    - Ensure proper formatting
@@ -668,7 +646,6 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
    ```
 
 3. **Check Browser Console**:
-
    - Press F12
    - Look for error messages
    - Check network tab for failed requests
@@ -689,18 +666,15 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Solutions**:
 
 1. **Re-enable Auto-Refresh**:
-
    - Uncheck the checkbox
    - Wait 2 seconds
    - Check it again
 
 2. **Check Browser Console**:
-
    - Look for JavaScript errors
    - Check for network issues
 
 3. **Manual Refresh**:
-
    - Use Refresh button instead
    - Reload page
 
@@ -719,13 +693,11 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Solutions**:
 
 1. **Verify Configuration**:
-
    - Check API credentials
    - Verify URL is accessible
    - Test outside of FMS
 
 2. **Check Network**:
-
    - Ping the provider server
    - Check firewall rules
    - Verify VPN if needed
@@ -755,12 +727,10 @@ The Vehicle Assignments page allows you to assign specific vehicles to specific 
 **Solutions**:
 
 1. **Reload Providers**:
-
    - Click "Reload Providers" button
    - Wait for confirmation
 
 2. **Check Backend Logs**:
-
    - Verify API is running
    - Check for errors
 

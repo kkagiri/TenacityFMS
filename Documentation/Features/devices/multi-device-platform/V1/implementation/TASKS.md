@@ -8,10 +8,10 @@ Legend: `[ ]` open · `[x]` done · ⛓ depends-on · 🧪 verification anchor
 
 ## Phase 0 — Demolish (1 sprint)
 
-- [x] **T0.1** Remove `FMS.IoT.Contracts/Gateway/ProcessingEngine` from `Tenacy.Fms.sln` and `Hyoung.Fms.sln`. 🧪 0.1
+- [x] **T0.1** Remove `FMS.IoT.Contracts/Gateway/ProcessingEngine` from `Tenacity.Fms.sln` and `Tenacity.Fms.sln`. 🧪 0.1
 - [x] **T0.2** Delete the three folders from disk. 🧪 0.1
 - [x] **T0.3** Delete any `Class1.cs` template stubs that referenced the IoT projects.
-- [x] **T0.4** `dotnet build Tenacy.Fms.sln` — green. (Validated via `FMS.WebClient.csproj` build — 0 errors.)
+- [x] **T0.4** `dotnet build Tenacity.Fms.sln` — green. (Validated via `FMS.WebClient.csproj` build — 0 errors.)
 - [x] **T0.5** `grep -r "FMS.IoT" --include="*.cs" --include="*.csproj"` returns empty. 🧪 0.1
 
 ---

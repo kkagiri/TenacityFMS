@@ -1,10 +1,10 @@
-﻿# Security Setup Guide for Tenacy.FMS
+# Security Setup Guide for Tenacity.FMS
 
-## 🔐 Overview
+## ?? Overview
 
 This guide explains how to properly configure your local development environment and production servers without committing sensitive credentials to version control.
 
-## ⚠️ Important Security Rules
+## ?? Important Security Rules
 
 **NEVER commit the following to git:**
 - Passwords (database, email, user accounts)
@@ -20,13 +20,13 @@ This guide explains how to properly configure your local development environment
 
 ---
 
-## 📋 Initial Setup for New Developers
+## ?? Initial Setup for New Developers
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/Tenacy.FMS.git
-cd Tenacy.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
+cd Tenacity.FMS
 ```
 
 ### 2. Set Up Backend Configuration
@@ -77,7 +77,7 @@ cat > FMS.Testing/appsettings.Testing.json << 'EOF'
 EOF
 ```
 
-⚠️ **IMPORTANT**: Use a separate TEST database, never use production!
+?? **IMPORTANT**: Use a separate TEST database, never use production!
 
 ### 3. Set Up Frontend Configuration
 
@@ -108,7 +108,7 @@ REACT_APP_IS_LOCAL_DEV=false
 
 ---
 
-## 🖥️ Production Server Setup
+## ??? Production Server Setup
 
 ### Option A: Using Environment Variables (Recommended)
 
@@ -147,7 +147,7 @@ Set machine-level environment variables on the production server:
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('JwtSettings__SecretKey', 'GENERATE_STRONG_32_CHAR_SECRET', 'Machine')
-[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacy FMS', 'Machine')
+[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacity FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('JwtSettings__Audience', 'FMSUsers', 'Machine')
 
 Write-Host "Environment variables set successfully!" -ForegroundColor Green
@@ -179,7 +179,7 @@ If you must use configuration files in production:
 
 ---
 
-## 🔒 Security Best Practices
+## ?? Security Best Practices
 
 ### 1. Strong Passwords
 
@@ -241,7 +241,7 @@ cd git-secrets
 sudo make install
 
 # Configure for FMS repository
-cd /path/to/Tenacy.FMS
+cd /path/to/Tenacity.FMS
 git secrets --install
 git secrets --register-aws
 
@@ -265,7 +265,7 @@ git secrets --scan
 
 ---
 
-## 🧪 Testing Your Configuration
+## ?? Testing Your Configuration
 
 ### Test Database Connection
 
@@ -299,7 +299,7 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 ---
 
-## 📝 Configuration File Reference
+## ?? Configuration File Reference
 
 ### appsettings.json Structure
 
@@ -348,7 +348,7 @@ REACT_APP_IS_LOCAL_DEV=false
 
 ---
 
-## 🚨 Incident Response
+## ?? Incident Response
 
 ### If Credentials Are Compromised
 
@@ -369,7 +369,7 @@ REACT_APP_IS_LOCAL_DEV=false
 
 ---
 
-## 📞 Support and Questions
+## ?? Support and Questions
 
 **Security Issues**: security@example.com
 **Development Lead**: kevin.kagiri@example.com
@@ -377,7 +377,7 @@ REACT_APP_IS_LOCAL_DEV=false
 
 ---
 
-## ✅ Setup Checklist
+## ? Setup Checklist
 
 Use this checklist when setting up a new environment:
 

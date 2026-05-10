@@ -1,10 +1,10 @@
-﻿# Event Expression Engine — Implementation Guide for AI Agents
+# Event Expression Engine � Implementation Guide for AI Agents
 
 > **Purpose**: Complete reference for the FMS Event Expression Engine. Covers architecture, current
 > implementation state, the 15 TODO wiring locations, and step-by-step instructions for wiring
 > `IEventExpressionEngine.ProcessAsync()` into each call site.
 >
-> **Audience**: AI coding agents working on the Tenacy.FMS codebase.
+> **Audience**: AI coding agents working on the Tenacity.FMS codebase.
 >
 > **Last Updated**: 2026-02-11
 
@@ -15,7 +15,7 @@
 1. [Architecture Overview](#1-architecture-overview)
 2. [Core Components](#2-core-components)
 3. [Event Type Catalogue](#3-event-type-catalogue)
-4. [Wiring Plan — Backend TODO Locations](#4-wiring-plan--backend-todo-locations)
+4. [Wiring Plan � Backend TODO Locations](#4-wiring-plan--backend-todo-locations)
 5. [Frontend Pages & API](#5-frontend-pages--api)
 6. [DI Registration](#6-di-registration)
 7. [Adding a New Event Type Checklist](#7-adding-a-new-event-type-checklist)
@@ -30,39 +30,39 @@ The **Event Expression Engine** replaces the old AlarmHandler/ActiveAlarm system
 rule-driven notification pipeline:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  BUSINESS CODE (Commands, Services, Background Jobs)                    │
-│                                                                          │
-│  1. Something happens → build a typed FMSEvent subclass                  │
-│  2. Call IEventExpressionEngine.ProcessAsync(fmsEvent, ct)               │
-│  3. Done. The engine handles everything else.                            │
-└──────────────────┬───────────────────────────────────────────────────────┘
-                   │
-                   ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│  EventExpressionEngine.ProcessAsync()                                    │
-│                                                                          │
-│  ① Query EventExpressions matching EventType + scope (SiteId/TankId/    │
-│     DeviceId) + IsActive = true                                          │
-│  ② For each matched expression:                                         │
-│     a. Check MinimumSeverity filter                                      │
-│     b. Evaluate conditions via ExpressionEvaluatorFactory → evaluator    │
-│     c. Check cooldown (ExpressionCooldownService)                        │
-│     d. Create ActiveEvent record (if CreateActiveEvent = true)           │
-│     e. Update TriggerCount + LastTriggeredAt                             │
-│     f. Log EventExpressionExecution for audit trail                      │
-│  ③ SaveChangesAsync()                                                    │
-│  ④ Return EventProcessingResult                                         │
-└──────────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------------+
+�  BUSINESS CODE (Commands, Services, Background Jobs)                    �
+�                                                                          �
+�  1. Something happens ? build a typed FMSEvent subclass                  �
+�  2. Call IEventExpressionEngine.ProcessAsync(fmsEvent, ct)               �
+�  3. Done. The engine handles everything else.                            �
++--------------------------------------------------------------------------+
+                   �
+                   ?
++--------------------------------------------------------------------------+
+�  EventExpressionEngine.ProcessAsync()                                    �
+�                                                                          �
+�  ? Query EventExpressions matching EventType + scope (SiteId/TankId/    �
+�     DeviceId) + IsActive = true                                          �
+�  ? For each matched expression:                                         �
+�     a. Check MinimumSeverity filter                                      �
+�     b. Evaluate conditions via ExpressionEvaluatorFactory ? evaluator    �
+�     c. Check cooldown (ExpressionCooldownService)                        �
+�     d. Create ActiveEvent record (if CreateActiveEvent = true)           �
+�     e. Update TriggerCount + LastTriggeredAt                             �
+�     f. Log EventExpressionExecution for audit trail                      �
+�  ? SaveChangesAsync()                                                    �
+�  ? Return EventProcessingResult                                         �
++--------------------------------------------------------------------------+
 ```
 
 ### Key Design Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| **One interface, one method** | `IEventExpressionEngine.ProcessAsync(FMSEvent, CancellationToken)` — business code never calls anything else |
+| **One interface, one method** | `IEventExpressionEngine.ProcessAsync(FMSEvent, CancellationToken)` � business code never calls anything else |
 | **Typed events with base class** | `FMSEvent` base + subclasses (TankLevelEvent, PumpAlarmEvent, etc.) carry typed data |
-| **Evaluator per type** | ExpressionEvaluatorFactory maps EventType → IExpressionEvaluator. Falls back to AlwaysTrueEvaluator |
+| **Evaluator per type** | ExpressionEvaluatorFactory maps EventType ? IExpressionEvaluator. Falls back to AlwaysTrueEvaluator |
 | **Cooldown lives in engine** | ExpressionCooldownService checks execution table. No Redis needed (old system had Redis cooldowns in business code that should be removed when wiring) |
 | **ActiveEvent replaces ActiveAlarm** | EventLogService creates ActiveEvent records. Issue tracker uses ActiveAlarmId FK (still column name, maps to ActiveEvent conceptually) |
 
@@ -74,63 +74,63 @@ rule-driven notification pipeline:
 
 ```
 FMS.Application/Features/EventEngine/
-├── Engine/
-│   ├── IEventExpressionEngine.cs        → Interface (single ProcessAsync method)
-│   ├── EventExpressionEngine.cs         → Core orchestrator implementation
-│   └── EventLogService.cs              → Creates ActiveEvent records
-├── Events/
-│   ├── FMSEvent.cs                      → Abstract base class
-│   ├── TankLevelEvent.cs               → Tank measurement thresholds
-│   ├── TankClosingStockEvent.cs        → Stock discrepancy
-│   ├── SensorVarianceEvent.cs          → Manual vs sensor variance
-│   ├── PumpAlarmEvent.cs               → PTS pump alarms
-│   ├── DeviceStatusEvent.cs            → Device offline/online
-│   ├── VehicleGpsEvent.cs              → Vehicle GPS status
-│   ├── SystemEvent.cs                  → Generic system events (maintenance, docs, etc.)
-│   ├── EventLifecycleEvent.cs          → Event state changes
-│   └── EventProcessingResult.cs        → Result DTO returned by ProcessAsync
-├── Expressions/
-│   ├── IExpressionEvaluator.cs         → Evaluator interface
-│   ├── ExpressionEvaluatorFactory.cs   → EventType → evaluator registry
-│   ├── ExpressionCooldownService.cs    → Cooldown + daily cap checks
-│   └── Evaluators/
-│       ├── AlwaysTrueEvaluator.cs      → Fallback (no conditions)
-│       ├── ThresholdEvaluator.cs       → Generic threshold comparison
-│       ├── TankLevelEvaluator.cs       → Tank level conditions
-│       ├── TankClosingStockEvaluator.cs→ Stock variance conditions
-│       ├── SensorVarianceEvaluator.cs  → Sensor variance conditions
-│       ├── DeviceOfflineEvaluator.cs   → Device offline conditions
-│       └── PumpAlarmEvaluator.cs       → Pump alarm conditions
-├── DTOs/
-│   ├── EventExpressionDto.cs
-│   ├── EventExpressionTypeMetadataDto.cs
-│   ├── CreateEventExpressionRequest.cs
-│   └── UpdateEventExpressionRequest.cs
-├── Commands/
-│   ├── CreateEventExpressionCommand.cs
-│   ├── CreateEventExpressionCommandHandler.cs
-│   ├── UpdateEventExpressionCommand.cs
-│   ├── UpdateEventExpressionCommandHandler.cs
-│   ├── DeleteEventExpressionCommand.cs
-│   └── DeleteEventExpressionCommandHandler.cs
-└── Queries/
-    ├── GetEventExpressionsQuery.cs
-    ├── GetEventExpressionsQueryHandler.cs
-    ├── GetEventExpressionByIdQuery.cs
-    ├── GetEventExpressionByIdQueryHandler.cs
-    ├── GetEventExpressionTypesQuery.cs
-    ├── GetEventExpressionTypesQueryHandler.cs
-    ├── GetEventExpressionExecutionsQuery.cs
-    └── GetEventExpressionExecutionsQueryHandler.cs
++-- Engine/
+�   +-- IEventExpressionEngine.cs        ? Interface (single ProcessAsync method)
+�   +-- EventExpressionEngine.cs         ? Core orchestrator implementation
+�   +-- EventLogService.cs              ? Creates ActiveEvent records
++-- Events/
+�   +-- FMSEvent.cs                      ? Abstract base class
+�   +-- TankLevelEvent.cs               ? Tank measurement thresholds
+�   +-- TankClosingStockEvent.cs        ? Stock discrepancy
+�   +-- SensorVarianceEvent.cs          ? Manual vs sensor variance
+�   +-- PumpAlarmEvent.cs               ? PTS pump alarms
+�   +-- DeviceStatusEvent.cs            ? Device offline/online
+�   +-- VehicleGpsEvent.cs              ? Vehicle GPS status
+�   +-- SystemEvent.cs                  ? Generic system events (maintenance, docs, etc.)
+�   +-- EventLifecycleEvent.cs          ? Event state changes
+�   +-- EventProcessingResult.cs        ? Result DTO returned by ProcessAsync
++-- Expressions/
+�   +-- IExpressionEvaluator.cs         ? Evaluator interface
+�   +-- ExpressionEvaluatorFactory.cs   ? EventType ? evaluator registry
+�   +-- ExpressionCooldownService.cs    ? Cooldown + daily cap checks
+�   +-- Evaluators/
+�       +-- AlwaysTrueEvaluator.cs      ? Fallback (no conditions)
+�       +-- ThresholdEvaluator.cs       ? Generic threshold comparison
+�       +-- TankLevelEvaluator.cs       ? Tank level conditions
+�       +-- TankClosingStockEvaluator.cs? Stock variance conditions
+�       +-- SensorVarianceEvaluator.cs  ? Sensor variance conditions
+�       +-- DeviceOfflineEvaluator.cs   ? Device offline conditions
+�       +-- PumpAlarmEvaluator.cs       ? Pump alarm conditions
++-- DTOs/
+�   +-- EventExpressionDto.cs
+�   +-- EventExpressionTypeMetadataDto.cs
+�   +-- CreateEventExpressionRequest.cs
+�   +-- UpdateEventExpressionRequest.cs
++-- Commands/
+�   +-- CreateEventExpressionCommand.cs
+�   +-- CreateEventExpressionCommandHandler.cs
+�   +-- UpdateEventExpressionCommand.cs
+�   +-- UpdateEventExpressionCommandHandler.cs
+�   +-- DeleteEventExpressionCommand.cs
+�   +-- DeleteEventExpressionCommandHandler.cs
++-- Queries/
+    +-- GetEventExpressionsQuery.cs
+    +-- GetEventExpressionsQueryHandler.cs
+    +-- GetEventExpressionByIdQuery.cs
+    +-- GetEventExpressionByIdQueryHandler.cs
+    +-- GetEventExpressionTypesQuery.cs
+    +-- GetEventExpressionTypesQueryHandler.cs
+    +-- GetEventExpressionExecutionsQuery.cs
+    +-- GetEventExpressionExecutionsQueryHandler.cs
 ```
 
 ### 2.2 Domain Entities
 
 ```
 FMS.Domain/Entities/Features/EventEngine/
-├── EventExpression.cs              → Rules table (WHEN to notify)
-├── EventExpressionExecution.cs     → Audit log of each evaluation
-└── ActiveEvent.cs                  → Active event records
++-- EventExpression.cs              ? Rules table (WHEN to notify)
++-- EventExpressionExecution.cs     ? Audit log of each evaluation
++-- ActiveEvent.cs                  ? Active event records
 ```
 
 ### 2.3 Database Tables
@@ -185,7 +185,7 @@ FMS.Domain/Entities/Features/EventEngine/
 
 ---
 
-## 4. Wiring Plan — Backend TODO Locations
+## 4. Wiring Plan � Backend TODO Locations
 
 ### 4.1 Summary Table
 
@@ -216,11 +216,11 @@ private readonly IEventExpressionEngine _eventEngine;
 
 public MyHandler(
     GpsdataContext context,
-    IEventExpressionEngine eventEngine,  // ← ADD THIS
+    IEventExpressionEngine eventEngine,  // ? ADD THIS
     ILogger<MyHandler> logger)
 {
     _context = context;
-    _eventEngine = eventEngine;          // ← ADD THIS
+    _eventEngine = eventEngine;          // ? ADD THIS
     _logger = logger;
 }
 ```
@@ -235,7 +235,7 @@ var eventEngine = scope.ServiceProvider.GetRequiredService<IEventExpressionEngin
 
 ---
 
-#### Location 1: `UploadStatusCommand.cs` → `CreateProbeAlarmIfNotInCooldownAsync` (~L679)
+#### Location 1: `UploadStatusCommand.cs` ? `CreateProbeAlarmIfNotInCooldownAsync` (~L679)
 
 **File**: `FMS.Application/Command/PTSCommand/UploadStatusCommands/UploadStatusCommand.cs`
 
@@ -267,13 +267,13 @@ await _eventEngine.ProcessAsync(tankLevelEvent, cancellationToken);
 ```
 
 **Notes**:
-- The Redis cooldown logic already in this method can be REMOVED once wired — the engine has its own ExpressionCooldownService.
+- The Redis cooldown logic already in this method can be REMOVED once wired � the engine has its own ExpressionCooldownService.
 - Or keep Redis cooldown as a "pre-filter" to avoid even constructing the event + querying the DB when we know it's spam (8-second upload intervals).
 - Decision: Keep Redis cooldown as pre-filter for performance, engine cooldown handles the rest.
 
 ---
 
-#### Location 2: `UploadStatusCommand.cs` → `CreateSystemLevelAlarmAsync` (~L910)
+#### Location 2: `UploadStatusCommand.cs` ? `CreateSystemLevelAlarmAsync` (~L910)
 
 **Current code** (placeholder):
 ```csharp
@@ -301,7 +301,7 @@ await _eventEngine.ProcessAsync(tankLevelEvent);
 
 ---
 
-#### Location 3 & 4: `UploadAlertRecordHandler.cs` → PTS alerts (~L229, ~L247)
+#### Location 3 & 4: `UploadAlertRecordHandler.cs` ? PTS alerts (~L229, ~L247)
 
 **File**: `FMS.Application/Handlers/UploadTransactions/UploadAlertRecordHandler.cs`
 
@@ -358,7 +358,7 @@ await _eventEngine.ProcessAsync(ptsEvent);
 
 ---
 
-#### Location 5: `CreateTankMeasurementCommand.cs` → After SaveChanges (~L130)
+#### Location 5: `CreateTankMeasurementCommand.cs` ? After SaveChanges (~L130)
 
 **Wire as**:
 ```csharp
@@ -383,7 +383,7 @@ await _eventEngine.ProcessAsync(tankLevelEvent, cancellationToken);
 
 ---
 
-#### Location 6: `ClosingStockCommand.cs` → Stock discrepancy (~L898)
+#### Location 6: `ClosingStockCommand.cs` ? Stock discrepancy (~L898)
 
 **Wire as**:
 ```csharp
@@ -410,7 +410,7 @@ await _eventEngine.ProcessAsync(stockEvent, cancellationToken);
 
 ---
 
-#### Location 7: `ClosingStockCommand.cs` → Sensor variance (~L935)
+#### Location 7: `ClosingStockCommand.cs` ? Sensor variance (~L935)
 
 **Wire as**:
 ```csharp
@@ -431,7 +431,7 @@ await _eventEngine.ProcessAsync(sensorEvent, cancellationToken);
 
 ---
 
-#### Location 8: `DiscrepancyDetectionService.cs` → Significant discrepancy (~L67)
+#### Location 8: `DiscrepancyDetectionService.cs` ? Significant discrepancy (~L67)
 
 **Wire as**:
 ```csharp
@@ -451,7 +451,7 @@ await _eventEngine.ProcessAsync(stockEvent, cancellationToken);
 
 ---
 
-#### Location 9: `VehicleGpsOfflineAlertService.cs` → GPS offline (~L167)
+#### Location 9: `VehicleGpsOfflineAlertService.cs` ? GPS offline (~L167)
 
 **Wire as**:
 ```csharp
@@ -472,7 +472,7 @@ await _eventEngine.ProcessAsync(gpsEvent);
 
 ---
 
-#### Location 10: `InTankDeliveryDetectionService.cs` → ITD alert (~L211)
+#### Location 10: `InTankDeliveryDetectionService.cs` ? ITD alert (~L211)
 
 **Wire as**:
 ```csharp
@@ -497,7 +497,7 @@ await _eventEngine.ProcessAsync(itdEvent, cancellationToken);
 
 ---
 
-#### Locations 11-13: `UnifiedTankReconciliationService.cs` → Stale data / Low / High volume
+#### Locations 11-13: `UnifiedTankReconciliationService.cs` ? Stale data / Low / High volume
 
 **DI**: Scope-resolve `IEventExpressionEngine` in the service method:
 ```csharp
@@ -551,7 +551,7 @@ await eventEngine.ProcessAsync(highEvent, cancellationToken);
 
 ---
 
-#### Location 14: `VehicleDocumentExpiryNotifierService.cs` → Doc expiry (~L75)
+#### Location 14: `VehicleDocumentExpiryNotifierService.cs` ? Doc expiry (~L75)
 
 **DI**: Scope-resolve `IEventExpressionEngine`.
 
@@ -577,7 +577,7 @@ await eventEngine.ProcessAsync(docEvent, stoppingToken);
 
 ---
 
-#### Location 15: `VehicleMaintenanceNotifierService.cs` → Maintenance alarm (~L248)
+#### Location 15: `VehicleMaintenanceNotifierService.cs` ? Maintenance alarm (~L248)
 
 **DI**: Scope-resolve `IEventExpressionEngine` in `ProcessMaintenanceAlertsAsync`.
 
@@ -620,18 +620,18 @@ Update call sites to pass `eventEngine` instead of the removed `activeAlarmServi
 
 ```
 fms.frontend/src/
-├── dataservice/
-│   └── eventExpressionApi.js         → API client (CRUD + types + executions)
-├── pages/eventExpressions/
-│   ├── index.js                      → Module export
-│   ├── EventExpressionsMain.js       → Router (list/create/edit/executions)
-│   └── components/
-│       ├── EventExpressionList.js    → DataGrid listing all expressions
-│       ├── EventExpressionList.scss
-│       ├── EventExpressionForm.js    → Create/edit form with dynamic conditions
-│       ├── EventExpressionForm.scss
-│       ├── ExecutionHistory.js       → Execution audit log per expression
-│       └── ExecutionHistory.scss
++-- dataservice/
+�   +-- eventExpressionApi.js         ? API client (CRUD + types + executions)
++-- pages/eventExpressions/
+�   +-- index.js                      ? Module export
+�   +-- EventExpressionsMain.js       ? Router (list/create/edit/executions)
+�   +-- components/
+�       +-- EventExpressionList.js    ? DataGrid listing all expressions
+�       +-- EventExpressionList.scss
+�       +-- EventExpressionForm.js    ? Create/edit form with dynamic conditions
+�       +-- EventExpressionForm.scss
+�       +-- ExecutionHistory.js       ? Execution audit log per expression
+�       +-- ExecutionHistory.scss
 ```
 
 ### 5.2 Routes
@@ -734,9 +734,9 @@ When adding a completely new event type (e.g., "FuelRefill"):
 ## 8. Navigation Setup
 
 ### Current Status
-- Routes in Content.js: ✅ Done
-- Component mapping in app-routes.js: ✅ Done
-- Navigation database item: ⬜ **PENDING** — needs to be created via Navigation Management UI
+- Routes in Content.js: ? Done
+- Component mapping in app-routes.js: ? Done
+- Navigation database item: ? **PENDING** � needs to be created via Navigation Management UI
 
 ### To Add Navigation
 1. Go to `/admin/navigations` in the FMS frontend
@@ -761,13 +761,13 @@ When adding a completely new event type (e.g., "FuelRefill"):
 1. Create an EventExpression via API with EventType = "TankLevel", low cooldown
 2. Trigger a TankLevelEvent from a test endpoint
 3. Verify: EventExpressionExecution created, ActiveEvent created, TriggerCount incremented
-4. Trigger again within cooldown — verify suppression
+4. Trigger again within cooldown � verify suppression
 
 ### Frontend Testing
 1. Navigate to `/event-expressions`
-2. Create expression → verify form renders conditions dynamically based on EventType
-3. View execution history → verify data loads
-4. Edit/delete → verify changes persist
+2. Create expression ? verify form renders conditions dynamically based on EventType
+3. View execution history ? verify data loads
+4. Edit/delete ? verify changes persist
 
 ---
 
@@ -783,16 +783,16 @@ When adding a completely new event type (e.g., "FuelRefill"):
 - 83 total files deleted
 
 ### FK Columns Preserved (DB compatibility)
-- `ActiveAlarmId` on `Issuetracker`, `Notification` — still INT, still FK column in MySQL
-- `AlarmId` on `PTSAlertRecord` — still INT, still FK column
+- `ActiveAlarmId` on `Issuetracker`, `Notification` � still INT, still FK column in MySQL
+- `AlarmId` on `PTSAlertRecord` � still INT, still FK column
 
 ### AlarmClearedChecker Stub
-`FMS.BackgroundServices/IssueTracker/Checkers/AlarmClearedChecker.cs` — currently returns `false`
+`FMS.BackgroundServices/IssueTracker/Checkers/AlarmClearedChecker.cs` � currently returns `false`
 always. Needs to be reworked to query `ActiveEvents` table once engine is fully wired.
 
 ---
 
-## Appendix B: Quick Reference — How to Wire a TODO
+## Appendix B: Quick Reference � How to Wire a TODO
 
 ```csharp
 // Step 1: Import the engine interface + event type

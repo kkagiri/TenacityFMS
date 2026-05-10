@@ -1,6 +1,6 @@
-﻿# ===============================================================================
+# ===============================================================================
 # Environment Variables Verification Script
-# Tenacy.FMS - Production
+# Tenacity.FMS - Production
 # ===============================================================================
 #
 # This script verifies that all required environment variables are set
@@ -8,10 +8,10 @@
 #
 # ===============================================================================
 
-function Write-Success { param($Message) Write-Host "✓ $Message" -ForegroundColor Green }
-function Write-Error { param($Message) Write-Host "✗ $Message" -ForegroundColor Red }
-function Write-Warning { param($Message) Write-Host "⚠ $Message" -ForegroundColor Yellow }
-function Write-Info { param($Message) Write-Host "ℹ $Message" -ForegroundColor Cyan }
+function Write-Success { param($Message) Write-Host "? $Message" -ForegroundColor Green }
+function Write-Error { param($Message) Write-Host "? $Message" -ForegroundColor Red }
+function Write-Warning { param($Message) Write-Host "? $Message" -ForegroundColor Yellow }
+function Write-Info { param($Message) Write-Host "? $Message" -ForegroundColor Cyan }
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Cyan
@@ -321,7 +321,7 @@ Write-Host "====================================================================
 Write-Host ""
 
 if ($issuesFound -eq 0) {
-    Write-Host "✓ ALL CHECKS PASSED!" -ForegroundColor Green
+    Write-Host "? ALL CHECKS PASSED!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Environment variables are configured correctly." -ForegroundColor Green
     Write-Host ""
@@ -331,21 +331,21 @@ if ($issuesFound -eq 0) {
     Write-Host "  3. Test key features (login, database access, email, GPS)" -ForegroundColor Cyan
     Write-Host ""
 } else {
-    Write-Host "✗ ISSUES FOUND: $issuesFound" -ForegroundColor Red
+    Write-Host "? ISSUES FOUND: $issuesFound" -ForegroundColor Red
     Write-Host ""
     Write-Host "Please fix the issues above before proceeding." -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Common fixes:" -ForegroundColor Yellow
-    Write-Host "  • Run: .\scripts\production\setup-production-env.ps1" -ForegroundColor Cyan
-    Write-Host "  • Ensure all placeholder values are replaced" -ForegroundColor Cyan
-    Write-Host "  • Restart services: iisreset" -ForegroundColor Cyan
-    Write-Host "  • Check network connectivity to databases" -ForegroundColor Cyan
+    Write-Host "  � Run: .\scripts\production\setup-production-env.ps1" -ForegroundColor Cyan
+    Write-Host "  � Ensure all placeholder values are replaced" -ForegroundColor Cyan
+    Write-Host "  � Restart services: iisreset" -ForegroundColor Cyan
+    Write-Host "  � Check network connectivity to databases" -ForegroundColor Cyan
     Write-Host ""
 }
 
 Write-Host "For more information:" -ForegroundColor Cyan
-Write-Host "  • SECURITY_SETUP_GUIDE.md" -ForegroundColor White
-Write-Host "  • Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md" -ForegroundColor White
+Write-Host "  � SECURITY_SETUP_GUIDE.md" -ForegroundColor White
+Write-Host "  � Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md" -ForegroundColor White
 Write-Host ""
 
 exit $issuesFound

@@ -1,12 +1,12 @@
-﻿# 🚨 URGENT FIX: Logging & jsReport Permissions Issue - RESOLVED
+# ?? URGENT FIX: Logging & jsReport Permissions Issue - RESOLVED
 
 **Date**: February 9, 2026
 **Issue**: `Access denied` to jsreport directory causing 500 errors
-**Status**: ✅ FIXED
+**Status**: ? FIXED
 
 ---
 
-## 🔍 Root Cause Analysis
+## ?? Root Cause Analysis
 
 ### What Happened
 
@@ -22,39 +22,39 @@
 
 ---
 
-## ✅ What Was Fixed
+## ? What Was Fixed
 
 ### 1. **Enhanced Logging** (`Program.cs`)
 
-- ✅ Added Serilog self-diagnostics
-- ✅ Auto-creates log directories on startup
-- ✅ Fallback logging to app directory
-- ✅ Logs written to: `C:\Logs\FMS.Webclient\`
+- ? Added Serilog self-diagnostics
+- ? Auto-creates log directories on startup
+- ? Fallback logging to app directory
+- ? Logs written to: `C:\Logs\FMS.Webclient\`
 
 ### 2. **Global Exception Handler** (`FmsApplicationBuilderExtensions.cs`)
 
-- ✅ Catches all unhandled exceptions
-- ✅ Logs complete error details
-- ✅ Returns proper JSON error responses
-- ✅ Includes stack traces in development mode
+- ? Catches all unhandled exceptions
+- ? Logs complete error details
+- ? Returns proper JSON error responses
+- ? Includes stack traces in development mode
 
 ### 3. **JsReport Fix** (`JsReportService.cs`)
 
-- ✅ Uses writable locations (C:\Logs or temp folder)
-- ✅ Never writes to deployment directory
-- ✅ Auto-fallback chain: Logs → Temp → ProgramData → App_Data
-- ✅ Tests write access before selecting directory
+- ? Uses writable locations (C:\Logs or temp folder)
+- ? Never writes to deployment directory
+- ? Auto-fallback chain: Logs ? Temp ? ProgramData ? App_Data
+- ? Tests write access before selecting directory
 
 ---
 
-## 🚀 DEPLOYMENT STEPS (DO THIS NOW)
+## ?? DEPLOYMENT STEPS (DO THIS NOW)
 
 ### Step 1: Run Setup Script (REQUIRED)
 
 Open PowerShell **as Administrator** and run:
 
 ```powershell
-cd C:\dev\Tenacy.FMS
+cd C:\dev\Tenacity.FMS
 .\scripts\environment\setup-logging-directories.ps1
 ```
 
@@ -70,7 +70,7 @@ This creates:
 
 ```powershell
 # Build the solution
-cd C:\dev\Tenacy.FMS
+cd C:\dev\Tenacity.FMS
 dotnet build FMS.WebClient/FMS.WebClient.csproj -c Release
 
 # Publish
@@ -105,7 +105,7 @@ Get-Content "C:\Logs\FMS.Webclient\errors\error*.log" -Tail 50
 
 ---
 
-## 📋 Verification Checklist
+## ?? Verification Checklist
 
 After deployment, verify:
 
@@ -118,7 +118,7 @@ After deployment, verify:
 
 ---
 
-## 🛠️ Troubleshooting
+## ??? Troubleshooting
 
 ### If logs still don't appear:
 
@@ -132,7 +132,7 @@ After deployment, verify:
 
 2. **Check app pool identity**:
    - Open IIS Manager
-   - Application Pools → TenacyFMS.WebAPI → Advanced Settings
+   - Application Pools ? TenacyFMS.WebAPI ? Advanced Settings
    - Identity should be: ApplicationPoolIdentity
 
 3. **Check Serilog self-log**:
@@ -146,14 +146,14 @@ The new code automatically falls back to:
 
 1. `C:\Logs\FMS.Webclient\ReportTemplates\`
 2. `%TEMP%\FMS_ReportTemplates\`
-3. `%ProgramData%\Tenacy\FMS\ReportTemplates\`
+3. `%ProgramData%\Tenacity\FMS\ReportTemplates\`
 4. `App_Data\ReportTemplates\` (may fail)
 
 Check startup log to see which location was selected.
 
 ---
 
-## 📊 Log File Locations
+## ?? Log File Locations
 
 | Log Type      | Location                                               | Retention      |
 | ------------- | ------------------------------------------------------ | -------------- |
@@ -167,24 +167,24 @@ Check startup log to see which location was selected.
 
 ---
 
-## 📝 Files Modified
+## ?? Files Modified
 
-1. ✅ `FMS.WebClient/Program.cs` - Added directory creation + Serilog self-diagnostics
-2. ✅ `FMS.WebClient/Extensions/FmsApplicationBuilderExtensions.cs` - Global exception handler
-3. ✅ `FMS.WebClient/Services/Reporting/JsReportService.cs` - Fixed directory logic
-4. ✅ `FMS.WebClient/appsettings.json` - Added fallback log sink
-5. ✅ `scripts/environment/setup-logging-directories.ps1` - New setup script
+1. ? `FMS.WebClient/Program.cs` - Added directory creation + Serilog self-diagnostics
+2. ? `FMS.WebClient/Extensions/FmsApplicationBuilderExtensions.cs` - Global exception handler
+3. ? `FMS.WebClient/Services/Reporting/JsReportService.cs` - Fixed directory logic
+4. ? `FMS.WebClient/appsettings.json` - Added fallback log sink
+5. ? `scripts/environment/setup-logging-directories.ps1` - New setup script
 
 ---
 
-## 🎯 Expected Behavior After Fix
+## ?? Expected Behavior After Fix
 
 ### Startup
 
 ```
 [06:45:00 INF] === FMS.WebClient Starting ===
 [06:45:00 INF] Serilog self-log enabled at: C:\...\serilog-selflog.txt
-[06:45:00 INF] ✓ Created log directory: C:\Logs\FMS.Webclient\app
+[06:45:00 INF] ? Created log directory: C:\Logs\FMS.Webclient\app
 [06:45:01 INF] JsReport service initialized successfully.
 [06:45:01 INF]   - Templates: C:\Logs\FMS.Webclient\ReportTemplates
 [06:45:01 INF]   - Temp files: C:\Users\...\Temp\FMS_JsReport_Temp
@@ -206,7 +206,7 @@ System.FormatException: Input string was not in a correct format.
 
 ---
 
-## 🔄 Recovery Actions
+## ?? Recovery Actions
 
 If something goes wrong:
 
@@ -230,15 +230,15 @@ If something goes wrong:
 
 ---
 
-## ✅ Success Indicators
+## ? Success Indicators
 
 You'll know it's working when:
 
-1. ✅ No 500 errors on pump/authorize endpoint
-2. ✅ Logs appear in `C:\Logs\FMS.Webclient\`
-3. ✅ jsReport templates created automatically
-4. ✅ Detailed error messages in error log (not just "500")
-5. ✅ Console output shows log initialization
+1. ? No 500 errors on pump/authorize endpoint
+2. ? Logs appear in `C:\Logs\FMS.Webclient\`
+3. ? jsReport templates created automatically
+4. ? Detailed error messages in error log (not just "500")
+5. ? Console output shows log initialization
 
 ---
 

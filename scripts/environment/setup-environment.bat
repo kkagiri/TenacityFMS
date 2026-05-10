@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 echo Setting up FMS environment variables...
 
 REM Database Connection Strings
@@ -8,7 +8,7 @@ setx ConnectionStrings__RedisConnection "10.0.10.154:6379" /M
 
 REM JWT Settings
 setx JwtSettings__SecretKey "YourLongSecretKeyHereMustBeAtLeast32Characters" /M
-setx JwtSettings__Issuer "Tenacy FMS" /M
+setx JwtSettings__Issuer "Tenacity FMS" /M
 setx JwtSettings__Audience "FMSUsers" /M
 setx JwtSettings__ExpireDays "7" /M
 

@@ -21,7 +21,7 @@ Legend: `[ ]` open · `[x]` done · ⛓ depends-on · 🧪 verification anchor �
 
 ## Phase 1 — Foundations (1 sprint)
 
-- [ ] **T1.1** Create `FMS.Fiscal.Abstractions` project (TFM `net8.0`); add to `Tenacy.Fms.sln` and `Hyoung.Fms.sln`. ⛓ T0.5
+- [ ] **T1.1** Create `FMS.Fiscal.Abstractions` project (TFM `net8.0`); add to `Tenacity.Fms.sln` and `Tenacity.Fms.sln`. ⛓ T0.5
 - [ ] **T1.2** Define in `FMS.Fiscal.Abstractions/Common/`: `FiscalProviderAttribute`, `FiscalCapabilities` flags, `FiscalProviderMetadata`, `FiscalCountry`, `FiscalMode`. ⛓ T1.1
 - [ ] **T1.3** Define in `FMS.Fiscal.Abstractions/Sales/`: `IFiscalProvider`, `FiscalInvoice`, `FiscalLine`, `FiscalCustomer`, `FiscalTax`, `FiscalSigningResult`, `FiscalSigningError`. ⛓ T1.1
 - [ ] **T1.4** Define `InvoiceSignedNotification` and `InvoiceSigningFailedNotification` MediatR `INotification` types. ⛓ T1.1

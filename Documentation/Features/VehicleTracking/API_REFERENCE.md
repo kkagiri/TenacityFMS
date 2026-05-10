@@ -695,7 +695,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 |-------|------|-------------|
 | `MappingId` | int | Unique mapping identifier |
 | `VehicleId` | int | Vehicle's unique ID |
-| `VehicleName` | string | Vehicle name (Tenacy number) |
+| `VehicleName` | string | Vehicle name (Tenacity number) |
 | `NumberPlate` | string | Vehicle license plate |
 | `ProviderId` | int | Assigned provider ID |
 | `ProviderName` | string | Assigned provider name |
@@ -1034,7 +1034,7 @@ const updateProvider = async (providerId, config) => {
 const testConnection = async (providerName) => {
   try {
     const response = await axiosInstance.post(
-      `/providers/${providerName}/test`
+      `/providers/${providerName}/test`,
     );
     return response.data.Data.IsConnected;
   } catch (error) {

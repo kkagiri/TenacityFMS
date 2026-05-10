@@ -1,4 +1,4 @@
-﻿# SignalR Connection Fix - Production Issue
+# SignalR Connection Fix - Production Issue
 
 ## Problem Summary
 
@@ -6,15 +6,15 @@
 
 **Root Cause**: SignalR WebSocket connections were using wrong URL
 
-- ❌ Current: `ws://10.0.10.153/ptsHub` (missing port 7009)
-- ✅ Correct: `ws://10.0.10.153:7009/ptsHub`
+- ? Current: `ws://10.0.10.153/ptsHub` (missing port 7009)
+- ? Correct: `ws://10.0.10.153:7009/ptsHub`
 
 **Why This Happened**:
 
 - SignalR services were deriving base URL from `axiosInstance`
 - `axiosInstance` returns `http://10.0.10.153/api` (no port, works through IIS proxy)
-- SignalR strips `/api` → gets `http://10.0.10.153` (missing port 7009)
-- WebSocket connections CANNOT go through IIS URL rewrite → need direct Kestrel connection
+- SignalR strips `/api` ? gets `http://10.0.10.153` (missing port 7009)
+- WebSocket connections CANNOT go through IIS URL rewrite ? need direct Kestrel connection
 
 ## The Fix
 
@@ -42,43 +42,43 @@ REACT_APP_SIGNALR_URL=http://10.0.10.153:7009
 
 ## Impact Analysis
 
-### ✅ **NO Breaking Changes:**
+### ? **NO Breaking Changes:**
 
 1. **API Calls** - Still use `axiosInstance` (unchanged)
 
-   - Redux actions: ✅ No changes
-   - Services: ✅ No changes
-   - Axios interceptors: ✅ No changes
+   - Redux actions: ? No changes
+   - Services: ? No changes
+   - Axios interceptors: ? No changes
 
-2. **axiosInstance.js** - ✅ Not modified
+2. **axiosInstance.js** - ? Not modified
 
    - URL resolution: Same as before
    - Request interceptors: Same as before
    - Auto-prepends `v1`: Still works
 
-3. **apiConfig.js** - ✅ Created but NOT used yet
+3. **apiConfig.js** - ? Created but NOT used yet
    - Available for future migration
    - Not breaking anything
 
-### ✅ **What Was Fixed:**
+### ? **What Was Fixed:**
 
 1. **SignalR Services** (3 files):
 
-   - `ptsSignalRService.js` ✅ Now gets correct URL from env var
-   - `dashboardSignalRService.js` ✅ Now gets correct URL from env var
-   - `businessSignalRService.js` ✅ Now gets correct URL from env var
+   - `ptsSignalRService.js` ? Now gets correct URL from env var
+   - `dashboardSignalRService.js` ? Now gets correct URL from env var
+   - `businessSignalRService.js` ? Now gets correct URL from env var
 
 2. **Environment Variables**:
-   - `.env` ✅ Updated
-   - `.env.production` ✅ Updated
-   - `.env.development` ✅ Updated
+   - `.env` ? Updated
+   - `.env.production` ? Updated
+   - `.env.development` ? Updated
 
 ## Testing Steps
 
 ### 1. Rebuild Frontend
 
 ```powershell
-cd c:\dev\Tenacy.FMS\fms.frontend
+cd c:\dev\Tenacity.FMS\fms.frontend
 npm run build
 ```
 
@@ -116,18 +116,18 @@ Open browser console on ATG Dashboard:
 
 ```
 Browser loads app
-  ↓
+  ?
 Reads: REACT_APP_SIGNALR_URL=http://10.0.10.153:7009
-  ↓
+  ?
 SignalR connects to: ws://10.0.10.153:7009/ptsHub
-  ↓
+  ?
 Receives: ConnectedDevicesStatus, DeviceStatusUpdate
-  ↓
+  ?
 Redux updates: deviceConnections.connectionStatuses
-  ↓
+  ?
 Selector merges: ptsDeviceList + connectionStatuses
-  ↓
-Dashboard shows: Device online ✅
+  ?
+Dashboard shows: Device online ?
 ```
 
 ### Production Environment:
@@ -161,22 +161,22 @@ The `apiConfig.js` was created for future use to:
 
 ### Modified:
 
-- ✅ `fms.frontend/.env`
-- ✅ `fms.frontend/.env.production`
-- ✅ `fms.frontend/.env.development`
+- ? `fms.frontend/.env`
+- ? `fms.frontend/.env.production`
+- ? `fms.frontend/.env.development`
 
 ### Created (not used yet):
 
-- 📝 `fms.frontend/src/config/apiConfig.js` (for future)
-- 📝 `Documentation/Frontend/API_CONFIGURATION.md` (documentation)
-- 📝 `Documentation/Frontend/BUILD_COMMANDS.md` (documentation)
+- ?? `fms.frontend/src/config/apiConfig.js` (for future)
+- ?? `Documentation/Frontend/API_CONFIGURATION.md` (documentation)
+- ?? `Documentation/Frontend/BUILD_COMMANDS.md` (documentation)
 
 ### Not Modified:
 
-- ✅ All Redux actions
-- ✅ All services using axiosInstance
-- ✅ axiosInstance.js itself
-- ✅ SignalR service files (they just read the env var)
+- ? All Redux actions
+- ? All services using axiosInstance
+- ? axiosInstance.js itself
+- ? SignalR service files (they just read the env var)
 
 ## Verification Checklist
 

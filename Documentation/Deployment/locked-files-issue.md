@@ -1,4 +1,4 @@
-﻿# GitHub Actions Deployment - Locked Files Issue
+# GitHub Actions Deployment - Locked Files Issue
 
 ## Problem
 
@@ -28,7 +28,7 @@ If files are still locked after cleanup, reset the runner:
 ### Option 4: Emergency Manual Cleanupcheckout@v4` in a self-hosted GitHub Actions runner on Windows, the checkout step may fail with:
 
 ```
-Error: File was unable to be removed Error: EBUSY: resource busy or locked, rmdir 'C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS\fms.frontend'
+Error: File was unable to be removed Error: EBUSY: resource busy or locked, rmdir 'C:\actions-runner\_work\Tenacity.FMS\Tenacity.FMS\fms.frontend'
 ```
 
 ## Root Cause
@@ -50,7 +50,7 @@ The workflow now includes a cleanup step before checkout that:
 - Waits for file handles to be released
 
 ```yaml
-- name: 🧹 Cleanup Locked Files
+- name: ?? Cleanup Locked Files
   continue-on-error: true
   run: |
     # Stop Node.js processes and cleanup locked files
@@ -117,7 +117,7 @@ Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 5
 
 # Remove the workspace
-Remove-Item "C:\actions-runner\_work\Tenacy.FMS\Tenacy.FMS" -Recurse -Force
+Remove-Item "C:\actions-runner\_work\Tenacity.FMS\Tenacity.FMS" -Recurse -Force
 
 # Retry the workflow
 ```

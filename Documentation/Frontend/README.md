@@ -1,24 +1,24 @@
-﻿# Frontend Documentation - SignalR External Connection Fix
+# Frontend Documentation - SignalR External Connection Fix
 
-## 📚 Document Index
+## ?? Document Index
 
 This folder contains comprehensive documentation for fixing SignalR WebSocket connection issues on external networks.
 
 ---
 
-## 🚨 START HERE
+## ?? START HERE
 
 **Problem**: SignalR connections fail from external networks (404 error on WebSocket)
 
 **Quick Links**:
 
-1. **[ACTION_PLAN_CHECKLIST.md](ACTION_PLAN_CHECKLIST.md)** ⭐ **START HERE** - Step-by-step checklist with checkboxes
+1. **[ACTION_PLAN_CHECKLIST.md](ACTION_PLAN_CHECKLIST.md)** ? **START HERE** - Step-by-step checklist with checkboxes
 2. **[SIGNALR_EXTERNAL_FIX_SUMMARY.md](SIGNALR_EXTERNAL_FIX_SUMMARY.md)** - 30-minute quick fix guide
 3. **[SIGNALR_EXTERNAL_CONNECTION_FIX.md](SIGNALR_EXTERNAL_CONNECTION_FIX.md)** - Complete technical analysis
 
 ---
 
-## 📋 Document Guide
+## ?? Document Guide
 
 ### For Quick Fix (30 minutes)
 
@@ -47,7 +47,7 @@ If you need to rebuild the application:
 
 ---
 
-## 📖 Document Reference
+## ?? Document Reference
 
 | Document                                                                     | Purpose                          | When to Use                |
 | ---------------------------------------------------------------------------- | -------------------------------- | -------------------------- |
@@ -61,14 +61,14 @@ If you need to rebuild the application:
 
 ---
 
-## 🎯 Problem Summary
+## ?? Problem Summary
 
 ### Current Issue
 
 ```
-❌ External clients cannot connect to SignalR
-❌ Error: ws://10.0.10.153:7009/ptsHub → 404 Not Found
-❌ Internal IP hardcoded in production build
+? External clients cannot connect to SignalR
+? Error: ws://10.0.10.153:7009/ptsHub ? 404 Not Found
+? Internal IP hardcoded in production build
 ```
 
 ### Root Cause
@@ -87,12 +87,12 @@ If you need to rebuild the application:
 
 ---
 
-## 🚀 Quick Start Guide
+## ?? Quick Start Guide
 
 ### Step 1: Run Diagnostics (5 min)
 
 ```powershell
-cd C:\dev\Tenacy.FMS\Documentation\Frontend
+cd C:\dev\Tenacity.FMS\Documentation\Frontend
 .\SIGNALR_DIAGNOSTICS.ps1
 ```
 
@@ -104,7 +104,7 @@ This will tell you:
 
 ### Step 2: Fix Configuration (2 min)
 
-Edit `C:\dev\Tenacy.FMS\fms.frontend\.env.production`:
+Edit `C:\dev\Tenacity.FMS\fms.frontend\.env.production`:
 
 ```bash
 REACT_APP_FMS_API_URL=http://197.254.33.227/api
@@ -116,7 +116,7 @@ NODE_ENV=production
 ### Step 3: Rebuild (5 min)
 
 ```powershell
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 Remove-Item -Recurse -Force build\
 npm run build
 ```
@@ -151,15 +151,15 @@ iisreset /noforce
 **From external network**:
 
 1. Open: `http://197.254.33.227`
-2. Press F12 → Console
-3. Look for: `[PTS SignalR] ✓ Connected successfully`
+2. Press F12 ? Console
+3. Look for: `[PTS SignalR] ? Connected successfully`
 
 **Or use test tool**:
 Open `SIGNALR_TEST_EXTERNAL.html` in browser and run tests.
 
 ---
 
-## 🔍 Diagnostic Tools
+## ?? Diagnostic Tools
 
 ### PowerShell Script
 
@@ -195,23 +195,23 @@ Open `SIGNALR_TEST_EXTERNAL.html` in browser and run tests.
 
 **Tests**:
 
-- ✅ Green = Working
-- ❌ Red = Failed (with diagnostic info)
-- ⚠️ Yellow = Warning
+- ? Green = Working
+- ? Red = Failed (with diagnostic info)
+- ?? Yellow = Warning
 
 ---
 
-## 📊 Architecture Overview
+## ?? Architecture Overview
 
 ### Current Setup
 
 ```
 External Client (Internet)
-    ↓
+    ?
 IIS on 197.254.33.227 (Port 80)
-    ↓ URL Rewrite Proxy
+    ? URL Rewrite Proxy
 Kestrel Backend (localhost:7009)
-    ↓
+    ?
 SignalR Hub
 ```
 
@@ -233,7 +233,7 @@ SignalR Hub
 
 ---
 
-## 🐛 Common Issues & Solutions
+## ?? Common Issues & Solutions
 
 ### Issue 1: Build Shows Wrong IP
 
@@ -257,7 +257,7 @@ SignalR Hub
 - Enable WebSocket Protocol in Windows Features
 - Update web.config
 
-**Details**: See [SIGNALR_EXTERNAL_CONNECTION_FIX.md](SIGNALR_EXTERNAL_CONNECTION_FIX.md) → Solution 1
+**Details**: See [SIGNALR_EXTERNAL_CONNECTION_FIX.md](SIGNALR_EXTERNAL_CONNECTION_FIX.md) ? Solution 1
 
 ### Issue 3: Connection Drops After 60s
 
@@ -273,7 +273,7 @@ SignalR Hub
 
 ---
 
-## 🎓 Technical Reference
+## ?? Technical Reference
 
 ### Environment Variables
 
@@ -319,7 +319,7 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 ---
 
-## 📞 Troubleshooting Resources
+## ?? Troubleshooting Resources
 
 ### Before Implementation
 
@@ -337,7 +337,7 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 1. **Test from external**: Use `SIGNALR_TEST_EXTERNAL.html`
 2. **Monitor logs**: Check IIS logs for errors
-3. **Check console**: Browser F12 → Console for SignalR logs
+3. **Check console**: Browser F12 ? Console for SignalR logs
 
 ### If Still Failing
 
@@ -348,7 +348,7 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 ---
 
-## 🔗 Related Files
+## ?? Related Files
 
 ### Frontend Source Code
 
@@ -364,21 +364,21 @@ Tries WebSocket first, falls back to LongPolling if WebSocket fails.
 
 ---
 
-## ✅ Success Criteria
+## ? Success Criteria
 
 You know the fix is complete when:
 
-1. ✅ External browser loads `http://197.254.33.227` without errors
-2. ✅ Browser console shows: `[PTS SignalR] ✓ Connected successfully`
-3. ✅ Network tab shows WebSocket or SSE (not 404)
-4. ✅ Real-time data updates automatically
-5. ✅ No internal IP visible anywhere
-6. ✅ Test tool shows all green
-7. ✅ Multiple external users can connect
+1. ? External browser loads `http://197.254.33.227` without errors
+2. ? Browser console shows: `[PTS SignalR] ? Connected successfully`
+3. ? Network tab shows WebSocket or SSE (not 404)
+4. ? Real-time data updates automatically
+5. ? No internal IP visible anywhere
+6. ? Test tool shows all green
+7. ? Multiple external users can connect
 
 ---
 
-## 📝 Version History
+## ?? Version History
 
 | Version | Date       | Changes                       |
 | ------- | ---------- | ----------------------------- |
@@ -390,7 +390,7 @@ You know the fix is complete when:
 
 ---
 
-## 📧 Support
+## ?? Support
 
 If you're still experiencing issues after following all documentation:
 
@@ -402,7 +402,7 @@ If you're still experiencing issues after following all documentation:
 
 2. **Collect logs**:
 
-   - Browser console output (F12 → Console → Copy all)
+   - Browser console output (F12 ? Console ? Copy all)
    - IIS logs: `c:\inetpub\logs\LogFiles\W3SVC1\*.log`
    - Backend application logs
 
@@ -421,17 +421,17 @@ If you're still experiencing issues after following all documentation:
 
 ---
 
-## 🎯 Quick Reference Commands
+## ?? Quick Reference Commands
 
 ```powershell
 # Diagnose current setup
 .\SIGNALR_DIAGNOSTICS.ps1
 
 # Check .env.production
-cat C:\dev\Tenacy.FMS\fms.frontend\.env.production
+cat C:\dev\Tenacity.FMS\fms.frontend\.env.production
 
 # Rebuild frontend
-cd C:\dev\Tenacy.FMS\fms.frontend
+cd C:\dev\Tenacity.FMS\fms.frontend
 Remove-Item build\ -Recurse -Force
 npm run build
 
@@ -458,5 +458,5 @@ Get-Content "c:\inetpub\logs\LogFiles\W3SVC1\*.log" -Tail 50 | Select-String "pt
 
 **Last Updated**: 2025-10-31
 **Production Server**: 197.254.33.227
-**Application**: Tenacy FMS
+**Application**: Tenacity FMS
 **Issue**: SignalR WebSocket External Connection Failure

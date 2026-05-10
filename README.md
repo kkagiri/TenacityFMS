@@ -12,25 +12,37 @@ A comprehensive fleet management system with real-time tracking, fuel management
 
 ```
 FMS/
-├── docs/                           # Documentation
-│   ├── setup/                      # Setup and installation guides
-│   └── deployment/                 # Deployment documentation
+├── apps/                           # User-facing applications
+│   ├── FMS.WebClient/              # Main web API (.NET 8.0)
+│   ├── fms.frontend/               # React frontend application
+│   ├── FMS.Landing/                # Marketing / public site
+│   └── fms.mobile/                 # Mobile application
+├── packages/                       # Shared libraries and domain packages
+│   ├── FMS.Application/            # Core business logic and CQRS
+│   ├── FMS.Domain/                 # Domain entities and models
+│   ├── FMS.Persistence/            # Data access and repositories
+│   ├── FMS.Infrastructure/         # Infrastructure services
+│   └── FMS.Devices.*/              # Provider abstractions and device packages
+├── services/                       # Background and worker hosts
+│   ├── FMS.BackgroundServices/     # Background jobs
+│   ├── FMS.PTS.WindowsService/     # PTS Windows Service host
+│   └── FMS.Devices.Tracking.Host/  # Tracking worker host
+├── tests/                          # Automated tests
+│   └── FMS.Testing/
+├── ops/                            # Deployment and publish artifacts
 ├── scripts/                        # Automation scripts
 │   ├── environment/                # Environment configuration scripts
 │   ├── redis/                      # Redis management scripts
 │   └── verification/               # Verification and testing scripts
-├── FMS.WebClient/                  # Main web API (.NET 8.0)
-├── FMS.frontend/                   # React frontend application
-├── FMS.PTS.WindowsService/         # PTS Windows Service for device communication
-├── FMS.Application/                # Core business logic and CQRS
-├── FMS.Domain/                     # Domain entities and models
-├── FMS.Persistence/                # Data access and repositories
-└── FMS.Infrastructure/             # Infrastructure services
+├── FMS.Sales/                      # Separate sales bounded context
+├── Documentation/                  # Product and feature documentation
+└── tools/maintenance/              # Local maintenance utilities
 ```
 
 ## 🛠️ Technology Stack
 
 ### Backend
+
 - **.NET 8.0** - Core framework
 - **Entity Framework Core** - Data access
 - **MediatR** - CQRS implementation
@@ -40,12 +52,14 @@ FMS/
 - **AutoMapper** - Object mapping
 
 ### Frontend
+
 - **React** - UI framework
 - **Redux** - State management
 - **DevExtreme** - UI components
 - **Axios** - HTTP client
 
 ### Infrastructure
+
 - **Docker** - Containerization
 - **Redis** - Caching and messaging
 - **WebSocket** - Real-time device communication
@@ -53,6 +67,7 @@ FMS/
 ## 📚 Documentation
 
 ### Setup & Installation
+
 - [`docs/setup/NEXT-STEPS.md`](docs/setup/NEXT-STEPS.md) - **Start here for new environments**
 - [`docs/setup/CLONING-GUIDE.md`](docs/setup/CLONING-GUIDE.md) - Complete setup guide
 - [`docs/setup/INSTALL-DOCKER-MANUALLY.md`](docs/setup/INSTALL-DOCKER-MANUALLY.md) - Docker installation
@@ -60,44 +75,48 @@ FMS/
 - [`docs/setup/ENVIRONMENT-SETUP.md`](docs/setup/ENVIRONMENT-SETUP.md) - Environment variables guide
 
 ### Deployment
+
 - [`docs/deployment/deploy.ps1`](docs/deployment/deploy.ps1) - Deployment script
 - [`docs/deployment/azure-pipelines.yml`](docs/deployment/azure-pipelines.yml) - CI/CD pipeline
 
 ## 🔧 Available Scripts
 
 ### Environment Setup
-| Script | Purpose |
-|--------|---------|
-| `scripts/environment/setup-environment.bat` | Configure backend environment (with Redis) |
+
+| Script                                               | Purpose                                       |
+| ---------------------------------------------------- | --------------------------------------------- |
+| `scripts/environment/setup-environment.bat`          | Configure backend environment (with Redis)    |
 | `scripts/environment/setup-environment-no-redis.bat` | Configure backend environment (without Redis) |
-| `scripts/environment/setup-frontend-env.ps1` | Configure frontend environment |
-| `scripts/environment/setup-pts-env.bat` | Configure PTS Windows Service |
+| `scripts/environment/setup-frontend-env.ps1`         | Configure frontend environment                |
+| `scripts/environment/setup-pts-env.bat`              | Configure PTS Windows Service                 |
 
 ### Redis Management
-| Script | Purpose |
-|--------|---------|
-| `scripts/redis/start-redis.bat` | Start Redis Docker container |
-| `scripts/redis/stop-redis.bat` | Stop Redis Docker container |
+
+| Script                                   | Purpose                            |
+| ---------------------------------------- | ---------------------------------- |
+| `scripts/redis/start-redis.bat`          | Start Redis Docker container       |
+| `scripts/redis/stop-redis.bat`           | Stop Redis Docker container        |
 | `scripts/redis/docker-compose.redis.yml` | Redis Docker Compose configuration |
 
 ### Verification & Testing
-| Script | Purpose |
-|--------|---------|
-| `scripts/verification/check-docker.ps1` | Check Docker installation status |
-| `scripts/verification/verify-environment.ps1` | Verify backend environment variables |
-| `scripts/verification/verify-pts-env.ps1` | Verify PTS service environment variables |
+
+| Script                                        | Purpose                                  |
+| --------------------------------------------- | ---------------------------------------- |
+| `scripts/verification/check-docker.ps1`       | Check Docker installation status         |
+| `scripts/verification/verify-environment.ps1` | Verify backend environment variables     |
+| `scripts/verification/verify-pts-env.ps1`     | Verify PTS service environment variables |
 
 ## 🏗️ Architecture Overview
 
 ### Core Components
 
-1. **FMS.WebClient** - Main API server
+1. **apps/FMS.WebClient** - Main API server
    - REST APIs for frontend communication
    - SignalR hubs for real-time updates
    - Authentication and authorization
    - Business logic orchestration
 
-2. **FMS.frontend** - React application
+2. **apps/fms.frontend** - React application
    - Modern responsive UI
    - Real-time dashboard
    - Device monitoring
@@ -108,6 +127,8 @@ FMS/
    - Real-time data processing
    - Device status monitoring
    - Command processing
+
+Shared backend libraries now live under `packages/`, service hosts under `services/`, tests under `tests/`, and operational artifacts under `ops/`.
 
 ### Key Features
 
@@ -121,6 +142,7 @@ FMS/
 ## 🚀 Development Workflow
 
 ### First Time Setup
+
 1. **Clone the repository**
 2. **Follow**: [`docs/setup/NEXT-STEPS.md`](docs/setup/NEXT-STEPS.md)
 3. **Install Docker Desktop** (recommended for Redis)
@@ -128,19 +150,25 @@ FMS/
 5. **Start development**
 
 ### Daily Development
+
 ```powershell
 # Start Redis (if using Docker)
 scripts/redis/start-redis.bat
 
 # Backend development
-# Open solution in Visual Studio/VS Code and run FMS.WebClient
+# Open solution in Visual Studio/VS Code and run apps/FMS.WebClient
 
 # Frontend development
-cd FMS.frontend
+cd apps/fms.frontend
+npm start
+
+# Mobile development
+cd apps/fms.mobile
 npm start
 ```
 
 ### Testing
+
 ```powershell
 # Verify environment
 scripts/verification/verify-environment.ps1
@@ -165,11 +193,13 @@ scripts/verification/check-docker.ps1
 ## 🆘 Support & Troubleshooting
 
 ### Common Issues
+
 - **Docker not starting**: See [`docs/setup/INSTALL-DOCKER-MANUALLY.md`](docs/setup/INSTALL-DOCKER-MANUALLY.md)
 - **Environment variables not set**: Run verification scripts in `scripts/verification/`
 - **Redis connection issues**: Check if Redis is running via `scripts/verification/check-docker.ps1`
 
 ### Getting Help
+
 1. **Check the documentation** in the `docs/` folder
 2. **Run verification scripts** to identify issues
 3. **Review error logs** in application log directories
@@ -179,5 +209,3 @@ scripts/verification/check-docker.ps1
 This project is proprietary software. All rights reserved.
 
 ---
-
-

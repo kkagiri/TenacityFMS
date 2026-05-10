@@ -1,4 +1,4 @@
-# Task List — Tenacy FMS Public Landing Page Suite
+# Task List — Tenacity FMS Public Landing Page Suite
 
 **Feature:** MarketingSite / Landing Pages
 **Version:** V1
@@ -12,6 +12,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 ## Phase A — Foundation
 
 ### A1. Public marketing layout shell **(F)**
+
 - [ ] A1.1 Create folder `fms.frontend/src/layouts/public-marketing/`.
 - [ ] A1.2 Add `PublicMarketingLayout.js` (renders `<MarketingHeader/>`, `<Outlet/>`, `<MarketingFooter/>`).
 - [ ] A1.3 Add `MarketingHeader.js` (logo, primary nav, "Sign in" / "Open app" toggle, "Request demo" CTA, mobile hamburger).
@@ -22,6 +23,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] A1.8 Sticky transparent-on-hero / solid-on-scroll header behavior.
 
 ### A2. Routing rewire **(F)**
+
 - [ ] A2.1 Add `fms.frontend/src/MarketingRoutes.js` listing all marketing routes inside `<PublicMarketingLayout>`.
 - [ ] A2.2 Modify `fms.frontend/src/App.js` so marketing routes render regardless of auth state (mount `MarketingRoutes` before the auth fork).
 - [ ] A2.3 Verify `/login` continues to render via `UnauthenticatedContent.js`.
@@ -30,6 +32,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] A2.6 Smoke test: `/`, `/pricing`, `/login`, `/home`, `/admin`, `/vehicles` all reachable as before.
 
 ### A3. Marketing API client **(F)**
+
 - [ ] A3.1 Add env var `REACT_APP_SALES_API_URL` to `.env.example`, document in `LOCAL_DEV_SETUP.md`.
 - [ ] A3.2 Create `fms.frontend/src/dataservice/marketingApi.js` with its own axios instance (no auth interceptor).
 - [ ] A3.3 Implement `getPublicPlans()` → `GET /api/plans`.
@@ -40,6 +43,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] A3.8 Standard error mapping → `{ ok, data, error: { message, fields } }`.
 
 ### A4. Sales API endpoints **(B)**
+
 - [ ] A4.1 Add `RequestType` enum (`Onboarding | Contact | Demo`) in `FMS.Sales.Domain/Enums/`.
 - [ ] A4.2 Extend `OnboardingRequest` entity with the columns listed in PRD §13 (nullable where appropriate).
 - [ ] A4.3 EF migration `ExtendOnboardingRequest` in `FMS.Sales.Persistence/Migrations/`.
@@ -59,6 +63,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] A4.17 Integration test: POST each endpoint, verify row inserted with correct `request_type`.
 
 ### A5. Shared marketing components **(F)**
+
 - [ ] A5.1 `Hero.js` — hero band with title/sub/CTA/image slot.
 - [ ] A5.2 `SectionHeading.js` — eyebrow + H2 + sub.
 - [ ] A5.3 `FeatureCard.js` — icon, title, description, link.
@@ -78,6 +83,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 ## Phase B — Pages
 
 ### B1. Home `/` **(F)**
+
 - [ ] B1.1 Create `fms.frontend/src/pages/marketing/Home.js` + `Home.scss`.
 - [ ] B1.2 Hero section.
 - [ ] B1.3 Trust strip.
@@ -91,6 +97,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B1.11 Mobile pass.
 
 ### B2. Solutions `/solutions` **(F)**
+
 - [ ] B2.1 Create page + sticky left rail nav.
 - [ ] B2.2 Section: Fleet & Vehicle Management.
 - [ ] B2.3 Section: Fuel & Tank Operations.
@@ -102,11 +109,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B2.9 Helmet meta + mobile pass.
 
 ### B3. Industries `/industries` **(F)**
+
 - [ ] B3.1 Header + 6 industry cards.
 - [ ] B3.2 Detail sections per industry.
 - [ ] B3.3 Helmet meta + mobile pass.
 
 ### B4. Pricing `/pricing` **(F)**
+
 - [ ] B4.1 Page scaffold + helmet meta.
 - [ ] B4.2 Fetch plans + currencies on mount via `marketingApi`; show skeleton.
 - [ ] B4.3 Currency dropdown (filtered to `IsActive`).
@@ -119,6 +128,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B4.10 Mobile pass — cards stack, table becomes scrollable horizontally.
 
 ### B5. About `/about` **(F)**
+
 - [ ] B5.1 Mission/vision/story section.
 - [ ] B5.2 Team grid.
 - [ ] B5.3 Values 3-up.
@@ -127,6 +137,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B5.6 Helmet meta + mobile pass.
 
 ### B6. Contact `/contact` **(F)**
+
 - [ ] B6.1 Layout: form + sidebar.
 - [ ] B6.2 Form fields per PRD §7.6 with inline validation.
 - [ ] B6.3 Honeypot field.
@@ -136,6 +147,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B6.7 Helmet meta + mobile pass.
 
 ### B7. Demo `/demo` **(F)**
+
 - [ ] B7.1 Form fields per PRD §7.7.
 - [ ] B7.2 Date / time-slot inputs.
 - [ ] B7.3 Honeypot field.
@@ -144,6 +156,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] B7.6 Helmet meta + mobile pass.
 
 ### B8. Onboarding `/onboarding` **(F)**
+
 - [ ] B8.1 Folder `pages/marketing/Onboarding/` with 3-step wizard component.
 - [ ] B8.2 Step 1 — Company.
 - [ ] B8.3 Step 2 — Plan (pre-fill from `?plan=`); fetch plans/currencies via `marketingApi`.
@@ -160,31 +173,37 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 ## Phase C — Polish, SEO & Ops
 
 ### C1. SEO **(F)**
+
 - [ ] C1.1 Install `react-helmet-async`; wrap root in `HelmetProvider`.
 - [ ] C1.2 Per-page `<title>` + meta description + canonical + OG tags.
 - [ ] C1.3 Default OG image at `public/marketing/og-default.png` (placeholder).
 - [ ] C1.4 Update `public/index.html` defaults.
 
 ### C2. Sitemap & robots **(F/D)**
+
 - [ ] C2.1 Generate `public/sitemap.xml` listing the 8 marketing routes.
 - [ ] C2.2 Update `public/robots.txt`: `Allow: /`, `Disallow: /home`, `/admin`, `/admin/*`, `/vehicles`, `/tank-stock`, `/reports`, `/event-expressions`, `/issues`, `/notifications`, `/dispatch`, `/employees`, `/maintenance`, `/manualrefill`, `/notification-center`, `/providermanagement`, `/PTSDevice`, `/reconciliation`, `/role`, `/site`, `/tag`, `/tank`, `/tank-management`, `/automated-reconciliation`, `/dashboard`.
 
 ### C3. Placeholder assets **(F)**
+
 - [ ] C3.1 Create `fms.frontend/public/marketing/` folder.
 - [ ] C3.2 Add named placeholders: `hero-dashboard.png`, `feature-gps.png`, `feature-fuel.png`, `feature-tank.png`, `feature-pts.png`, `feature-events.png`, `feature-reports.png`, `industry-logistics.png`, `industry-mining.png`, `industry-construction.png`, `industry-retail-fuel.png`, `industry-public.png`, `industry-agriculture.png`, `team-1..6.png`, `og-default.png`.
-- [ ] C3.3 Confirm logo strategy (Hyoung vs Tenacy vs co-branded) — replace `logoHyoung.png` reference if needed.
+- [ ] C3.3 Confirm logo strategy (Tenacity vs co-branded) — replace `logoTenacity.png` reference if needed.
 
 ### C4. Responsive & a11y pass **(F)**
+
 - [ ] C4.1 Manual pass at 360 / 768 / 1280 px on every marketing page.
 - [ ] C4.2 Keyboard navigation pass (focus rings, tab order, skip-to-content link).
 - [ ] C4.3 Color-contrast audit on all text/CTA combinations.
 - [ ] C4.4 Lighthouse run on `/` and `/pricing`: Perf ≥ 80, A11y ≥ 95, SEO ≥ 95.
 
 ### C5. Analytics & observability **(F)**
+
 - [ ] C5.1 Add page-view hook stub on route change (env-gated).
 - [ ] C5.2 Add form-submission event hook stub.
 
 ### C6. Security & abuse **(B/F)**
+
 - [ ] C6.1 HTTPS-only deployment.
 - [ ] C6.2 Honeypot validation on backend (reject if filled).
 - [ ] C6.3 Rate limit on each submission endpoint.
@@ -192,12 +211,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · **(B)** backend 
 - [ ] C6.5 Privacy policy + terms placeholder pages or external links in footer.
 
 ### C7. QA / Acceptance **(F/B/D)**
+
 - [ ] C7.1 Run through PRD §16 acceptance criteria; tick each one.
 - [ ] C7.2 Auth regression smoke: log in → `/home` works; admin pages load; vehicle pages load.
 - [ ] C7.3 Submit each form against staging Sales API; verify rows in DB with correct `request_type`.
 - [ ] C7.4 Sitemap + robots fetched in production-like environment.
 
 ### C8. Release **(D)**
+
 - [ ] C8.1 Hand-off note in PR description with screenshots of all 8 pages.
 - [ ] C8.2 Deploy Sales API changes (migration applied) **before** frontend.
 - [ ] C8.3 Deploy frontend.
@@ -220,6 +241,6 @@ A1, A2, A3, A4 may proceed in parallel. B-phase pages are independent of each ot
 
 ## Open Items Blocking Implementation
 
-1. **Marketing API hosting domain** — confirm `api.tenacyfms.com` (recommended) vs same-origin path routing. Affects A4.12 CORS config and A3.1 env var.
-2. **Logo asset decision** — Hyoung vs Tenacy vs co-branded. Affects A1.3, C3.3.
+1. **Marketing API hosting domain** — confirm `api.tenacityfms.com` (recommended) vs same-origin path routing. Affects A4.12 CORS config and A3.1 env var.
+2. **Logo asset decision** — Tenacity vs co-branded. Affects A1.3, C3.3.
 3. **Privacy policy / terms copy** — required for footer links and onboarding consent (C6.5). Legal sign-off needed.

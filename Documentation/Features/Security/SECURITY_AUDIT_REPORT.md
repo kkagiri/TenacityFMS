@@ -1,15 +1,15 @@
-﻿# Security Vulnerability Audit Report
-## Tenacy.FMS Repository
+# Security Vulnerability Audit Report
+## Tenacity.FMS Repository
 
 **Audit Date**: 2025-11-05
 **Auditor**: Claude Code
-**Severity Level**: 🔴 **CRITICAL**
+**Severity Level**: ?? **CRITICAL**
 
 ---
 
 ## Executive Summary
 
-This security audit has identified **CRITICAL** vulnerabilities in the Tenacy.FMS repository that expose sensitive credentials, database passwords, API keys, and infrastructure details. Multiple secrets are committed to version control and are publicly accessible through the git history.
+This security audit has identified **CRITICAL** vulnerabilities in the Tenacity.FMS repository that expose sensitive credentials, database passwords, API keys, and infrastructure details. Multiple secrets are committed to version control and are publicly accessible through the git history.
 
 ### Risk Assessment
 - **Severity**: CRITICAL
@@ -21,7 +21,7 @@ This security audit has identified **CRITICAL** vulnerabilities in the Tenacy.FM
 
 ## Critical Findings
 
-### 🔴 1. Hardcoded Database Credentials in Committed Scripts
+### ?? 1. Hardcoded Database Credentials in Committed Scripts
 
 **Location**: `scripts/environment/setup-environment.ps1`
 **Severity**: CRITICAL
@@ -53,7 +53,7 @@ Password: Niwewe1000
 
 ---
 
-### 🔴 2. Email Credentials in Multiple Configuration Files
+### ?? 2. Email Credentials in Multiple Configuration Files
 
 **Locations**:
 - `FMS.WebClient/appsettings.json` (lines 116-120)
@@ -84,7 +84,7 @@ Password: Niwewe1000
 
 ---
 
-### 🔴 3. Production API Keys Exposed
+### ?? 3. Production API Keys Exposed
 
 **Location**: `FMS.WebClient/appsettings.json` (lines 168-170)
 
@@ -110,7 +110,7 @@ Password: Niwewe1000
 
 ---
 
-### 🔴 4. Database Credentials in Test Configuration
+### ?? 4. Database Credentials in Test Configuration
 
 **Location**: `FMS.Testing/appsettings.Testing.json` (line 9)
 
@@ -131,7 +131,7 @@ Password: Niwewe1000
 
 ---
 
-### 🟡 5. Frontend Environment File Committed
+### ?? 5. Frontend Environment File Committed
 
 **Location**: `fms.frontend/.env`
 
@@ -156,7 +156,7 @@ REACT_APP_PUBLIC_FMS_API_URL=http://197.254.33.227/api
 
 ---
 
-### 🟡 6. Infrastructure and Network Details Exposed
+### ?? 6. Infrastructure and Network Details Exposed
 
 **Locations**: Multiple configuration files
 
@@ -165,7 +165,7 @@ REACT_APP_PUBLIC_FMS_API_URL=http://197.254.33.227/api
 - Public IP: 197.254.33.227
 - Network architecture and service locations
 - IIS deployment paths: `C:\inetpub\wwwroot\tenacyFMS\`
-- CI/CD runner paths: `C:\actions-runner\_work\Tenacy.FMS\`
+- CI/CD runner paths: `C:\actions-runner\_work\Tenacity.FMS\`
 - Log file locations: `C:\Logs\FMS.Webclient\`
 
 **Impact**:
@@ -175,7 +175,7 @@ REACT_APP_PUBLIC_FMS_API_URL=http://197.254.33.227/api
 
 ---
 
-### 🟡 7. CI/CD Pipeline Security Issues
+### ?? 7. CI/CD Pipeline Security Issues
 
 **Location**: `.github/workflows/deploy-to-iis.yml`
 
@@ -204,7 +204,7 @@ REACT_APP_PUBLIC_FMS_API_URL=http://197.254.33.227/api
 
 ---
 
-### 🟡 8. .gitignore Not Effective
+### ?? 8. .gitignore Not Effective
 
 **Issue**: Despite having patterns in `.gitignore`, many sensitive files are tracked:
 
@@ -328,18 +328,18 @@ Replace hardcoded values with environment variable references:
 **Using BFG Repo-Cleaner** (Recommended):
 ```bash
 # Backup repository first
-git clone --mirror https://github.com/your-org/Tenacy.FMS.git
+git clone --mirror https://github.com/your-org/Tenacity.FMS.git
 
 # Install BFG
 # Download from: https://rtyley.github.io/bfg-repo-cleaner/
 
 # Remove sensitive files
-java -jar bfg.jar --delete-files "*.env" Tenacy.FMS.git
-java -jar bfg.jar --delete-folders "scripts" Tenacy.FMS.git
-java -jar bfg.jar --delete-files "appsettings.json" Tenacy.FMS.git
+java -jar bfg.jar --delete-files "*.env" Tenacity.FMS.git
+java -jar bfg.jar --delete-folders "scripts" Tenacity.FMS.git
+java -jar bfg.jar --delete-files "appsettings.json" Tenacity.FMS.git
 
 # Cleanup
-cd Tenacy.FMS.git
+cd Tenacity.FMS.git
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 
@@ -347,7 +347,7 @@ git gc --prune=now --aggressive
 git push --force
 ```
 
-⚠️ **WARNING**: Force pushing rewrites history. Coordinate with all team members.
+?? **WARNING**: Force pushing rewrites history. Coordinate with all team members.
 
 ### 3. Implement Pre-Commit Hooks
 
@@ -359,7 +359,7 @@ cd git-secrets
 make install
 
 # Configure for repository
-cd /home/user/Tenacy.FMS
+cd /home/user/Tenacity.FMS
 git secrets --install
 git secrets --register-aws
 
@@ -406,7 +406,7 @@ logs/
 
 **Updated workflow** (`.github/workflows/deploy-to-iis.yml`):
 ```yaml
-name: Deploy Tenacy FMS to IIS
+name: Deploy Tenacity FMS to IIS
 
 on:
   push:
@@ -427,7 +427,7 @@ jobs:
       - name: Run Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'Tenacy.FMS'
+          project: 'Tenacity.FMS'
           path: '.'
           format: 'HTML'
 
@@ -502,7 +502,7 @@ Please report security vulnerabilities to: security@example.com
 ### Audit Log
 | Date | Action | Performed By | Status |
 |------|--------|--------------|--------|
-| 2025-11-05 | Security audit completed | Claude Code | ✅ Complete |
+| 2025-11-05 | Security audit completed | Claude Code | ? Complete |
 | | | | |
 
 ---

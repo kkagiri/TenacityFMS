@@ -1,11 +1,11 @@
-﻿# WebSocket Connection Fix - Windows Firewall
+# WebSocket Connection Fix - Windows Firewall
 
 ## Problem
 WebSocket connections to SignalR fail with "connection could not be found on server" even though:
-- ✅ Port 7009 is TCP accessible
-- ✅ HTTP negotiate endpoints work (return 401 Unauthorized)
-- ✅ Backend is running and hubs are registered
-- ❌ WebSocket upgrade fails
+- ? Port 7009 is TCP accessible
+- ? HTTP negotiate endpoints work (return 401 Unauthorized)
+- ? Backend is running and hubs are registered
+- ? WebSocket upgrade fails
 
 ## Root Cause
 **Windows Firewall is blocking WebSocket connections** on port 7009.
@@ -28,7 +28,7 @@ This allows the connection to fall back to LongPolling if WebSocket is blocked.
 
 ```powershell
 # Navigate to scripts directory
-cd c:\dev\Tenacy.FMS
+cd c:\dev\Tenacity.FMS
 
 # Run the firewall configuration script
 .\scripts\firewall\enable-websocket-port-7009.ps1
@@ -45,7 +45,7 @@ This script will:
 
 ```powershell
 # Rebuild frontend with transport fallback
-cd c:\dev\Tenacy.FMS\fms.frontend
+cd c:\dev\Tenacity.FMS\fms.frontend
 npm run build
 
 # Deploy to production
@@ -74,8 +74,8 @@ Get-Process | Where-Object { $_.Name -like "*FMS*" } | Stop-Process -Force
 ```javascript
 // Test raw WebSocket
 ws = new WebSocket('ws://10.0.10.153:7009/ptsHub');
-ws.onopen = () => console.log('✓ WebSocket connected');
-ws.onerror = (e) => console.error('✗ WebSocket error:', e);
+ws.onopen = () => console.log('? WebSocket connected');
+ws.onerror = (e) => console.error('? WebSocket error:', e);
 ```
 
 **Check SignalR logs:**
@@ -88,7 +88,7 @@ Look for messages like:
 Run the diagnostic script to check all components:
 
 ```powershell
-cd c:\dev\Tenacy.FMS
+cd c:\dev\Tenacity.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 

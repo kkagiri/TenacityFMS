@@ -1,4 +1,4 @@
-﻿# SignalR Connection Diagnosis Guide
+# SignalR Connection Diagnosis Guide
 
 ## Issue
 
@@ -11,7 +11,7 @@
 ### Step 1: Run PowerShell Diagnostic
 
 ```powershell
-cd c:\dev\Tenacy.FMS
+cd c:\dev\Tenacity.FMS
 .\scripts\diagnostics\test-signalr-connectivity.ps1
 ```
 
@@ -47,10 +47,10 @@ This will:
 After running the browser diagnostic, console will show:
 
 ```
-⚡ UploadStatusUpdate received!     <-- Device status updates
-⚡ FillingStatus received!          <-- Pump filling events
-⚡ NozzleStateChange received!      <-- Nozzle up/down events
-✓ Connection status changed: CONNECTED
+? UploadStatusUpdate received!     <-- Device status updates
+? FillingStatus received!          <-- Pump filling events
+? NozzleStateChange received!      <-- Nozzle up/down events
+? Connection status changed: CONNECTED
 ```
 
 ## Common Issues & Solutions
@@ -221,9 +221,9 @@ If missing, device is not sending status or backend is not receiving it.
 
 - [ ] Run PowerShell diagnostic script
 - [ ] Run browser console diagnostic script
-- [ ] Verify "✓ Connected successfully" in console
+- [ ] Verify "? Connected successfully" in console
 - [ ] Check transport used (WebSocket or LongPolling)
-- [ ] Monitor for `⚡ UploadStatusUpdate` events
+- [ ] Monitor for `? UploadStatusUpdate` events
 - [ ] Verify Redux state updates with events
 - [ ] Check FuelingProcess receives updates
 - [ ] Test with multiple devices
@@ -235,11 +235,11 @@ If missing, device is not sending status or backend is not receiving it.
 After making SignalR service changes:
 
 ```powershell
-cd c:\dev\Tenacy.FMS\scripts
+cd c:\dev\Tenacity.FMS\scripts
 .\quick-rebuild.ps1
 
 # Deploy
-Copy-Item -Path "c:\dev\Tenacy.FMS\fms.frontend\build\*" `
+Copy-Item -Path "c:\dev\Tenacity.FMS\fms.frontend\build\*" `
   -Destination "c:\inetpub\wwwroot\tenacyFMS\reactApp\" `
   -Recurse -Force
 
@@ -281,13 +281,13 @@ When working correctly, console should show:
 [PTS SignalR]   Transport: WebSockets with LongPolling fallback
 [PTS SignalR]   KeepAlive: 15s, ServerTimeout: 30s
 [PTS SignalR] ============================================
-[PTS SignalR] ✓ Auth token present
-[PTS SignalR] ✓ Connected successfully (ID: xyz123)
-[PTS SignalR] ✓ Transport: WebSockets
-[PTS SignalR] ✓ Connection ID: abc-123-def
-[PTS SignalR] ✓ Initial data requests sent
-[PTS SignalR] ⚡ UploadStatusUpdate received: { deviceId: "123", ... }
-[PTS SignalR] ✓ Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux
+[PTS SignalR] ? Auth token present
+[PTS SignalR] ? Connected successfully (ID: xyz123)
+[PTS SignalR] ? Transport: WebSockets
+[PTS SignalR] ? Connection ID: abc-123-def
+[PTS SignalR] ? Initial data requests sent
+[PTS SignalR] ? UploadStatusUpdate received: { deviceId: "123", ... }
+[PTS SignalR] ? Dispatched RECEIVE_UPLOAD_STATUS_UPDATE to Redux
 ```
 
 ## Date Created

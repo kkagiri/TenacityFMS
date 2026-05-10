@@ -1,9 +1,9 @@
-﻿# IoT System Implementation Guide
+# IoT System Implementation Guide
 ## Following ISO/IEC 30141:2018 IoT Reference Architecture
 
 ---
 
-## 📋 Table of Contents
+## ?? Table of Contents
 1. [Overview](#overview)
 2. [ISO Standards Compliance](#iso-standards-compliance)
 3. [Project Architecture](#project-architecture)
@@ -17,7 +17,7 @@
 
 ---
 
-## 🎯 Overview
+## ?? Overview
 
 This IoT system implements a **fuel management solution** following international standards. Think of it like a smart system that:
 - **Listens** to fuel devices (tanks, pumps, sensors)
@@ -25,14 +25,14 @@ This IoT system implements a **fuel management solution** following internationa
 - **Responds** with commands (start pump, stop flow, send alerts)
 
 ### What Makes This Special?
-- ✅ **ISO Compliant**: Follows international IoT standards
-- ✅ **Scalable**: Can handle thousands of devices
-- ✅ **Testable**: Easy to write tests for each component
-- ✅ **Maintainable**: Clear structure makes changes easy
+- ? **ISO Compliant**: Follows international IoT standards
+- ? **Scalable**: Can handle thousands of devices
+- ? **Testable**: Easy to write tests for each component
+- ? **Maintainable**: Clear structure makes changes easy
 
 ---
 
-## 🏛️ ISO Standards Compliance
+## ??? ISO Standards Compliance
 
 ### ISO/IEC 30141:2018 IoT Reference Architecture
 
@@ -55,14 +55,14 @@ Our implementation maps to ISO layers as follows:
 
 ---
 
-## 🏗️ Project Architecture
+## ??? Project Architecture
 
 ```
-Tenacy.Fms Solution
-├── FMS.IoT.Contracts      ← Defines "what" (interfaces & models)
-├── FMS.IoT.Gateway        ← Handles "device communication"
-├── FMS.IoT.ProcessingEngine ← Handles "data processing"
-└── Existing Projects      ← Business logic & web application
+Tenacity.Fms Solution
++-- FMS.IoT.Contracts      ? Defines "what" (interfaces & models)
++-- FMS.IoT.Gateway        ? Handles "device communication"
++-- FMS.IoT.ProcessingEngine ? Handles "data processing"
++-- Existing Projects      ? Business logic & web application
 ```
 
 ### Think of it Like a Restaurant:
@@ -73,41 +73,41 @@ Tenacy.Fms Solution
 
 ---
 
-## 📄 FMS.IoT.Contracts Project
+## ?? FMS.IoT.Contracts Project
 
 ### Purpose
 **Defines the "rules of the game"** - all interfaces and data models that other projects must follow.
 
-### 📁 Folder Structure Explained
+### ?? Folder Structure Explained
 
-#### 🌐 Common/
+#### ?? Common/
 **What it is**: Shared utilities used everywhere
 ```
 Common/
-├── IoTConstants.cs         ← System-wide constants (like "websocket", "telemetry")
-└── OperationResult.cs      ← Standard way to return success/failure
++-- IoTConstants.cs         ? System-wide constants (like "websocket", "telemetry")
++-- OperationResult.cs      ? Standard way to return success/failure
 ```
 
 **Junior Engineer Note**: Think of Constants like a dictionary of terms everyone agrees to use.
 
-#### 🔌 Gateway/
+#### ?? Gateway/
 **What it is**: Everything related to device connections
 
 ```
 Gateway/
-├── Interfaces/                    ← "What" the gateway should do
-│   ├── IDeviceGateway.cs         ← Main gateway operations
-│   ├── IProtocolHandler.cs       ← Handle different protocols (WebSocket, HTTP)
-│   ├── IConnectionManager.cs     ← Manage device connections
-│   └── IDeviceConnection.cs      ← Individual device connection
-└── Models/                        ← "How" data looks
-    ├── DeviceConnection.cs        ← Info about a connected device
-    ├── DeviceMessage.cs           ← Messages from/to devices
-    ├── ConnectionStatus.cs        ← Connection states (Connected, Disconnected, etc.)
-    ├── ValidationResult.cs        ← Result of message validation
-    ├── ConnectionStatistics.cs    ← Connection monitoring data
-    ├── GatewayStatus.cs          ← Gateway health info
-    └── ProtocolConfiguration.cs   ← Protocol settings
++-- Interfaces/                    ? "What" the gateway should do
+�   +-- IDeviceGateway.cs         ? Main gateway operations
+�   +-- IProtocolHandler.cs       ? Handle different protocols (WebSocket, HTTP)
+�   +-- IConnectionManager.cs     ? Manage device connections
+�   +-- IDeviceConnection.cs      ? Individual device connection
++-- Models/                        ? "How" data looks
+    +-- DeviceConnection.cs        ? Info about a connected device
+    +-- DeviceMessage.cs           ? Messages from/to devices
+    +-- ConnectionStatus.cs        ? Connection states (Connected, Disconnected, etc.)
+    +-- ValidationResult.cs        ? Result of message validation
+    +-- ConnectionStatistics.cs    ? Connection monitoring data
+    +-- GatewayStatus.cs          ? Gateway health info
+    +-- ProtocolConfiguration.cs   ? Protocol settings
 ```
 
 **Real-World Example**:
@@ -126,26 +126,26 @@ Gateway/
 }
 ```
 
-#### ⚙️ ProcessingEngine/
+#### ?? ProcessingEngine/
 **What it is**: Everything related to processing device data
 
 ```
 ProcessingEngine/
-├── Interfaces/                    ← "What" the engine should do
-│   ├── IMessageProcessor.cs      ← Process incoming messages
-│   ├── IDataTransformer.cs       ← Transform data between formats
-│   ├── IEventProcessor.cs        ← Handle events and notifications
-│   ├── ICommandProcessor.cs      ← Execute commands to devices
-│   └── IBatchProcessor.cs        ← Process multiple messages at once
-└── Models/                        ← "How" data looks
-    ├── DeviceCommand.cs           ← Commands to send to devices
-    ├── ProcessingResult.cs        ← Result of processing a message
-    ├── CommandResult.cs           ← Result of executing a command
-    ├── ProcessingStatistics.cs    ← Processing performance metrics
-    ├── EventStatistics.cs         ← Event processing metrics
-    ├── ProcessingEvent.cs         ← Events generated during processing
-    ├── ProcessingRequest.cs       ← Request to process data
-    └── BatchProcessing.cs         ← Batch processing configurations
++-- Interfaces/                    ? "What" the engine should do
+�   +-- IMessageProcessor.cs      ? Process incoming messages
+�   +-- IDataTransformer.cs       ? Transform data between formats
+�   +-- IEventProcessor.cs        ? Handle events and notifications
+�   +-- ICommandProcessor.cs      ? Execute commands to devices
+�   +-- IBatchProcessor.cs        ? Process multiple messages at once
++-- Models/                        ? "How" data looks
+    +-- DeviceCommand.cs           ? Commands to send to devices
+    +-- ProcessingResult.cs        ? Result of processing a message
+    +-- CommandResult.cs           ? Result of executing a command
+    +-- ProcessingStatistics.cs    ? Processing performance metrics
+    +-- EventStatistics.cs         ? Event processing metrics
+    +-- ProcessingEvent.cs         ? Events generated during processing
+    +-- ProcessingRequest.cs       ? Request to process data
+    +-- BatchProcessing.cs         ? Batch processing configurations
 ```
 
 **Real-World Example**:
@@ -164,17 +164,17 @@ ProcessingEngine/
 
 ---
 
-## 🔌 FMS.IoT.Gateway Project
+## ?? FMS.IoT.Gateway Project
 
 ### Purpose
 **The "front door" for all device communication** - handles connections and protocols.
 
-### 📁 Folder Structure Explained
+### ?? Folder Structure Explained
 
-#### 🔧 Services/
+#### ?? Services/
 ```
 Services/
-└── DeviceGatewayService.cs ← Main gateway service (the "manager")
++-- DeviceGatewayService.cs ? Main gateway service (the "manager")
 ```
 
 **What it does**:
@@ -185,11 +185,11 @@ Services/
 
 **Junior Engineer Analogy**: Like a hotel receptionist who greets guests, assigns rooms, and handles requests.
 
-#### 🔗 Connection/
+#### ?? Connection/
 ```
 Connection/
-├── ConnectionManager.cs         ← Manages all device connections
-└── WebSocketDeviceConnection.cs ← Handles individual WebSocket connections
++-- ConnectionManager.cs         ? Manages all device connections
++-- WebSocketDeviceConnection.cs ? Handles individual WebSocket connections
 ```
 
 **What it does**:
@@ -199,10 +199,10 @@ Connection/
 
 **Real Example**: If Tank_001 disconnects, ConnectionManager removes it from the active list.
 
-#### 📡 Protocols/
+#### ?? Protocols/
 ```
 Protocols/
-└── WebSocketProtocolHandler.cs ← Handles WebSocket communication
++-- WebSocketProtocolHandler.cs ? Handles WebSocket communication
 ```
 
 **What it does**:
@@ -216,10 +216,10 @@ Protocols/
 - TCP: Direct socket communication
 - PTS: Custom fuel industry protocol
 
-#### ⚙️ Configuration/
+#### ?? Configuration/
 ```
 Configuration/
-└── GatewayOptions.cs ← Gateway settings and options
++-- GatewayOptions.cs ? Gateway settings and options
 ```
 
 **What it contains**:
@@ -230,17 +230,17 @@ Configuration/
 
 ---
 
-## ⚙️ FMS.IoT.ProcessingEngine Project
+## ?? FMS.IoT.ProcessingEngine Project
 
 ### Purpose
 **The "brain" of the system** - processes all device data and makes decisions.
 
-### 📁 Folder Structure Explained
+### ?? Folder Structure Explained
 
-#### 🔧 Services/
+#### ?? Services/
 ```
 Services/
-└── MessageProcessingService.cs ← Main processing service
++-- MessageProcessingService.cs ? Main processing service
 ```
 
 **What it does**:
@@ -255,10 +255,10 @@ Services/
 3. Process: Convert to business format
 4. Action: If fuel low, trigger alert
 
-#### 🔄 Transformers/
+#### ?? Transformers/
 ```
 Transformers/
-└── DataTransformerService.cs ← Converts data between formats
++-- DataTransformerService.cs ? Converts data between formats
 ```
 
 **What it does**:
@@ -272,10 +272,10 @@ Transformers/
 // Transformed to: { Temperature: 22.3, Unit: "Celsius" }
 ```
 
-#### 📢 Events/
+#### ?? Events/
 ```
 Events/
-└── EventProcessingService.cs ← Handles system events
++-- EventProcessingService.cs ? Handles system events
 ```
 
 **What it does**:
@@ -288,10 +288,10 @@ Events/
 - "Pump started successfully"
 - "Device disconnected"
 
-#### 📋 Commands/
+#### ?? Commands/
 ```
 Commands/
-└── CommandProcessingService.cs ← Executes commands to devices
++-- CommandProcessingService.cs ? Executes commands to devices
 ```
 
 **What it does**:
@@ -307,21 +307,21 @@ Commands/
 4. Device: Execute and respond
 5. Command processor: Record result
 
-#### ⚙️ Configuration/
+#### ?? Configuration/
 ```
 Configuration/
-└── ProcessingEngineOptions.cs ← Processing engine settings
++-- ProcessingEngineOptions.cs ? Processing engine settings
 ```
 
 ---
 
-## 🔄 Data Flow
+## ?? Data Flow
 
 ### High-Level Flow (Like a Post Office)
 
 ```
-Device → Gateway → ProcessingEngine → Business Logic
-  📱        📮          ⚙️              🏢
+Device ? Gateway ? ProcessingEngine ? Business Logic
+  ??        ??          ??              ??
 (Sender) (Post Office) (Sorting Center) (Recipient)
 ```
 
@@ -329,31 +329,31 @@ Device → Gateway → ProcessingEngine → Business Logic
 
 #### 1. Device Sends Data
 ```
-Fuel Tank → WebSocket → Gateway
+Fuel Tank ? WebSocket ? Gateway
 "My fuel level is 85.5%"
 ```
 
 #### 2. Gateway Processing
 ```
-Gateway → ConnectionManager → ProtocolHandler
+Gateway ? ConnectionManager ? ProtocolHandler
 "Validate this WebSocket message"
 ```
 
 #### 3. Message Processing
 ```
-ProcessingEngine → MessageProcessor → DataTransformer
+ProcessingEngine ? MessageProcessor ? DataTransformer
 "Convert tank data to business format"
 ```
 
 #### 4. Business Action
 ```
-Business Logic → Command → Gateway → Device
+Business Logic ? Command ? Gateway ? Device
 "Fuel level OK, send acknowledgment"
 ```
 
 ---
 
-## 🎓 Getting Started for Junior Engineers
+## ?? Getting Started for Junior Engineers
 
 ### Step 1: Understanding the Basics
 
@@ -406,9 +406,9 @@ private async Task<ProcessingResult> ProcessMaintenanceMessageAsync(DeviceMessag
 #### Unit Test Structure
 ```
 MyFeature.Tests/
-├── DeviceMessageTests.cs      ← Test message creation/validation
-├── ProtocolHandlerTests.cs    ← Test protocol parsing
-└── ProcessingServiceTests.cs  ← Test message processing
++-- DeviceMessageTests.cs      ? Test message creation/validation
++-- ProtocolHandlerTests.cs    ? Test protocol parsing
++-- ProcessingServiceTests.cs  ? Test message processing
 ```
 
 #### Example Test
@@ -433,7 +433,7 @@ public void DeviceMessage_WithValidData_ShouldBeValid()
 
 ---
 
-## 📚 Common Tasks
+## ?? Common Tasks
 
 ### 1. Adding a New Device Type
 
@@ -474,7 +474,7 @@ Console.WriteLine($"Success Rate: {stats.ProcessingSuccessRate}%");
 
 ---
 
-## 🔧 Troubleshooting
+## ?? Troubleshooting
 
 ### Common Issues for Junior Engineers
 
@@ -526,7 +526,7 @@ if (gatewayStatus.Health != GatewayHealth.Healthy)
 
 ---
 
-## 🚀 Next Steps
+## ?? Next Steps
 
 ### For Junior Engineers
 1. **Read this documentation completely**
@@ -544,15 +544,15 @@ if (gatewayStatus.Health != GatewayHealth.Healthy)
 
 ---
 
-## 📝 Summary
+## ?? Summary
 
 This IoT system follows **ISO/IEC 30141:2018** standards and provides:
 
-- ✅ **Clear separation** of device communication and data processing
-- ✅ **Scalable architecture** that can grow with your needs
-- ✅ **Easy testing** with interface-based design
-- ✅ **Comprehensive monitoring** and statistics
-- ✅ **Junior-friendly structure** with clear responsibilities
+- ? **Clear separation** of device communication and data processing
+- ? **Scalable architecture** that can grow with your needs
+- ? **Easy testing** with interface-based design
+- ? **Comprehensive monitoring** and statistics
+- ? **Junior-friendly structure** with clear responsibilities
 
 **Remember**: Start small, understand one piece at a time, and don't hesitate to ask questions!
 

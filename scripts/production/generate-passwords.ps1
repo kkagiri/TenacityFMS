@@ -1,5 +1,5 @@
-ï»¿# ===============================================================================
-# Strong Password Generator for Tenacy.FMS
+# ===============================================================================
+# Strong Password Generator for Tenacity.FMS
 # ===============================================================================
 #
 # Generates cryptographically secure passwords for:
@@ -41,7 +41,7 @@ function Generate-HexKey {
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host " Strong Password Generator - Tenacy.FMS" -ForegroundColor Cyan
+Write-Host " Strong Password Generator - Tenacity.FMS" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -124,7 +124,7 @@ if ($save -eq 'Y' -or $save -eq 'y') {
 
     $content = @"
 ================================================================================
-Tenacy.FMS - Generated Passwords
+Tenacity.FMS - Generated Passwords
 Generated: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 ================================================================================
 
@@ -235,13 +235,13 @@ NEXT STEPS
     $content | Out-File -FilePath $filepath -Encoding UTF8
 
     Write-Host ""
-    Write-Host "âœ“ Passwords saved to: $filepath" -ForegroundColor Green
+    Write-Host "? Passwords saved to: $filepath" -ForegroundColor Green
     Write-Host ""
     Write-Warning "SECURITY WARNING:"
-    Write-Host "  â€¢ This file contains sensitive passwords!" -ForegroundColor Yellow
-    Write-Host "  â€¢ Store in a password manager immediately" -ForegroundColor Yellow
-    Write-Host "  â€¢ Delete this file after setup is complete" -ForegroundColor Yellow
-    Write-Host "  â€¢ Never commit this file to git!" -ForegroundColor Yellow
+    Write-Host "  • This file contains sensitive passwords!" -ForegroundColor Yellow
+    Write-Host "  • Store in a password manager immediately" -ForegroundColor Yellow
+    Write-Host "  • Delete this file after setup is complete" -ForegroundColor Yellow
+    Write-Host "  • Never commit this file to git!" -ForegroundColor Yellow
     Write-Host ""
 
 } else {
@@ -249,8 +249,8 @@ NEXT STEPS
     Write-Warning "Passwords not saved to file"
     Write-Host ""
     Write-Host "Make sure you've:" -ForegroundColor Yellow
-    Write-Host "  â€¢ Copied all passwords to a secure password manager" -ForegroundColor Yellow
-    Write-Host "  â€¢ Written them down in a secure location" -ForegroundColor Yellow
+    Write-Host "  • Copied all passwords to a secure password manager" -ForegroundColor Yellow
+    Write-Host "  • Written them down in a secure location" -ForegroundColor Yellow
     Write-Host ""
 }
 

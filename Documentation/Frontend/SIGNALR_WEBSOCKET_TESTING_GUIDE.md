@@ -1,18 +1,18 @@
-﻿# SignalR WebSocket Testing Guide
+# SignalR WebSocket Testing Guide
 
 **Date**: October 31, 2025
 **Test Page**: `SIGNALR_WEBSOCKET_TEST.html`
 
 ---
 
-## 🚀 How to Test
+## ?? How to Test
 
-### Method 1: Browser Test Page (Recommended) ✅
+### Method 1: Browser Test Page (Recommended) ?
 
 1. **Open the test page**:
 
    ```powershell
-   cd c:\dev\Tenacy.FMS\Documentation\Frontend
+   cd c:\dev\Tenacity.FMS\Documentation\Frontend
    .\open-signalr-test.ps1
    ```
 
@@ -23,20 +23,20 @@
    - Click "Connect" on Business Hub
 
 3. **What to look for**:
-   - ✅ Status changes to "Connected" (green)
-   - ✅ Log shows "Connected successfully!"
-   - ✅ Connection Info shows transport (should be "WebSockets")
-   - ✅ Connection ID generated
+   - ? Status changes to "Connected" (green)
+   - ? Log shows "Connected successfully!"
+   - ? Connection Info shows transport (should be "WebSockets")
+   - ? Connection ID generated
 
 ---
 
-## 📊 Expected Results
+## ?? Expected Results
 
 ### Successful Connection:
 
 ```
 [14:30:15] Connecting to http://10.0.10.153/ptsHub...
-[14:30:15] ✅ Connected successfully!
+[14:30:15] ? Connected successfully!
 
 [PTS Hub] Connection Info:
   - Connection ID: ABC123XYZ
@@ -49,13 +49,13 @@
 
 SignalR will try in this order:
 
-1. **WebSockets** (fastest, bidirectional) ← Should use this
+1. **WebSockets** (fastest, bidirectional) ? Should use this
 2. **ServerSentEvents** (fallback if WebSockets blocked)
 3. **LongPolling** (last resort, works everywhere)
 
 ---
 
-## 🧪 Test Scenarios
+## ?? Test Scenarios
 
 ### Test 1: Intranet Connection
 
@@ -81,7 +81,7 @@ After connecting, click "Request Data" buttons:
 
 ---
 
-## 🔍 Debugging
+## ?? Debugging
 
 ### If Connection Fails:
 
@@ -118,7 +118,7 @@ After connecting, click "Request Data" buttons:
 
 ---
 
-## 📝 What Each Hub Tests
+## ?? What Each Hub Tests
 
 ### PTS Hub (`/ptsHub`)
 
@@ -143,17 +143,17 @@ After connecting, click "Request Data" buttons:
 
 ---
 
-## 🎯 Success Criteria
+## ?? Success Criteria
 
-✅ **All 3 hubs connect**
-✅ **Transport = WebSockets**
-✅ **Connection IDs generated**
-✅ **Status shows "Connected"**
-✅ **No errors in browser console**
+? **All 3 hubs connect**
+? **Transport = WebSockets**
+? **Connection IDs generated**
+? **Status shows "Connected"**
+? **No errors in browser console**
 
 ---
 
-## 🔧 Advanced Testing
+## ?? Advanced Testing
 
 ### Test Auto-Reconnection:
 
@@ -181,7 +181,7 @@ If you want to test fallback transports, modify the test page:
 
 ---
 
-## 🚨 Troubleshooting
+## ?? Troubleshooting
 
 ### Browser Console Shows Errors?
 
@@ -214,7 +214,7 @@ If you want to test fallback transports, modify the test page:
 
 ---
 
-## 📊 Performance Tips
+## ?? Performance Tips
 
 ### Optimal Configuration:
 
@@ -231,18 +231,18 @@ If you want to test fallback transports, modify the test page:
 
 ---
 
-## 🎉 Next Steps
+## ?? Next Steps
 
 After successful WebSocket tests:
 
-1. ✅ Test in your actual React application
-2. ✅ Navigate to different routes
-3. ✅ Watch SignalRConnectionManager logs in console
-4. ✅ Verify route-based connection management works
-5. ✅ Test auto-detection (intranet → public fallback)
+1. ? Test in your actual React application
+2. ? Navigate to different routes
+3. ? Watch SignalRConnectionManager logs in console
+4. ? Verify route-based connection management works
+5. ? Test auto-detection (intranet ? public fallback)
 
 ---
 
-**Your SignalR WebSocket connections should now be working!** 🚀
+**Your SignalR WebSocket connections should now be working!** ??
 
 If you see all 3 hubs connecting successfully, your setup is correct and ready for production use.

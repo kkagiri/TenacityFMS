@@ -1,4 +1,4 @@
 # Protected files require maintainer approval
 
-FMS.WebClient/Program.cs @kagz100
-fms.frontend/src/api/axiosInstance.js @kagz100
+apps/FMS.WebClient/Program.cs @kagz100
+apps/fms.frontend/src/api/axiosInstance.js @kagz100

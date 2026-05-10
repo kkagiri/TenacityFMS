@@ -252,7 +252,7 @@ Implement real `GpsWoxProvider`. Build per-tenant provider config UI verificatio
 
 ### Phase 0
 
-1. `dotnet build Tenacy.Fms.sln` succeeds with no broken references.
+1. `dotnet build Tenacity.Fms.sln` succeeds with no broken references.
 2. `grep -r "FMS.IoT" --include="*.cs" --include="*.csproj"` returns zero matches.
 
 ### Phase 1

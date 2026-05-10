@@ -1,4 +1,4 @@
-﻿# PowerShell script to set up PTS Windows Service environment variables
+# PowerShell script to set up PTS Windows Service environment variables
 # Run this script as Administrator
 
 # Set environment variables for the PTS Windows Service
@@ -32,7 +32,7 @@ if (-not (Test-Path "C:\Logs\FMS.PTS")) {
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('Jwt__Key', 'YourLongSecretKeyHereMustBeAtLeast32Characters', 'Machine')
-[Environment]::SetEnvironmentVariable('Jwt__Issuer', 'Tenacy FMS', 'Machine')
+[Environment]::SetEnvironmentVariable('Jwt__Issuer', 'Tenacity FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('Jwt__Audience', 'FMSUsers', 'Machine')
 [Environment]::SetEnvironmentVariable('Jwt__ExpiryInMinutes', '10080', 'Machine')
 

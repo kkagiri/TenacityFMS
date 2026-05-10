@@ -4,11 +4,11 @@ on:
   push:
     branches: [productionv1, main, master]
     paths:
-      - "FMS.PTS.WindowsService/**"
-      - "FMS.Application/**"
-      - "FMS.Domain/**"
-      - "FMS.Infrastructure/**"
-      - "FMS.Persistence/**"
+      - "services/FMS.PTS.WindowsService/**"
+      - "packages/FMS.Application/**"
+      - "packages/FMS.Domain/**"
+      - "packages/FMS.Infrastructure/**"
+      - "packages/FMS.Persistence/**"
   workflow_dispatch:
     inputs:
       environment:
@@ -28,7 +28,7 @@ on:
 env:
   DOTNET_VERSION: "8.0.x"
   SERVICE_NAME: "FMS.PTS.Service"
-  PROJECT_PATH: "FMS.PTS.WindowsService/FMS.PTS.WindowsService.csproj"
+  PROJECT_PATH: "services/FMS.PTS.WindowsService/FMS.PTS.WindowsService.csproj"
   PUBLISH_PATH: "C:\\FMS.PTS"
   BACKUP_PATH: "C:\\FMS.PTS.Backup"
 

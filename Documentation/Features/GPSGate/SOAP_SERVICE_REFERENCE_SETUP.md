@@ -1,4 +1,4 @@
-﻿# GPSGate SOAP Service Reference Setup Guide
+# GPSGate SOAP Service Reference Setup Guide
 
 ## Overview
 The GPSGate integration requires two SOAP service references to be added to the FMS.Application project.
@@ -13,7 +13,7 @@ This occurs because the SOAP service references haven't been generated yet.
 ### Step 1: Add Directory Service Reference
 
 1. Open **FMS.Application** project in Visual Studio
-2. Right-click on the project → **Add** → **Connected Service** (or **Service Reference**)
+2. Right-click on the project ? **Add** ? **Connected Service** (or **Service Reference**)
 3. Choose **WCF Web Service**
 4. Enter WSDL URL: `http://10.0.10.150/GpsGateServer/Services/directory.asmx?WSDL`
 5. Set namespace to: `DirectoryServiceReference1`
@@ -22,7 +22,7 @@ This occurs because the SOAP service references haven't been generated yet.
 ### Step 2: Add Reporting Service Reference
 
 1. Right-click on **FMS.Application** project again
-2. **Add** → **Connected Service** (or **Service Reference**)
+2. **Add** ? **Connected Service** (or **Service Reference**)
 3. Choose **WCF Web Service**
 4. Enter WSDL URL: `http://10.0.10.150/GpsGateServer/Services/reporting.asmx?WSDL`
 5. Set namespace to: `ReportingServiceReference`
@@ -37,7 +37,7 @@ If you prefer command line:
 dotnet tool install --global dotnet-svcutil
 
 # Navigate to FMS.Application directory
-cd C:\Users\kkagiri\source\repos\Tenacy.Fms\FMS.Application
+cd C:\Users\kkagiri\source\repos\Tenacity.Fms\FMS.Application
 
 # Generate Directory Service reference
 dotnet-svcutil http://10.0.10.150/GpsGateServer/Services/directory.asmx?WSDL `
@@ -93,13 +93,13 @@ After successful generation, you should see:
 
 ```
 FMS.Application/
-├── Connected Services/ (or Service References/)
-│   ├── DirectoryService/
-│   │   ├── Reference.cs
-│   │   └── ...
-│   └── ReportingService/
-│       ├── Reference.cs
-│       └── ...
++-- Connected Services/ (or Service References/)
+�   +-- DirectoryService/
+�   �   +-- Reference.cs
+�   �   +-- ...
+�   +-- ReportingService/
+�       +-- Reference.cs
+�       +-- ...
 ```
 
 ## Troubleshooting

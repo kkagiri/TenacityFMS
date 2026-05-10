@@ -1,4 +1,4 @@
-﻿# Frontend Build & Deploy Process
+# Frontend Build & Deploy Process
 
 ## Overview
 
@@ -11,7 +11,7 @@ This document explains how the `web.config` is automatically included in your fr
 The `web.config` is stored in the source code at:
 
 ```
-c:\dev\Tenacy.FMS\fms.frontend\public\web.config
+c:\dev\Tenacity.FMS\fms.frontend\public\web.config
 ```
 
 ### 2. Build Process
@@ -28,12 +28,12 @@ After build, your `build/` folder contains:
 
 ```
 build/
-├── index.html
-├── web.config          ← Automatically copied from public/
-├── static/
-│   ├── css/
-│   └── js/
-└── ...
++-- index.html
++-- web.config          ? Automatically copied from public/
++-- static/
+�   +-- css/
+�   +-- js/
++-- ...
 ```
 
 ## Deployment Options
@@ -60,7 +60,7 @@ Use the deployment script:
 
 ```powershell
 # 1. Build
-cd c:\dev\Tenacy.FMS\fms.frontend
+cd c:\dev\Tenacity.FMS\fms.frontend
 npm run build
 
 # 2. Deploy
@@ -83,23 +83,23 @@ The `web.config` includes:
 
 ### Important Notes
 
-⚠️ **WebSocket Limitation**
+?? **WebSocket Limitation**
 
 - The URL rewrite rules work for HTTP requests only
 - WebSocket connections (`ws://`) cannot be proxied through IIS
 - SignalR WebSockets must connect directly to port 7009
 - This is why we set `REACT_APP_SIGNALR_URL=http://10.0.10.153:7009` in `.env`
 
-✅ **What Works**
+? **What Works**
 
-- HTTP API calls: `http://10.0.10.153/api/*` → proxied to `http://localhost:7009/api/*`
-- SignalR negotiate: `http://10.0.10.153/dashboardHub/negotiate` → proxied to port 7009
+- HTTP API calls: `http://10.0.10.153/api/*` ? proxied to `http://localhost:7009/api/*`
+- SignalR negotiate: `http://10.0.10.153/dashboardHub/negotiate` ? proxied to port 7009
 - Static files: Served directly from IIS
 - React routing: All SPA routes work
 
-❌ **What Doesn't Work**
+? **What Doesn't Work**
 
-- WebSocket via IIS: `ws://10.0.10.153/dashboardHub` → 404 error
+- WebSocket via IIS: `ws://10.0.10.153/dashboardHub` ? 404 error
 - Must use: `ws://10.0.10.153:7009/dashboardHub` (direct to Kestrel)
 
 ## Updating web.config
@@ -109,13 +109,13 @@ The `web.config` includes:
 1. **Edit source file**:
 
    ```powershell
-   notepad c:\dev\Tenacy.FMS\fms.frontend\public\web.config
+   notepad c:\dev\Tenacity.FMS\fms.frontend\public\web.config
    ```
 
 2. **Rebuild**:
 
    ```powershell
-   cd c:\dev\Tenacy.FMS\fms.frontend
+   cd c:\dev\Tenacity.FMS\fms.frontend
    npm run build
    ```
 
@@ -139,7 +139,7 @@ After deployment, verify:
 ### Build doesn't include web.config
 
 **Cause**: File missing from `public/` folder
-**Solution**: Ensure `c:\dev\Tenacy.FMS\fms.frontend\public\web.config` exists
+**Solution**: Ensure `c:\dev\Tenacity.FMS\fms.frontend\public\web.config` exists
 
 ### web.config changes not reflected
 
@@ -165,17 +165,17 @@ After deployment, verify:
 
 ## Related Files
 
-- **Source**: `c:\dev\Tenacy.FMS\fms.frontend\public\web.config`
-- **Build**: `c:\dev\Tenacy.FMS\fms.frontend\build\web.config`
+- **Source**: `c:\dev\Tenacity.FMS\fms.frontend\public\web.config`
+- **Build**: `c:\dev\Tenacity.FMS\fms.frontend\build\web.config`
 - **Deployed**: `c:\inetpub\wwwroot\tenacyFMS\reactApp\web.config`
-- **Environment**: `c:\dev\Tenacy.FMS\fms.frontend\.env`
-- **Deploy Script**: `c:\dev\Tenacy.FMS\scripts\deploy-frontend.ps1`
+- **Environment**: `c:\dev\Tenacity.FMS\fms.frontend\.env`
+- **Deploy Script**: `c:\dev\Tenacity.FMS\scripts\deploy-frontend.ps1`
 
 ## Quick Commands
 
 ```powershell
 # Build only
-cd c:\dev\Tenacy.FMS\fms.frontend && npm run build
+cd c:\dev\Tenacity.FMS\fms.frontend && npm run build
 
 # Deploy only (use existing build)
 .\scripts\deploy-frontend.ps1 -SkipBuild

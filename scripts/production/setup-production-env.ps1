@@ -1,6 +1,6 @@
-﻿# ===============================================================================
+# ===============================================================================
 # Production Environment Variables Setup Script
-# Tenacy.FMS - Secure Configuration
+# Tenacity.FMS - Secure Configuration
 # ===============================================================================
 #
 # IMPORTANT: This script sets machine-level environment variables
@@ -20,14 +20,14 @@ param(
 )
 
 # Colors for output
-function Write-Success { param($Message) Write-Host "✓ $Message" -ForegroundColor Green }
-function Write-Error { param($Message) Write-Host "✗ $Message" -ForegroundColor Red }
-function Write-Warning { param($Message) Write-Host "⚠ $Message" -ForegroundColor Yellow }
-function Write-Info { param($Message) Write-Host "ℹ $Message" -ForegroundColor Cyan }
+function Write-Success { param($Message) Write-Host "? $Message" -ForegroundColor Green }
+function Write-Error { param($Message) Write-Host "? $Message" -ForegroundColor Red }
+function Write-Warning { param($Message) Write-Host "? $Message" -ForegroundColor Yellow }
+function Write-Info { param($Message) Write-Host "? $Message" -ForegroundColor Cyan }
 
 Write-Host ""
 Write-Host "===============================================================================" -ForegroundColor Cyan
-Write-Host " Tenacy.FMS - Production Environment Setup" -ForegroundColor Cyan
+Write-Host " Tenacity.FMS - Production Environment Setup" -ForegroundColor Cyan
 Write-Host "===============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -82,7 +82,7 @@ $Config = @{
 
     # JWT Settings (GENERATE NEW SECRET KEY - 32+ CHARACTERS!)
     JwtSecretKey = "REPLACE_WITH_NEW_JWT_SECRET_32_CHARS_MIN"
-    JwtIssuer = "Tenacy FMS"
+    JwtIssuer = "Tenacity FMS"
     JwtAudience = "FMSUsers"
     JwtExpireDays = "7"
 
@@ -385,7 +385,7 @@ Write-Host "   - Check email delivery" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Warning "SECURITY REMINDER:"
-Write-Host "  • Never commit this file with actual passwords to git!" -ForegroundColor Yellow
-Write-Host "  • Keep this file secure and backed up safely" -ForegroundColor Yellow
-Write-Host "  • Document any changes made" -ForegroundColor Yellow
+Write-Host "  � Never commit this file with actual passwords to git!" -ForegroundColor Yellow
+Write-Host "  � Keep this file secure and backed up safely" -ForegroundColor Yellow
+Write-Host "  � Document any changes made" -ForegroundColor Yellow
 Write-Host ""

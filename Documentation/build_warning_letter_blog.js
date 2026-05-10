@@ -1,4 +1,4 @@
-ï»¿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 
 const globalRoot = require("child_process").execSync("npm root -g").toString().trim();
@@ -190,7 +190,7 @@ function featureTable() {
     columnWidths: [3120, 3120, 3120],
     rows: [
       headerRow(["Violation Type", "Triggered By", "Deduction Basis"]),
-      row(["Excess Fuel Consumption", "Actual vs. expected litres", "Extra litres Ã— fuel price"], true),
+      row(["Excess Fuel Consumption", "Actual vs. expected litres", "Extra litres × fuel price"], true),
       row(["Excessive Speed", "Speed threshold breaches from telematics", "Policy-defined penalty"], false),
       row(["Excessive Idling", "Idle duration beyond limit", "Policy-defined penalty"], true),
     ],
@@ -227,7 +227,7 @@ function stageTable() {
       row(["Approved", "Manager-signed approval document uploaded.", "Manager"], false),
       row(["Pending Signed", "Signature requested from driver (single or bulk).", "System / Admin"], true),
       row(["Signed", "Signed copy uploaded back into the workflow.", "Admin"], false),
-      row(["Acknowledged", "Driver acknowledges receipt â€” workflow complete.", "Driver"], true),
+      row(["Acknowledged", "Driver acknowledges receipt — workflow complete.", "Driver"], true),
     ],
   });
 }
@@ -235,7 +235,7 @@ function stageTable() {
 // Build the document
 const doc = new Document({
   creator: "FMS Product Team",
-  title: "Warning Letter Module â€” Release Update",
+  title: "Warning Letter Module — Release Update",
   description: "Software release update blog post for the Warning Letter feature",
   styles: {
     default: { document: { run: { font: "Arial", size: 22 } } },
@@ -318,11 +318,11 @@ const doc = new Document({
           new TextRun({ text: "Author: FMS Product Team", color: MUTED, size: 22, font: "Arial", italics: true }),
         ],
       }),
-      imagePlaceholder("Cover image â€” suggestion: banner screenshot of the Warning Letter dashboard", 3600),
+      imagePlaceholder("Cover image — suggestion: banner screenshot of the Warning Letter dashboard", 3600),
       spacer(),
 
       // ===== Intro =====
-      p("Managing a fleet is as much about people as it is about vehicles. Fuel losses, reckless speeding, and prolonged idling silently erode margins and safety standards every single day. With this release, the FMS Warning Letter module transforms those scattered concerns into a structured, auditable workflow â€” one that turns raw consumption data into formal, signed, and acknowledged documentation."),
+      p("Managing a fleet is as much about people as it is about vehicles. Fuel losses, reckless speeding, and prolonged idling silently erode margins and safety standards every single day. With this release, the FMS Warning Letter module transforms those scattered concerns into a structured, auditable workflow — one that turns raw consumption data into formal, signed, and acknowledged documentation."),
       p("This post walks through the problem we set out to solve, what the module now does, the reports it ships with, and a step-by-step guide to using it."),
 
       // ===== Section 1: The Problem =====
@@ -331,14 +331,14 @@ const doc = new Document({
       bullet("Violations slipped through the cracks because no one was systematically scanning consumption data."),
       bullet("Warnings that did get issued had no consistent format, no approval trail, and no proof of acknowledgement."),
       bullet("HR and finance had no single view of deductions, pending signatures, or repeat offenders."),
-      bullet("Audits were painful â€” pulling evidence across months of scattered documents took days."),
+      bullet("Audits were painful — pulling evidence across months of scattered documents took days."),
       spacer(),
       calloutBox(
         "What success looks like",
-        "Every breach of policy is detected automatically, documented on a branded letter, approved, signed, and acknowledged â€” with every step traceable from one screen."
+        "Every breach of policy is detected automatically, documented on a branded letter, approved, signed, and acknowledged — with every step traceable from one screen."
       ),
       spacer(),
-      imagePlaceholder("Suggested image â€” the \u201CCandidates\u201D report surfacing drivers who have crossed consumption thresholds", 3200),
+      imagePlaceholder("Suggested image — the \u201CCandidates\u201D report surfacing drivers who have crossed consumption thresholds", 3200),
 
       // ===== Section 2: Features =====
       h1("What the Module Does"),
@@ -378,13 +378,13 @@ const doc = new Document({
         new TextRun({ text: "Every stage transition captures the actor and timestamp.", font: "Arial", size: 22 }),
       ]),
       spacer(),
-      imagePlaceholder("Suggested image â€” the warning letter creation form with the \u201CPreview\u201D button visible", 3400),
+      imagePlaceholder("Suggested image — the warning letter creation form with the \u201CPreview\u201D button visible", 3400),
 
       h2("Workflow Stages"),
       p("A warning letter progresses through five stages. The system enforces the order, so nothing slips out of sequence."),
       stageTable(),
       spacer(),
-      imagePlaceholder("Suggested image â€” stage pills on the Warning Letter list page, showing Draft / Approved / Pending Signed / Signed / Acknowledged", 2800),
+      imagePlaceholder("Suggested image — stage pills on the Warning Letter list page, showing Draft / Approved / Pending Signed / Signed / Acknowledged", 2800),
 
       // ===== Section 3: Reports =====
       h1("Reports Shipped With This Release"),
@@ -401,7 +401,7 @@ const doc = new Document({
       h3("Filters"),
       bullet("Date range, site, vehicle, vehicle type, employee (multi-select), letter type, workflow stage."),
       spacer(),
-      imagePlaceholder("Suggested image â€” Warning Letter Analytics dashboard with charts and KPIs", 3800),
+      imagePlaceholder("Suggested image — Warning Letter Analytics dashboard with charts and KPIs", 3800),
 
       h2("2. Warning Letter Candidates"),
       p("A proactive report. Instead of waiting for someone to notice a problem, this report lists employees whose consumption, speed, or idling already crosses the threshold but who do not yet have a letter for the period. Managers can go from this report straight into letter creation."),
@@ -412,7 +412,7 @@ const doc = new Document({
       h3("Filters"),
       bullet("Date range, site, vehicles (multi-select), vehicle type, and letter types (multi-select across Excess Fuel, Excessive Speed, Excessive Idling)."),
       spacer(),
-      imagePlaceholder("Suggested image â€” Candidates report with multi-select filters open", 3400),
+      imagePlaceholder("Suggested image — Candidates report with multi-select filters open", 3400),
 
       // ===== Section 4: How to use =====
       h1("How to Use It \u2014 Step by Step"),
@@ -424,14 +424,14 @@ const doc = new Document({
       num("Enter the issuer name and title that should appear on every letter."),
       num("Set the maximum warning count per driver before escalation."),
       spacer(),
-      imagePlaceholder("Suggested image â€” Warning Letter Settings screen", 2800),
+      imagePlaceholder("Suggested image — Warning Letter Settings screen", 2800),
 
       h3("Step 2 \u2014 Find candidates"),
       num("Navigate to Reports \u2192 Warning Letter Candidates."),
       num("Select the date range, site, vehicles, and the violation types you want to scan for."),
       num("Run the report \u2014 the grid returns drivers who have breached thresholds and do not yet have a letter for the period."),
       spacer(),
-      imagePlaceholder("Suggested image â€” running the Candidates report and selecting rows to action", 3000),
+      imagePlaceholder("Suggested image — running the Candidates report and selecting rows to action", 3000),
 
       h3("Step 3 \u2014 Create the letter"),
       num("From the candidate grid (or the Warning Letters page directly), open the creation form."),
@@ -443,7 +443,7 @@ const doc = new Document({
       ]),
       num("Save \u2014 the letter is created in Draft stage."),
       spacer(),
-      imagePlaceholder("Suggested image â€” the HTML preview modal with the rendered letter", 3600),
+      imagePlaceholder("Suggested image — the HTML preview modal with the rendered letter", 3600),
 
       h3("Step 4 \u2014 Get it approved"),
       num("Download the draft PDF and circulate it for manager sign-off."),
@@ -454,14 +454,14 @@ const doc = new Document({
       num("From the list, select one or many letters and choose Request Signature."),
       num("The letters move to Pending Signed and the driver is notified."),
       spacer(),
-      imagePlaceholder("Suggested image â€” bulk select with the \u201CRequest Signature\u201D action", 2800),
+      imagePlaceholder("Suggested image — bulk select with the \u201CRequest Signature\u201D action", 2800),
 
       h3("Step 6 \u2014 Close the loop"),
       num("Once the driver signs, upload the signed copy \u2014 the letter moves to Signed."),
       num("Record the driver\u2019s acknowledgement to close the workflow at Acknowledged."),
       num("The letter, approval document, signed copy, and timestamps are all preserved for audit."),
       spacer(),
-      imagePlaceholder("Suggested image â€” a completed letter record showing all attached documents and the full stage timeline", 3400),
+      imagePlaceholder("Suggested image — a completed letter record showing all attached documents and the full stage timeline", 3400),
 
       // ===== Section 5: Recent enhancements =====
       h1("What\u2019s New in This Release"),
@@ -491,7 +491,7 @@ const doc = new Document({
   }],
 });
 
-const outPath = path.resolve("C:/Users/kkagiri/Sources/Repo/Tenacy.FMS/Documentation/Warning_Letter_Release_Update.docx");
+const outPath = path.resolve("C:/Users/kkagiri/Sources/Repo/Tenacity.FMS/Documentation/Warning_Letter_Release_Update.docx");
 Packer.toBuffer(doc).then(buf => {
   fs.writeFileSync(outPath, buf);
   console.log("Wrote:", outPath, "size:", buf.length);

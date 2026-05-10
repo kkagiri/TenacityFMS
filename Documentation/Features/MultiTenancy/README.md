@@ -3,7 +3,7 @@
 > **Status:** Phase 3 scaffold complete. Per-entity rollout pending.
 > **Owner:** Platform team
 
-This document is the operating manual for converting **TenacyFMS** from a single-tenant deployment (the original `Hyoung.FMS`) into a multi-tenant SaaS. The infrastructure is already wired; rolling each business entity onto the tenancy fabric is now an additive, low-risk task that can be staged across releases.
+This document is the operating manual for converting **TenacityFMS** from a single-tenant deployment (the original `Tenacity.FMS`) into a multi-tenant SaaS. The infrastructure is already wired; rolling each business entity onto the tenancy fabric is now an additive, low-risk task that can be staged across releases.
 
 ---
 

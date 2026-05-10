@@ -1,4 +1,4 @@
-Ôªø#!/bin/bash
+#!/bin/bash
 # ===============================================================================
 # Git History Cleanup Script
 # Automated cleanup of sensitive data from git history using BFG Repo-Cleaner
@@ -27,7 +27,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/your-org/Tenacy.FMS.git"
+REPO_URL="https://github.com/your-org/Tenacity.FMS.git"
 WORK_DIR="$HOME/git-cleanup"
 BACKUP_DIR="$HOME/git-cleanup-backups"
 BFG_JAR="$HOME/tools/bfg.jar"
@@ -43,19 +43,19 @@ print_header() {
 }
 
 print_success() {
-    echo -e "${GREEN}‚úì $1${NC}"
+    echo -e "${GREEN}? $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}‚úó $1${NC}"
+    echo -e "${RED}? $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}‚ö† $1${NC}"
+    echo -e "${YELLOW}? $1${NC}"
 }
 
 print_info() {
-    echo -e "${BLUE}‚Ñπ $1${NC}"
+    echo -e "${BLUE}? $1${NC}"
 }
 
 check_prerequisites() {
@@ -104,13 +104,13 @@ check_prerequisites() {
 }
 
 confirm_action() {
-    print_warning "‚ö†Ô∏è  CRITICAL WARNING ‚ö†Ô∏è"
+    print_warning "??  CRITICAL WARNING ??"
     echo ""
     echo "This script will:"
-    echo "  ‚Ä¢ Rewrite ALL git history"
-    echo "  ‚Ä¢ Remove sensitive files permanently"
-    echo "  ‚Ä¢ Require force push to remote"
-    echo "  ‚Ä¢ Require all developers to re-clone"
+    echo "  ï Rewrite ALL git history"
+    echo "  ï Remove sensitive files permanently"
+    echo "  ï Require force push to remote"
+    echo "  ï Require all developers to re-clone"
     echo ""
     print_warning "Have you completed these prerequisites?"
     echo "  [ ] Changed all exposed passwords"
@@ -142,12 +142,12 @@ create_backup() {
     git clone --mirror "$REPO_URL"
 
     print_info "Creating archive..."
-    tar -czf "Tenacy.FMS-backup-$TIMESTAMP.tar.gz" Tenacy.FMS.git
+    tar -czf "Tenacity.FMS-backup-$TIMESTAMP.tar.gz" Tenacity.FMS.git
 
-    BACKUP_SIZE=$(du -sh "Tenacy.FMS-backup-$TIMESTAMP.tar.gz" | cut -f1)
-    print_success "Backup created: $BACKUP_PATH/Tenacy.FMS-backup-$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
+    BACKUP_SIZE=$(du -sh "Tenacity.FMS-backup-$TIMESTAMP.tar.gz" | cut -f1)
+    print_success "Backup created: $BACKUP_PATH/Tenacity.FMS-backup-$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
 
-    echo "$BACKUP_PATH/Tenacy.FMS-backup-$TIMESTAMP.tar.gz" > "$BACKUP_DIR/latest-backup.txt"
+    echo "$BACKUP_PATH/Tenacity.FMS-backup-$TIMESTAMP.tar.gz" > "$BACKUP_DIR/latest-backup.txt"
 }
 
 prepare_cleanup_files() {
@@ -186,11 +186,11 @@ EOF
 
     echo ""
     print_info "Files that will be removed from history:"
-    cat files-to-delete.txt | sed 's/^/  ‚Ä¢ /'
+    cat files-to-delete.txt | sed 's/^/  ï /'
 
     echo ""
     print_info "Passwords that will be scrubbed (showing first 10 chars only):"
-    cat passwords-to-remove.txt | cut -d'=' -f1 | cut -c1-10 | sed 's/^/  ‚Ä¢ /'
+    cat passwords-to-remove.txt | cut -d'=' -f1 | cut -c1-10 | sed 's/^/  ï /'
     echo ""
 }
 
@@ -200,11 +200,11 @@ clone_mirror() {
     mkdir -p "$WORK_DIR"
     cd "$WORK_DIR"
 
-    if [ -d "Tenacy.FMS.git" ]; then
-        print_warning "Tenacy.FMS.git already exists"
+    if [ -d "Tenacity.FMS.git" ]; then
+        print_warning "Tenacity.FMS.git already exists"
         read -p "Delete and re-clone? (y/n): " -r
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            rm -rf Tenacy.FMS.git
+            rm -rf Tenacity.FMS.git
         else
             print_error "Aborted"
             exit 1
@@ -214,7 +214,7 @@ clone_mirror() {
     print_info "Cloning as mirror (this may take a few minutes)..."
     git clone --mirror "$REPO_URL"
 
-    cd Tenacy.FMS.git
+    cd Tenacity.FMS.git
     ORIG_SIZE=$(du -sh . | cut -f1)
     print_success "Repository cloned: $ORIG_SIZE"
 }
@@ -228,7 +228,7 @@ run_bfg_cleanup() {
     print_info "Removing sensitive files from history..."
     java -jar "$BFG_JAR" \
         --delete-files '{appsettings.json,appsettings.*.json,.env,setup-environment.ps1,setup-*.ps1,setup-*.bat}' \
-        Tenacy.FMS.git
+        Tenacity.FMS.git
 
     echo ""
 
@@ -236,7 +236,7 @@ run_bfg_cleanup() {
     print_info "Scrubbing passwords from remaining files..."
     java -jar "$BFG_JAR" \
         --replace-text passwords-to-remove.txt \
-        Tenacy.FMS.git
+        Tenacity.FMS.git
 
     print_success "BFG cleanup complete"
 }
@@ -244,7 +244,7 @@ run_bfg_cleanup() {
 cleanup_refs() {
     print_header "Cleaning References and Garbage Collection"
 
-    cd "$WORK_DIR/Tenacy.FMS.git"
+    cd "$WORK_DIR/Tenacity.FMS.git"
 
     print_info "Expiring reflog..."
     git reflog expire --expire=now --all
@@ -259,7 +259,7 @@ cleanup_refs() {
 verify_cleanup() {
     print_header "Verifying Cleanup"
 
-    cd "$WORK_DIR/Tenacy.FMS.git"
+    cd "$WORK_DIR/Tenacity.FMS.git"
 
     ISSUES=0
 
@@ -308,10 +308,10 @@ verify_cleanup() {
 
     echo ""
     if [ $ISSUES -eq 0 ]; then
-        print_success "‚úì All verification checks passed!"
+        print_success "? All verification checks passed!"
         return 0
     else
-        print_error "‚úó Found $ISSUES issues"
+        print_error "? Found $ISSUES issues"
         return 1
     fi
 }
@@ -319,9 +319,9 @@ verify_cleanup() {
 force_push() {
     print_header "Force Pushing to Remote"
 
-    cd "$WORK_DIR/Tenacy.FMS.git"
+    cd "$WORK_DIR/Tenacity.FMS.git"
 
-    print_warning "‚ö†Ô∏è  About to force push - this REWRITES history!"
+    print_warning "??  About to force push - this REWRITES history!"
     echo ""
     read -p "Continue with force push? (type 'yes'): " -r
     echo ""
@@ -344,28 +344,28 @@ show_next_steps() {
     print_header "Cleanup Complete - Next Steps"
 
     echo "1. Notify all developers to re-clone:"
-    echo "   ‚Ä¢ Send team notification email"
-    echo "   ‚Ä¢ Include re-sync instructions"
-    echo "   ‚Ä¢ Set deadline for completion"
+    echo "   ï Send team notification email"
+    echo "   ï Include re-sync instructions"
+    echo "   ï Set deadline for completion"
     echo ""
 
     echo "2. Verify on GitHub:"
-    echo "   ‚Ä¢ Search for old passwords (should show no results)"
-    echo "   ‚Ä¢ Check repository size decreased"
-    echo "   ‚Ä¢ Verify files are gone from history"
+    echo "   ï Search for old passwords (should show no results)"
+    echo "   ï Check repository size decreased"
+    echo "   ï Verify files are gone from history"
     echo ""
 
     echo "3. Team re-sync (each developer):"
-    echo "   ‚Ä¢ Save work: git stash"
-    echo "   ‚Ä¢ Delete local: rm -rf Tenacy.FMS"
-    echo "   ‚Ä¢ Clone fresh: git clone $REPO_URL"
-    echo "   ‚Ä¢ Restore config files from .example"
+    echo "   ï Save work: git stash"
+    echo "   ï Delete local: rm -rf Tenacity.FMS"
+    echo "   ï Clone fresh: git clone $REPO_URL"
+    echo "   ï Restore config files from .example"
     echo ""
 
     echo "4. Update documentation:"
-    echo "   ‚Ä¢ Mark cleanup as complete"
-    echo "   ‚Ä¢ Document completion date"
-    echo "   ‚Ä¢ Update security audit status"
+    echo "   ï Mark cleanup as complete"
+    echo "   ï Document completion date"
+    echo "   ï Update security audit status"
     echo ""
 
     print_info "Backup location:"
@@ -379,7 +379,7 @@ show_next_steps() {
 
 # Main script
 main() {
-    print_header "Git History Cleanup - Tenacy.FMS"
+    print_header "Git History Cleanup - Tenacity.FMS"
 
     case "${1:-}" in
         --backup)
@@ -388,7 +388,7 @@ main() {
             ;;
 
         --verify)
-            if [ ! -d "$WORK_DIR/Tenacy.FMS.git" ]; then
+            if [ ! -d "$WORK_DIR/Tenacity.FMS.git" ]; then
                 print_error "No repository to verify. Run with --full first."
                 exit 1
             fi

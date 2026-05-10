@@ -8,7 +8,7 @@
 
 ## 1. Goals
 
-1. Provide a **subscription + billing layer** for TenacyFMS multi-tenant SaaS.
+1. Provide a **subscription + billing layer** for TenacityFMS multi-tenant SaaS.
 2. Decouple sales/billing logic from the operational fleet system so revisions to pricing, plans, promotions, currencies, or payment integrations **do not require redeploying the main FMS app**.
 3. Support **two go-to-market motions**:
    - **Self-serve onboarding** with Stripe (primary)
@@ -52,6 +52,7 @@
 ```
 
 **Rules:**
+
 - `FMS.Sales.*` projects MUST NOT reference `FMS.Application`, `FMS.Domain`, `FMS.Persistence`, or `FMS.WebClient`.
 - `FMS` projects MUST NOT reference `FMS.Sales.*`.
 - Shared link is the **TenantId (Guid) only** — Sales stores `TenantId` as a Guid value with no FK; existence is validated at write time via a thin read port if needed.
@@ -81,23 +82,23 @@ FMS.Sales/
 
 ### 4.1 Core Entities
 
-| Entity | Purpose |
-|---|---|
-| `Currency` | ISO-4217 currencies supported (USD, IDR, MYR, SGD, EUR, GBP, …) |
-| `Plan` | Subscription plan template (Starter, Growth, Pro, Enterprise) |
-| `PlanFeature` | Feature flags per plan (HasApi, HasRealtime, HasAdvancedReports) |
-| `PlanQuota` | Included usage caps per plan (sites, users, devices, vehicles, rfid_tags, pts_pumps, tank_sensors) |
-| `PlanPrice` | One row per (plan, currency, billing_cycle) — multi-currency pricing |
-| `MeteredPrice` | Overage unit price per (plan, metric, currency) for above-quota usage |
-| `Subscription` | A tenant's active plan: status, currency, cycle, trial dates, payment provider |
-| `SubscriptionItem` | Line items on the subscription (base + add-ons) |
-| `UsageRecord` | Daily snapshot per (tenant, metric, period) — written by FMS via background job |
-| `Invoice` | Generated per billing cycle; `Draft` → `Open` → `Paid` / `Void` / `Uncollectible` |
-| `InvoiceLine` | Individual charge line on an invoice |
-| `Payment` | Recorded payment attempt (Stripe charge id OR manual reference) |
-| `Coupon` | Discount codes (percentage or fixed amount, optional expiry) |
-| `ManualSale` | Sales-team entry: PO number, sales rep, payment terms, status |
-| `OnboardingRequest` | Self-serve signup intent before Stripe checkout completes |
+| Entity              | Purpose                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `Currency`          | ISO-4217 currencies supported (USD, IDR, MYR, SGD, EUR, GBP, …)                                    |
+| `Plan`              | Subscription plan template (Starter, Growth, Pro, Enterprise)                                      |
+| `PlanFeature`       | Feature flags per plan (HasApi, HasRealtime, HasAdvancedReports)                                   |
+| `PlanQuota`         | Included usage caps per plan (sites, users, devices, vehicles, rfid_tags, pts_pumps, tank_sensors) |
+| `PlanPrice`         | One row per (plan, currency, billing_cycle) — multi-currency pricing                               |
+| `MeteredPrice`      | Overage unit price per (plan, metric, currency) for above-quota usage                              |
+| `Subscription`      | A tenant's active plan: status, currency, cycle, trial dates, payment provider                     |
+| `SubscriptionItem`  | Line items on the subscription (base + add-ons)                                                    |
+| `UsageRecord`       | Daily snapshot per (tenant, metric, period) — written by FMS via background job                    |
+| `Invoice`           | Generated per billing cycle; `Draft` → `Open` → `Paid` / `Void` / `Uncollectible`                  |
+| `InvoiceLine`       | Individual charge line on an invoice                                                               |
+| `Payment`           | Recorded payment attempt (Stripe charge id OR manual reference)                                    |
+| `Coupon`            | Discount codes (percentage or fixed amount, optional expiry)                                       |
+| `ManualSale`        | Sales-team entry: PO number, sales rep, payment terms, status                                      |
+| `OnboardingRequest` | Self-serve signup intent before Stripe checkout completes                                          |
 
 ### 4.2 Enums
 
@@ -114,24 +115,24 @@ FMS.Sales/
 
 ### 5.1 Default Plan Catalogue
 
-| Plan | Base/mo (USD) | Sites | Users | Devices | Vehicles | RFID |
-|---|---|---|---|---|---|---|
-| Free | $0 | 1 | 2 | 1 | 5 | 10 |
-| Starter | $99 | 1 | 5 | 5 | 50 | 100 |
-| Growth | $299 | 3 | 15 | 20 | 200 | 500 |
-| Pro | $799 | 10 | 50 | 80 | 1,000 | 2,500 |
-| Enterprise | Quote | ∞ | ∞ | ∞ | ∞ | ∞ |
+| Plan       | Base/mo (USD) | Sites | Users | Devices | Vehicles | RFID  |
+| ---------- | ------------- | ----- | ----- | ------- | -------- | ----- |
+| Free       | $0            | 1     | 2     | 1       | 5        | 10    |
+| Starter    | $99           | 1     | 5     | 5       | 50       | 100   |
+| Growth     | $299          | 3     | 15    | 20      | 200      | 500   |
+| Pro        | $799          | 10    | 50    | 80      | 1,000    | 2,500 |
+| Enterprise | Quote         | ∞     | ∞     | ∞       | ∞        | ∞     |
 
 ### 5.2 Default Overage Pricing (USD)
 
-| Metric | Per-unit/mo |
-|---|---|
-| Extra Site | $25 |
-| Extra User | $4 |
-| Extra PTS Pump | $12 |
-| Extra Tank Sensor | $8 |
-| Extra Vehicle | $1 |
-| Extra RFID Tag | $0.30 |
+| Metric            | Per-unit/mo |
+| ----------------- | ----------- |
+| Extra Site        | $25         |
+| Extra User        | $4          |
+| Extra PTS Pump    | $12         |
+| Extra Tank Sensor | $8          |
+| Extra Vehicle     | $1          |
+| Extra RFID Tag    | $0.30       |
 
 Each price has a parallel row in IDR/MYR/SGD/etc. set by Sales/Finance.
 
@@ -232,14 +233,14 @@ Mark Invoice Paid
 
 ## 12. Roll-Out Phases
 
-| Phase | Scope |
-|---|---|
+| Phase    | Scope                                                                                                          |
+| -------- | -------------------------------------------------------------------------------------------------------------- |
 | **V1.0** | Domain entities, SalesDbContext, plan/subscription CRUD, manual-sales flow, basic invoice generation, USD only |
-| **V1.1** | Multi-currency support, Stripe checkout + webhooks |
-| **V1.2** | Usage metering ingestion + overage billing |
-| **V1.3** | Self-serve signup UI, coupon codes, annual discount |
-| **V1.4** | Dunning, retries, reporting dashboards |
-| **V2.0** | Tax engine, multi-currency conversion, channel partner portal |
+| **V1.1** | Multi-currency support, Stripe checkout + webhooks                                                             |
+| **V1.2** | Usage metering ingestion + overage billing                                                                     |
+| **V1.3** | Self-serve signup UI, coupon codes, annual discount                                                            |
+| **V1.4** | Dunning, retries, reporting dashboards                                                                         |
+| **V2.0** | Tax engine, multi-currency conversion, channel partner portal                                                  |
 
 ---
 
@@ -261,9 +262,9 @@ Mark Invoice Paid
 - [ ] Plan, Subscription, ManualSale CRUD via REST endpoints
 - [ ] Invoice generated for a manual sale
 - [ ] Payment recorded against an invoice → status becomes Paid
-- [ ] No project-level reference between FMS.* and FMS.Sales.*
+- [ ] No project-level reference between FMS._ and FMS.Sales._
 - [ ] Both contexts coexist in the same Postgres DB without conflict
 
 ---
 
-*End of PRD*
+_End of PRD_

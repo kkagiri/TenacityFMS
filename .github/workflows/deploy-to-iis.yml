@@ -1,4 +1,4 @@
-name: Deploy Tenacy FMS to IIS
+name: Deploy Tenacity FMS to IIS
 
 on:
   push:
@@ -47,7 +47,7 @@ jobs:
           Write-Host "========================================" -ForegroundColor Cyan
           Write-Host ""
 
-          Push-Location "fms.frontend"
+          Push-Location "apps/fms.frontend"
 
           # Verify node_modules exists
           if (-not (Test-Path "node_modules")) {
@@ -69,7 +69,7 @@ jobs:
 
           Pop-Location
           Write-Host "✅ React app built successfully" -ForegroundColor Green
-          Write-Host "   Build output: fms.frontend/build" -ForegroundColor Gray
+          Write-Host "   Build output: apps/fms.frontend/build" -ForegroundColor Gray
           Write-Host ""
         shell: powershell
 
@@ -87,7 +87,7 @@ jobs:
 
           $backendPath = "C:\inetpub\wwwroot\TenacyFMS\webAPI"
           $backendPool = "TenacyFMS.WebAPI"
-          $backendProject = "FMS.WebClient\FMS.WebClient.csproj"
+          $backendProject = "apps\FMS.WebClient\FMS.WebClient.csproj"
           $tempPath = "$backendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
           $oldPath = "$backendPath`_old"
 
@@ -108,7 +108,7 @@ jobs:
             Write-Host "✅ Backend built successfully" -ForegroundColor Green
             Write-Host ""
 
-            # Note: web.config is now included in build from source (FMS.WebClient\web.config)
+            # Note: web.config is now included in build from source (apps\FMS.WebClient\web.config)
             Write-Host "ℹ️  web.config preserved from source" -ForegroundColor Cyan
 
             # Stop IIS App Pool
@@ -178,7 +178,7 @@ jobs:
 
           $frontendPath = "C:\inetpub\wwwroot\TenacyFMS\reactApp"
           $frontendPool = "TenacyFMS.ReactApp"
-          $buildPath = "fms.frontend\build"
+          $buildPath = "apps\fms.frontend\build"
           $tempPath = "$frontendPath`_temp_$(Get-Date -Format 'yyyyMMddHHmmss')"
           $oldPath = "$frontendPath`_old"
 
@@ -197,8 +197,8 @@ jobs:
             Write-Host "✅ Build copied to $tempPath" -ForegroundColor Green
             Write-Host ""
 
-            # Note: web.config is now included in build from source (fms.frontend\public\web.config)
-            Write-Host "ℹ️  web.config preserved from source (fms.frontend/public/web.config)" -ForegroundColor Cyan
+            # Note: web.config is now included in build from source (apps\fms.frontend\public\web.config)
+            Write-Host "ℹ️  web.config preserved from source (apps/fms.frontend/public/web.config)" -ForegroundColor Cyan
 
             # Stop IIS App Pool
             Write-Host "⏸️  Stopping IIS App Pool: $frontendPool" -ForegroundColor Yellow

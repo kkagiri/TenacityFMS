@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 echo Setting up environment variables for PTS Windows Service...
 
 REM Create logging directory if it doesn't exist
@@ -29,7 +29,7 @@ setx PTSService__Logging__MinimumLevel "Information" /M
 
 REM JWT Settings
 setx Jwt__Key "YourLongSecretKeyHereMustBeAtLeast32Characters" /M
-setx Jwt__Issuer "Tenacy FMS" /M
+setx Jwt__Issuer "Tenacity FMS" /M
 setx Jwt__Audience "FMSUsers" /M
 setx Jwt__ExpiryInMinutes "10080" /M
 

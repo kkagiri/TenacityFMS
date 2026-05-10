@@ -1,4 +1,4 @@
-﻿# IIS URL Rewrite Setup Guide
+# IIS URL Rewrite Setup Guide
 ## Forward API Requests from Port 80 to Port 7009
 
 This guide explains how to set up IIS to serve your React frontend on port 80 while forwarding API requests to your ASP.NET Core API on port 7009.
@@ -8,15 +8,15 @@ This guide explains how to set up IIS to serve your React frontend on port 80 wh
 ## Architecture
 
 ```
-Browser Request → IIS Port 80 → URL Rewrite Module → Backend API Port 7009
-                      ↓
+Browser Request ? IIS Port 80 ? URL Rewrite Module ? Backend API Port 7009
+                      ?
                  React Frontend (Static Files)
 ```
 
 **Request Flow:**
-- `http://10.0.10.153/` → Serves React app (index.html)
-- `http://10.0.10.153/api/*` → Forwards to `http://localhost:7009/api/*`
-- `http://10.0.10.153/hub/*` → Forwards to `http://localhost:7009/hub/*` (SignalR)
+- `http://10.0.10.153/` ? Serves React app (index.html)
+- `http://10.0.10.153/api/*` ? Forwards to `http://localhost:7009/api/*`
+- `http://10.0.10.153/hub/*` ? Forwards to `http://localhost:7009/hub/*` (SignalR)
 
 ---
 
@@ -91,7 +91,7 @@ New-WebBinding -Name "FMS-Frontend" -IPAddress "*" -Port 80 -Protocol http
 
 ```powershell
 # Build React app
-cd C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend
+cd C:\Users\kkagiri\source\repos\Tenacity.Fms\fms.frontend
 npm run build:prod
 
 # Copy build files to IIS
@@ -244,11 +244,11 @@ Invoke-WebRequest -Uri "http://10.0.10.153/dashboard" -UseBasicParsing
 ### 3. Browser Testing
 
 1. Open `http://10.0.10.153/` in browser
-2. Open Developer Tools → Network tab
+2. Open Developer Tools ? Network tab
 3. Login
 4. Verify requests go to:
-   - `http://10.0.10.153/api/v1/User/Login` ✅
-   - NOT `http://10.0.10.153:7009/api/v1/User/Login` ❌
+   - `http://10.0.10.153/api/v1/User/Login` ?
+   - NOT `http://10.0.10.153:7009/api/v1/User/Login` ?
 
 ### 4. Check IIS Logs
 
@@ -258,9 +258,9 @@ C:\inetpub\logs\LogFiles\W3SVC[site-id]\
 ```
 
 **Look for:**
-- `GET /` → 200 (serves index.html)
-- `POST /api/v1/User/Login` → 200 or 401 (forwarded successfully)
-- `GET /dashboard` → 200 (React route, serves index.html)
+- `GET /` ? 200 (serves index.html)
+- `POST /api/v1/User/Login` ? 200 or 401 (forwarded successfully)
+- `GET /dashboard` ? 200 (React route, serves index.html)
 
 ---
 
@@ -295,7 +295,7 @@ Set-WebConfigurationProperty -PSPath 'MACHINE/WEBROOT/APPHOST' -Filter "system.w
 
 **Solution:** Add WebSocket support to ARR:
 ```powershell
-# In IIS Manager → Server → Application Request Routing → Server Proxy Settings
+# In IIS Manager ? Server ? Application Request Routing ? Server Proxy Settings
 # Enable: "Enable proxy" and "WebSocket"
 ```
 
@@ -328,7 +328,7 @@ builder.Services.AddCors(options =>
 **Solution:**
 ```powershell
 # Rebuild and redeploy
-cd C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend
+cd C:\Users\kkagiri\source\repos\Tenacity.Fms\fms.frontend
 npm run build:prod
 Remove-Item "C:\inetpub\wwwroot\fms-frontend\*" -Recurse -Force
 Copy-Item -Path "build\*" -Destination "C:\inetpub\wwwroot\fms-frontend" -Recurse -Force
@@ -349,7 +349,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$FrontendSourcePath = "C:\Users\kkagiri\source\repos\Tenacy.Fms\fms.frontend"
+$FrontendSourcePath = "C:\Users\kkagiri\source\repos\Tenacity.Fms\fms.frontend"
 $IISFrontendPath = "C:\inetpub\wwwroot\fms-frontend"
 
 Write-Host "=== FMS Frontend Deployment ===" -ForegroundColor Cyan
@@ -363,7 +363,7 @@ if (-not $SkipBuild) {
         if ($LASTEXITCODE -ne 0) {
             throw "Build failed with exit code $LASTEXITCODE"
         }
-        Write-Host "✓ Build successful" -ForegroundColor Green
+        Write-Host "? Build successful" -ForegroundColor Green
     }
     finally {
         Pop-Location
@@ -384,7 +384,7 @@ if (Test-Path $IISFrontendPath) {
     Write-Host "Backing up current deployment to $BackupPath..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $BackupPath | Out-Null
     Copy-Item -Path "$IISFrontendPath\*" -Destination $BackupPath -Recurse -Force
-    Write-Host "✓ Backup created" -ForegroundColor Green
+    Write-Host "? Backup created" -ForegroundColor Green
 }
 
 # Step 4: Clear old files
@@ -397,20 +397,20 @@ if (Test-Path $IISFrontendPath) {
 Write-Host "Deploying new files..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Force -Path $IISFrontendPath | Out-Null
 Copy-Item -Path "$FrontendSourcePath\build\*" -Destination $IISFrontendPath -Recurse -Force
-Write-Host "✓ Files deployed" -ForegroundColor Green
+Write-Host "? Files deployed" -ForegroundColor Green
 
 # Step 6: Create/update web.config if missing
 $WebConfigPath = Join-Path $IISFrontendPath "web.config"
 if (-not (Test-Path $WebConfigPath)) {
     Write-Host "Creating web.config..." -ForegroundColor Yellow
     # Copy web.config content here (see above)
-    Write-Host "✓ web.config created" -ForegroundColor Green
+    Write-Host "? web.config created" -ForegroundColor Green
 }
 
 # Step 7: Start IIS site
 Write-Host "Starting IIS site..." -ForegroundColor Yellow
 Start-WebSite -Name "FMS-Frontend"
-Write-Host "✓ IIS site started" -ForegroundColor Green
+Write-Host "? IIS site started" -ForegroundColor Green
 
 # Step 8: Test deployment
 Write-Host "Testing deployment..." -ForegroundColor Yellow
@@ -418,11 +418,11 @@ Start-Sleep -Seconds 3
 try {
     $response = Invoke-WebRequest -Uri "http://10.0.10.153/" -UseBasicParsing -TimeoutSec 10
     if ($response.StatusCode -eq 200) {
-        Write-Host "✓ Frontend is accessible" -ForegroundColor Green
+        Write-Host "? Frontend is accessible" -ForegroundColor Green
     }
 }
 catch {
-    Write-Host "⚠ Warning: Could not verify frontend accessibility" -ForegroundColor Red
+    Write-Host "? Warning: Could not verify frontend accessibility" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
 }
 
@@ -473,17 +473,17 @@ Restrict API access to local network only:
 ## Summary
 
 **Before:**
-- Browser → `http://10.0.10.153:7009/api/` → 405 Error (wrong port)
+- Browser ? `http://10.0.10.153:7009/api/` ? 405 Error (wrong port)
 
 **After:**
-- Browser → `http://10.0.10.153/api/` → IIS URL Rewrite → `http://localhost:7009/api/` → ✅ Success!
+- Browser ? `http://10.0.10.153/api/` ? IIS URL Rewrite ? `http://localhost:7009/api/` ? ? Success!
 
 **Benefits:**
-- ✅ Clean URLs (no port number for users)
-- ✅ No CORS issues (same-origin)
-- ✅ Frontend and API separated but accessible
-- ✅ Easy to add HTTPS later
-- ✅ Can add load balancing/caching
+- ? Clean URLs (no port number for users)
+- ? No CORS issues (same-origin)
+- ? Frontend and API separated but accessible
+- ? Easy to add HTTPS later
+- ? Can add load balancing/caching
 
 ---
 

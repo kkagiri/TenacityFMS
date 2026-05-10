@@ -1,4 +1,4 @@
-﻿# Team Re-Sync Instructions
+# Team Re-Sync Instructions
 ## After Git History Cleanup
 
 **Date**: [INSERT DATE]
@@ -7,27 +7,27 @@
 
 ---
 
-## 🚨 URGENT: Action Required
+## ?? URGENT: Action Required
 
-The Tenacy.FMS git repository history has been cleaned to remove exposed security credentials. **You MUST re-clone the repository**. Do NOT try to pull or rebase - it will not work!
+The Tenacity.FMS git repository history has been cleaned to remove exposed security credentials. **You MUST re-clone the repository**. Do NOT try to pull or rebase - it will not work!
 
 ---
 
-## ⏱️ Estimated Time
+## ?? Estimated Time
 
 - **Experienced developers**: 15-20 minutes
 - **New developers**: 30-45 minutes
 
 ---
 
-## 📋 Step-by-Step Instructions
+## ?? Step-by-Step Instructions
 
 ### Step 1: Save Your Current Work (5 minutes)
 
 **Check for uncommitted changes:**
 
 ```bash
-cd Tenacy.FMS
+cd Tenacity.FMS
 git status
 ```
 
@@ -55,7 +55,7 @@ mkdir ~/tenacy-backup-$(date +%Y%m%d)
 cp -r . ~/tenacy-backup-$(date +%Y%m%d)/
 ```
 
-✅ **Verify**: Your work is saved securely
+? **Verify**: Your work is saved securely
 
 ---
 
@@ -65,28 +65,28 @@ cp -r . ~/tenacy-backup-$(date +%Y%m%d)/
 
 ```bash
 cd ..
-pwd  # Should show directory ABOVE Tenacy.FMS
+pwd  # Should show directory ABOVE Tenacity.FMS
 ```
 
 **Option A: Delete completely (if you saved work)**
 ```bash
-rm -rf Tenacy.FMS
+rm -rf Tenacity.FMS
 ```
 
 **Option B: Archive (safer - recommended)**
 ```bash
-mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
+mv Tenacity.FMS Tenacity.FMS.OLD-$(date +%Y%m%d)
 ```
 
-✅ **Verify**: `ls` should NOT show Tenacy.FMS directory
+? **Verify**: `ls` should NOT show Tenacity.FMS directory
 
 ---
 
 ### Step 3: Clone Fresh Repository (3 minutes)
 
 ```bash
-git clone https://github.com/your-org/Tenacy.FMS.git
-cd Tenacy.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
+cd Tenacity.FMS
 ```
 
 **Verify the cleanup worked:**
@@ -102,7 +102,7 @@ git log --all -S "Tenacy2030"
 git log --all --full-history -- '**/setup-environment.ps1'
 ```
 
-✅ **Verify**: Old passwords do not appear in history
+? **Verify**: Old passwords do not appear in history
 
 ---
 
@@ -174,9 +174,9 @@ cat > appsettings.Testing.json << 'EOF'
 EOF
 ```
 
-**⚠️ IMPORTANT**: Use TEST database, not production!
+**?? IMPORTANT**: Use TEST database, not production!
 
-✅ **Verify**: All config files exist and have valid settings
+? **Verify**: All config files exist and have valid settings
 
 ---
 
@@ -186,17 +186,17 @@ EOF
 
 **Linux/Mac/Git Bash:**
 ```bash
-cd /path/to/Tenacy.FMS
+cd /path/to/Tenacity.FMS
 ./scripts/setup-git-hooks.sh
 ```
 
 **Windows PowerShell:**
 ```powershell
-cd C:\path\to\Tenacy.FMS
+cd C:\path\to\Tenacity.FMS
 .\scripts\setup-git-hooks.ps1
 ```
 
-✅ **Verify**: Hook installed successfully message appears
+? **Verify**: Hook installed successfully message appears
 
 ---
 
@@ -219,10 +219,10 @@ git stash apply stash@{0}
 
 ```bash
 # If old repo still exists
-cd ../Tenacy.FMS.OLD-$(date +%Y%m%d)
+cd ../Tenacity.FMS.OLD-$(date +%Y%m%d)
 git show temp-backup-YYYYMMDD > ../my-changes.patch
 
-cd ../Tenacy.FMS
+cd ../Tenacity.FMS
 git apply ../my-changes.patch
 
 # Or manually copy files you need
@@ -235,7 +235,7 @@ git apply ../my-changes.patch
 cp ~/tenacy-backup-*/path/to/changed/file .
 ```
 
-✅ **Verify**: Your changes are back
+? **Verify**: Your changes are back
 
 ---
 
@@ -283,7 +283,7 @@ npm start
 3. Navigate to a few pages
 4. Verify data loads
 
-✅ **Verify**: Everything works as before
+? **Verify**: Everything works as before
 
 ---
 
@@ -297,21 +297,21 @@ npm start
 ```
 I have successfully completed the git repository re-sync:
 
-✓ Repository re-cloned
-✓ Configuration files restored
-✓ Git hooks installed
-✓ Application tested and working
+? Repository re-cloned
+? Configuration files restored
+? Git hooks installed
+? Application tested and working
 
 Name: [YOUR NAME]
 Date Completed: [DATE]
 Any Issues: [NONE or describe]
 ```
 
-✅ **Done!**
+? **Done!**
 
 ---
 
-## 🆘 Troubleshooting
+## ?? Troubleshooting
 
 ### Issue: "Can't find old repo to restore stash"
 
@@ -401,20 +401,20 @@ sudo ufw allow 3306  # Linux
 **Solution**:
 ```bash
 cd ..
-rm -rf Tenacy.FMS
-git clone https://github.com/your-org/Tenacy.FMS.git
+rm -rf Tenacity.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
 ```
 
 **Verify cleanup**:
 ```bash
-cd Tenacy.FMS
+cd Tenacity.FMS
 git log --all -S "Niwewenamimi1000"
 # Should show NO results
 ```
 
 ---
 
-## 📞 Need Help?
+## ?? Need Help?
 
 ### Quick Questions
 - **Slack**: #engineering (if available)
@@ -431,7 +431,7 @@ git log --all -S "Niwewenamimi1000"
 
 ---
 
-## ✅ Completion Checklist
+## ? Completion Checklist
 
 Print this and check off as you go:
 
@@ -458,19 +458,19 @@ Print this and check off as you go:
 
 ---
 
-## 🔐 Security Reminder
+## ?? Security Reminder
 
 **Now that history is clean:**
-- ✅ Old passwords are removed from git history
-- ✅ Configuration files are no longer tracked
-- ✅ Pre-commit hooks prevent future exposure
+- ? Old passwords are removed from git history
+- ? Configuration files are no longer tracked
+- ? Pre-commit hooks prevent future exposure
 
 **Your responsibility:**
-- ⚠️ NEVER commit real config files (use .example)
-- ⚠️ NEVER hardcode passwords in code
-- ⚠️ ALWAYS use environment variables for secrets
-- ⚠️ ALWAYS let pre-commit hooks run (don't bypass)
+- ?? NEVER commit real config files (use .example)
+- ?? NEVER hardcode passwords in code
+- ?? ALWAYS use environment variables for secrets
+- ?? ALWAYS let pre-commit hooks run (don't bypass)
 
 ---
 
-**Thank you for your cooperation in improving our security! 🛡️**
+**Thank you for your cooperation in improving our security! ???**

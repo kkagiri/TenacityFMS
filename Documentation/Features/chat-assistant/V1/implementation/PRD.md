@@ -7,13 +7,13 @@ Last Modified: 2026-03-13
 
 # Product Requirements Document: AI Chat Assistant
 
-| Field       | Value                                    |
-|-------------|------------------------------------------|
-| Version     | 1.0                                      |
-| Date        | 2026-03-13                               |
-| Status      | Draft                                    |
-| Author      | FMS Engineering                          |
-| Module      | ChatAssistant                            |
+| Field   | Value           |
+| ------- | --------------- |
+| Version | 1.0             |
+| Date    | 2026-03-13      |
+| Status  | Draft           |
+| Author  | FMS Engineering |
+| Module  | ChatAssistant   |
 
 ---
 
@@ -47,16 +47,16 @@ FMS users currently must navigate between multiple modules (vehicles, tanks, tri
 
 ## 3. Goals
 
-| # | Goal |
-|---|------|
-| G1 | Provide a natural-language interface to query FMS data |
-| G2 | Enforce role-based access — users only see data their permissions allow |
-| G3 | Support all major FMS domains: vehicles, fuel, tanks, trips, sites, issues, notifications |
-| G4 | Stream responses in real-time for a responsive conversation experience |
-| G5 | Use a tool/function-calling architecture so the LLM never touches the database directly |
-| G6 | Keep conversation state in-memory (session-only, no database persistence in V1) |
-| G7 | Provide both a floating chat widget (accessible from any page) and a dedicated chat page |
-| G8 | Make the AI provider pluggable (OpenAI today, Azure OpenAI or local LLM later) |
+| #   | Goal                                                                                      |
+| --- | ----------------------------------------------------------------------------------------- |
+| G1  | Provide a natural-language interface to query FMS data                                    |
+| G2  | Enforce role-based access — users only see data their permissions allow                   |
+| G3  | Support all major FMS domains: vehicles, fuel, tanks, trips, sites, issues, notifications |
+| G4  | Stream responses in real-time for a responsive conversation experience                    |
+| G5  | Use a tool/function-calling architecture so the LLM never touches the database directly   |
+| G6  | Keep conversation state in-memory (session-only, no database persistence in V1)           |
+| G7  | Provide both a floating chat widget (accessible from any page) and a dedicated chat page  |
+| G8  | Make the AI provider pluggable (OpenAI today, Azure OpenAI or local LLM later)            |
 
 ---
 
@@ -92,14 +92,14 @@ FMS users currently must navigate between multiple modules (vehicles, tanks, tri
 
 ## 5. Users
 
-| Persona | How They Use the Assistant |
-|---------|---------------------------|
-| **Fleet Manager** | "How many trips did vehicle KBZ 456B complete today?", "Show me vehicles with expired documents" |
-| **Fuel Auditor** | "What's the fuel variance for Site Alpha this week?", "Which vehicles have negative fuel consumption?" |
-| **Site Manager** | "How many vehicles are on-site right now?", "What's the current tank stock?" |
-| **Dispatcher** | "Which vehicles are currently in transit?", "Show me the last known location of KCB 789C" |
-| **Operations Manager** | "Give me a daily summary of fleet activity", "What are the open high-priority issues?" |
-| **New User** | "Where can I see fuel refill history?", "How do I create a maintenance record?" (navigation help) |
+| Persona                | How They Use the Assistant                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Fleet Manager**      | "How many trips did vehicle KBZ 456B complete today?", "Show me vehicles with expired documents"       |
+| **Fuel Auditor**       | "What's the fuel variance for Site Alpha this week?", "Which vehicles have negative fuel consumption?" |
+| **Site Manager**       | "How many vehicles are on-site right now?", "What's the current tank stock?"                           |
+| **Dispatcher**         | "Which vehicles are currently in transit?", "Show me the last known location of KCB 789C"              |
+| **Operations Manager** | "Give me a daily summary of fleet activity", "What are the open high-priority issues?"                 |
+| **New User**           | "Where can I see fuel refill history?", "How do I create a maintenance record?" (navigation help)      |
 
 ---
 
@@ -149,6 +149,7 @@ FMS users currently must navigate between multiple modules (vehicles, tanks, tri
 ### 6.2 Tool / Function-Calling Pattern
 
 The LLM never accesses the database. Instead, it selects from a registry of **tools** — each tool is a typed function that:
+
 1. Accepts structured parameters (e.g., `vehicleId`, `dateFrom`, `dateTo`)
 2. Executes a scoped, read-only query against `GpsdataContext`
 3. Filters results by the calling user's site access and RBAC permissions
@@ -164,27 +165,27 @@ User: "What's the fuel level for Tank 3 at Juja?"
 
 ### 6.3 Tool Categories
 
-| Category | Tool Name | Description | Data Source |
-|----------|-----------|-------------|-------------|
-| **Vehicle** | `get_vehicles` | List vehicles with filters (site, type, status) | `Vehicles` |
-| **Vehicle** | `get_vehicle_detail` | Single vehicle full detail | `Vehicles` + relations |
-| **Vehicle** | `get_vehicle_location` | Last known GPS location | `VehicleLastKnownLocations` |
-| **Vehicle** | `get_vehicles_at_site` | Vehicles currently at a given site | `VehicleLastKnownLocations` + `GpsGeofences` |
-| **Trip** | `get_vehicle_trips` | Trip history with filters (vehicle, site, date range) | `VehicleTrips` |
-| **Trip** | `get_in_progress_trips` | Currently active trips | `VehicleTrips` (InProgress) |
-| **Trip** | `get_trip_summary` | Aggregated trip counts, distance, duration | `VehicleTrips` + `VehicleTripGroups` |
-| **Fuel** | `get_tank_stock` | Current tank stock levels | `Tankstocks` + `Tanks` |
-| **Fuel** | `get_fuel_refills` | Recent fuel refill transactions | `FuelRefills` |
-| **Fuel** | `get_fuel_consumption` | Vehicle fuel consumption summary | `Vehicleconsumptions` |
-| **Fuel** | `get_fuel_audit_summary` | Fuel audit variance summary | `FuelAudits` + `FuelAuditVariances` |
-| **Site** | `get_sites` | List all sites user has access to | `Sites` |
-| **Site** | `get_site_summary` | Site overview (vehicle count, tank count, alerts) | `Sites` + aggregations |
-| **Issue** | `get_open_issues` | Open issues with filters | `Issuetrackers` |
-| **Issue** | `get_issue_summary` | Issue counts by priority/status | `Issuetrackers` aggregated |
-| **Notification** | `get_recent_alerts` | Recent notifications/alerts | `Notifications` |
-| **Maintenance** | `get_upcoming_maintenance` | Vehicles due for maintenance | `VehicleDocuments` (expiring) |
-| **Navigation** | `get_page_link` | Generate deep link to an FMS page | Static route map |
-| **System** | `get_system_status` | System health overview | `SystemConfigurations` + services |
+| Category         | Tool Name                  | Description                                           | Data Source                                  |
+| ---------------- | -------------------------- | ----------------------------------------------------- | -------------------------------------------- |
+| **Vehicle**      | `get_vehicles`             | List vehicles with filters (site, type, status)       | `Vehicles`                                   |
+| **Vehicle**      | `get_vehicle_detail`       | Single vehicle full detail                            | `Vehicles` + relations                       |
+| **Vehicle**      | `get_vehicle_location`     | Last known GPS location                               | `VehicleLastKnownLocations`                  |
+| **Vehicle**      | `get_vehicles_at_site`     | Vehicles currently at a given site                    | `VehicleLastKnownLocations` + `GpsGeofences` |
+| **Trip**         | `get_vehicle_trips`        | Trip history with filters (vehicle, site, date range) | `VehicleTrips`                               |
+| **Trip**         | `get_in_progress_trips`    | Currently active trips                                | `VehicleTrips` (InProgress)                  |
+| **Trip**         | `get_trip_summary`         | Aggregated trip counts, distance, duration            | `VehicleTrips` + `VehicleTripGroups`         |
+| **Fuel**         | `get_tank_stock`           | Current tank stock levels                             | `Tankstocks` + `Tanks`                       |
+| **Fuel**         | `get_fuel_refills`         | Recent fuel refill transactions                       | `FuelRefills`                                |
+| **Fuel**         | `get_fuel_consumption`     | Vehicle fuel consumption summary                      | `Vehicleconsumptions`                        |
+| **Fuel**         | `get_fuel_audit_summary`   | Fuel audit variance summary                           | `FuelAudits` + `FuelAuditVariances`          |
+| **Site**         | `get_sites`                | List all sites user has access to                     | `Sites`                                      |
+| **Site**         | `get_site_summary`         | Site overview (vehicle count, tank count, alerts)     | `Sites` + aggregations                       |
+| **Issue**        | `get_open_issues`          | Open issues with filters                              | `Issuetrackers`                              |
+| **Issue**        | `get_issue_summary`        | Issue counts by priority/status                       | `Issuetrackers` aggregated                   |
+| **Notification** | `get_recent_alerts`        | Recent notifications/alerts                           | `Notifications`                              |
+| **Maintenance**  | `get_upcoming_maintenance` | Vehicles due for maintenance                          | `VehicleDocuments` (expiring)                |
+| **Navigation**   | `get_page_link`            | Generate deep link to an FMS page                     | Static route map                             |
+| **System**       | `get_system_status`        | System health overview                                | `SystemConfigurations` + services            |
 
 ### 6.4 Security Model
 
@@ -256,21 +257,21 @@ FMS.WebClient/Controllers/ChatAssistant/
 
 **Endpoints:**
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/v1/chat/send` | Send a user message, receive AI response |
-| `GET` | `/api/v1/chat/suggestions` | Get context-aware suggestion chips |
+| Method | Route                      | Description                              |
+| ------ | -------------------------- | ---------------------------------------- |
+| `POST` | `/api/v1/chat/send`        | Send a user message, receive AI response |
+| `GET`  | `/api/v1/chat/suggestions` | Get context-aware suggestion chips       |
 
 ### 7.3 SignalR Integration
 
 Streaming uses the existing `FrontendHub` to push partial tokens:
 
-| Event | Direction | Payload |
-|-------|-----------|---------|
-| `ChatTokenReceived` | Server → Client | `{ conversationId, token, isComplete }` |
-| `ChatToolCallStarted` | Server → Client | `{ conversationId, toolName }` |
-| `ChatToolCallCompleted` | Server → Client | `{ conversationId, toolName }` |
-| `ChatError` | Server → Client | `{ conversationId, error }` |
+| Event                   | Direction       | Payload                                 |
+| ----------------------- | --------------- | --------------------------------------- |
+| `ChatTokenReceived`     | Server → Client | `{ conversationId, token, isComplete }` |
+| `ChatToolCallStarted`   | Server → Client | `{ conversationId, toolName }`          |
+| `ChatToolCallCompleted` | Server → Client | `{ conversationId, toolName }`          |
+| `ChatError`             | Server → Client | `{ conversationId, error }`             |
 
 ### 7.4 Configuration (`appsettings.json`)
 
@@ -285,7 +286,7 @@ Streaming uses the existing `FrontendHub` to push partial tokens:
     "MaxConversationTurns": 20,
     "MaxToolCallsPerTurn": 5,
     "RateLimitPerUserPerMinute": 10,
-    "SystemPromptTemplate": "You are an intelligent assistant for the Tenacy Fleet Management System (FMS). You help fleet managers, fuel auditors, and operations staff query live fleet data. Always be concise, accurate, and cite numbers. Only answer questions about FMS fleet data — politely decline unrelated requests.",
+    "SystemPromptTemplate": "You are an intelligent assistant for the Tenacity Fleet Management System (FMS). You help fleet managers, fuel auditors, and operations staff query live fleet data. Always be concise, accurate, and cite numbers. Only answer questions about FMS fleet data — politely decline unrelated requests.",
     "Enabled": true
   }
 }
@@ -533,29 +534,29 @@ fms.frontend/src/pages/chatAssistant/
 
 ## 10. Rate Limiting & Guardrails
 
-| Guardrail | Default | Configurable |
-|-----------|---------|--------------|
-| Messages per user per minute | 10 | Yes (`appsettings.json`) |
-| Max conversation turns per session | 20 | Yes |
-| Max tool calls per single turn | 5 | Yes |
-| Max tokens per response | 4,096 | Yes |
-| Max input message length | 2,000 chars | Yes |
-| LLM request timeout | 30 seconds | Yes |
+| Guardrail                          | Default     | Configurable             |
+| ---------------------------------- | ----------- | ------------------------ |
+| Messages per user per minute       | 10          | Yes (`appsettings.json`) |
+| Max conversation turns per session | 20          | Yes                      |
+| Max tool calls per single turn     | 5           | Yes                      |
+| Max tokens per response            | 4,096       | Yes                      |
+| Max input message length           | 2,000 chars | Yes                      |
+| LLM request timeout                | 30 seconds  | Yes                      |
 
-When a rate limit is hit, the assistant responds with a friendly message: *"You're sending messages quite fast! Please wait a moment before your next question."*
+When a rate limit is hit, the assistant responds with a friendly message: _"You're sending messages quite fast! Please wait a moment before your next question."_
 
 ---
 
 ## 11. Error Handling
 
-| Scenario | User-Facing Behavior |
-|----------|---------------------|
-| OpenAI API down / timeout | "I'm having trouble connecting right now. Please try again in a moment." |
-| Invalid tool call from LLM | Log error, respond: "I encountered an issue processing your request. Please try rephrasing." |
-| Permission denied on all tools | "I can't access the data you're asking about with your current permissions." |
-| Rate limit exceeded | "Please wait a moment before sending another message." |
-| Chat feature disabled | FAB hidden, route shows "Chat Assistant is currently disabled." |
-| Conversation too long | Auto-summarize or reset: "Our conversation is getting long. Let me start fresh." |
+| Scenario                       | User-Facing Behavior                                                                         |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| OpenAI API down / timeout      | "I'm having trouble connecting right now. Please try again in a moment."                     |
+| Invalid tool call from LLM     | Log error, respond: "I encountered an issue processing your request. Please try rephrasing." |
+| Permission denied on all tools | "I can't access the data you're asking about with your current permissions."                 |
+| Rate limit exceeded            | "Please wait a moment before sending another message."                                       |
+| Chat feature disabled          | FAB hidden, route shows "Chat Assistant is currently disabled."                              |
+| Conversation too long          | Auto-summarize or reset: "Our conversation is getting long. Let me start fresh."             |
 
 ---
 
@@ -586,16 +587,17 @@ VALUES ('ChatAssistant.Enabled', 'true', 'Enable or disable the AI Chat Assistan
 
 ## 13. Dependencies
 
-| Dependency | Version | Purpose |
-|------------|---------|---------|
-| **OpenAI .NET SDK** | Latest stable | Official OpenAI API client |
-| **System.Text.Json** | Built-in (.NET 8) | JSON serialization for tool schemas |
-| **react-markdown** | ^9.x | Markdown rendering in chat bubbles |
-| **@microsoft/signalr** | Existing | Token streaming (already in project) |
+| Dependency             | Version           | Purpose                              |
+| ---------------------- | ----------------- | ------------------------------------ |
+| **OpenAI .NET SDK**    | Latest stable     | Official OpenAI API client           |
+| **System.Text.Json**   | Built-in (.NET 8) | JSON serialization for tool schemas  |
+| **react-markdown**     | ^9.x              | Markdown rendering in chat bubbles   |
+| **@microsoft/signalr** | Existing          | Token streaming (already in project) |
 
 ### External Service Dependency
 
 The feature depends on the **OpenAI API** (external HTTPS service). The backend must handle:
+
 - API key rotation
 - Network failures / timeouts
 - Rate limiting from OpenAI's side
@@ -605,47 +607,47 @@ The feature depends on the **OpenAI API** (external HTTPS service). The backend 
 
 ## 14. Monitoring & Observability
 
-| Metric | How |
-|--------|-----|
-| Messages sent per user/day | Application log (Serilog structured) |
-| LLM latency (time to first token) | Serilog timing |
-| Tool calls per message | Logged in handler |
-| Errors (LLM failures, permission denials) | Error log + structured event |
-| Token usage (prompt + completion) | Logged per request for cost tracking |
+| Metric                                    | How                                  |
+| ----------------------------------------- | ------------------------------------ |
+| Messages sent per user/day                | Application log (Serilog structured) |
+| LLM latency (time to first token)         | Serilog timing                       |
+| Tool calls per message                    | Logged in handler                    |
+| Errors (LLM failures, permission denials) | Error log + structured event         |
+| Token usage (prompt + completion)         | Logged per request for cost tracking |
 
 ---
 
 ## 15. Future Considerations (V2+)
 
-| Feature | Description |
-|---------|-------------|
-| Persistent chat history | Store conversations in database for audit and continuity |
-| Write operations | Allow chatbot to create issues, schedule maintenance, trigger recompute |
-| RAG over documentation | Embed FMS user guides for help-desk queries |
-| Multi-language | Support additional languages via LLM translation |
-| Voice input | Speech-to-text for hands-free fleet queries |
-| Dashboard widget | Embed chat as a dashboard widget card |
-| Mobile app | React Native chat integration |
-| Custom fine-tuned model | Train on FMS-specific data for higher accuracy |
-| Chart generation | Return visual charts (fuel trends, trip graphs) in responses |
+| Feature                 | Description                                                             |
+| ----------------------- | ----------------------------------------------------------------------- |
+| Persistent chat history | Store conversations in database for audit and continuity                |
+| Write operations        | Allow chatbot to create issues, schedule maintenance, trigger recompute |
+| RAG over documentation  | Embed FMS user guides for help-desk queries                             |
+| Multi-language          | Support additional languages via LLM translation                        |
+| Voice input             | Speech-to-text for hands-free fleet queries                             |
+| Dashboard widget        | Embed chat as a dashboard widget card                                   |
+| Mobile app              | React Native chat integration                                           |
+| Custom fine-tuned model | Train on FMS-specific data for higher accuracy                          |
+| Chart generation        | Return visual charts (fuel trends, trip graphs) in responses            |
 
 ---
 
 ## 16. Acceptance Criteria
 
-| # | Criterion |
-|---|-----------|
-| AC1 | User can open the chat panel from any page via the floating button |
-| AC2 | User can navigate to `/chat-assistant` for the full-page experience |
-| AC3 | User can type a question and receive an AI-generated answer |
-| AC4 | Responses stream token-by-token (no waiting for full response) |
-| AC5 | Chat respects user permissions — cannot access unauthorized data |
-| AC6 | Markdown is properly rendered in responses (tables, bold, lists) |
-| AC7 | Suggestion chips appear and trigger pre-built prompts when clicked |
-| AC8 | Rate limiting works — user sees a friendly message when limit is hit |
-| AC9 | When OpenAI is unreachable, user sees a user-friendly error message |
+| #    | Criterion                                                                |
+| ---- | ------------------------------------------------------------------------ |
+| AC1  | User can open the chat panel from any page via the floating button       |
+| AC2  | User can navigate to `/chat-assistant` for the full-page experience      |
+| AC3  | User can type a question and receive an AI-generated answer              |
+| AC4  | Responses stream token-by-token (no waiting for full response)           |
+| AC5  | Chat respects user permissions — cannot access unauthorized data         |
+| AC6  | Markdown is properly rendered in responses (tables, bold, lists)         |
+| AC7  | Suggestion chips appear and trigger pre-built prompts when clicked       |
+| AC8  | Rate limiting works — user sees a friendly message when limit is hit     |
+| AC9  | When OpenAI is unreachable, user sees a user-friendly error message      |
 | AC10 | Chat button is hidden for users without `_Read_ChatAssistant` permission |
-| AC11 | Conversation state is cleared on page refresh or logout |
-| AC12 | Each tool respects site-level scoping (multi-tenancy) |
-| AC13 | API key is never exposed to the client (backend-only) |
-| AC14 | All chat endpoints return `FMSResponse<T>` |
+| AC11 | Conversation state is cleared on page refresh or logout                  |
+| AC12 | Each tool respects site-level scoping (multi-tenancy)                    |
+| AC13 | API key is never exposed to the client (backend-only)                    |
+| AC14 | All chat endpoints return `FMSResponse<T>`                               |

@@ -1,4 +1,4 @@
-﻿# Quick IIS Test Page Setup
+# Quick IIS Test Page Setup
 
 ## Problem
 Opening HTML files directly (`file://`) causes CORS errors when connecting to SignalR.
@@ -7,7 +7,7 @@ Opening HTML files directly (`file://`) causes CORS errors when connecting to Si
 
 ### Step 1: Copy Test Page to Frontend Folder
 ```powershell
-Copy-Item "c:\dev\Tenacy.FMS\Documentation\Frontend\SIGNALR_WEBSOCKET_TEST.html" `
+Copy-Item "c:\dev\Tenacity.FMS\Documentation\Frontend\SIGNALR_WEBSOCKET_TEST.html" `
           "c:\inetpub\wwwroot\fms.frontend\signalr-test.html" -Force
 ```
 
@@ -33,14 +33,14 @@ http://197.254.33.227/signalr-test.html
 
 ### Option 2: Use Simple HTTP Server (Python)
 ```powershell
-cd c:\dev\Tenacy.FMS\Documentation\Frontend
+cd c:\dev\Tenacity.FMS\Documentation\Frontend
 python -m http.server 8000
 ```
 Then browse to: `http://localhost:8000/SIGNALR_WEBSOCKET_TEST.html`
 
 ### Option 3: Use Simple HTTP Server (Node.js)
 ```powershell
-cd c:\dev\Tenacy.FMS\Documentation\Frontend
+cd c:\dev\Tenacity.FMS\Documentation\Frontend
 npx http-server -p 8000
 ```
 Then browse to: `http://localhost:8000/SIGNALR_WEBSOCKET_TEST.html`
@@ -51,9 +51,9 @@ Then browse to: `http://localhost:8000/SIGNALR_WEBSOCKET_TEST.html`
 
 | Method | Origin | CORS Issue? |
 |--------|--------|-------------|
-| `file://` | null | ❌ Blocked by browser security |
-| `http://10.0.10.153` | http://10.0.10.153 | ✅ Same origin as IIS |
-| `http://localhost:8000` | http://localhost:8000 | ✅ Allowed in CORS config |
+| `file://` | null | ? Blocked by browser security |
+| `http://10.0.10.153` | http://10.0.10.153 | ? Same origin as IIS |
+| `http://localhost:8000` | http://localhost:8000 | ? Allowed in CORS config |
 
 ---
 

@@ -1,4 +1,4 @@
-﻿# FMS IoT Refactoring Guide
+# FMS IoT Refactoring Guide
 ## Implementing ISO 30141 IoT Reference Architecture
 
 ### **Executive Summary**
@@ -58,69 +58,69 @@ using FMS.Application.Features.Dashboard;
 **Responsibility**: Device connectivity, protocol handling, and edge processing
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                   FMS.IoT.Gateway                           │
-├─────────────────────────────────────────────────────────────┤
-│ Core Components:                                           │
-│ • PTSWebSocketListenerService                             │
-│ • DeviceConnectionTracker                                 │
-│ • Protocol Handlers (WebSocket, HTTP, Serial)            │
-│ • Connection Health Monitoring                           │
-│ • Edge Security (Authentication, Encryption)             │
-│ • Buffer Management                                       │
-│                                                           │
-│ Key Interfaces:                                          │
-│ • IDeviceGateway                                         │
-│ • IProtocolHandler                                       │
-│ • IConnectionManager                                     │
-│ • IEdgeProcessor                                         │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+�                   FMS.IoT.Gateway                           �
++-------------------------------------------------------------�
+� Core Components:                                           �
+� � PTSWebSocketListenerService                             �
+� � DeviceConnectionTracker                                 �
+� � Protocol Handlers (WebSocket, HTTP, Serial)            �
+� � Connection Health Monitoring                           �
+� � Edge Security (Authentication, Encryption)             �
+� � Buffer Management                                       �
+�                                                           �
+� Key Interfaces:                                          �
+� � IDeviceGateway                                         �
+� � IProtocolHandler                                       �
+� � IConnectionManager                                     �
+� � IEdgeProcessor                                         �
++-------------------------------------------------------------+
 ```
 
 ### **Layer 2: FMS.IoT.ProcessingEngine**
 **Responsibility**: Message processing, transformation, and routing
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│               FMS.IoT.ProcessingEngine                      │
-├─────────────────────────────────────────────────────────────┤
-│ Core Components:                                           │
-│ • PTSMessageProcessor                                     │
-│ • PacketHandlers (Upload*, Pump*, Tank*)                  │
-│ • Command Processing Pipeline                             │
-│ • Data Transformation Services                           │
-│ • Message Routing Engine                                 │
-│ • Event Processing Complex Event Processing)             │
-│                                                           │
-│ Key Interfaces:                                          │
-│ • IMessageProcessor                                      │
-│ • ICommandProcessor                                      │
-│ • IDataTransformer                                       │
-│ • IEventProcessor                                        │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+�               FMS.IoT.ProcessingEngine                      �
++-------------------------------------------------------------�
+� Core Components:                                           �
+� � PTSMessageProcessor                                     �
+� � PacketHandlers (Upload*, Pump*, Tank*)                  �
+� � Command Processing Pipeline                             �
+� � Data Transformation Services                           �
+� � Message Routing Engine                                 �
+� � Event Processing Complex Event Processing)             �
+�                                                           �
+� Key Interfaces:                                          �
+� � IMessageProcessor                                      �
+� � ICommandProcessor                                      �
+� � IDataTransformer                                       �
+� � IEventProcessor                                        �
++-------------------------------------------------------------+
 ```
 
 ### **Layer 3: FMS.Application (Enhanced)**
 **Responsibility**: Business logic, domain services, and data persistence
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  FMS.Application                            │
-├─────────────────────────────────────────────────────────────┤
-│ Domain Services:                                           │
-│ • TankManagement                                          │
-│ • AutomatedReconciliation                                 │
-│ • Vehicle Management                                      │
-│ • User Management                                         │
-│ • Dashboard Services                                      │
-│ • Notification Services                                   │
-│                                                           │
-│ Key Interfaces:                                          │
-│ • IDomainService                                         │
-│ • IBusinessWorkflow                                      │
-│ • IDataRepository                                        │
-│ • IIntegrationService                                    │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+�                  FMS.Application                            �
++-------------------------------------------------------------�
+� Domain Services:                                           �
+� � TankManagement                                          �
+� � AutomatedReconciliation                                 �
+� � Vehicle Management                                      �
+� � User Management                                         �
+� � Dashboard Services                                      �
+� � Notification Services                                   �
+�                                                           �
+� Key Interfaces:                                          �
+� � IDomainService                                         �
+� � IBusinessWorkflow                                      �
+� � IDataRepository                                        �
+� � IIntegrationService                                    �
++-------------------------------------------------------------+
 ```
 
 ---
@@ -131,7 +131,7 @@ using FMS.Application.Features.Dashboard;
 
 #### Create New Projects
 ```bash
-# From Tenacy.Fms root directory
+# From Tenacity.Fms root directory
 dotnet new classlib -n FMS.IoT.Gateway
 dotnet new classlib -n FMS.IoT.ProcessingEngine
 dotnet new classlib -n FMS.IoT.Contracts  # Shared contracts/interfaces
@@ -660,39 +660,39 @@ namespace FMS.WebClient
 ## **Benefits Achieved**
 
 ### **1. Standardized Architecture**
-- ✅ ISO 30141 compliant structure
-- ✅ Industry-recognized layering
-- ✅ Clear separation of concerns
+- ? ISO 30141 compliant structure
+- ? Industry-recognized layering
+- ? Clear separation of concerns
 
 ### **2. Interoperability**
-- ✅ Standard interfaces for external integration
-- ✅ Protocol-agnostic design
-- ✅ Easy third-party system integration
+- ? Standard interfaces for external integration
+- ? Protocol-agnostic design
+- ? Easy third-party system integration
 
 ### **3. Scalability**
-- ✅ Independent scaling of Gateway, Engine, and Application
-- ✅ Horizontal scaling capabilities
-- ✅ Load balancing at each layer
+- ? Independent scaling of Gateway, Engine, and Application
+- ? Horizontal scaling capabilities
+- ? Load balancing at each layer
 
 ### **4. Security**
-- ✅ Security-by-design at each layer
-- ✅ Isolated security contexts
-- ✅ Comprehensive audit trails
+- ? Security-by-design at each layer
+- ? Isolated security contexts
+- ? Comprehensive audit trails
 
 ### **5. Maintainability**
-- ✅ Well-defined boundaries
-- ✅ Independent testing capabilities
-- ✅ Isolated change impacts
+- ? Well-defined boundaries
+- ? Independent testing capabilities
+- ? Isolated change impacts
 
 ### **6. Vendor Independence**
-- ✅ Standard interfaces reduce lock-in
-- ✅ Protocol flexibility
-- ✅ Technology stack independence
+- ? Standard interfaces reduce lock-in
+- ? Protocol flexibility
+- ? Technology stack independence
 
 ### **7. Regulatory Compliance**
-- ✅ Audit-ready architecture
-- ✅ Compliance documentation
-- ✅ Traceability at all layers
+- ? Audit-ready architecture
+- ? Compliance documentation
+- ? Traceability at all layers
 
 ---
 

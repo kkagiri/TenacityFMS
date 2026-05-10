@@ -24,7 +24,7 @@
 
 ## 1. Problem
 
-Tenacy FMS sells fuel to external customers in Kenya from sites running PTS-controlled pumps. Every taxable sale (fuel, lubricants, shop items) must be fiscalised by KRA eTIMS before a valid receipt can be issued, and item/customer/stock movement data must be reported to KRA. Today FMS has no fiscal layer:
+Tenacity FMS sells fuel to external customers in Kenya from sites running PTS-controlled pumps. Every taxable sale (fuel, lubricants, shop items) must be fiscalised by KRA eTIMS before a valid receipt can be issued, and item/customer/stock movement data must be reported to KRA. Today FMS has no fiscal layer:
 
 - No signing of sale invoices (illegal to issue receipts to external customers in KE).
 - No KRA item registration for fuel SKUs.

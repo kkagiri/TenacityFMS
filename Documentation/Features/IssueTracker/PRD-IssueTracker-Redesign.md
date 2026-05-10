@@ -1,4 +1,5 @@
 ﻿# Product Requirements Document (PRD)
+
 # Issue Tracker System Redesign
 
 **Document Version:** 1.0
@@ -11,9 +12,11 @@
 ## 1. Executive Summary
 
 ### 1.1 Purpose
+
 Redesign the Issue Tracker system to provide a device-type-driven, template-based issue management solution with automated monitoring, auto-resolution capabilities, and Active Alarm integration.
 
 ### 1.2 Goals
+
 1. Simplify issue creation with device-type-specific templates
 2. Enable automated issue creation from device monitoring
 3. Implement smart auto-close based on configurable parameters
@@ -21,6 +24,7 @@ Redesign the Issue Tracker system to provide a device-type-driven, template-base
 5. Align frontend with backend entity structure
 
 ### 1.3 Scope
+
 - Backend: New entities, APIs, and background services
 - Frontend: Redesigned forms, admin settings, and dashboard
 - Integration: Active Alarms, Device Monitoring, Notifications
@@ -30,6 +34,7 @@ Redesign the Issue Tracker system to provide a device-type-driven, template-base
 ## 2. Current State Analysis
 
 ### 2.1 Existing Backend Entity (Issuetracker.cs)
+
 ```
 | Field              | Type      | Status      |
 |--------------------|-----------|-------------|
@@ -53,13 +58,14 @@ Redesign the Issue Tracker system to provide a device-type-driven, template-base
 ```
 
 ### 2.2 Frontend Fields to Remove
-| Field           | Reason                              |
-|-----------------|-------------------------------------|
-| budget          | Not in backend                      |
-| openby (editable)| Should auto-set to current user    |
-| isUrgent        | Redundant - use Priority            |
-| notes           | Redundant - use ProblemDescription  |
-| requiresApproval| Should be backend workflow setting  |
+
+| Field             | Reason                             |
+| ----------------- | ---------------------------------- |
+| budget            | Not in backend                     |
+| openby (editable) | Should auto-set to current user    |
+| isUrgent          | Redundant - use Priority           |
+| notes             | Redundant - use ProblemDescription |
+| requiresApproval  | Should be backend workflow setting |
 
 ---
 
@@ -68,6 +74,7 @@ Redesign the Issue Tracker system to provide a device-type-driven, template-base
 ### 3.1 New Database Entities
 
 #### 3.1.1 DeviceType (New)
+
 ```csharp
 public class DeviceType
 {
@@ -87,6 +94,7 @@ public class DeviceType
 ```
 
 #### 3.1.2 IssueTemplate (New - Replaces IssueCategory)
+
 ```csharp
 public class IssueTemplate
 {
@@ -113,6 +121,7 @@ public class IssueTemplate
 ```
 
 #### 3.1.3 IssueAutoCloseConfig (New)
+
 ```csharp
 public class IssueAutoCloseConfig
 {
@@ -130,6 +139,7 @@ public class IssueAutoCloseConfig
 ```
 
 #### 3.1.4 Updated Issuetracker Entity
+
 ```csharp
 public partial class Issuetracker
 {
@@ -315,6 +325,7 @@ POST   /api/issues/autoclose/{id}          - Trigger auto-close check
 ### 4.4 Request/Response DTOs
 
 #### CreateIssueDTO
+
 ```csharp
 public class CreateIssueDTO
 {
@@ -338,6 +349,7 @@ public class CreateIssueDTO
 ```
 
 #### IssueResponseDTO (Updated)
+
 ```csharp
 public class IssueResponseDTO
 {
@@ -409,12 +421,12 @@ public class IssueMonitoringService : BackgroundService
 
 ### 5.2 Auto-Close Checker Types
 
-| Checker Type    | Description                                      | Parameters                          |
-|-----------------|--------------------------------------------------|-------------------------------------|
-| OnlineChecker   | Checks if device is back online                  | minOnlineMinutes, endpoint          |
-| AlarmCleared    | Checks if linked ActiveAlarm is cleared          | -                                   |
-| StatusChecker   | Checks device status endpoint                    | endpoint, expectedStatus            |
-| Custom          | Custom logic via configuration                   | customHandler, parameters           |
+| Checker Type  | Description                             | Parameters                 |
+| ------------- | --------------------------------------- | -------------------------- |
+| OnlineChecker | Checks if device is back online         | minOnlineMinutes, endpoint |
+| AlarmCleared  | Checks if linked ActiveAlarm is cleared | -                          |
+| StatusChecker | Checks device status endpoint           | endpoint, expectedStatus   |
+| Custom        | Custom logic via configuration          | customHandler, parameters  |
 
 ### 5.3 Active Alarm Integration
 
@@ -443,6 +455,7 @@ public async Task OnAlarmCleared(int alarmId)
 ### 6.1 Issue Creation Form (Redesigned)
 
 **Flow:**
+
 1. User selects **Device Type** → Loads available templates
 2. User selects **Issue Template** → Pre-fills title, description, priority
 3. User can override pre-filled values if needed
@@ -450,20 +463,21 @@ public async Task OnAlarmCleared(int alarmId)
 5. Submit → Backend sets Openby, OpenDate, Status automatically
 
 **Fields:**
-| Field            | Type       | Required | Source        |
+| Field | Type | Required | Source |
 |------------------|------------|----------|---------------|
-| Device Type      | Select     | Yes      | User input    |
-| Issue Template   | Select     | Yes      | User input (filtered by device type) |
-| Problem Title    | Text       | Yes      | Template default (editable) |
-| Problem Description | TextArea | Yes    | Template default (editable) |
-| Priority         | Select     | Yes      | Template default (editable) |
-| Vehicle          | Search     | Yes      | User input    |
-| Site             | Select     | Yes      | User input    |
-| Assigned To      | Select     | Yes      | User input    |
-| Due Date         | Date       | No       | Template default (editable) |
-| Related Issue    | Select     | No       | User input    |
+| Device Type | Select | Yes | User input |
+| Issue Template | Select | Yes | User input (filtered by device type) |
+| Problem Title | Text | Yes | Template default (editable) |
+| Problem Description | TextArea | Yes | Template default (editable) |
+| Priority | Select | Yes | Template default (editable) |
+| Vehicle | Search | Yes | User input |
+| Site | Select | Yes | User input |
+| Assigned To | Select | Yes | User input |
+| Due Date | Date | No | Template default (editable) |
+| Related Issue | Select | No | User input |
 
 **Removed Fields:**
+
 - Opened By (auto-set by backend)
 - Budget
 - Is Urgent (use Priority)
@@ -473,12 +487,14 @@ public async Task OnAlarmCleared(int alarmId)
 ### 6.2 Admin Settings Pages
 
 #### 6.2.1 Device Types Management
+
 - List all device types
 - Add/Edit device type
 - Toggle IsMonitored
 - Configure monitoring endpoint
 
 #### 6.2.2 Issue Templates Management
+
 - List templates by device type
 - Add/Edit template
 - Configure:
@@ -490,6 +506,7 @@ public async Task OnAlarmCleared(int alarmId)
   - Auto-close configuration
 
 #### 6.2.3 Auto-Close Configuration
+
 - Per template configuration
 - Select checker type
 - Configure checker parameters
@@ -499,12 +516,14 @@ public async Task OnAlarmCleared(int alarmId)
 ### 6.3 Issue Dashboard Updates
 
 **New Filters:**
+
 - Filter by Device Type
 - Filter by Template
 - Filter by Auto-Created (yes/no)
 - Filter by Can Auto-Close
 
 **New Columns:**
+
 - Device Type (icon + name)
 - Template Name
 - Auto-Close Status
@@ -515,29 +534,30 @@ public async Task OnAlarmCleared(int alarmId)
 
 ### 7.1 Issue Notifications
 
-| Event                    | Recipients         | Channel           |
-|--------------------------|-------------------|-------------------|
-| Issue Created            | Assignee          | In-App, Email     |
-| Issue Assigned           | New Assignee      | In-App, Email     |
-| Issue Overdue            | Assignee, Manager | In-App, Email     |
-| Issue Auto-Closed        | Assignee, Opener  | In-App            |
-| Issue Status Changed     | Watchers          | In-App            |
-| Issue Pending X Days     | Manager           | Email             |
+| Event                | Recipients        | Channel       |
+| -------------------- | ----------------- | ------------- |
+| Issue Created        | Assignee          | In-App, Email |
+| Issue Assigned       | New Assignee      | In-App, Email |
+| Issue Overdue        | Assignee, Manager | In-App, Email |
+| Issue Auto-Closed    | Assignee, Opener  | In-App        |
+| Issue Status Changed | Watchers          | In-App        |
+| Issue Pending X Days | Manager           | Email         |
 
 ### 7.2 Scheduler Jobs
 
-| Job                      | Frequency    | Action                           |
-|--------------------------|--------------|----------------------------------|
-| Check Auto-Close         | Every 15 min | Evaluate auto-close conditions   |
-| Check Overdue Issues     | Daily 8 AM   | Send overdue notifications       |
-| Check Pending Issues     | Daily 8 AM   | Escalate long-pending issues     |
-| Device Monitoring        | Every 5 min  | Create issues for device problems|
+| Job                  | Frequency    | Action                            |
+| -------------------- | ------------ | --------------------------------- |
+| Check Auto-Close     | Every 15 min | Evaluate auto-close conditions    |
+| Check Overdue Issues | Daily 8 AM   | Send overdue notifications        |
+| Check Pending Issues | Daily 8 AM   | Escalate long-pending issues      |
+| Device Monitoring    | Every 5 min  | Create issues for device problems |
 
 ---
 
 ## 8. Implementation Phases
 
 ### Phase 1: Database & Backend Foundation (Week 1-2)
+
 1. Create new entities (DeviceType, IssueTemplate, IssueAutoCloseConfig)
 2. Create database migrations
 3. Seed initial data
@@ -548,6 +568,7 @@ public async Task OnAlarmCleared(int alarmId)
 8. Update Issues API
 
 ### Phase 2: Frontend Cleanup & Basic UI (Week 2-3)
+
 1. Remove unused form fields
 2. Create Device Types dropdown component
 3. Create Issue Templates dropdown (filtered)
@@ -556,18 +577,21 @@ public async Task OnAlarmCleared(int alarmId)
 6. Update Issue filters
 
 ### Phase 3: Admin Configuration (Week 3-4)
+
 1. Device Types management page
 2. Issue Templates management page
 3. Auto-Close configuration UI
 4. Validation and testing
 
 ### Phase 4: Background Services (Week 4-5)
+
 1. Issue Monitoring Service
 2. Auto-Close Checker implementation
 3. Active Alarm integration
 4. Notification service updates
 
 ### Phase 5: Testing & Refinement (Week 5-6)
+
 1. End-to-end testing
 2. Performance optimization
 3. Documentation
@@ -577,67 +601,70 @@ public async Task OnAlarmCleared(int alarmId)
 
 ## 9. Success Metrics
 
-| Metric                          | Target                    |
-|---------------------------------|---------------------------|
-| Issue creation time             | < 30 seconds              |
-| Auto-close accuracy             | > 95%                     |
-| Issues from monitoring          | Tracked and measured      |
-| Manual close rate               | Decrease by 30%           |
-| User satisfaction               | > 4.0/5.0                 |
+| Metric                 | Target               |
+| ---------------------- | -------------------- |
+| Issue creation time    | < 30 seconds         |
+| Auto-close accuracy    | > 95%                |
+| Issues from monitoring | Tracked and measured |
+| Manual close rate      | Decrease by 30%      |
+| User satisfaction      | > 4.0/5.0            |
 
 ---
 
 ## 10. Risks & Mitigations
 
-| Risk                            | Impact | Mitigation                        |
-|---------------------------------|--------|-----------------------------------|
-| Data migration issues           | High   | Careful mapping, test thoroughly  |
-| Auto-close closes valid issues  | Medium | RequiresConfirmation option       |
-| Too many auto-created issues    | Medium | Smart thresholds, deduplication   |
-| Performance with monitoring     | Medium | Efficient queries, caching        |
+| Risk                           | Impact | Mitigation                       |
+| ------------------------------ | ------ | -------------------------------- |
+| Data migration issues          | High   | Careful mapping, test thoroughly |
+| Auto-close closes valid issues | Medium | RequiresConfirmation option      |
+| Too many auto-created issues   | Medium | Smart thresholds, deduplication  |
+| Performance with monitoring    | Medium | Efficient queries, caching       |
 
 ---
 
 ## 11. Appendix
 
 ### A. Placeholder Variables for Templates
-| Placeholder       | Description                    |
-|-------------------|--------------------------------|
-| {VehicleName}     | Vehicle registration/name      |
-| {VehicleCode} | Tenacy vehicle number          |
-| {SiteName}        | Site name                      |
-| {TankName}        | Tank name (for ATG)            |
-| {DeviceName}      | Device identifier              |
-| {DateTime}        | Current date/time              |
+
+| Placeholder   | Description               |
+| ------------- | ------------------------- |
+| {VehicleName} | Vehicle registration/name |
+| {VehicleCode} | Tenacity vehicle number   |
+| {SiteName}    | Site name                 |
+| {TankName}    | Tank name (for ATG)       |
+| {DeviceName}  | Device identifier         |
+| {DateTime}    | Current date/time         |
 
 ### B. Status Values
-| ID | Status      | Description              |
-|----|-------------|--------------------------|
-| 1  | Open        | Newly created            |
-| 2  | In Progress | Being worked on          |
-| 3  | Pending     | Waiting for input        |
-| 4  | Resolved    | Fixed, awaiting verify   |
-| 5  | Closed      | Completed                |
-| 6  | Auto-Closed | Closed by system         |
+
+| ID  | Status      | Description            |
+| --- | ----------- | ---------------------- |
+| 1   | Open        | Newly created          |
+| 2   | In Progress | Being worked on        |
+| 3   | Pending     | Waiting for input      |
+| 4   | Resolved    | Fixed, awaiting verify |
+| 5   | Closed      | Completed              |
+| 6   | Auto-Closed | Closed by system       |
 
 ### C. Priority Values
-| ID | Priority | Description              |
-|----|----------|--------------------------|
-| 1  | Critical | Immediate attention      |
-| 2  | High     | Same day resolution      |
-| 3  | Medium   | Within 3 days            |
-| 4  | Low      | Within 1 week            |
+
+| ID  | Priority | Description         |
+| --- | -------- | ------------------- |
+| 1   | Critical | Immediate attention |
+| 2   | High     | Same day resolution |
+| 3   | Medium   | Within 3 days       |
+| 4   | Low      | Within 1 week       |
 
 ---
 
 **Document Approvals:**
 
-| Role              | Name | Date | Signature |
-|-------------------|------|------|-----------|
-| Product Owner     |      |      |           |
-| Tech Lead         |      |      |           |
-| Development Lead  |      |      |           |
+| Role             | Name | Date | Signature |
+| ---------------- | ---- | ---- | --------- |
+| Product Owner    |      |      |           |
+| Tech Lead        |      |      |           |
+| Development Lead |      |      |           |
 
 ---
 
-*End of Document*
+_End of Document_

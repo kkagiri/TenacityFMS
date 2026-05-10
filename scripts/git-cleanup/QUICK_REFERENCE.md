@@ -1,10 +1,10 @@
-﻿# Git History Cleanup - Quick Reference Card
+# Git History Cleanup - Quick Reference Card
 
 **Print this and keep it handy during cleanup!**
 
 ---
 
-## 🎯 Prerequisites Checklist
+## ?? Prerequisites Checklist
 
 Before starting cleanup:
 
@@ -15,18 +15,18 @@ Before starting cleanup:
 - [ ] **Repository backup created**
 - [ ] **Team re-sync instructions prepared**
 
-**⚠️ DO NOT proceed if any item is unchecked!**
+**?? DO NOT proceed if any item is unchecked!**
 
 ---
 
-## 🚀 Cleanup Process (Administrator)
+## ?? Cleanup Process (Administrator)
 
 ### 1. Create Backup (5 min)
 ```bash
 mkdir -p ~/git-cleanup-backups
 cd ~/git-cleanup-backups
-git clone --mirror https://github.com/your-org/Tenacy.FMS.git
-tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacy.FMS.git
+git clone --mirror https://github.com/your-org/Tenacity.FMS.git
+tar -czf backup-$(date +%Y%m%d-%H%M%S).tar.gz Tenacity.FMS.git
 ```
 
 ### 2. Install BFG (one-time, 2 min)
@@ -42,7 +42,7 @@ java -jar bfg.jar --version  # Test
 ```bash
 mkdir -p ~/git-cleanup
 cd ~/git-cleanup
-git clone --mirror https://github.com/your-org/Tenacy.FMS.git
+git clone --mirror https://github.com/your-org/Tenacity.FMS.git
 ```
 
 ### 4. Run BFG (10 min)
@@ -50,16 +50,16 @@ git clone --mirror https://github.com/your-org/Tenacy.FMS.git
 cd ~/git-cleanup
 java -jar ~/tools/bfg.jar \
   --delete-files '{appsettings.json,appsettings.*.json,.env,setup-*.ps1,setup-*.bat}' \
-  Tenacy.FMS.git
+  Tenacity.FMS.git
 
 java -jar ~/tools/bfg.jar \
   --replace-text passwords-to-remove.txt \
-  Tenacy.FMS.git
+  Tenacity.FMS.git
 ```
 
 ### 5. Clean Refs (5 min)
 ```bash
-cd ~/git-cleanup/Tenacy.FMS.git
+cd ~/git-cleanup/Tenacity.FMS.git
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 ```
@@ -84,21 +84,21 @@ Send team re-sync instructions immediately!
 
 ---
 
-## 👥 Re-Sync Process (Each Developer)
+## ?? Re-Sync Process (Each Developer)
 
 ### Quick Steps (15 min)
 ```bash
 # 1. Save work
-cd Tenacy.FMS
+cd Tenacity.FMS
 git stash save "Before cleanup"
 
 # 2. Delete local repo
 cd ..
-mv Tenacy.FMS Tenacy.FMS.OLD-$(date +%Y%m%d)
+mv Tenacity.FMS Tenacity.FMS.OLD-$(date +%Y%m%d)
 
 # 3. Clone fresh
-git clone https://github.com/your-org/Tenacy.FMS.git
-cd Tenacy.FMS
+git clone https://github.com/your-org/Tenacity.FMS.git
+cd Tenacity.FMS
 
 # 4. Restore config
 cp fms.frontend/.env.example fms.frontend/.env
@@ -117,7 +117,7 @@ dotnet run --project FMS.WebClient
 
 ---
 
-## 🆘 Emergency Contacts
+## ?? Emergency Contacts
 
 **Project Lead**: [NAME] - [EMAIL] - [PHONE]
 **DevOps**: [NAME] - [EMAIL] - [PHONE]
@@ -125,7 +125,7 @@ dotnet run --project FMS.WebClient
 
 ---
 
-## 📋 Passwords to Remove
+## ?? Passwords to Remove
 
 Create `passwords-to-remove.txt`:
 ```
@@ -137,7 +137,7 @@ hk%2bXL3thlikm31JLAon0FjBxyyOtnrUOMCHIP%2bFfrhEXQPffqSrPDVGperVhCXPA==>***REMOVE
 
 ---
 
-## 🔍 Verification Commands
+## ?? Verification Commands
 
 ### Check cleanup worked:
 ```bash
@@ -158,13 +158,13 @@ du -sh .git
 ```
 
 ### Check GitHub:
-1. Go to: https://github.com/your-org/Tenacy.FMS
+1. Go to: https://github.com/your-org/Tenacity.FMS
 2. Search: `"Niwewenamimi1000"`
 3. Should show: **No results**
 
 ---
 
-## 🔄 Rollback Procedure
+## ?? Rollback Procedure
 
 If something goes wrong:
 
@@ -172,7 +172,7 @@ If something goes wrong:
 # Extract backup
 cd ~/git-cleanup-backups
 tar -xzf backup-YYYYMMDD-HHMMSS.tar.gz
-cd Tenacy.FMS.git
+cd Tenacity.FMS.git
 
 # Force push backup
 git push --force --all
@@ -183,7 +183,7 @@ git push --force --tags
 
 ---
 
-## 📊 Timeline
+## ?? Timeline
 
 | Time | Action | Who |
 |------|--------|-----|
@@ -198,26 +198,26 @@ git push --force --tags
 
 ---
 
-## ⚠️ Common Mistakes
+## ?? Common Mistakes
 
-1. **❌ Forgetting to change passwords first**
+1. **? Forgetting to change passwords first**
    - History cleanup is pointless if passwords aren't changed!
 
-2. **❌ Not notifying team**
+2. **? Not notifying team**
    - Developers will be confused and stuck
 
-3. **❌ Not creating backup**
+3. **? Not creating backup**
    - Can't recover if something goes wrong
 
-4. **❌ Force pushing without verification**
+4. **? Force pushing without verification**
    - May need to re-run cleanup
 
-5. **❌ Developers trying to pull instead of re-clone**
+5. **? Developers trying to pull instead of re-clone**
    - Won't work - must re-clone!
 
 ---
 
-## ✅ Success Criteria
+## ? Success Criteria
 
 - [ ] No passwords found in git history
 - [ ] Repository size decreased
@@ -228,7 +228,7 @@ git push --force --tags
 
 ---
 
-## 📚 Full Documentation
+## ?? Full Documentation
 
 - **Complete Guide**: `Documentation/Security/GIT_HISTORY_CLEANUP_GUIDE.md`
 - **Team Instructions**: `scripts/git-cleanup/TEAM_RESYNC_INSTRUCTIONS.md`

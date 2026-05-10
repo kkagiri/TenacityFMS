@@ -1,4 +1,4 @@
-﻿# TankStock Single-Row-Per-Day Implementation Guide
+# TankStock Single-Row-Per-Day Implementation Guide
 
 ## Overview
 
@@ -298,7 +298,7 @@ python consolidate_tankstock_entries.py
 ### Phase 3: Deploy Updated Code
 ```bash
 # Build solution
-dotnet build Tenacy.Fms.sln
+dotnet build Tenacity.Fms.sln
 
 # Deploy backend (stop services first)
 # Copy updated DLLs to production
@@ -363,10 +363,10 @@ ADD UNIQUE INDEX UQ_tankstock_tank_date (TankID, EntryDate);
 
 ### Test 6: Complete Day Flow
 - [ ] Morning: Create opening stock (50L)
-- [ ] 10 AM: Delivery (100L) → verify DeliveryAmount = 100
+- [ ] 10 AM: Delivery (100L) ? verify DeliveryAmount = 100
 - [ ] 11 AM: Dispensing (20L via FuelRefills)
-- [ ] 2 PM: Transfer in (30L) → verify TransferInAmount = 30
-- [ ] 4 PM: Transfer out (15L) → verify TransferOutAmount = 15
+- [ ] 2 PM: Transfer in (30L) ? verify TransferInAmount = 30
+- [ ] 4 PM: Transfer out (15L) ? verify TransferOutAmount = 15
 - [ ] Evening: Closing stock (145L)
 - [ ] Verify single TankStock row has all data:
   ```
@@ -376,7 +376,7 @@ ADD UNIQUE INDEX UQ_tankstock_tank_date (TankID, EntryDate);
   TransferOut: 15L
   Dispensing: 20L (from background service)
   Closing: 145L
-  Expected: 50 + 100 + 30 - 15 - 20 = 145L ✓
+  Expected: 50 + 100 + 30 - 15 - 20 = 145L ?
   ```
 
 ---
@@ -446,20 +446,20 @@ RENAME TABLE tankstock_backup_YYYYMMDD_HHMMSS TO tankstock;
 ## Benefits
 
 ### Data Integrity:
-✅ **Single source of truth** - One row per tank per day
-✅ **Prevents duplicates** - Unique constraint enforced
-✅ **Complete daily picture** - All transactions in one view
-✅ **Easier reconciliation** - All data in single row
+? **Single source of truth** - One row per tank per day
+? **Prevents duplicates** - Unique constraint enforced
+? **Complete daily picture** - All transactions in one view
+? **Easier reconciliation** - All data in single row
 
 ### Query Performance:
-✅ **Simpler queries** - No need to GROUP BY and aggregate multiple rows
-✅ **Better reporting** - Direct access to daily totals
-✅ **Reduced complexity** - PivotGrid and reports simplified
+? **Simpler queries** - No need to GROUP BY and aggregate multiple rows
+? **Better reporting** - Direct access to daily totals
+? **Reduced complexity** - PivotGrid and reports simplified
 
 ### Maintenance:
-✅ **Clear workflow** - Opening creates, others update
-✅ **Automated dispensing** - Background service handles FuelRefills
-✅ **Audit trail preserved** - Soft delete maintains history
+? **Clear workflow** - Opening creates, others update
+? **Automated dispensing** - Background service handles FuelRefills
+? **Audit trail preserved** - Soft delete maintains history
 
 ---
 

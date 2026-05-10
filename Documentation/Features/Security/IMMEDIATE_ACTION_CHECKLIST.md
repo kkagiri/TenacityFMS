@@ -1,12 +1,12 @@
-﻿# 🔴 IMMEDIATE ACTION CHECKLIST
+# ?? IMMEDIATE ACTION CHECKLIST
 ## Critical Security Issues - ACT NOW!
 
 **Date**: 2025-11-05
-**Status**: 🚨 URGENT - Action Required Within 24 Hours
+**Status**: ?? URGENT - Action Required Within 24 Hours
 
 ---
 
-## ⚡ Priority 0: Change Passwords NOW (Next 2 Hours)
+## ? Priority 0: Change Passwords NOW (Next 2 Hours)
 
 ### 1. Database Root Password
 ```bash
@@ -109,7 +109,7 @@ FLUSH PRIVILEGES;
 
 ---
 
-## ⚡ Priority 1: Update Server Environment Variables (Next 4 Hours)
+## ? Priority 1: Update Server Environment Variables (Next 4 Hours)
 
 ### Production Server (10.0.10.153)
 
@@ -139,7 +139,7 @@ Run as Administrator:
 
 # JWT Settings
 [Environment]::SetEnvironmentVariable('JwtSettings__SecretKey', 'GENERATE_NEW_JWT_SECRET_AT_LEAST_32_CHARS', 'Machine')
-[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacy FMS', 'Machine')
+[Environment]::SetEnvironmentVariable('JwtSettings__Issuer', 'Tenacity FMS', 'Machine')
 [Environment]::SetEnvironmentVariable('JwtSettings__Audience', 'FMSUsers', 'Machine')
 
 Write-Host "Environment variables set successfully!" -ForegroundColor Green
@@ -165,12 +165,12 @@ Get-Service | Where-Object {$_.Name -like "*FMS*"}
 
 ---
 
-## ⚡ Priority 2: Remove Secrets from Git (Today)
+## ? Priority 2: Remove Secrets from Git (Today)
 
 ### Step 1: Remove from Current Tracking
 
 ```bash
-cd /home/user/Tenacy.FMS
+cd /home/user/Tenacity.FMS
 
 # Remove sensitive files from git tracking (keeps local files)
 git rm --cached fms.frontend/.env
@@ -250,7 +250,7 @@ scripts/environment/*.bat
 
 ---
 
-## ⚡ Priority 3: Update Application Configuration (Today)
+## ? Priority 3: Update Application Configuration (Today)
 
 ### Update appsettings.json Files
 
@@ -284,7 +284,7 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
   },
   "JwtSettings": {
     "SecretKey": "REPLACED_BY_ENV_VAR",
-    "Issuer": "Tenacy FMS",
+    "Issuer": "Tenacity FMS",
     "Audience": "FMSUsers",
     "ExpireDays": 7
   }
@@ -299,7 +299,7 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
 
 ---
 
-## 📋 Verification Checklist
+## ?? Verification Checklist
 
 ### Passwords Changed
 - [ ] MySQL root password (10.0.10.150)
@@ -329,7 +329,7 @@ For each `appsettings.json` file, replace hardcoded secrets with environment var
 
 ---
 
-## 🔍 Testing After Changes
+## ?? Testing After Changes
 
 ### 1. Test Database Connectivity
 ```bash
@@ -357,7 +357,7 @@ mysql -h 10.0.11.239 -u kkagiri -p -e "SELECT 1;"
 
 ---
 
-## 🚨 If Something Breaks
+## ?? If Something Breaks
 
 ### Rollback Plan
 
@@ -389,7 +389,7 @@ Get-EventLog -LogName Application -Source "FMS*" -Newest 50
 
 ---
 
-## 📞 Emergency Contacts
+## ?? Emergency Contacts
 
 **If you need help**:
 - Development Lead: kevin.kagiri@example.com
@@ -403,7 +403,7 @@ Get-EventLog -LogName Application -Source "FMS*" -Newest 50
 
 ---
 
-## 📝 Progress Tracking
+## ?? Progress Tracking
 
 **Started**: ________________ (Date/Time)
 **Completed**: ________________ (Date/Time)
@@ -440,4 +440,4 @@ Once immediate actions are complete:
 
 **Remember**: Speed is critical, but accuracy is important. Double-check each password change before proceeding to the next step.
 
-**Good luck! 🛡️**
+**Good luck! ???**

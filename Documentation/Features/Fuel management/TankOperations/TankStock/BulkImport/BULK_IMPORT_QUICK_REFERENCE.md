@@ -1,16 +1,16 @@
-﻿# Tank Stock Bulk Import - Quick Reference Guide
+# Tank Stock Bulk Import - Quick Reference Guide
 
-## 🎯 Overview
+## ?? Overview
 
 **Purpose:** Import historical tank stock data from Excel with comprehensive validation.
 
-**Status:** Planning Phase → Implementation Phase 1A
+**Status:** Planning Phase ? Implementation Phase 1A
 
 **Key Feature:** All 11 anomaly detection algorithms run in **backend** (not frontend).
 
 ---
 
-## 📋 Quick Links
+## ?? Quick Links
 
 | Document | Purpose |
 |----------|---------|
@@ -20,51 +20,51 @@
 
 ---
 
-## 🚀 Quick Start (For Developers)
+## ?? Quick Start (For Developers)
 
 ### Phase 1A Implementation Checklist
 
 **Backend (Week 1-2):**
 ```
-□ Create BulkImportRowDTO.cs
-□ Create BulkImportTankStockCommand.cs
-□ Create BulkImportValidationService.cs
-□ Add controller endpoint
-□ Implement basic validation
-□ Handle duplicates
+? Create BulkImportRowDTO.cs
+? Create BulkImportTankStockCommand.cs
+? Create BulkImportValidationService.cs
+? Add controller endpoint
+? Implement basic validation
+? Handle duplicates
 ```
 
 **Frontend (Week 1-2):**
 ```
-□ Create BulkImportManager.js
-□ Add Excel upload (DevExtreme FileUploader)
-□ Parse Excel (xlsx library)
-□ Preview grid
-□ Display validation results
-□ Add to StockManagement tabs
+? Create BulkImportManager.js
+? Add Excel upload (DevExtreme FileUploader)
+? Parse Excel (xlsx library)
+? Preview grid
+? Display validation results
+? Add to StockManagement tabs
 ```
 
 ---
 
-## 📊 11 Anomaly Types (Backend Detection)
+## ?? 11 Anomaly Types (Backend Detection)
 
 | # | Type | Severity | Description |
 |---|------|----------|-------------|
-| 1 | Daily Balance | Medium | Closing ≠ Opening + IN - OUT |
-| 2 | Continuity Break | High | Opening ≠ Previous Closing |
-| 3 | **Cumulative Drift** ⭐ | High | Period total doesn't add up |
-| 4 | **Meter Rollback** ⭐ | Medium | Meter decreased (reset) |
-| 5 | **Meter Mismatch** ⭐ | Low | Meter ≠ Dispensing |
+| 1 | Daily Balance | Medium | Closing ? Opening + IN - OUT |
+| 2 | Continuity Break | High | Opening ? Previous Closing |
+| 3 | **Cumulative Drift** ? | High | Period total doesn't add up |
+| 4 | **Meter Rollback** ? | Medium | Meter decreased (reset) |
+| 5 | **Meter Mismatch** ? | Low | Meter ? Dispensing |
 | 6 | Capacity Overflow | Critical | Stock > Tank capacity |
 | 7 | Negative Stock | Critical | Stock < 0 |
-| 8 | Transfer Imbalance | Medium | OUT ≠ IN same day |
+| 8 | Transfer Imbalance | Medium | OUT ? IN same day |
 | 9 | Zero Movement | Low | Stock changed with no activity |
 | 10 | Implausible Dispensing | High | Dispensing > Capacity |
 | 11 | Delivery No Space | High | Delivery > Available space |
 
 ---
 
-## 🔧 Configuration (Backend)
+## ?? Configuration (Backend)
 
 ### Thresholds
 
@@ -87,52 +87,52 @@ private const decimal TRANSFER_TOLERANCE_LITERS = 10m;
 
 ---
 
-## 📁 File Structure
+## ?? File Structure
 
 ### Backend Files to Create
 
 ```
 FMS.Application/
-├── Features/
-│   └── TankManagement/
-│       └── BulkImport/
-│           ├── Commands/
-│           │   ├── BulkImportTankStockCommand.cs
-│           │   └── BulkImportTankStockCommandHandler.cs
-│           ├── DTOs/
-│           │   ├── BulkImportRowDTO.cs
-│           │   ├── BulkImportValidationResult.cs
-│           │   └── ValidationAnomaly.cs
-│           ├── Services/
-│           │   ├── BulkImportValidationService.cs
-│           │   └── MeterReadingValidator.cs
-│           └── Models/
-│               ├── DailyVarianceContribution.cs
-│               └── CumulativeValidationSummary.cs
++-- Features/
+�   +-- TankManagement/
+�       +-- BulkImport/
+�           +-- Commands/
+�           �   +-- BulkImportTankStockCommand.cs
+�           �   +-- BulkImportTankStockCommandHandler.cs
+�           +-- DTOs/
+�           �   +-- BulkImportRowDTO.cs
+�           �   +-- BulkImportValidationResult.cs
+�           �   +-- ValidationAnomaly.cs
+�           +-- Services/
+�           �   +-- BulkImportValidationService.cs
+�           �   +-- MeterReadingValidator.cs
+�           +-- Models/
+�               +-- DailyVarianceContribution.cs
+�               +-- CumulativeValidationSummary.cs
 
 FMS.WebClient/
-└── Controllers/
-    └── FuelManagement/
-        └── TankStockController.cs (add endpoint)
++-- Controllers/
+    +-- FuelManagement/
+        +-- TankStockController.cs (add endpoint)
 ```
 
 ### Frontend Files to Create
 
 ```
 fms.frontend/src/
-└── pages/
-    └── tankStock/
-        └── management/
-            └── components/
-                ├── BulkImportManager.js
-                ├── BulkImportManager.scss
-                ├── ValidationReportPanel.js
-                └── ExcelPreviewGrid.js
++-- pages/
+    +-- tankStock/
+        +-- management/
+            +-- components/
+                +-- BulkImportManager.js
+                +-- BulkImportManager.scss
+                +-- ValidationReportPanel.js
+                +-- ExcelPreviewGrid.js
 ```
 
 ---
 
-## 🔌 API Reference
+## ?? API Reference
 
 ### Endpoint
 
@@ -188,27 +188,27 @@ Permission: _Create_tankStock
 
 ---
 
-## 🧪 Testing Checklist
+## ?? Testing Checklist
 
 ### Unit Tests
 
 ```csharp
-□ Daily balance validator
-□ Continuity break validator
-□ Cumulative drift validator
-□ Meter rollback detector
-□ Meter mismatch detector
-□ All 11 anomaly types
+? Daily balance validator
+? Continuity break validator
+? Cumulative drift validator
+? Meter rollback detector
+? Meter mismatch detector
+? All 11 anomaly types
 ```
 
 ### Integration Tests
 
 ```
-□ End-to-end import (valid data)
-□ Duplicate handling
-□ Meter reset scenario
-□ Cumulative variance detection
-□ Large file (1000+ rows)
+? End-to-end import (valid data)
+? Duplicate handling
+? Meter reset scenario
+? Cumulative variance detection
+? Large file (1000+ rows)
 ```
 
 ### Manual Test Cases
@@ -224,7 +224,7 @@ Permission: _Create_tankStock
 
 ---
 
-## 📦 Dependencies
+## ?? Dependencies
 
 ### NuGet Packages (Backend)
 
@@ -246,7 +246,7 @@ Permission: _Create_tankStock
 
 ---
 
-## 🎨 UI Components
+## ?? UI Components
 
 ### Tab Addition
 
@@ -262,30 +262,30 @@ const tabData = [
 ### Bulk Import Manager Layout
 
 ```
-┌─────────────────────────────────────────────┐
-│  📊 Bulk Import Tank Stock Data             │
-├─────────────────────────────────────────────┤
-│  Step 1: Upload File                        │
-│  [📁 Choose File] [📥 Download Template]    │
-├─────────────────────────────────────────────┤
-│  Step 2: Preview Data                       │
-│  [DataGrid with 10 columns]                 │
-│  [✓ Validate Data]                          │
-├─────────────────────────────────────────────┤
-│  Step 3: Review Anomalies                   │
-│  ❌ 0 errors   ⚠️ 2 warnings   ✅ 8 valid    │
-│  [Expandable anomaly list]                  │
-│  [🔽 Download Report]                       │
-├─────────────────────────────────────────────┤
-│  Step 4: Import                             │
-│  Duplicate Handling: [Skip ▼]              │
-│  [Cancel] [Import Data]                     │
-└─────────────────────────────────────────────┘
++---------------------------------------------+
+�  ?? Bulk Import Tank Stock Data             �
++---------------------------------------------�
+�  Step 1: Upload File                        �
+�  [?? Choose File] [?? Download Template]    �
++---------------------------------------------�
+�  Step 2: Preview Data                       �
+�  [DataGrid with 10 columns]                 �
+�  [? Validate Data]                          �
++---------------------------------------------�
+�  Step 3: Review Anomalies                   �
+�  ? 0 errors   ?? 2 warnings   ? 8 valid    �
+�  [Expandable anomaly list]                  �
+�  [?? Download Report]                       �
++---------------------------------------------�
+�  Step 4: Import                             �
+�  Duplicate Handling: [Skip ?]              �
+�  [Cancel] [Import Data]                     �
++---------------------------------------------+
 ```
 
 ---
 
-## 🗄️ Database Impact
+## ??? Database Impact
 
 ### Tables Modified
 
@@ -313,15 +313,15 @@ ADD ImportSource VARCHAR(50) NULL;
 
 ---
 
-## 🔍 Anomaly Examples
+## ?? Anomaly Examples
 
 ### Example 1: Cumulative Drift
 
 ```
-Day 1:  Opening = 0,     Delivery = 10000, Closing = 10000 ✓
-Day 2:  Opening = 10000, Dispensing = 500, Closing = 9500  ✓
+Day 1:  Opening = 0,     Delivery = 10000, Closing = 10000 ?
+Day 2:  Opening = 10000, Dispensing = 500, Closing = 9500  ?
 ...
-Day 10: Opening = 3500,  Dispensing = 1000, Closing = 2500 ❌
+Day 10: Opening = 3500,  Dispensing = 1000, Closing = 2500 ?
 
 Expected Final: 0 + 10000 - 7000 = 3000L
 Actual Final: 2500L
@@ -342,12 +342,12 @@ Closing Meter: 503694
 Meter Change:  163L
 
 Dispensing Recorded: 168L
-Variance: -5L (2.98%) ✓ Within 5% tolerance
+Variance: -5L (2.98%) ? Within 5% tolerance
 
 Another case:
 Meter Change: 200L
 Dispensing: 168L
-Variance: 32L (19%) ❌ Exceeds 5% threshold
+Variance: 32L (19%) ? Exceeds 5% threshold
 
 Backend Detection:
 var meterDispensing = closingMeter - openingMeter;
@@ -360,7 +360,7 @@ if (variance > tolerance && variance > 20) {
 
 ---
 
-## ⏱️ Performance Targets
+## ?? Performance Targets
 
 | Metric | Target |
 |--------|--------|
@@ -372,13 +372,13 @@ if (variance > tolerance && variance > 20) {
 
 ---
 
-## 🚦 Deployment Steps
+## ?? Deployment Steps
 
 ### Phase 1A Deployment
 
 ```bash
 # 1. Build backend
-dotnet build Tenacy.Fms.sln --configuration Release
+dotnet build Tenacity.Fms.sln --configuration Release
 
 # 2. Run tests
 dotnet test
@@ -398,7 +398,7 @@ curl -X POST https://your-api/api/v1/tankstock/bulk-import \
 
 ---
 
-## 📞 Support Contacts
+## ?? Support Contacts
 
 | Issue Type | Contact |
 |------------|---------|
@@ -410,7 +410,7 @@ curl -X POST https://your-api/api/v1/tankstock/bulk-import \
 
 ---
 
-## 🔗 Related Documentation
+## ?? Related Documentation
 
 - [Full Implementation Plan](BULK_IMPORT_IMPLEMENTATION_PLAN.md)
 - [Tank Stock Architecture](../TANKSTOCK_METER_READING_IMPLEMENTATION.md)
@@ -419,7 +419,7 @@ curl -X POST https://your-api/api/v1/tankstock/bulk-import \
 
 ---
 
-## 📝 Change Log
+## ?? Change Log
 
 | Date | Version | Changes |
 |------|---------|---------|
@@ -427,29 +427,29 @@ curl -X POST https://your-api/api/v1/tankstock/bulk-import \
 
 ---
 
-## ✅ Implementation Status
+## ? Implementation Status
 
 ### Phase 1A: Foundation & Basic Import
 ```
-Backend:  ⬜⬜⬜⬜⬜ 0%
-Frontend: ⬜⬜⬜⬜⬜ 0%
-Testing:  ⬜⬜⬜⬜⬜ 0%
+Backend:  ????? 0%
+Frontend: ????? 0%
+Testing:  ????? 0%
 ```
 
 ### Phase 1B: Advanced Anomaly Detection
 ```
-Backend:  ⬜⬜⬜⬜⬜ 0%
-Frontend: ⬜⬜⬜⬜⬜ 0%
-Testing:  ⬜⬜⬜⬜⬜ 0%
+Backend:  ????? 0%
+Frontend: ????? 0%
+Testing:  ????? 0%
 ```
 
 ### Phase 1C: Discrepancy Integration
 ```
-Backend:  ⬜⬜⬜⬜⬜ 0%
-Testing:  ⬜⬜⬜⬜⬜ 0%
+Backend:  ????? 0%
+Testing:  ????? 0%
 ```
 
 ---
 
 **Last Updated:** November 13, 2025
-**Status:** 📋 Planning Complete → Ready for Implementation
+**Status:** ?? Planning Complete ? Ready for Implementation

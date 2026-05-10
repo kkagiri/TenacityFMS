@@ -1,108 +1,108 @@
-﻿# GPS Service Clean Architecture Implementation
+# GPS Service Clean Architecture Implementation
 
-## 📋 Overview
+## ?? Overview
 
 This document describes the Clean Architecture implementation of the GPS Service for vehicle tracking in the FMS system. The refactoring ensures proper separation of concerns and adherence to SOLID principles.
 
 ---
 
-## 🏗️ Architecture Layers
+## ??? Architecture Layers
 
 ### **Clean Architecture Principles Applied**
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                   Presentation Layer                     │
-│              (FMS.WebClient)                             │
-│  - VehicleTrackingController                             │
-│  - Receives HTTP requests                                │
-│  - Returns HTTP responses                                │
-└─────────────────┬────────────────────────────────────────┘
-                  │
-                  ↓ Sends MediatR Query
-┌──────────────────────────────────────────────────────────┐
-│                  Application Layer                       │
-│              (FMS.Application)                           │
-│  - GetVehicleLocationQueryHandler                        │
-│  - IGPSService (INTERFACE) ← Defines contract            │
-│  - Business logic orchestration                          │
-│  - DTOs: VehicleLocationDTO, VehicleOdometerDTO          │
-└─────────────────┬────────────────────────────────────────┘
-                  │
-                  ↓ Calls IGPSService
-┌──────────────────────────────────────────────────────────┐
-│                Infrastructure Layer                      │
-│              (FMS.Infrastructure)                        │
-│  - GPSGateService : IGPSService ← Implementation         │
-│  - HttpClient for external API calls                     │
-│  - Configuration management                              │
-│  - API-specific models (GPSGateUserStatus, etc.)         │
-└─────────────────┬────────────────────────────────────────┘
-                  │
-                  ↓ Accesses database
-┌──────────────────────────────────────────────────────────┐
-│                 Persistence Layer                        │
-│              (FMS.Persistence)                           │
-│  - GpsdataContext                                        │
-│  - Vehicle entity and DeviceId mapping                   │
-└─────────────────┬────────────────────────────────────────┘
-                  │
-                  ↓ Makes HTTP calls
-┌──────────────────────────────────────────────────────────┐
-│                 External Service                         │
-│                GPSGate API                               │
-│  - Vehicle location endpoints                            │
-│  - Odometer accumulator endpoints                        │
-└──────────────────────────────────────────────────────────┘
++----------------------------------------------------------+
+�                   Presentation Layer                     �
+�              (FMS.WebClient)                             �
+�  - VehicleTrackingController                             �
+�  - Receives HTTP requests                                �
+�  - Returns HTTP responses                                �
++----------------------------------------------------------+
+                  �
+                  ? Sends MediatR Query
++----------------------------------------------------------+
+�                  Application Layer                       �
+�              (FMS.Application)                           �
+�  - GetVehicleLocationQueryHandler                        �
+�  - IGPSService (INTERFACE) ? Defines contract            �
+�  - Business logic orchestration                          �
+�  - DTOs: VehicleLocationDTO, VehicleOdometerDTO          �
++----------------------------------------------------------+
+                  �
+                  ? Calls IGPSService
++----------------------------------------------------------+
+�                Infrastructure Layer                      �
+�              (FMS.Infrastructure)                        �
+�  - GPSGateService : IGPSService ? Implementation         �
+�  - HttpClient for external API calls                     �
+�  - Configuration management                              �
+�  - API-specific models (GPSGateUserStatus, etc.)         �
++----------------------------------------------------------+
+                  �
+                  ? Accesses database
++----------------------------------------------------------+
+�                 Persistence Layer                        �
+�              (FMS.Persistence)                           �
+�  - GpsdataContext                                        �
+�  - Vehicle entity and DeviceId mapping                   �
++----------------------------------------------------------+
+                  �
+                  ? Makes HTTP calls
++----------------------------------------------------------+
+�                 External Service                         �
+�                GPSGate API                               �
+�  - Vehicle location endpoints                            �
+�  - Odometer accumulator endpoints                        �
++----------------------------------------------------------+
 ```
 
 ---
 
-## 📂 File Structure
+## ?? File Structure
 
-### **Before Refactoring (WRONG ❌)**
+### **Before Refactoring (WRONG ?)**
 
 ```
 FMS.Application/
-  └── Features/
-      └── Vehicle/
-          └── Services/
-              ├── IGPSService.cs        ✓ OK
-              └── GPSGateService.cs     ✗ WRONG LOCATION
+  +-- Features/
+      +-- Vehicle/
+          +-- Services/
+              +-- IGPSService.cs        ? OK
+              +-- GPSGateService.cs     ? WRONG LOCATION
 ```
 
 **Problem:** Application layer contains infrastructure implementation with HttpClient, Configuration dependencies
 
 ---
 
-### **After Refactoring (CORRECT ✅)**
+### **After Refactoring (CORRECT ?)**
 
 ```
 FMS.Application/
-  └── Features/
-      └── Vehicle/
-          ├── Services/
-          │   └── IGPSService.cs                    ✓ Interface (contract)
-          ├── DTOs/
-          │   ├── VehicleLocationDTO.cs
-          │   └── VehicleOdometerDTO.cs
-          └── Queries/
-              └── VehicleTracking/
-                  ├── GetVehicleLocationQuery.cs
-                  ├── GetVehicleOdometerQuery.cs
-                  └── GetAllVehicleLocationsQuery.cs
+  +-- Features/
+      +-- Vehicle/
+          +-- Services/
+          �   +-- IGPSService.cs                    ? Interface (contract)
+          +-- DTOs/
+          �   +-- VehicleLocationDTO.cs
+          �   +-- VehicleOdometerDTO.cs
+          +-- Queries/
+              +-- VehicleTracking/
+                  +-- GetVehicleLocationQuery.cs
+                  +-- GetVehicleOdometerQuery.cs
+                  +-- GetAllVehicleLocationsQuery.cs
 
 FMS.Infrastructure/
-  └── ExternalServices/
-      └── GPS/
-          └── GPSGate/
-              ├── GPSGateService.cs          ✓ Implementation
-              └── GPSGateModels.cs           ✓ API models
+  +-- ExternalServices/
+      +-- GPS/
+          +-- GPSGate/
+              +-- GPSGateService.cs          ? Implementation
+              +-- GPSGateModels.cs           ? API models
 ```
 
 ---
 
-## 🔄 Request Flow Sequence
+## ?? Request Flow Sequence
 
 ### **1. Controller Receives Request**
 
@@ -124,7 +124,7 @@ public async Task<IActionResult> GetVehicleLocation(int vehicleId)
 public class GetVehicleLocationQueryHandler
     : IRequestHandler<GetVehicleLocationQuery, FMSResponse<VehicleLocationDTO>>
 {
-    private readonly IGPSService _gpsService; // ← Interface dependency
+    private readonly IGPSService _gpsService; // ? Interface dependency
 
     public async Task<FMSResponse<VehicleLocationDTO>> Handle(...)
     {
@@ -158,7 +158,7 @@ public class GPSGateService : IGPSService
 
 ---
 
-## 🔌 Dependency Injection Configuration
+## ?? Dependency Injection Configuration
 
 ### **WebClient Registration**
 
@@ -189,7 +189,7 @@ private static void ConfigureHandlers(IServiceCollection services)
 
 ---
 
-## 📦 Project References
+## ?? Project References
 
 ### **FMS.Infrastructure.csproj**
 
@@ -211,13 +211,13 @@ private static void ConfigureHandlers(IServiceCollection services)
 
 ---
 
-## 🎯 Benefits of This Architecture
+## ?? Benefits of This Architecture
 
 ### **1. Separation of Concerns**
 
-- ✅ **Application layer** defines what it needs (interface)
-- ✅ **Infrastructure layer** provides implementation details
-- ✅ No coupling between application logic and external services
+- ? **Application layer** defines what it needs (interface)
+- ? **Infrastructure layer** provides implementation details
+- ? No coupling between application logic and external services
 
 ### **2. Testability**
 
@@ -249,14 +249,14 @@ public class GetVehicleLocationQueryHandlerTests
 ```csharp
 // Future: Add Geotab, Traccar, etc.
 FMS.Infrastructure/
-  └── ExternalServices/
-      └── GPS/
-          ├── GPSGate/
-          │   └── GPSGateService.cs
-          ├── Geotab/
-          │   └── GeotabService.cs
-          └── Traccar/
-              └── TraccarService.cs
+  +-- ExternalServices/
+      +-- GPS/
+          +-- GPSGate/
+          �   +-- GPSGateService.cs
+          +-- Geotab/
+          �   +-- GeotabService.cs
+          +-- Traccar/
+              +-- TraccarService.cs
 
 // Factory Pattern
 public interface IGPSServiceFactory
@@ -268,17 +268,17 @@ public interface IGPSServiceFactory
 ### **4. Dependency Rule Compliance**
 
 ```
-Domain ← Application ← Infrastructure
-  ↑          ↑              ↑
-  │          │              │
-  │          │              └── Depends on Application (interface only)
-  │          └── Depends on Domain (entities)
-  └── No dependencies (pure business logic)
+Domain ? Application ? Infrastructure
+  ?          ?              ?
+  �          �              �
+  �          �              +-- Depends on Application (interface only)
+  �          +-- Depends on Domain (entities)
+  +-- No dependencies (pure business logic)
 ```
 
 ---
 
-## 🚀 Usage Examples
+## ?? Usage Examples
 
 ### **Get Single Vehicle Location**
 
@@ -339,7 +339,7 @@ Response:
 
 ---
 
-## ⚙️ Configuration
+## ?? Configuration
 
 ### **appsettings.json**
 
@@ -355,29 +355,29 @@ Response:
 
 ---
 
-## 🧪 Testing Strategy
+## ?? Testing Strategy
 
 ### **Unit Tests**
 
-- ✅ Mock `IGPSService` in query handlers
-- ✅ Test business logic without external dependencies
-- ✅ Fast execution, no network calls
+- ? Mock `IGPSService` in query handlers
+- ? Test business logic without external dependencies
+- ? Fast execution, no network calls
 
 ### **Integration Tests**
 
-- ✅ Test `GPSGateService` with real API calls
-- ✅ Use test environment/mock server
-- ✅ Validate API contract and data mapping
+- ? Test `GPSGateService` with real API calls
+- ? Use test environment/mock server
+- ? Validate API contract and data mapping
 
 ### **End-to-End Tests**
 
-- ✅ Test full flow: Controller → Handler → Service → API
-- ✅ Verify error handling and resilience
-- ✅ Test with real database and GPS provider
+- ? Test full flow: Controller ? Handler ? Service ? API
+- ? Verify error handling and resilience
+- ? Test with real database and GPS provider
 
 ---
 
-## 📝 Migration Checklist
+## ?? Migration Checklist
 
 - [x] Create `FMS.Infrastructure/ExternalServices/GPS/GPSGate/` structure
 - [x] Extract API models to `GPSGateModels.cs`
@@ -394,14 +394,14 @@ Response:
 
 ---
 
-## 🔍 Troubleshooting
+## ?? Troubleshooting
 
 ### **Common Issues After Migration**
 
 1. **Namespace Not Found**
 
    - Ensure `FMS.Infrastructure` project reference is added
-   - Rebuild solution: `dotnet build Tenacy.Fms.sln`
+   - Rebuild solution: `dotnet build Tenacity.Fms.sln`
 
 2. **DI Registration Error**
 
@@ -415,7 +415,7 @@ Response:
 
 ---
 
-## 📚 Related Documentation
+## ?? Related Documentation
 
 - [Vehicle Tracking Implementation](./VehicleGPSTrackingImplementation.md)
 - [Product Requirements Document](./PRDvehicletracking.md)
@@ -424,11 +424,11 @@ Response:
 
 ---
 
-## 🎓 Key Takeaways
+## ?? Key Takeaways
 
 1. **Interfaces belong in Application layer** - They define what the application needs
 2. **Implementations belong in Infrastructure layer** - They provide the "how"
-3. **Follow the Dependency Rule** - Always point inward (Infrastructure → Application → Domain)
+3. **Follow the Dependency Rule** - Always point inward (Infrastructure ? Application ? Domain)
 4. **Use FMSResponse<T>** - Consistent response handling across all layers
 5. **CQRS Pattern** - Queries for reads, Commands for writes
 6. **HttpClient Factory** - Use `AddHttpClient<>` for proper lifecycle management

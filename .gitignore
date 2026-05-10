@@ -13,9 +13,9 @@
 
 # MCP server config (contains DB credentials)
 .mcp.json
-fms.frontend/.env
-fms.frontend/.env.local
-fms.frontend/.env.*.local
+apps/fms.frontend/.env
+apps/fms.frontend/.env.local
+apps/fms.frontend/.env.*.local
 
 #Ignore prototype files in documentation
 documentation/notifications/prototype/
@@ -35,16 +35,16 @@ environment/
 ## SECURITY: Configuration files with credentials
 ## Use .example.json templates instead - these contain actual passwords!
 ## =============================================================================
-FMS.WebClient/appsettings.json
-FMS.WebClient/appsettings.Development.json
-FMS.WebClient/appsettings.Production.json
-FMS.Deployment/appsettings.json
-FMS.Deployment/appsettings.development.json
-FMS.Deployment/appsettings.production.json
-FMS.PTS.WindowsService/appsettings.json
-FMS.PTS.WindowsService/appsettings.Development.json
-FMS.PTS.WindowsService/appsettings.production.json
-FMS.Testing/appsettings.Testing.json
+apps/FMS.WebClient/appsettings.json
+apps/FMS.WebClient/appsettings.Development.json
+apps/FMS.WebClient/appsettings.Production.json
+ops/FMS.Deployment/appsettings.json
+ops/FMS.Deployment/appsettings.development.json
+ops/FMS.Deployment/appsettings.production.json
+services/FMS.PTS.WindowsService/appsettings.json
+services/FMS.PTS.WindowsService/appsettings.Development.json
+services/FMS.PTS.WindowsService/appsettings.production.json
+tests/FMS.Testing/appsettings.Testing.json
 
 # Keep only example configuration files
 !**/*appsettings.example.json
@@ -349,8 +349,8 @@ paket-files/
 __pycache__/
 *.pyc
 /FMS.Persistence/Migrations/20231219071447_updatedTankMeaurementData.Designer.cs
-/fms.frontend/src/api
-fms.frontend/src/api/axiosInstance.js
+/apps/fms.frontend/src/api
+apps/fms.frontend/src/api/axiosInstance.js
 .github/workflows/ci-cd.yml
 FMS.Persistence/Scripts/SeedingHistoryOperations.sql
 FMS.Persistence/Scripts/README_SeedingHistory.md
@@ -368,7 +368,7 @@ scripts/environment/setup-environment.ps1
 scripts/environment/setup-pts-env.bat
 scripts/environment/setup-pts-env.ps1
 
-Tenacy.FMS/
+Tenacity.FMS/
 .vscode/settings.json
 
 nul
@@ -376,41 +376,41 @@ nul
 # ============================================
 # React Native Mobile Build Outputs
 # ============================================
-fms.mobile/android/app/build/
-fms.mobile/android/build/
-fms.mobile/android/.gradle/
-fms.mobile/android/.idea/
-fms.mobile/android/local.properties
-fms.mobile/android/captures/
-fms.mobile/android/*.iml
-fms.mobile/android/app/*.iml
+apps/fms.mobile/android/app/build/
+apps/fms.mobile/android/build/
+apps/fms.mobile/android/.gradle/
+apps/fms.mobile/android/.idea/
+apps/fms.mobile/android/local.properties
+apps/fms.mobile/android/captures/
+apps/fms.mobile/android/*.iml
+apps/fms.mobile/android/app/*.iml
 
-fms.mobile/ios/build/
-fms.mobile/ios/Pods/
-fms.mobile/ios/DerivedData/
-fms.mobile/ios/.xcode.env.local
+apps/fms.mobile/ios/build/
+apps/fms.mobile/ios/Pods/
+apps/fms.mobile/ios/DerivedData/
+apps/fms.mobile/ios/.xcode.env.local
 
 # Mobile package lock
-fms.mobile/package-lock.json
+apps/fms.mobile/package-lock.json
 
 # Mobile documentation (optional to commit)
 # fms.mobile/MOCK_DATA_TANK_SELECTION.md
 # fms.mobile/TANK_SELECTION_GUIDE.md
 
 # Mobile debug keystore
-fms.mobile/android/app/debug.keystore
+apps/fms.mobile/android/app/debug.keystore
 
 # iOS folder (large, platform-specific)
-fms.mobile/ios/
-fms.frontend/package.json
-fms.mobile/src/config/appVersion.js
-fms.mobile/android/app/build.gradle
-fms.mobile/src/config/appVersion.js
-fms.mobile/android/app/build.gradle
-fms.mobile/package.json
-fms.mobile/version.json
-fms.mobile/android/app/build.gradle
-fms.mobile/src/config/appVersion.js
+apps/fms.mobile/ios/
+apps/fms.frontend/package.json
+apps/fms.mobile/src/config/appVersion.js
+apps/fms.mobile/android/app/build.gradle
+apps/fms.mobile/src/config/appVersion.js
+apps/fms.mobile/android/app/build.gradle
+apps/fms.mobile/package.json
+apps/fms.mobile/version.json
+apps/fms.mobile/android/app/build.gradle
+apps/fms.mobile/src/config/appVersion.js
 tmpclaude-3a41-cwd
 tmpclaude-1431-cwd
 tmpclaude-a3c9-cwd
