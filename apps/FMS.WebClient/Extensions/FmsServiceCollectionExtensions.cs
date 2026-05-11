@@ -878,7 +878,9 @@ public static class FmsServiceCollectionExtensions
 
     private static string GetEnvRequired(string key)
     {
-        return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine) ?? throw new InvalidOperationException($"Missing environment variable: {key}");
+        return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine)
+            ?? Environment.GetEnvironmentVariable(key)
+            ?? throw new InvalidOperationException($"Missing environment variable: {key}");
     }
 
     private static string NormalizePostgresConnectionString(string connectionString)

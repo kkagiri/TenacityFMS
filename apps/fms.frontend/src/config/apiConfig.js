@@ -87,8 +87,8 @@ const buildApiCandidates = () => {
 
   // 1. Local development URLs (highest priority for dev)
   if (isLocalDev) {
-    addCandidate("http://localhost:7009/api");
-    addCandidate("http://127.0.0.1:7009/api");
+    addCandidate("http://localhost:2008/api");
+    addCandidate("http://127.0.0.1:2008/api");
   }
 
   // 2. Environment-specific URLs
@@ -115,7 +115,7 @@ const buildApiCandidates = () => {
       // Development server
       addCandidate(process.env.REACT_APP_PRIVATE_FMS_API_URL);
       addCandidate("http://10.0.11.90:7009/api"); // Dev server
-      addCandidate("http://localhost:7009/api");
+      addCandidate("http://localhost:2008/api");
       break;
   }
 
@@ -165,8 +165,8 @@ const buildSignalRCandidates = () => {
 
   // 2. Local development
   if (isLocalDev) {
-    addCandidate("http://localhost:7009");
-    addCandidate("http://127.0.0.1:7009");
+    addCandidate("http://localhost:2008");
+    addCandidate("http://127.0.0.1:2008");
   }
 
   // 3. Environment-specific URLs
@@ -184,7 +184,7 @@ const buildSignalRCandidates = () => {
     case "development":
     default:
       addCandidate("http://10.0.11.90:7009");
-      addCandidate("http://localhost:7009");
+      addCandidate("http://localhost:2008");
       break;
   }
 
@@ -307,7 +307,7 @@ export const resolveApiBaseUrl = async (forceRefresh = false) => {
     const fallback = allCandidates[0];
     cachedApiBaseUrl = fallback
       ? `${fallback}/api`
-      : "http://localhost:7009/api";
+      : "http://localhost:2008/api";
     lastProbeTime = Date.now();
 
     console.warn(
@@ -370,7 +370,7 @@ export const resolveSignalRBaseUrl = async (forceRefresh = false) => {
   }
 
   // Fallback
-  const fallback = allCandidates[0] || "http://localhost:7009";
+  const fallback = allCandidates[0] || "http://localhost:2008";
   cachedSignalRBaseUrl = fallback;
 
   console.warn(
@@ -390,7 +390,7 @@ export const getApiBaseUrlSync = () => {
 
   // Return first candidate without probing
   const { intranet } = buildApiCandidates();
-  return intranet[0] ? `${intranet[0]}/api` : "http://localhost:7009/api";
+  return intranet[0] ? `${intranet[0]}/api` : "http://localhost:2008/api";
 };
 
 /**
@@ -403,7 +403,7 @@ export const getSignalRBaseUrlSync = () => {
 
   // Return first candidate without probing
   const { intranet } = buildSignalRCandidates();
-  return intranet[0] || "http://localhost:7009";
+  return intranet[0] || "http://localhost:2008";
 };
 
 /**

@@ -27,9 +27,6 @@ import { fetchTanks } from '../../redux/actions/tankActions';
 import { fetchUsers } from '../../redux/actions/userActions';
 import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../redux/actions/fuelRefillAction';
 
-import { UsersApi } from '../../api/gpsgate';
-import createApiClient from '../../api/gpsgateAPIClient';
-
 import { Item as FItem } from 'devextreme-react/form';
 import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 import { formatDate } from '../../utils/dateUtils';
@@ -42,7 +39,6 @@ import QuickActionsMenu from './components/QuickActionsMenu';
 import { useFutureRecordsValidation } from '../../hooks/useFutureRecordsValidation';
 import FutureRecordsWarning from '../../components/tank-stock/FutureRecordsWarning';
 import './manualRefilPage.scss';
-import { search } from 'superagent';
 
 export default function FuelRefill() {
     //Cursor - Updated state management for filtering

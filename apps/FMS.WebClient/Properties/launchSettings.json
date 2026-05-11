@@ -11,7 +11,7 @@
     "FMS.WebClient": {
       "commandName": "Project",
       "launchBrowser": false,
-      "applicationUrl": "http://localhost:7009",
+      "applicationUrl": "http://localhost:2008",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

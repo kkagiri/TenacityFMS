@@ -10,7 +10,7 @@
 
 import { useMemo } from "react";
 import useBranding from "../../hooks/useBranding";
-import logoTenacy from "../../assets/logoHyoung.png";
+import logoTenacity from "../../assets/logoTenacity.png";
 
 const getWindowOrigin = () => {
     if (typeof window === "undefined" || !window.location?.origin) {
@@ -87,5 +87,5 @@ const resolveBrandingLogoUrl = (rawValue) => {
 export default function useBrandingLogo() {
     const { logoUrl } = useBranding();
 
-    return useMemo(() => resolveBrandingLogoUrl(logoUrl) || logoTenacy, [logoUrl]);
+    return useMemo(() => resolveBrandingLogoUrl(logoUrl) || logoTenacity, [logoUrl]);
 }
