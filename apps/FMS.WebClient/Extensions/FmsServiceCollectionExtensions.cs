@@ -795,7 +795,7 @@ public static class FmsServiceCollectionExtensions
         // Push notification service for mobile/web push
         services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Infrastructure.Notification.PushNotificationService>();
         // Real-time notification abstraction
-            services.AddScoped<FMS.Application.Abstractions.Communication.SignalR.ISignalRNotificationService, FMS.Infrastructure.Communication.SignalR.SignalRNotificationService>();
+        services.AddScoped<FMS.Application.Abstractions.Communication.SignalR.ISignalRNotificationService, FMS.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
         services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
