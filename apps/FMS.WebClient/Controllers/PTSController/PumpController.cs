@@ -14,10 +14,11 @@ using System.Linq;
 using System.Security.Claims;
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
+using FMS.Application.Communication.Redis;
 using FMS.Application.Features.PTS.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Features.PTSDevice.DTOs;
-using FMS.Application.Abstractions.DistCacheTracker;
+using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using MediatR;
@@ -39,6 +40,7 @@ namespace FMS.WebClient.Controllers.PTSController
     {
         private readonly IMediator _mediator;
         private readonly ILogger<PumpController> _logger;
+        private readonly RedisCommandService _redisCommandService;
         private readonly IConnectionMultiplexer _redisConnection;
         private readonly IAuthorizationStateTracker _authTracker;
 
@@ -75,8 +77,8 @@ namespace FMS.WebClient.Controllers.PTSController
                 if (!ModelState.IsValid)
                 {
                     var modelErrors = ModelState
-                        .Where(ms => ms.Value is { Errors.Count: > 0 })
-                        .SelectMany(ms => (ms.Value?.Errors ?? []).Select(e => $"{ms.Key}: {e.ErrorMessage}"))
+                        .Where(ms => ms.Value.Errors.Count > 0)
+                        .SelectMany(ms => ms.Value.Errors.Select(e => $"{ms.Key}: {e.ErrorMessage}"))
                         .ToList();
 
                     _logger.LogWarning("Model binding failed for pump authorization: {Errors}", string.Join("; ", modelErrors));
@@ -125,8 +127,8 @@ namespace FMS.WebClient.Controllers.PTSController
                 if (!ModelState.IsValid)
                 {
                     var modelErrors = ModelState
-                        .Where(ms => ms.Value is { Errors.Count: > 0 })
-                        .SelectMany(ms => (ms.Value?.Errors ?? []).Select(e => $"{ms.Key}: {e.ErrorMessage}"))
+                        .Where(ms => ms.Value.Errors.Count > 0)
+                        .SelectMany(ms => ms.Value.Errors.Select(e => $"{ms.Key}: {e.ErrorMessage}"))
                         .ToList();
 
                     _logger.LogWarning("Model binding failed for tank transfer authorization: {Errors}", string.Join("; ", modelErrors));

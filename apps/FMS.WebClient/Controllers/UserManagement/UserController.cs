@@ -13,7 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Common; // FMSResponse
-using FMS.Application.Abstractions.Identity;
+using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 using FMS.Application.Features.UserManagement.User.Queries;
 using FMS.Application.Features.UserManagement.User.Commands;
@@ -27,7 +27,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using FMS.Domain.Entities;
-using FMS.Domain.Entities.Features.MultiTenancy;
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
 
@@ -38,7 +37,6 @@ namespace FMS.WebClient.Controllers;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class UserController : ControllerBase
 {
-    private const string PlatformTenantCode = "_platform";
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
@@ -370,27 +368,12 @@ public class UserController : ControllerBase
             var userRoles = await _userManager.GetRolesAsync(user);
             var userName = user.UserName ?? user.Email ?? user.Id;
 
-            var tenant = await _context.Tenants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == user.TenantId);
-
-            TenantClaims? tenantClaims = null;
-            if (tenant != null)
-            {
-                tenantClaims = new TenantClaims(
-                    TenantId: tenant.Id,
-                    TenantKind: tenant.TenantKind,
-                    ParentTenantId: tenant.ParentTenantId,
-                    IsPlatformOperator: IsPlatformTenant(tenant));
-            }
-
             // Generate new access token with fresh permissions
             var newAccessToken = await _jwtTokenGenerator.GenerateTokenWithPermissions(
                 user.Id,
                 userName,
                 user.Email ?? string.Empty,
-                userRoles,
-                tenantClaims!);
+                userRoles);
 
             // Generate new refresh token (token rotation for security)
             var newRefreshToken = _jwtTokenGenerator.GenerateRefreshToken();
@@ -451,12 +434,6 @@ public class UserController : ControllerBase
     public class RefreshTokenRequest
     {
         public string? RefreshToken { get; set; }
-    }
-
-    private static bool IsPlatformTenant(Tenant? tenant)
-    {
-        return tenant?.TenantKind == TenantKind.System
-            && string.Equals(tenant.Code, PlatformTenantCode, StringComparison.OrdinalIgnoreCase);
     }
 
     [HttpPost("assignRoles")]

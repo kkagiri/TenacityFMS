@@ -254,7 +254,7 @@ export const ensureValidToken = async (serviceName = "SignalR") => {
  * 3. REACT_APP_PUBLIC_FMS_API_URL (fallback)
  * 4. REACT_APP_API_URL (fallback)
  * 5. Window origin (fallback)
- * 6. localhost:7009 (last resort)
+ * 6. localhost:2008 (last resort)
  *
  * @param {string} serviceName - Name of the service for logging (e.g., "PTS", "Dashboard", "Business")
  * @returns {Promise<string>} Base URL without trailing slash or /api suffix
@@ -330,7 +330,7 @@ export async function resolveSignalRBaseUrl(serviceName = "SignalR") {
     console.error(
       `[${serviceName} SignalR] ❌ No valid candidates found. Using fallback.`
     );
-    normalized = windowOrigin || "http://localhost:7009";
+    normalized = windowOrigin || "http://localhost:2008";
     console.warn(`[${serviceName} SignalR] Using fallback URL:`, normalized);
   }
 
@@ -350,7 +350,7 @@ export async function resolveSignalRBaseUrl(serviceName = "SignalR") {
       `[${serviceName} SignalR] ❌ Invalid normalized URL:`,
       normalized
     );
-    normalized = windowOrigin || "http://localhost:7009";
+    normalized = windowOrigin || "http://localhost:2008";
     console.warn(
       `[${serviceName} SignalR] Using emergency fallback:`,
       normalized

@@ -47,10 +47,6 @@ namespace FMS.WebClient.Util
 
             // Skip certain paths to avoid excessive logging
             var shouldSkip = path.StartsWith("/api/useractivities") ||
-                             path.StartsWith("/dashboardhub") ||
-                             path.StartsWith("/ptshub") ||
-                             path.StartsWith("/frontendhub") ||
-                             path.StartsWith("/vehicletrackinghub") ||
                              path.Contains("favicon") ||
                              path.Contains("signalr") ||
                              path.Contains("GetNavigationItemList") ||
@@ -102,22 +98,24 @@ namespace FMS.WebClient.Util
             {
                 try
                 {
-                    if (shouldSkip)
-                    {
-                        return;
-                    }
+                    // Use exactly the same approach as in your working controller code
+                    var userIdClaim = user.Claims.FirstOrDefault(c =>
+                        c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                        Guid.TryParse(c.Value, out _));
 
-                    var userId = user.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? user.FindFirstValue(JwtRegisteredClaimNames.Sub)
-                        ?? user.FindFirst("sub")?.Value;
-
-                    if (string.IsNullOrWhiteSpace(userId))
+                    if (userIdClaim == null)
                     {
                         _logger.LogWarning("User is authenticated but no valid user ID claim was found");
                         return;
                     }
 
+                    var userId = userIdClaim.Value;
                     _logger.LogDebug("Using user ID: {UserId} for activity logging", userId);
+
+                    if (shouldSkip)
+                    {
+                        return;
+                    }
 
                     var ipAddress = context.Connection.RemoteIpAddress?.ToString();
                     var statusCode = context.Response.StatusCode;

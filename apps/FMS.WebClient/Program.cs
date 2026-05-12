@@ -7,6 +7,7 @@ using FMS.Persistence.DataAccess;
 using Serilog;
 using Serilog.Debugging;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 
 using FMS.WebClient.Extensions; // Added for AddFms* and UseFmsPipeline extensions
 //using FMS.Application.Extensions;
@@ -15,6 +16,8 @@ namespace FMS.WebClient;
 
 public class Program
 {
+    private const string LogBasePath = @"C:\ProgramData\TenacityFMS\Logs\WebClient";
+
     public static async Task Main(string[] args)
     {
         // Ensure log directories exist FIRST (wrapped in try/catch for IIS permission safety)
@@ -24,7 +27,7 @@ public class Program
         string? selfLogPath = null;
         try
         {
-            selfLogPath = Path.Combine("C:\\Logs\\FMS.Webclient", "serilog-selflog.txt");
+            selfLogPath = Path.Combine(LogBasePath, "serilog-selflog.txt");
             SelfLog.Enable(msg =>
             {
                 try
@@ -47,7 +50,7 @@ public class Program
             .Enrich.FromLogContext()
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
-                path: "C:\\Logs\\FMS.Webclient\\startup\\webclient-startup.log",
+                    path: Path.Combine(LogBasePath, "startup", "webclient-startup.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 5,
                 shared: true,
@@ -86,50 +89,53 @@ public class Program
         // Use POST /api/v1/vehicletrips/recompute/batch for on-demand batch recomputation instead.
         // builder.Services.AddHostedService<FMS.BackgroundServices.VehicleTracking.VehicleTripRealtimeRefreshBackgroundService>();
 
-        // Port 7009 availability check (skip when hosted under IIS where HTTP.sys already owns the port)
+        var configuredSelfHostUrls = GetConfiguredSelfHostUrls();
+        var requiredPort = ResolvePrimaryPort(configuredSelfHostUrls) ?? 7009;
+
+        // Port availability check (skip when hosted under IIS where HTTP.sys already owns the port)
         var isIIS = IsRunningUnderIIS();
         if (isIIS)
         {
-            Log.Information("Detected IIS/HTTP.sys hosting (in-process) - skipping explicit port 7009 ownership check (managed by IIS).");
+            Log.Information("Detected IIS/HTTP.sys hosting (in-process) - skipping explicit port {Port} ownership check (managed by IIS).", requiredPort);
         }
         else
         {
-            Log.Information("Checking if port 7009 is available for required binding addresses (self-host mode)");
-            bool portAvailable = !IsPortInUse(7009);
+            Log.Information("Checking if port {Port} is available for required binding addresses (self-host mode)", requiredPort);
+            bool portAvailable = !IsPortInUse(requiredPort);
             if (!portAvailable)
             {
-                Log.Warning("Port 7009 is in use on one or more required addresses");
-                LogPortUsage(7009);
+                Log.Warning("Port {Port} is in use on one or more required addresses", requiredPort);
+                LogPortUsage(requiredPort);
 
                 var forceKillPorts = Environment.GetEnvironmentVariable("FORCE_KILL_PORTS")?.ToLower() == "true";
                 if (forceKillPorts)
                 {
-                    Log.Warning("FORCE_KILL_PORTS is enabled, attempting to free up port 7009");
-                    bool portFreed = TryKillProcessOnPort(7009);
+                    Log.Warning("FORCE_KILL_PORTS is enabled, attempting to free up port {Port}", requiredPort);
+                    bool portFreed = TryKillProcessOnPort(requiredPort);
                     if (portFreed)
                     {
                         Thread.Sleep(2000);
-                        portAvailable = !IsPortInUse(7009);
+                        portAvailable = !IsPortInUse(requiredPort);
                         if (portAvailable)
                         {
-                            Log.Information("Successfully freed up port 7009");
+                            Log.Information("Successfully freed up port {Port}", requiredPort);
                         }
                         else
                         {
-                            Log.Error("Failed to free up port 7009 even after killing processes");
+                            Log.Error("Failed to free up port {Port} even after killing processes", requiredPort);
                         }
                     }
                 }
 
                 if (!portAvailable)
                 {
-                    Log.Error("Port 7009 is not available. Set FORCE_KILL_PORTS=true to attempt automatic cleanup, or manually stop the process using the port.");
-                    throw new InvalidOperationException("Required port 7009 is not available when self-hosting.");
+                    Log.Error("Port {Port} is not available. Set FORCE_KILL_PORTS=true to attempt automatic cleanup, or manually stop the process using the port.", requiredPort);
+                    throw new InvalidOperationException($"Required port {requiredPort} is not available when self-hosting.");
                 }
             }
             else
             {
-                Log.Information("Port 7009 is available for binding");
+                Log.Information("Port {Port} is available for binding", requiredPort);
             }
         }
 
@@ -137,13 +143,13 @@ public class Program
         var currentEnvironment = builder.Environment.EnvironmentName;
         if (isIIS)
         {
-            Log.Information("Environment: {Environment} (IIS) - IIS site bindings / ASPNETCORE_URLS will govern external access (expected port 7009).", currentEnvironment);
+            Log.Information("Environment: {Environment} (IIS) - IIS site bindings / ASPNETCORE_URLS will govern external access (expected port {Port}).", currentEnvironment, requiredPort);
         }
         else
         {
             if (currentEnvironment == "Development")
             {
-                Log.Information("Environment: {Environment} (self-host) - Listening on http://localhost:7009 and http://0.0.0.0:7009", currentEnvironment);
+                Log.Information("Environment: {Environment} (self-host) - Listening on {Urls}", currentEnvironment, configuredSelfHostUrls);
             }
             else
             {
@@ -174,7 +180,7 @@ public class Program
         }
 
         app.UseFmsPipeline();
-    await EnsureIssueTrackerWorkflowBackfillAsync(app.Services);
+        await EnsureIssueTrackerWorkflowBackfillAsync(app.Services);
         await SeedWidgetTemplatesAsync(app.Services);
 
         try
@@ -229,6 +235,25 @@ public class Program
         }
 
         return false; // Port is available on all addresses we need
+    }
+
+    private static string GetConfiguredSelfHostUrls()
+    {
+        return Environment.GetEnvironmentVariable("ASPNETCORE_URLS")
+            ?? "http://localhost:7009;http://0.0.0.0:7009";
+    }
+
+    private static int? ResolvePrimaryPort(string configuredUrls)
+    {
+        foreach (var url in configuredUrls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                return uri.Port;
+            }
+        }
+
+        return null;
     }
 
 
@@ -424,9 +449,9 @@ public class Program
     /// </summary>
     private static void EnsureLogDirectoriesExist()
     {
-        var logBasePath = "C:\\Logs\\FMS.Webclient";
         var subDirectories = new[] { "app", "errors", "audit", "slow", "startup", "gps", "fuel", "import", "signalr", "issues", "efcore" };
 
+        var logBasePath = LogBasePath;
         try
         {
             foreach (var subDir in subDirectories)

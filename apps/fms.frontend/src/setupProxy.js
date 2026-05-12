@@ -3,7 +3,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 module.exports = function (app) {
   const normalizeTarget = (target) => {
     if (!target) {
-      return 'http://localhost:7009';
+      return 'http://localhost:2008';
     }
 
     return target.replace(/\/api\/?$/i, '');

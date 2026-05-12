@@ -9,7 +9,7 @@
  * Key Methods:
  * - ConfigureLogging(): Main entry point — configures all log sinks and routing
  *
- * Log Folder Structure (C:\Logs\FMS.Webclient\):
+ * Log Folder Structure (C:\ProgramData\TenacityFMS\Logs\WebClient\):
  *   app/          - ALL logs (unified, for correlation)
  *   errors/       - Errors & Fatals only
  *   gps/          - GPS/Vehicle tracking (GPSGate, stale positions)
@@ -34,7 +34,7 @@ namespace FMS.WebClient.Extensions;
 
 public static class FmsLoggingConfiguration
 {
-    private const string LogBasePath = @"C:\Logs\FMS.Webclient";
+    private const string LogBasePath = @"C:\ProgramData\TenacityFMS\Logs\WebClient";
     private const int MaxFileSizeBytes = 50 * 1024 * 1024; // 50MB per file
 
     // Standard template with SourceContext (class name) included

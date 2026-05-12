@@ -13,7 +13,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoMapper;
@@ -33,15 +32,13 @@ using FMS.Application.Configuration;
 using FMS.Application.CommonInterface; // For IPermissionAuthorizationService
 using FMS.Application.Features.GPSGate.DTOs;
 using FMS.Application.Features.GPSGate.Queries;
-using FMS.Reporting.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using FMS.Application.Features.Reporting.Services;
 using StackExchange.Redis;
 using System.Text;
-using FMS.Application.Abstractions.Identity;
-using FMS.Infrastructure.Identity;
-using FMS.Infrastructure.Authorization;
+using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Infrastructure.Authorization;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
@@ -62,7 +59,7 @@ using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Abstractions.DistCacheTracker;
+using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Features.WarningLetter.Services;
 using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
 using FMS.Devices.Core.DependencyInjection; // AddDeviceCore() for multi-device provider platform
@@ -128,8 +125,8 @@ public static class FmsServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
 
-        // Real-time hubs with CORS support and optional Redis backplane for cross-process communication
-        var redisConn = GetRedisConnectionString(configuration);
+        // Real-time hubs with CORS support and Redis backplane for cross-process communication
+        var redisConn = GetEnvOptional("ConnectionStrings__RedisConnection");
         var signalRBuilder = services.AddSignalR(options =>
         {
             options.EnableDetailedErrors = true; // For debugging
@@ -144,35 +141,27 @@ public static class FmsServiceCollectionExtensions
             options.PayloadSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
 
-        var redisBackplaneEnabled = IsRedisBackplaneEnabled(configuration, env, out var redisBackplaneStatus);
-
-        // Add Redis backplane for cross-process SignalR communication only when enabled and Redis is reachable.
-        // If Redis is configured but offline, registering the backplane makes hub connects fail with 500s.
-        if (redisBackplaneEnabled && IsRedisReachable(redisConn, out var redisStatus))
+        // Add Redis backplane for cross-process SignalR communication (WebClient â†” Windows Service)
+        if (!string.IsNullOrEmpty(redisConn))
         {
             signalRBuilder.AddStackExchangeRedis(redisConn, options =>
             {
                 options.Configuration.ChannelPrefix = RedisChannel.Literal("fms-signalr"); // Namespace SignalR channels
-                options.Configuration.AbortOnConnectFail = false;
             });
             Log.Information("SignalR Redis backplane configured for cross-process communication");
         }
         else
         {
-            var redisBackplaneReason = redisBackplaneEnabled
-                ? GetRedisStatus(redisConn)
-                : redisBackplaneStatus;
-
-            Log.Warning("SignalR Redis backplane not configured ({Reason}) - using local in-process SignalR only", redisBackplaneReason);
+            Log.Warning("SignalR Redis backplane not configured - cross-process hub context will not work");
         }
 
         RegisterCors(services);
         RegisterMediatR(services);
         RegisterAutoMapper(services);
         RegisterHealthChecks(services);
-        RegisterRedis(services, configuration);
+        RegisterRedis(services);
         RegisterCustom(services, configuration);
-        RegisterDistributedCache(services, configuration);
+        RegisterDistributedCache(services);
         RegisterRateLimiting(services);
 
         // Register dashboard widget services (factories, coordinators)
@@ -183,8 +172,6 @@ public static class FmsServiceCollectionExtensions
         {
             options.AssemblyNames = new[] { "FMS.Devices.Tracking" };
         });
-        services.AddScoped<FMS.Application.Features.Geofence.Commands.IGeofenceSyncJobProcessor,
-            FMS.Application.Features.Geofence.Commands.GeofenceSyncJobProcessor>();
 
         // Register DevExpress Reporting services
         RegisterDevExpressReporting(services);
@@ -197,7 +184,7 @@ public static class FmsServiceCollectionExtensions
         var jwtSecretKey = GetEnvRequired("JwtSettings__SecretKey");
         var jwtIssuer = GetEnvRequired("JwtSettings__Issuer");
         var jwtAudience = GetEnvRequired("JwtSettings__Audience");
-        var jwtExpireDays = Environment.GetEnvironmentVariable("JwtSettings__ExpireDays", EnvironmentVariableTarget.Machine) ?? "7";
+        var jwtExpireDays = GetEnvOptional("JwtSettings__ExpireDays") ?? "7";
 
         services.Configure<JwtSettings>(opt =>
         {
@@ -463,17 +450,16 @@ public static class FmsServiceCollectionExtensions
         services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy());
     }
 
-    private static void RegisterRedis(IServiceCollection services, IConfiguration configuration)
+    private static void RegisterRedis(IServiceCollection services)
     {
-        var redisConn = GetRedisConnectionString(configuration);
-        if (IsRedisReachable(redisConn, out var redisStatus))
+        var redisConn = GetEnvOptional("ConnectionStrings__RedisConnection");
+        if (!string.IsNullOrEmpty(redisConn))
         {
             services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
             services.AddSingleton(sp => sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
             services.AddSingleton<IRedisPublisher, RedisPublisher>();
             services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
             services.AddSingleton<RedisCommandService>();
-            services.AddSingleton<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
 
             // Policy Trigger Service for event-driven reconciliation
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService>();
@@ -482,40 +468,18 @@ public static class FmsServiceCollectionExtensions
         }
         else
         {
-            Log.Warning("Redis connection unavailable ({Reason}) - registering disconnected multiplexer so DI validation passes", redisStatus);
+            Log.Warning("Redis connection not configured - using in-memory fallbacks");
 
-            // Register a disconnected multiplexer so every service that declares
-            // IConnectionMultiplexer as a constructor parameter can still be resolved
-            // by the DI container. Redis operations will throw RedisConnectionException
-            // at call time; callers are expected to handle that gracefully.
-            var fallbackConnStr = !string.IsNullOrWhiteSpace(redisConn)
-                ? redisConn
-                : "localhost:6379,abortConnect=false";
-
-            services.AddSingleton<IConnectionMultiplexer>(_ =>
-            {
-                var opts = ConfigurationOptions.Parse(fallbackConnStr);
-                opts.AbortOnConnectFail = false;
-                opts.ConnectTimeout = 150;   // don't stall startup
-                opts.SyncTimeout = 150;
-                return ConnectionMultiplexer.Connect(opts);
-            });
-            services.AddSingleton(sp => sp.GetRequiredService<IConnectionMultiplexer>().GetDatabase());
-            services.AddSingleton<IRedisPublisher, RedisPublisher>();
-            services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
-            services.AddSingleton<RedisCommandService>();
-            services.AddSingleton<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
-
-            // Business-level fallback: no-op policy trigger
+            // Register a null/no-op implementation when Redis is not available
             services.AddScoped<IPolicyTriggerService, NullPolicyTriggerService>();
         }
         services.AddSingleton<FMS.Application.Communication.Tracker.DeviceStatusHelper>();
     }
 
-    private static void RegisterDistributedCache(IServiceCollection services, IConfiguration configuration)
+    private static void RegisterDistributedCache(IServiceCollection services)
     {
-        var redisConn = GetRedisConnectionString(configuration);
-        if (IsRedisReachable(redisConn, out _))
+        var redisConn = GetEnvOptional("ConnectionStrings__RedisConnection");
+        if (!string.IsNullOrEmpty(redisConn))
         {
             services.AddStackExchangeRedisCache(o =>
             {
@@ -526,82 +490,6 @@ public static class FmsServiceCollectionExtensions
         else
         {
             services.AddDistributedMemoryCache();
-        }
-    }
-
-    private static string? GetRedisConnectionString(IConfiguration configuration)
-    {
-        return Environment.GetEnvironmentVariable("ConnectionStrings__RedisConnection", EnvironmentVariableTarget.Machine)
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__RedisConnection")
-            ?? configuration.GetConnectionString("RedisConnection")
-            ?? configuration["ConnectionStrings:RedisConnection"];
-    }
-
-    private static bool IsRedisBackplaneEnabled(IConfiguration configuration, IHostEnvironment env, out string reason)
-    {
-        var configuredValue = Environment.GetEnvironmentVariable("SignalR__RedisBackplaneEnabled")
-            ?? Environment.GetEnvironmentVariable("SignalR__RedisBackplaneEnabled", EnvironmentVariableTarget.Machine)
-            ?? configuration["SignalR:RedisBackplaneEnabled"];
-
-        if (bool.TryParse(configuredValue, out var enabled))
-        {
-            reason = enabled
-                ? "enabled by SignalR:RedisBackplaneEnabled"
-                : "disabled by SignalR:RedisBackplaneEnabled";
-            return enabled;
-        }
-
-        if (env.IsDevelopment())
-        {
-            reason = "disabled by default in Development; set SignalR__RedisBackplaneEnabled=true to enable";
-            return false;
-        }
-
-        reason = "enabled by default outside Development";
-        return true;
-    }
-
-    private static string GetRedisStatus(string? redisConnectionString)
-    {
-        return IsRedisReachable(redisConnectionString, out var reason)
-            ? "reachable"
-            : reason;
-    }
-
-    private static bool IsRedisReachable(string? redisConnectionString, out string reason)
-    {
-        if (string.IsNullOrWhiteSpace(redisConnectionString))
-        {
-            reason = "connection string is not configured";
-            return false;
-        }
-
-        try
-        {
-            var options = ConfigurationOptions.Parse(redisConnectionString);
-            options.AbortOnConnectFail = true;
-            options.ConnectTimeout = Math.Min(options.ConnectTimeout, 1000);
-            options.SyncTimeout = Math.Min(options.SyncTimeout, 1000);
-
-            using var connection = ConnectionMultiplexer.Connect(options);
-            connection.GetDatabase().Ping();
-            reason = "reachable";
-            return true;
-        }
-        catch (RedisConnectionException ex)
-        {
-            reason = ex.Message;
-            return false;
-        }
-        catch (SocketException ex)
-        {
-            reason = ex.Message;
-            return false;
-        }
-        catch (Exception ex)
-        {
-            reason = ex.Message;
-            return false;
         }
     }
 
@@ -653,7 +541,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.GPSGate.Processors.RefuelingReportProcessor>();
         services.AddSingleton<FMS.Application.Features.GPSGate.Processors.IReportProcessorFactory, FMS.Application.Features.GPSGate.Processors.ReportProcessorFactory>();
         services.AddSingleton<IReportDefinitionService, ReportDefinitionService>();
-        services.AddReportingServices();
+        services.AddScoped<IReportGenerationService, ReportGenerationService>();
 
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
@@ -686,7 +574,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
 
         // PTS Services
-        services.AddScoped<IServiceControlService, FMS.Infrastructure.Services.PTSService.ServiceControlService>();
+        services.AddScoped<IServiceControlService, ServiceControlService>();
         services.AddScoped<IPumpService, PumpService>();
         services.AddScoped<IPTSConfigService, PTSConfigService>();
         services.AddScoped<PumpTransactionIntegrationService>();
@@ -706,7 +594,7 @@ public static class FmsServiceCollectionExtensions
 
         // Communication & Tracking Services
         services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
-        services.AddScoped<IAuthorizationStateTracker, FMS.Infrastructure.DistCacheTracker.AuthorizationStateTracker>();
+        services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
@@ -768,12 +656,6 @@ public static class FmsServiceCollectionExtensions
         // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
         services.AddHostedService<GPSGateVehicleLocationTagMonitoringService>();
 
-        // Expected Average GPSGate sync worker - drains queued expected-average pushes.
-        services.AddHostedService<FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageGpsGateSyncWorker>();
-
-        // Expected Average drift monitor - opens review workflow items from rolling vehicle-consumption drift.
-        services.AddHostedService<FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageDriftMonitorService>();
-
         // Vehicle Transfer InTransit reminder service - sends daily reminders to receivers
         services.AddHostedService<FMS.BackgroundServices.TransferReminderBackgroundService>();
 
@@ -793,9 +675,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueAttachmentStorageService, FMS.Application.Features.IssueTracker.Services.IssueAttachmentStorageService>();
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IWorkflowBackfillService, FMS.Application.Features.IssueTracker.Services.WorkflowBackfillService>();
         // Push notification service for mobile/web push
-        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Infrastructure.Notification.PushNotificationService>();
+        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
         // Real-time notification abstraction
-        services.AddScoped<FMS.Application.Abstractions.Communication.SignalR.ISignalRNotificationService, FMS.Infrastructure.Communication.SignalR.SignalRNotificationService>();
+        services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
         services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
@@ -808,9 +690,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
-        services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAssignmentResolver, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAssignmentResolver>();
         services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
-        services.AddSingleton<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedAverageSyncQueue, FMS.BackgroundServices.FuelBusinessOperation.ExpectedAverageSyncQueue>();
         // Alert Configuration Service â€” cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()
@@ -878,9 +758,21 @@ public static class FmsServiceCollectionExtensions
 
     private static string GetEnvRequired(string key)
     {
-        return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine)
-            ?? Environment.GetEnvironmentVariable(key)
-            ?? throw new InvalidOperationException($"Missing environment variable: {key}");
+        return GetEnvOptional(key) ?? throw new InvalidOperationException($"Missing environment variable: {key}");
+    }
+
+    private static string? GetEnvOptional(string key)
+    {
+        if (key.StartsWith("ConnectionStrings__", StringComparison.OrdinalIgnoreCase))
+        {
+            return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.User)
+                ?? Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process)
+                ?? Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine);
+        }
+
+        return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Process)
+            ?? Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.User)
+            ?? Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine);
     }
 
     private static string NormalizePostgresConnectionString(string connectionString)
@@ -900,23 +792,54 @@ public static class FmsServiceCollectionExtensions
             "UseAffectedRows",
         };
 
-        var segments = connectionString
-            .Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .Select(segment => segment.Trim())
-            .Where(segment =>
+        var normalizedSegments = new List<string>();
+
+        foreach (var segment in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var trimmedSegment = segment.Trim();
+            var separatorIndex = trimmedSegment.IndexOf('=');
+            if (separatorIndex <= 0)
             {
-                var separatorIndex = segment.IndexOf('=');
-                if (separatorIndex <= 0)
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                var key = segment[..separatorIndex].Trim();
-                return !invalidKeys.Any(invalidKey =>
-                    string.Equals(key, invalidKey, StringComparison.OrdinalIgnoreCase));
-            });
+            var key = trimmedSegment[..separatorIndex].Trim();
+            var value = trimmedSegment[(separatorIndex + 1)..].Trim();
 
-        return string.Join(';', segments);
+            if (invalidKeys.Any(invalidKey =>
+                    string.Equals(key, invalidKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            var normalizedKey = key.ToLowerInvariant() switch
+            {
+                "server" => "Host",
+                "data source" => "Host",
+                "datasource" => "Host",
+                "initial catalog" => "Database",
+                "user" => "Username",
+                "user id" => "Username",
+                "userid" => "Username",
+                "user name" => "Username",
+                "uid" => "Username",
+                "pwd" => "Password",
+                "connection timeout" => "Timeout",
+                "default command timeout" => "Command Timeout",
+                "command timeout" => "Command Timeout",
+                _ => key
+            };
+
+            if (string.Equals(normalizedKey, "Timeout", StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(value, out var timeoutSeconds))
+            {
+                value = Math.Clamp(timeoutSeconds, 0, 1024).ToString();
+            }
+
+            normalizedSegments.Add($"{normalizedKey}={value}");
+        }
+
+        return string.Join(';', normalizedSegments);
     }
 
     /// <summary>

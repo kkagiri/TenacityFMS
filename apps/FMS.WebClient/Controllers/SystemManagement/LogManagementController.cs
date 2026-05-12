@@ -23,28 +23,31 @@ namespace FMS.WebClient.Controllers.SystemManagement
     [RequirePermission(Permissions.Admin.ATGAdmin)]
     public class LogManagementController : ControllerBase
     {
+        private const string WebClientLogBasePath = @"C:\ProgramData\TenacityFMS\Logs\WebClient";
+        private const string PtsLogBasePath = @"C:\ProgramData\TenacityFMS\Logs\PTS";
+
         private readonly ILogCleanupService _logCleanupService;
         private readonly ILogger<LogManagementController> _logger;
 
         // Log directories from appsettings.json
         private static readonly Dictionary<string, string> LogDirectories = new()
         {
-            { "app", @"C:\Logs\FMS.Webclient\app" },
-            { "errors", @"C:\Logs\FMS.Webclient\errors" },
-            { "audit", @"C:\Logs\FMS.Webclient\audit" },
-            { "startup", @"C:\Logs\FMS.Webclient\startup" },
-            { "gps", @"C:\Logs\FMS.Webclient\gps" },
-            { "fuel", @"C:\Logs\FMS.Webclient\fuel" },
-            { "signalr", @"C:\Logs\FMS.Webclient\signalr" },
-            { "issues", @"C:\Logs\FMS.Webclient\issues" },
-            { "efcore", @"C:\Logs\FMS.Webclient\efcore" },
-            { "pts-app", @"C:\Logs\FMS.PTS\app" },
-            { "pts-errors", @"C:\Logs\FMS.PTS\errors" },
-            { "pts-startup", @"C:\Logs\FMS.PTS\startup" },
-            { "pts-device-raw", @"C:\Logs\FMS.PTS\device-raw" },
-            { "pts-commands", @"C:\Logs\FMS.PTS\commands" },
-            { "pts-transactions", @"C:\Logs\FMS.PTS\transactions" },
-            { "pts-connections", @"C:\Logs\FMS.PTS\connections" }
+            { "app", Path.Combine(WebClientLogBasePath, "app") },
+            { "errors", Path.Combine(WebClientLogBasePath, "errors") },
+            { "audit", Path.Combine(WebClientLogBasePath, "audit") },
+            { "startup", Path.Combine(WebClientLogBasePath, "startup") },
+            { "gps", Path.Combine(WebClientLogBasePath, "gps") },
+            { "fuel", Path.Combine(WebClientLogBasePath, "fuel") },
+            { "signalr", Path.Combine(WebClientLogBasePath, "signalr") },
+            { "issues", Path.Combine(WebClientLogBasePath, "issues") },
+            { "efcore", Path.Combine(WebClientLogBasePath, "efcore") },
+            { "pts-app", Path.Combine(PtsLogBasePath, "app") },
+            { "pts-errors", Path.Combine(PtsLogBasePath, "errors") },
+            { "pts-startup", Path.Combine(PtsLogBasePath, "startup") },
+            { "pts-device-raw", Path.Combine(PtsLogBasePath, "device-raw") },
+            { "pts-commands", Path.Combine(PtsLogBasePath, "commands") },
+            { "pts-transactions", Path.Combine(PtsLogBasePath, "transactions") },
+            { "pts-connections", Path.Combine(PtsLogBasePath, "connections") }
         };
 
         public LogManagementController(

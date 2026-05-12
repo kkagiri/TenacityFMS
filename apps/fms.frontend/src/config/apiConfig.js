@@ -39,6 +39,13 @@ const normalizeUrl = (url) => {
   return trimmed.replace(/\/+$/, ""); // Remove all trailing slashes
 };
 
+const ensureApiSuffix = (url) => {
+  const normalized = normalizeUrl(url);
+  if (!normalized) return null;
+
+  return /\/api$/i.test(normalized) ? normalized : `${normalized}/api`;
+};
+
 /**
  * Get environment hint (production, development, staging, etc.)
  */
@@ -114,7 +121,6 @@ const buildApiCandidates = () => {
     default:
       // Development server
       addCandidate(process.env.REACT_APP_PRIVATE_FMS_API_URL);
-      addCandidate("http://10.0.11.90:7009/api"); // Dev server
       addCandidate("http://localhost:2008/api");
       break;
   }
@@ -183,7 +189,6 @@ const buildSignalRCandidates = () => {
 
     case "development":
     default:
-      addCandidate("http://10.0.11.90:7009");
       addCandidate("http://localhost:2008");
       break;
   }
@@ -279,7 +284,7 @@ export const resolveApiBaseUrl = async (forceRefresh = false) => {
 
       const reachable = await probeCandidate(candidate);
       if (reachable) {
-        cachedApiBaseUrl = `${candidate}/api`;
+        cachedApiBaseUrl = ensureApiSuffix(candidate);
         lastProbeTime = Date.now();
         console.log(
           `[ApiConfig] ✓ Connected via INTRANET: ${cachedApiBaseUrl}`
@@ -294,7 +299,7 @@ export const resolveApiBaseUrl = async (forceRefresh = false) => {
 
       const reachable = await probeCandidate(candidate);
       if (reachable) {
-        cachedApiBaseUrl = `${candidate}/api`;
+        cachedApiBaseUrl = ensureApiSuffix(candidate);
         lastProbeTime = Date.now();
         console.log(
           `[ApiConfig] ✓ Connected via PUBLIC IP: ${cachedApiBaseUrl}`
@@ -305,9 +310,7 @@ export const resolveApiBaseUrl = async (forceRefresh = false) => {
 
     // Fallback to first candidate without probing
     const fallback = allCandidates[0];
-    cachedApiBaseUrl = fallback
-      ? `${fallback}/api`
-      : "http://localhost:2008/api";
+    cachedApiBaseUrl = ensureApiSuffix(fallback) || "http://localhost:2008/api";
     lastProbeTime = Date.now();
 
     console.warn(
@@ -390,7 +393,7 @@ export const getApiBaseUrlSync = () => {
 
   // Return first candidate without probing
   const { intranet } = buildApiCandidates();
-  return intranet[0] ? `${intranet[0]}/api` : "http://localhost:2008/api";
+  return ensureApiSuffix(intranet[0]) || "http://localhost:2008/api";
 };
 
 /**

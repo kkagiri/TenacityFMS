@@ -49,8 +49,8 @@ namespace FMS.WebClient.Services.Reporting
             var fmsData = Path.Combine(FmsDataRootPath, "reports", "templates");
             if (TryCreateDirectory(fmsData)) return fmsData;
 
-            // Priority 2: C:\Logs\FMS.Webclient\ReportTemplates (legacy location)
-            var logs = Path.Combine("C:\\Logs\\FMS.Webclient", "ReportTemplates");
+            // Priority 2: ProgramData shared report template location.
+            var logs = Path.Combine("C:\\ProgramData\\TenacityFMS", "ReportTemplates");
             if (TryCreateDirectory(logs)) return logs;
 
             // Priority 3: User temp folder (always writable)
@@ -60,7 +60,7 @@ namespace FMS.WebClient.Services.Reporting
             // Priority 4: ProgramData (system-wide, usually writable)
             var programData = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "Tenacy", "FMS", "ReportTemplates");
+                    "TenacityFMS", "ReportTemplates");
             if (TryCreateDirectory(programData)) return programData;
 
             // Fallback: App_Data (may fail in IIS)

@@ -2,12 +2,10 @@ using FMS.Application.Common;
 using FMS.Application.Features.ExpectedFuelAverage.Commands;
 using FMS.Application.Features.ExpectedFuelAverage.DTOs;
 using FMS.Application.Features.ExpectedFuelAverage.Queries;
-using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
@@ -25,13 +23,11 @@ namespace FMS.WebClient.Controllers.FuelManagement;
 public class ExpectedFuelAverageManagementController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly GpsdataContext _context;
     private readonly ILogger<ExpectedFuelAverageManagementController> _logger;
 
-    public ExpectedFuelAverageManagementController(IMediator mediator, GpsdataContext context, ILogger<ExpectedFuelAverageManagementController> logger)
+    public ExpectedFuelAverageManagementController(IMediator mediator, ILogger<ExpectedFuelAverageManagementController> logger)
     {
         _mediator = mediator;
-        _context = context;
         _logger = logger;
     }
 
@@ -332,127 +328,5 @@ public class ExpectedFuelAverageManagementController : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
-    /// <summary>
-    /// Enqueue GPSGate backfill sync jobs for active expected-average assignments.
-    /// </summary>
-    [HttpPost("sync-to-gpsgate")]
-    public async Task<IActionResult> SyncToGpsGate([FromQuery] int? vehicleId = null)
-    {
-        var result = await _mediator.Send(new EnqueueExpectedAverageSyncBackfillCommand(vehicleId));
-        return result.IsSuccess ? Ok(result) : BadRequest(result);
-    }
-
     #endregion
-
-    #region Reviews
-
-    [HttpGet("reviews")]
-    public async Task<IActionResult> GetReviews([FromQuery] string? status = null, [FromQuery] int? vehicleId = null)
-    {
-        var query = _context.ExpectedAverageReviews
-            .AsNoTracking()
-            .Include(r => r.Vehicle)
-            .Include(r => r.TemplateAtOpen)
-            .Include(r => r.Events)
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            query = query.Where(r => r.Status == status);
-        }
-
-        if (vehicleId.HasValue)
-        {
-            query = query.Where(r => r.VehicleId == vehicleId.Value);
-        }
-
-        var reviews = await query
-            .OrderByDescending(r => r.OpenedAt)
-            .ToListAsync();
-
-        return Ok(FMSResponse<List<ExpectedAverageReviewDTO>>.Success(reviews.Select(MapReviewDto).ToList()));
-    }
-
-    [HttpGet("reviews/{reviewId}")]
-    public async Task<IActionResult> GetReview(int reviewId)
-    {
-        var review = await _context.ExpectedAverageReviews
-            .AsNoTracking()
-            .Include(r => r.Vehicle)
-            .Include(r => r.TemplateAtOpen)
-            .Include(r => r.Events)
-            .FirstOrDefaultAsync(r => r.Id == reviewId);
-
-        if (review == null)
-        {
-            return NotFound(FMSResponse<ExpectedAverageReviewDTO>.NotFound("Review not found"));
-        }
-
-        return Ok(FMSResponse<ExpectedAverageReviewDTO>.Success(MapReviewDto(review)));
-    }
-
-    [HttpPost("reviews/{reviewId}/resolve")]
-    public async Task<IActionResult> ResolveReview(int reviewId, [FromBody] ResolveExpectedAverageReviewRequestDTO dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(FMSResponse<bool>.Failed("Invalid model state"));
-
-        var result = await _mediator.Send(new ResolveExpectedAverageReviewCommand(reviewId, dto));
-        return result.IsSuccess ? Ok(result) : BadRequest(result);
-    }
-
-    [HttpPost("reviews/{reviewId}/apply-adjustment")]
-    public async Task<IActionResult> ApplyReviewAdjustment(int reviewId, [FromBody] ApplyExpectedAverageReviewAdjustmentRequestDTO dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(FMSResponse<bool>.Failed("Invalid model state"));
-
-        var result = await _mediator.Send(new ApplyExpectedAverageReviewAdjustmentCommand(reviewId, dto));
-        return result.IsSuccess ? Ok(result) : BadRequest(result);
-    }
-
-    #endregion
-
-    private static ExpectedAverageReviewDTO MapReviewDto(FMS.Domain.Entities.ExpectedAverageReview review)
-    {
-        var dto = new ExpectedAverageReviewDTO
-        {
-            Id = review.Id,
-            VehicleId = review.VehicleId,
-            VehicleCode = review.Vehicle?.VehicleCode ?? string.Empty,
-            NumberPlate = review.Vehicle?.NumberPlate,
-            AssignmentId = review.AssignmentId,
-            TemplateIdAtOpen = review.TemplateIdAtOpen,
-            TemplateName = review.TemplateAtOpen?.Name ?? string.Empty,
-            OpenedAt = review.OpenedAt,
-            OpenedBySystem = review.OpenedBySystem,
-            Status = review.Status,
-            Direction = review.Direction,
-            SampleCount = review.SampleCount,
-            OutsideBandPercent = review.OutsideBandPercent,
-            MeanActual = review.MeanActual,
-            MeanDelta = review.MeanDelta,
-            SuggestedValue = review.SuggestedValue,
-            Summary = review.Summary,
-            ResolvedAt = review.ResolvedAt,
-            ResolvedBy = review.ResolvedBy,
-            ResolutionAction = review.ResolutionAction,
-            ResolutionNote = review.ResolutionNote
-        };
-
-        foreach (var reviewEvent in review.Events.OrderByDescending(e => e.At))
-        {
-            dto.Events.Add(new ExpectedAverageReviewEventDTO
-            {
-                Id = reviewEvent.Id,
-                At = reviewEvent.At,
-                By = reviewEvent.By,
-                FromStatus = reviewEvent.FromStatus,
-                ToStatus = reviewEvent.ToStatus,
-                Note = reviewEvent.Note
-            });
-        }
-
-        return dto;
-    }
 }

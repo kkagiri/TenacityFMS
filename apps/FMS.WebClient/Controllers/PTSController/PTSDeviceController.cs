@@ -12,10 +12,10 @@ using System;
 using System.Reflection;
 using FMS.Application.Features.PTSDevice.Commands;
 using FMS.Application.Communication;
+using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.Tracker.Common;
 using FMS.Application.Common;
-using FMS.Application.CommonInterface;
 using FMS.Application.Features.PTSDevice.DTOs;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
@@ -42,14 +42,14 @@ namespace FMS.WebClient.Controllers
         private readonly ILogger<PTSDeviceController> _logger;
         private readonly DeviceConnectionTracker _deviceConnectionTracker;
         private readonly IMediator _mediator;
-        private readonly IRedisCommandService _redisCommandService;
+        private readonly RedisCommandService _redisCommandService;
         private readonly IHubContext<PTSHub> _hubContext;
 
         public PTSDeviceController(
             ILogger<PTSDeviceController> logger,
             IMediator mediator,
             DeviceConnectionTracker deviceConnectionTracker,
-            IRedisCommandService redisCommandService,
+            RedisCommandService redisCommandService,
             IHubContext<PTSHub> hubContext)
         {
             _logger = logger ??
