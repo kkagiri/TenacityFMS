@@ -1,0 +1,174 @@
+/**
+ * File: FMSEvent.cs
+ * Purpose: Abstract base class for all events in the FMS Event Expression Engine.
+ *          Every business operation emits a typed FMSEvent subclass.
+ *          The engine matches events against EventExpressions to trigger notifications.
+ * Dependencies: None (pure domain concept)
+ * Last Modified: 2026-02-11
+ *
+ * Key Members:
+ * - EventType: string key used to match against EventExpression records
+ * - EventCategory: grouping label matching notification_categories
+ * - GetTemplateVariables(): builds {{placeholder}} dictionary for notification templates
+ */
+
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+
+namespace FMS.Application.Features.EventEngine.Events
+{
+    /// <summary>
+    /// Abstract base class for all events in the FMS notification system.
+    /// Business code creates typed subclasses and passes them to IEventExpressionEngine.ProcessAsync().
+    /// </summary>
+    public abstract class FMSEvent
+    {
+        /// <summary>
+        /// Unique string key identifying the event type (e.g., "TankStockDiscrepancy", "DeviceOffline").
+        /// Must match EventExpression.EventType for the expression to trigger.
+        /// </summary>
+        public string EventType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Grouping label that maps to the notification_categories table.
+        /// Used for user subscription preferences and dashboard filtering.
+        /// </summary>
+        public string EventCategory { get; set; } = string.Empty;
+
+        /// <summary>
+        /// When the event occurred. Defaults to UTC now.
+        /// </summary>
+        public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Event severity: Low, Medium, High, Critical.
+        /// EventExpressions can filter by MinimumSeverity.
+        /// </summary>
+        public string Severity { get; set; } = "Medium";
+
+        /// <summary>
+        /// Site scope filter. Null = system-wide event.
+        /// </summary>
+        public int? SiteId { get; set; }
+
+        /// <summary>
+        /// Tank scope filter. Null = not tank-specific.
+        /// </summary>
+        public int? TankId { get; set; }
+
+        /// <summary>
+        /// Device (ATG/PTS controller) scope filter. Null = not device-specific.
+        /// </summary>
+        public int? DeviceId { get; set; }
+
+        /// <summary>
+        /// PTS device identifier string (for PTS protocol events).
+        /// </summary>
+        public string? PtsDeviceId { get; set; }
+
+        /// <summary>
+        /// Who/what triggered the event. User login name or "System" for automated.
+        /// </summary>
+        public string TriggeredBy { get; set; } = "System";
+
+        /// <summary>
+        /// Human-readable summary of the event for notification messages.
+        /// </summary>
+        public string Message { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Flexible key-value bag for data that doesn't have a typed property.
+        /// Serialized to JSON for storage in EventData columns.
+        /// </summary>
+        public Dictionary<string, object> Data { get; set; } = new();
+
+        /// <summary>
+        /// Returns metadata for a report attachment to include in email notifications.
+        /// Override in subclasses that want to attach a PDF report to the notification.
+        /// Returns null by default (no attachment).
+        /// </summary>
+        public virtual ReportAttachmentMetadata? GetReportAttachmentMetadata() => null;
+
+        /// <summary>
+        /// Returns file attachment metadata for email delivery.
+        /// Override in subclasses that want to attach one or more stored files.
+        /// Returns an empty collection by default.
+        /// </summary>
+        public virtual IReadOnlyCollection<FileAttachmentMetadata> GetFileAttachmentMetadata() => Array.Empty<FileAttachmentMetadata>();
+
+        /// <summary>
+        /// Returns a channel-specific HTML body for email delivery.
+        /// Override when email needs richer content than the in-app/plain-text message.
+        /// Returns null by default so email falls back to the normal template flow.
+        /// </summary>
+        public virtual string? GetCustomEmailBodyHtml() => null;
+
+        /// <summary>
+        /// Build template variables for notification message rendering.
+        /// Keys become {{placeholders}} in notification title/message templates.
+        /// Override in subclasses to add typed properties.
+        /// </summary>
+        public virtual Dictionary<string, string> GetTemplateVariables()
+        {
+            var vars = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["EventType"] = EventType,
+                ["EventCategory"] = EventCategory,
+                ["Severity"] = Severity,
+                ["OccurredAt"] = OccurredAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                ["TriggeredBy"] = TriggeredBy,
+                ["Message"] = Message,
+                ["SiteId"] = SiteId?.ToString() ?? "",
+                ["TankId"] = TankId?.ToString() ?? "",
+                ["DeviceId"] = DeviceId?.ToString() ?? ""
+            };
+
+            // Add any Data dictionary entries as template variables
+            foreach (var kvp in Data)
+            {
+                vars[kvp.Key] = kvp.Value?.ToString() ?? "";
+            }
+
+            return vars;
+        }
+
+        /// <summary>
+        /// Build a JSON payload for persistence that keeps the runtime event snapshot
+        /// and preserves the template variables used by notification rendering.
+        /// </summary>
+        public virtual string SerializeEventData()
+        {
+            var snapshot = JsonSerializer.Deserialize<Dictionary<string, object?>>(
+                JsonSerializer.Serialize(this, GetType())) ?? new Dictionary<string, object?>();
+
+            snapshot["templateVariables"] = GetTemplateVariables();
+
+            return JsonSerializer.Serialize(snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Metadata describing a report to render as PDF and attach to notification emails.
+    /// </summary>
+    public class ReportAttachmentMetadata
+    {
+        public string ReportType { get; set; } = string.Empty;
+        public string TemplateName { get; set; } = string.Empty;
+        public int? TankId { get; set; }
+        public int? SiteId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string FileNamePrefix { get; set; } = "Report";
+    }
+
+    /// <summary>
+    /// Metadata describing a stored file to attach directly to notification emails.
+    /// </summary>
+    public class FileAttachmentMetadata
+    {
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string? ContentType { get; set; }
+    }
+}

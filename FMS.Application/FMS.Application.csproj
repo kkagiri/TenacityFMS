@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="FMS.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="FuelDispensing\**" />
+    <EmbeddedResource Remove="FuelDispensing\**" />
+    <None Remove="FuelDispensing\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\FMS.Devices.Fueling\Providers\TechnotradePts\Channels\RedisCommandService.cs"
+             Link="Communication\Redis\RedisCommandService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
+    <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="NLog" Version="5.1.5" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+    <PackageReference Include="system.servicemodel.duplex" Version="4.7.0" />
+    <PackageReference Include="system.servicemodel.security" Version="4.7.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.7" />
+    <PackageReference Include="ZXing.Net" Version="0.16.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\FMS.Domain\FMS.Domain.csproj" />
+    <!-- <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" /> -->
+    <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+    <NoWarn>$(NoWarn);CS8600;CS8604;CS8618</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Command\DatabaseCommand\PTSCommands\InTankDeliveryCommand\" />
+    <Folder Include="Command\PTSCommand\FuelDispensing\" />
+    <Folder Include="Command\SignalCommand\" />
+    <Folder Include="Common\PTSMessage\" />
+    <Folder Include="Helpers\" />
+    <!-- <Folder Include="Infrastructure\Exceptions\Communication\" />
+    <Folder Include="Infrastructure\Exceptions\Device\" />
+    <Folder Include="Infrastructure\Exceptions\Validation\" /> -->
+    <Folder Include="ModelsDTOs\Tags\" />
+    <Folder Include="Queries\Database\FMSQuery\UserManagement\Authentication\" />
+    <Folder Include="Queries\PTSQueries\ReaderQueries\" />
+    <Folder Include="Queries\PTSQueries\PriceBoardQueries\" />
+    <Folder Include="Queries\PTSQueries\ProbeQueries\" />
+    <Folder Include="Services\AutomatedReconciliation\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.ServiceModel.Http" Version="8.*" />
+    <PackageReference Include="System.ServiceModel.NetTcp" Version="8.*" />
+    <PackageReference Include="System.ServiceModel.Primitives" Version="8.*" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,67 @@
+using FMS.Domain.Entities.Features.TankStockManagement;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace FMS.Persistence.EntityConfigurations
+{
+    /// <summary>
+    /// Configuration for the UploadStatusProbeReading entity
+    /// </summary>
+    public class UploadStatusProbeReadingConfiguration : EntityTypeConfiguration<UploadStatusProbeReading>
+    {
+        /// <summary>
+        /// Configures the entity
+        /// </summary>
+        /// <param name="builder">The entity type builder</param>
+        public override void Configure(EntityTypeBuilder<UploadStatusProbeReading> builder)
+        {
+            try
+            {
+                builder.HasKey(e => e.Id);
+                builder.ToTable("uploadstatusprobereading");
+
+                builder.Property(e => e.Id);
+
+                builder.Property(e => e.DateTime);
+
+                builder.Property(e => e.DeviceId)
+                    .HasMaxLength(100)
+                    .IsRequired();
+
+                builder.Property(e => e.ProbeNumber);
+
+                builder.Property(e => e.ProductTcvolume);
+
+                builder.Property(e => e.TankFillingPercentage);
+
+                builder.Property(e => e.TankId)
+                    .IsRequired(false);
+
+                builder.Property(e => e.SiteId)
+                    .IsRequired(false);
+
+                builder.Property(e => e.FuelGradeId)
+                    .IsRequired(false);
+
+                builder.Property(e => e.FuelGradeName)
+                    .HasMaxLength(45)
+                    .IsRequired(false);
+
+                builder.HasOne(e => e.TankNavigation)
+                    .WithMany(e => e.UploadStatusProbeReadings)
+                    .HasForeignKey(e => e.TankId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                builder.HasIndex(e => e.DateTime).HasDatabaseName("IX_uploadstatusprobereading_DateTime");
+                builder.HasIndex(e => e.TankId).HasDatabaseName("IX_uploadstatusprobereading_TankId");
+                builder.HasIndex(e => e.DeviceId).HasDatabaseName("IX_uploadstatusprobereading_DeviceId");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error configuring UploadStatusProbeReading: {ex.Message}");
+                throw new Exception($"Error configuring UploadStatusProbeReadingConfiguration: {ex.Message}", ex);
+            }
+        }
+    }
+}
+

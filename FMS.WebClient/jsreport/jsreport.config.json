@@ -1,0 +1,21 @@
+{
+  "store": {
+    "provider": "fs"
+  },
+  "extensions": {
+    "fs-store": {
+      "dataDirectory": "C:/FMSData/JsReport_Temp/data"
+    }
+  },
+  "tempDirectory": "C:/FMSData/JsReport_Temp",
+  "chrome": {
+    "launchOptions": {
+      "executablePath": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "args": [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage"
+      ]
+    }
+  }
+}

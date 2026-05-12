@@ -1,0 +1,146 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <IsPackable>false</IsPackable>
+    <SpaRoot>..\fms.frontend\</SpaRoot>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(SpaRoot)node_modules\**;$(SpaRoot)build\**;$(SpaRoot).git\**</DefaultItemExcludes>
+    <!-- <SpaProxyServerUrl>https://localhost:44403</SpaProxyServerUrl>-->
+   <!--  <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>-->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>d6b03573-f5e8-45ec-b246-2f65dc3bbea5</UserSecretsId>
+  </PropertyGroup>
+
+  <!-- chatgpt: treat warnings as non-visible messages -->
+<PropertyGroup>
+  <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
+  <NoWarn>$(NoWarn);NU1903</NoWarn>
+</PropertyGroup>
+
+
+<ItemGroup>
+    <RestoreSources Include="https://api.nuget.org/v3/index.json" />
+    <!-- DevExpress 23.2 packages - local folder (repacked from network share) -->
+    <RestoreSources Include="$(MSBuildThisFileDirectory)..\packages" />
+<!--Production link -->
+    <!-- <RestoreSources Include="E:\Dependancy\Components\System\Components\packages" /> -->
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
+    <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="23.2.3" />
+    <!-- JsReport for PDF/Excel report generation -->
+    <PackageReference Include="jsreport.Local" Version="3.8.2" />
+    <PackageReference Include="jsreport.Binary" Version="4.4.0" />
+    <PackageReference Include="jsreport.Types" Version="3.9.4" />
+    <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="22.2.5" /> -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="PuppeteerSharp" Version="21.1.1" />
+    <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.4" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="6.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
+    <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="NLog" Version="5.2.8" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.3.8" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.3.8" />
+    <PackageReference Include="Scrutor" Version="6.0.1" />
+    <PackageReference Include="Serilog" Version="4.1.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Don't publish the SPA source files, but do show them in the project files list -->
+    <Content Remove="$(SpaRoot)**" />
+    <None Remove="$(SpaRoot)**" />
+    <!--<None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />-->
+  </ItemGroup>
+
+<ItemGroup>
+  <Content Update="appsettings.Development.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+  </Content>
+  <Content Update="appsettings.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+  </Content>
+
+  <!-- Preserve custom web.config during publish (includes WebSocket & SignalR settings) -->
+  <Content Update="web.config">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+  </Content>
+
+</ItemGroup>
+
+<!-- Prevent MSBuild from auto-generating web.config (we have our own) -->
+<PropertyGroup>
+  <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+</PropertyGroup>
+
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\FMS.Application\FMS.Application.csproj" />
+    <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+    <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Core\FMS.Devices.Core.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Fueling\FMS.Devices.Fueling.csproj" />
+    <ProjectReference Include="..\FMS.Devices.Tracking\FMS.Devices.Tracking.csproj" />
+  </ItemGroup>
+
+  <!-- Runtime data files from referenced projects that must be present in the publish output -->
+  <ItemGroup>
+    <Content Include="..\FMS.BackgroundServices\FMS\GPSGATELocationMapping.json" Link="FMS.BackgroundServices\FMS\GPSGATELocationMapping.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers\GPSDeviceManagement\" />
+    <Folder Include="Util\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="nlog.config" />
+  </ItemGroup>
+
+
+  <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+    <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
+    <!--<Exec WorkingDirectory="$(SpaRoot)" Command="npm install" /> -->
+    <!-- <Exec WorkingDirectory="$(SpaRoot)" Command="npm run build" />-->
+
+    <!-- Include the newly-built files in the publish output -->
+    <ItemGroup>
+      <DistFiles Include="$(SpaRoot)build\**" />
+      <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>wwwroot\%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+</Project>

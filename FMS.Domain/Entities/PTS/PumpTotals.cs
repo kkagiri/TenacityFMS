@@ -1,0 +1,17 @@
+using FMS.Domain.Entities.PTS.Enums;
+
+namespace FMS.Domain.Entities.PTS
+{
+    public class PumpTotals : PumpStatusBase
+    {
+        public int? Nozzle { get; set; }
+        public double? Volume { get; set; }
+        public double? Price { get; set; }
+        public double? Amount { get; set; }
+        public int? Transaction { get; set; }
+        public override PumpStatus Status
+        {
+            get => PumpStatus.NONE;
+        }
+    }
+}
