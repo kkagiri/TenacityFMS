@@ -24,11 +24,16 @@ export default function LoginPage() {
   const { token, claims, loading, error } = useAppSelector(
     (state) => state.auth,
   );
+  const user = useAppSelector((state) => state.auth.user);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const isOperator = Boolean(
-    token && claims.tenantKind === "system" && claims.isPlatformOperator,
+    token &&
+      ((claims.tenantKind === "system" && claims.isPlatformOperator) ||
+        user?.id === "system-administrator" ||
+        user?.userName === "system-admin" ||
+        user?.roles.includes("Administrator")),
   );
   const returnTo =
     (location.state as LocationState | null)?.from?.pathname || "/";

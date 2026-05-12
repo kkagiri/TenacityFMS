@@ -64,13 +64,17 @@ export const loginOperator = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await apiClient.post("/v1/operator/login", credentials);
+      const response = await apiClient.post("/v1/User/Login", credentials);
       return unwrapResponse<OperatorLoginResponse>(response.data);
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "response" in error
-          ? (error as { response?: { data?: { message?: string } } }).response
-              ?.data?.message
+          ? (error as {
+              response?: { data?: { message?: string; Message?: string } };
+            }).response?.data?.message ||
+            (error as {
+              response?: { data?: { message?: string; Message?: string } };
+            }).response?.data?.Message
           : null;
       return rejectWithValue(message || "Operator login failed.");
     }

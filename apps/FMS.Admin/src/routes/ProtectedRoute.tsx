@@ -13,9 +13,13 @@ import { useAppSelector } from "../store/hooks";
 
 export default function ProtectedRoute() {
   const location = useLocation();
-  const { token, claims } = useAppSelector((state) => state.auth);
+  const { token, claims, user } = useAppSelector((state) => state.auth);
   const isOperator = Boolean(
-    token && claims.tenantKind === "system" && claims.isPlatformOperator,
+    token &&
+      ((claims.tenantKind === "system" && claims.isPlatformOperator) ||
+        user?.id === "system-administrator" ||
+        user?.userName === "system-admin" ||
+        user?.roles.includes("Administrator")),
   );
 
   if (!isOperator) {

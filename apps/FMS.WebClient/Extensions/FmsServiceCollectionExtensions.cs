@@ -749,7 +749,7 @@ public static class FmsServiceCollectionExtensions
 
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
-        services.AddHostedService<LogCleanupBackgroundService>();
+        services.AddHostedService<FMS.BackgroundServices.FMS.LogCleanupBackgroundService>();
 
         // Async Report Job Services
         services.AddSingleton<FMS.Application.Features.Reporting.Services.IReportJobProgressService, FMS.Application.Features.Reporting.Services.ReportJobProgressService>();

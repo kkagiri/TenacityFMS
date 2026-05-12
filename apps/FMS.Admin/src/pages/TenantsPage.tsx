@@ -11,20 +11,16 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { apiClient } from "../api/apiClient";
+import { apiClient, unwrapResponse } from "../api/apiClient";
 import type {
   OperatorTenantSummary,
   PaginationMetadata,
   TenantKind,
 } from "../types/tenant";
 
-type FmsPagedEnvelope<T> = {
-  data?: T;
-  Data?: T;
-  pagination?: PaginationMetadata;
-  Pagination?: PaginationMetadata;
-  message?: string;
-  Message?: string;
+type TenantListPayload = {
+  items: OperatorTenantSummary[];
+  pagination: PaginationMetadata;
 };
 
 type TenantKindFilter = TenantKind | "all";
@@ -38,12 +34,6 @@ const formatDate = (value: string) => {
   if (Number.isNaN(parsed.getTime())) return "—";
   return parsed.toLocaleDateString();
 };
-
-const readPagedEnvelope = <T,>(payload: FmsPagedEnvelope<T>) => ({
-  data: payload.data ?? payload.Data,
-  pagination: payload.pagination ?? payload.Pagination,
-  message: payload.message ?? payload.Message,
-});
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<OperatorTenantSummary[]>([]);
@@ -74,9 +64,7 @@ export default function TenantsPage() {
       setError(null);
 
       try {
-        const response = await apiClient.get<
-          FmsPagedEnvelope<OperatorTenantSummary[]>
-        >("/v1/operator/tenants", {
+        const response = await apiClient.get("/v1/operator/tenants", {
           params: {
             pageNumber,
             pageSize: 25,
@@ -86,9 +74,9 @@ export default function TenantsPage() {
           },
         });
 
-        const payload = readPagedEnvelope(response.data);
+        const payload = unwrapResponse<TenantListPayload>(response.data);
         if (isMounted) {
-          setTenants(payload.data || []);
+          setTenants(payload.items || []);
           setPagination(payload.pagination || null);
         }
       } catch (caught) {

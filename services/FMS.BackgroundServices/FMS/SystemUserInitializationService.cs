@@ -66,16 +66,6 @@ namespace FMS.Application.Services
                         _logger.LogError("Failed to ensure system administrator exists: {Message}", systemAdminResult.Message);
                     }
 
-                    var defaultAdminResult = await systemUserService.EnsureDefaultAdministratorSetupAsync(stoppingToken);
-                    if (defaultAdminResult.IsSuccess)
-                    {
-                        _logger.LogInformation("Default administrator bootstrap ensured: {Message}", defaultAdminResult.Message);
-                    }
-                    else
-                    {
-                        _logger.LogError("Failed to ensure default administrator bootstrap: {Message}", defaultAdminResult.Message);
-                    }
-
                     _logger.LogInformation("System user initialization completed");
                 }
                 catch (Exception ex)

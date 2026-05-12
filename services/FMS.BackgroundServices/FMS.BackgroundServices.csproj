@@ -20,4 +20,9 @@
     <ProjectReference Include="..\..\packages\FMS.Persistence\FMS.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="FuelBusinessOperation\**\*.cs" />
+    <Compile Remove="FMS\DeviceActivityMonitorService.cs" />
+  </ItemGroup>
+
 </Project>
