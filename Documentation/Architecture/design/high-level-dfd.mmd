@@ -1,0 +1,56 @@
+flowchart TD
+    PlatformOperator[Platform Operator\nTenacity internal user]
+    ClientAdmin[Client Admin / User\nClient tenant]
+    CustomerUser[Customer Admin / User\nCustomer tenant]
+
+    FMSAdmin[apps/FMS.Admin\nOperator portal]
+    FMSFrontend[apps/fms.frontend\nClient and customer portal]
+    FMSMobile[apps/fms.mobile\nMobile workflows]
+    Landing[apps/FMS.Landing\nPublic sales entry]
+
+    WebClient[apps/FMS.WebClient\nMain API host]
+    SalesApi[FMS.Sales.Api\nSales bounded context]
+    Application[packages/FMS.Application\nCQRS features and services]
+    Persistence[packages/FMS.Persistence\nGPSDataContext]
+    Domain[packages/FMS.Domain\nDomain entities]
+    MySql[(MySQL operational database)]
+
+    DeviceCore[FMS.Devices.Core\nProvider registry and routing]
+    TrackingHost[services/FMS.Devices.Tracking.Host\nTracking worker]
+    FuelingHost[services/FMS.PTS.WindowsService\nLegacy fueling host]
+    TrackingProviders[Tracking provider APIs\nGPSGate / GPSWox]
+    FuelingDevices[Fueling devices\nPTS / ATG]
+    Redis[(Redis command channel)]
+    RabbitMq[(RabbitMQ events)]
+
+    PlatformOperator --> FMSAdmin
+    ClientAdmin --> FMSFrontend
+    CustomerUser --> FMSFrontend
+    CustomerUser --> FMSMobile
+    Landing --> SalesApi
+
+    FMSAdmin --> WebClient
+    FMSFrontend --> WebClient
+    FMSMobile --> WebClient
+
+    WebClient --> Application
+    Application --> Persistence
+    Persistence --> Domain
+    Persistence --> MySql
+
+    WebClient --> DeviceCore
+    TrackingHost --> DeviceCore
+    TrackingHost --> TrackingProviders
+    TrackingHost --> RabbitMq
+    FuelingHost --> DeviceCore
+    FuelingHost --> Redis
+    FuelingHost --> FuelingDevices
+    DeviceCore --> Persistence
+
+    SalesApi --> SalesDb[(Sales database)]
+
+    subgraph TenancyBoundary[Tenant and permission boundary]
+      Application
+      Persistence
+      MySql
+    end

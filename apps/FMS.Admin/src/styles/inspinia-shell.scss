@@ -2,7 +2,7 @@
  * File:          inspinia-shell.scss
  * Purpose:       Inspinia-style application shell for FMS.Admin.
  * Dependencies:  OperatorLayout.tsx, admin.scss
- * Last Modified: 2026-05-10
+ * Last Modified: 2026-05-16
  *
  * Key Functions:
  * - Styles the shared dark sidebar, white topbar, and responsive shell chrome.
@@ -12,6 +12,7 @@
   display: block;
   min-height: 100vh;
   background: var(--inspinia-content-bg);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .admin-shell__sidebar {
@@ -39,14 +40,14 @@
   align-items: center;
   gap: 10px;
   min-height: var(--theme-topbar-height);
-  padding: 14px 18px;
+  padding: 0 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .admin-shell__brand-mark,
 .operator-login__brand-mark {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border-radius: 6px;
@@ -139,6 +140,8 @@
 
 .admin-shell__topbar {
   height: var(--theme-topbar-height);
+  min-height: var(--theme-topbar-height);
+  flex: 0 0 var(--theme-topbar-height);
   position: sticky;
   top: 0;
   z-index: 30;
@@ -161,18 +164,32 @@
 }
 
 .admin-shell__menu-button {
-  width: 34px;
-  min-height: 34px;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
   padding: 0;
-  border-color: transparent;
-  background: var(--theme-primary);
-  color: #ffffff;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #676a6c;
+
+  &:hover {
+    background: #f6f7fb;
+    color: var(--inspinia-accent);
+  }
+
+  &:active,
+  &:focus {
+    background: #eef8f5;
+    color: var(--inspinia-secondary-accent);
+  }
 }
 
 .admin-shell__topbar-title {
   color: var(--inspinia-heading);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .admin-shell__user {

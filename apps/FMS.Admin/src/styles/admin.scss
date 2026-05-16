@@ -2,7 +2,7 @@
  * File:          admin.scss
  * Purpose:       Shared styling for the FMS.Admin operator portal.
  * Dependencies:  Tailwind CSS, SCSS
- * Last Modified: 2026-05-10
+ * Last Modified: 2026-05-16
  *
  * Key Functions:
  * - Defines theme tokens, form controls, buttons, banners, and table styling.
@@ -37,22 +37,25 @@
   --inspinia-topbar-bg: #ffffff;
   --inspinia-topbar-border: #e7e9eb;
   --inspinia-heading: #313a46;
-  --m365-primary: var(--inspinia-accent);
-  --m365-primary-hover: var(--inspinia-accent-hover);
-  --m365-text: #313a46;
-  --m365-text-secondary: #676a6c;
+  --m365-primary: #0078d4;
+  --m365-primary-hover: #106ebe;
+  --m365-primary-pressed: #005a9e;
+  --m365-success: #107c10;
+  --m365-error: #d13438;
+  --m365-warning: #ca5010;
+  --m365-info: #0078d4;
+  --m365-text: #201f1e;
+  --m365-text-secondary: #605e5c;
   --m365-text-tertiary: #a19f9d;
   --m365-border: #c8c6c4;
-  --m365-border-light: #e7e9eb;
-  --m365-bg-hover: #f6f7fb;
+  --m365-border-light: #edebe9;
+  --m365-bg-hover: #f3f2f1;
   --m365-bg-surface: var(--inspinia-content-bg);
   --m365-bg-card: #ffffff;
-  font-family:
-    "Segoe UI",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Helvetica Neue",
-    sans-serif;
+  --m365-selected-bg: #e5f1fb;
+  --m365-blue-bg: #deecf9;
+  --m365-font: "Segoe UI", -apple-system, system-ui, sans-serif;
+  font-family: var(--m365-font);
   color: var(--m365-text);
   background: var(--m365-bg-surface);
 }
@@ -66,27 +69,37 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-size: 13px;
+  font-family: var(--m365-font);
 }
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
 .m365-btn {
+  height: 34px;
   min-height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 6px;
+  padding: 0 16px;
   border: 1px solid var(--m365-border);
   border-radius: 4px;
   background: #fff;
   color: #323130;
   cursor: pointer;
+  font-family: var(--m365-font);
+  font-size: 13px;
+  font-weight: 500;
   text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
 
   &:disabled {
     color: var(--m365-text-tertiary);
@@ -168,9 +181,9 @@ select {
   align-items: flex-start;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid rgba(26, 179, 148, 0.28);
+  border: 1px solid #bfdff5;
   border-radius: 4px;
-  background: rgba(26, 179, 148, 0.1);
+  background: #f3f9ff;
   color: var(--m365-text);
 }
 
@@ -398,6 +411,150 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.operator-filter-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 220px 150px 140px;
+  gap: 12px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.operator-grid--two {
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
+  align-items: start;
+}
+
+.operator-form-panel__grid--single {
+  grid-template-columns: 1fr;
+}
+
+.operator-table-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.operator-table-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.operator-table-card__header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.operator-table-card__header span {
+  color: var(--m365-text-secondary);
+}
+
+.operator-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 6px;
+}
+
+table.operator-table {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.operator-table th,
+table.operator-table td {
+  padding: 9px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--m365-border-light);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+table.operator-table th {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--m365-text-secondary);
+  background: var(--m365-bg-surface);
+}
+
+table.operator-table tr:last-child td {
+  border-bottom: 0;
+}
+
+table.operator-table td strong,
+table.operator-table td span {
+  display: block;
+}
+
+table.operator-table td span {
+  margin-top: 2px;
+  color: var(--m365-text-secondary);
+  font-size: 12px;
+}
+
+.operator-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 10px;
+  color: #605e5c;
+  background: #f3f2f1;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.operator-pill--success {
+  color: #107c10;
+  background: #dff6dd;
+}
+
+.operator-textarea {
+  min-height: 92px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--m365-border);
+  border-radius: 4px;
+  color: var(--m365-text);
+  resize: vertical;
+}
+
+.operator-check-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.operator-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.operator-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--m365-primary);
 }
 
 .operator-detail-grid {

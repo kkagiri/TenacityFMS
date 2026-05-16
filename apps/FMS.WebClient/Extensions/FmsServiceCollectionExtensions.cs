@@ -335,11 +335,13 @@ public static class FmsServiceCollectionExtensions
                 builder.WithOrigins(
                         "http://localhost:3000",
                         "http://localhost:3001",
+                        "http://localhost:3010",
                         "http://localhost",
                         "http://10.0.11.90:3000",
                         "http://10.0.11.90:7009",
                         "https://10.0.11.90:7009",
-                        "http://127.0.0.1:3000")
+                        "http://127.0.0.1:3000",
+                        "http://127.0.0.1:3010")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials()
@@ -374,6 +376,7 @@ public static class FmsServiceCollectionExtensions
                     // Localhost for testing
                     "http://localhost",
                     "http://localhost:3000",
+                    "http://localhost:3010",
                     "http://localhost:7009"
                 };
 

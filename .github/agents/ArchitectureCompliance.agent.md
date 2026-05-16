@@ -40,6 +40,21 @@ Default behavior is **audit-only**.
 If the user explicitly says **"fix"**, **"rewrite"**, or **"refactor"**, edits are permitted but must remain scoped to the requested files/rules.
 
 ---
+### 1.8 File Documentation Header
+
+Every file **MUST** have a documentation header at the top:
+
+```javascript
+/**
+ * File:          [FileName].js
+ * Purpose:       [Brief description]
+ * Dependencies:  [Key dependencies]
+ * Last Modified: [Date]
+ *
+ * Key Functions:
+ * - functionName(): what it does
+ */
+```
 
 # Audit Checklist (Rule IDs)
 

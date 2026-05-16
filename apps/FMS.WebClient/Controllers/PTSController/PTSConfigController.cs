@@ -31,6 +31,7 @@ namespace FMS.WebClient.Controllers.PTSController
     [Route("api/v1/pts/{deviceId}/config")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [RequirePermission(Permissions.Admin.Device)]
+    [RejectCustomerTenant]
     public class PTSConfigController : ControllerBase
     {
         private readonly IPTSConfigService _ptsConfigService;

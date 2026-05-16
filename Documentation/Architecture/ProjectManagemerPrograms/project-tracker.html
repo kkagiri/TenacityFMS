@@ -1,0 +1,1599 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tenacity FMS — Project Tracker</title>
+  <style>
+    /* ─────────── M365 Fluent palette ─────────── */
+    :root {
+      --primary: #0078d4;
+      --primary-dark: #106ebe;
+      --success: #107c10;
+      --error: #d13438;
+      --warning: #ca5010;
+      --text: #201f1e;
+      --text-2: #605e5c;
+      --text-3: #a19f9d;
+      --border: #c8c6c4;
+      --border-light: #edebe9;
+      --hover: #f3f2f1;
+      --surface: #faf9f8;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--surface);
+    }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ─────────── Header ─────────── */
+    .header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border-light);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 18px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .header .meta {
+      color: var(--text-2);
+      font-size: 12px;
+    }
+    .header .meta strong { color: var(--text); }
+
+    /* ─────────── Container ─────────── */
+    .container { padding: 20px 24px 48px; max-width: 1400px; margin: 0 auto; }
+
+    /* ─────────── Summary cards ─────────── */
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      padding: 14px 16px;
+    }
+    .card .label {
+      font-size: 11px; text-transform: uppercase;
+      color: var(--text-2); letter-spacing: 0.4px;
+    }
+    .card .value {
+      margin-top: 4px;
+      font-size: 24px; font-weight: 600;
+      color: var(--text);
+    }
+    .card.primary .value { color: var(--primary); }
+    .card.success .value { color: var(--success); }
+    .card.warning .value { color: var(--warning); }
+    .card.muted   .value { color: var(--text-3); }
+
+    /* ─────────── Section ─────────── */
+    .section {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .section-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
+    }
+    .section-header h2 {
+      margin: 0; font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-header .count {
+      color: var(--text-2);
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    /* ─────────── Filter bar ─────────── */
+    .filter-bar {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .filter-bar input,
+    .filter-bar select {
+      height: 30px;
+      padding: 0 10px;
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--white);
+      color: var(--text);
+      outline: none;
+    }
+    .filter-bar input:focus,
+    .filter-bar select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    /* ─────────── Table ─────────── */
+    table.grid {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    table.grid th, table.grid td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    table.grid th {
+      background: var(--surface);
+      font-weight: 600;
+      color: var(--text-2);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    table.grid th:hover { color: var(--text); }
+    table.grid th .sort-arrow { color: var(--text-3); margin-left: 4px; font-size: 10px; }
+    table.grid tbody tr { cursor: pointer; }
+    table.grid tbody tr:hover { background: var(--hover); }
+    table.grid tbody tr.pre-software { color: var(--text-2); background: #fafafa; }
+    table.grid tbody tr.pre-software td { color: var(--text-2); }
+    table.grid tr.detail-row { background: var(--surface); cursor: default; }
+    table.grid tr.detail-row:hover { background: var(--surface); }
+    table.grid tr.detail-row td { padding: 12px 20px 16px; }
+
+    /* ─────────── Badges ─────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge.phase-discovery     { background: #f3f2f1; color: var(--text-2); border-color: var(--border-light); }
+    .badge.phase-prd           { background: #fff4ce; color: #835c00; border-color: #f8d775; }
+    .badge.phase-planning      { background: #fff4ce; color: #835c00; border-color: #f8d775; }
+    .badge.phase-inProgress    { background: #deecf9; color: #004578; border-color: #bfdbff; }
+    .badge.phase-validation    { background: #e1dfdd; color: #323130; border-color: var(--border); }
+    .badge.phase-released      { background: #dff6dd; color: #0e5a0e; border-color: #92e092; }
+    .badge.phase-maintenance   { background: #dff6dd; color: #0e5a0e; border-color: #92e092; }
+    .badge.phase-preSoftware   { background: #edebe9; color: var(--text-3); border-color: var(--border-light); }
+    .badge.phase-blocked       { background: #fde7e9; color: #a4262c; border-color: #f1bbbe; }
+
+    .status-icon { font-size: 14px; }
+
+    /* ─────────── Progress bar ─────────── */
+    .pb {
+      width: 100%; height: 6px;
+      background: var(--border-light);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pb > span {
+      display: block; height: 100%;
+      background: var(--primary);
+      transition: width .2s ease;
+    }
+    .pb.success > span { background: var(--success); }
+    .pb.muted   > span { background: var(--text-3); }
+    .pct { font-size: 11px; color: var(--text-2); margin-top: 4px; }
+
+    /* ─────────── Milestone list (detail row) ─────────── */
+    .milestones {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 6px;
+    }
+    .milestones .m {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 10px; align-items: center;
+      padding: 6px 10px;
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+    }
+    .milestones .m .m-name { font-weight: 500; }
+    .milestones .m .m-notes { color: var(--text-2); font-size: 12px; }
+
+    .projects {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-top: 6px;
+    }
+    .projects .p {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(160px, 1fr) auto;
+      gap: 10px; align-items: center;
+      padding: 8px 10px;
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+    }
+    .projects .p-name { font-weight: 600; }
+    .projects .p-path {
+      color: var(--text-2);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      word-break: break-word;
+    }
+    .projects .p-role { color: var(--text-2); font-size: 12px; grid-column: 1 / -1; }
+
+    .empty-row td {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-2);
+      font-style: italic;
+    }
+
+    /* ─────────── Domain map ─────────── */
+    .domain-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .domain {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-left: 3px solid var(--primary);
+      border-radius: 4px;
+      padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .domain h3 {
+      margin: 0;
+      font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .domain .order {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--primary); color: var(--white);
+      font-size: 11px; font-weight: 700;
+    }
+    .domain .subdomains {
+      display: flex; flex-wrap: wrap; gap: 4px;
+      margin-top: 4px;
+    }
+    .domain .sub {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+    .domain .deps {
+      font-size: 11px; color: var(--text-2);
+      margin-top: 4px;
+    }
+    .domain .deps strong { color: var(--text); font-weight: 600; }
+    .domain .deps .dep-pill {
+      display: inline-block;
+      background: #deecf9; color: #004578;
+      border: 1px solid #bfdbff;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 10px;
+      margin: 0 4px 4px 0;
+    }
+    .domain .notes {
+      font-size: 11px; color: var(--text-2);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* ─────────── Footer ─────────── */
+    .footer {
+      text-align: center;
+      color: var(--text-3);
+      font-size: 11px;
+      padding: 16px 24px;
+    }
+
+    @media (max-width: 768px) {
+      .container { padding: 12px; }
+      .header { padding: 12px; }
+      table.grid th, table.grid td { padding: 8px; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <h1>📋 Tenacity FMS — Project Tracker</h1>
+  <div class="meta">
+    Last updated: <strong id="last-updated">—</strong> · Cutoff: <strong id="cutoff-date">—</strong>
+    · <a href="../architecture-monitor.html">Architecture Monitor</a>
+    · <a href="./business-goals.html">Business Goals</a>
+    · <a href="./SUPER_PRD.md">Super PRD</a>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- Summary cards -->
+  <section class="summary" id="summary"></section>
+
+  <!-- Domain map -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Domain Map <span class="count" id="domain-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Subdomains and sequence dependencies (from <code>domains[]</code>)</div>
+    </div>
+    <div class="domain-grid" id="domain-grid"></div>
+  </section>
+
+  <!-- Active features -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Active Features <span class="count" id="active-count"></span></h2>
+      <div class="filter-bar">
+        <input id="filter-text" type="search" placeholder="Filter…" />
+        <select id="filter-phase">
+          <option value="">All phases</option>
+        </select>
+      </div>
+    </div>
+    <table class="grid" id="features-table">
+      <thead>
+        <tr>
+          <th data-sort="name">Feature <span class="sort-arrow">↕</span></th>
+          <th data-sort="domain" class="hide-mobile">Domain <span class="sort-arrow">↕</span></th>
+          <th data-sort="phase">Phase <span class="sort-arrow">↕</span></th>
+          <th data-sort="percentComplete">Progress <span class="sort-arrow">↕</span></th>
+          <th data-sort="created" class="hide-mobile">Created <span class="sort-arrow">↕</span></th>
+          <th data-sort="owner" class="hide-mobile">Owner <span class="sort-arrow">↕</span></th>
+        </tr>
+      </thead>
+      <tbody id="features-body"></tbody>
+    </table>
+  </section>
+
+  <!-- Pre-software features -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Pre-Software <span class="count" id="presoft-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Created after cutoff — spec only</div>
+    </div>
+    <table class="grid" id="presoft-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th class="hide-mobile">Domain</th>
+          <th class="hide-mobile">Created</th>
+          <th class="hide-mobile">Owner</th>
+          <th>PRD</th>
+        </tr>
+      </thead>
+      <tbody id="presoft-body"></tbody>
+    </table>
+  </section>
+
+  <!-- Project touch map -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Project Touch Map <span class="count" id="project-map-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Projects and folders each feature touches</div>
+    </div>
+    <table class="grid" id="project-map-table">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Project / Folder</th>
+          <th class="hide-mobile">Phase</th>
+          <th>Status</th>
+          <th class="hide-mobile">Role</th>
+        </tr>
+      </thead>
+      <tbody id="project-map-body"></tbody>
+    </table>
+  </section>
+
+  <!-- Cross-cutting -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Cross-Cutting Initiatives <span class="count" id="cc-count"></span></h2>
+    </div>
+    <table class="grid" id="cc-table">
+      <thead>
+        <tr>
+          <th>Initiative</th>
+          <th>Status</th>
+          <th class="hide-mobile">Owner</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="cc-body"></tbody>
+    </table>
+  </section>
+
+</main>
+
+<footer class="footer">
+  Source of truth: <code>Documentation/Architecture/ProjectManagemerPrograms/super-tasklist.json</code> · Narrative: <code>Documentation/Architecture/ProjectManagemerPrograms/SUPER_PRD.md</code>
+</footer>
+
+<!-- Embedded fallback for file:// usage (mirror of super-tasklist.json) -->
+<script id="fallback-data" type="application/json">
+{
+  "lastUpdated": "2026-05-16",
+  "cutoffDate": "2026-04-29",
+  "cutoffRule": "Any feature whose 'created' date is strictly AFTER cutoffDate is preSoftware (spec only, not yet implemented).",
+  "legend": {
+    "phases": {
+      "discovery": "Problem framed, no PRD yet",
+      "prd": "PRD drafted, awaiting approval",
+      "planning": "PRD approved, TASKS being written",
+      "inProgress": "Code being written; at least one milestone done",
+      "validation": "Feature complete in dev; under QA/UAT",
+      "released": "Deployed to production",
+      "maintenance": "Live; bug-fix / enhancement only",
+      "preSoftware": "Created after cutoff — spec only",
+      "blocked": "Active phase blocked by external dependency"
+    },
+    "status": {
+      "done": "\ud83d\udfe2",
+      "inProgress": "\ud83d\udfe1",
+      "blocked": "\ud83d\udd34",
+      "preSoftware": "\u26aa",
+      "notStarted": "\u23f8"
+    }
+  },
+  "features": [
+    {
+      "id": "devices-multi-device-platform-v1",
+      "name": "Multi-Device Platform",
+      "domain": "devices",
+      "version": "V1",
+      "type": "implementation",
+      "created": "2026-05-03",
+      "phase": "inProgress",
+      "preSoftware": false,
+      "owner": "Architecture",
+      "prd": "Documentation/Features/devices/multi-device-platform/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/devices/multi-device-platform/V1/implementation/TASKS.md",
+      "percentComplete": 60,
+      "milestones": [
+        {
+          "id": "phase-0",
+          "name": "Phase 0 - Demolish unused IoT scaffolding",
+          "status": "done",
+          "notes": "FMS.IoT.Contracts, FMS.IoT.Gateway, and FMS.IoT.ProcessingEngine removed from the solution and disk."
+        },
+        {
+          "id": "phase-1",
+          "name": "Phase 1 - Provider foundations",
+          "status": "done",
+          "notes": "Abstractions/Core, tenant-scope bridge, repositories, provider entities, and core tests are in place."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 - Tracking provider migration",
+          "status": "inProgress",
+          "notes": "GpsGate moved behind provider boundaries and Tracking.Host exists. Live GPSGate smoke remains open."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 - Fueling abstraction",
+          "status": "inProgress",
+          "notes": "Technotrade PTS provider shell, transport/protocol/channels, sidecar mappers, and command executor are partially active. Legacy cutover remains open."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 - Application consolidation",
+          "status": "inProgress",
+          "notes": "Devices feature skeleton and permissions exist. Legacy PTS/PTSDevice/PTSService/PTSServices migrations and UI pages remain open."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 - Hosting split",
+          "status": "blocked",
+          "notes": "Fueling.Host, logging migration, service scripts, and live dual-host cutover are pending and depend on Phase 4 completion/cutover readiness."
+        },
+        {
+          "id": "phase-6",
+          "name": "Phase 6 - Hardening and extension proof",
+          "status": "notStarted",
+          "notes": "Real GpsWox provider, conformance tests, cookbook, and tenant/audience validation are pending."
+        },
+        {
+          "id": "cross-cutting",
+          "name": "Cross-cutting agent/config synchronization",
+          "status": "inProgress",
+          "notes": "Copilot/system instructions and device skill exist. System configuration keys and MultiTenancy sync remain open."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Devices.Abstractions",
+          "path": "packages/FMS.Devices.Abstractions",
+          "role": "Provider contracts, canonical device messages, capabilities, and provider metadata.",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Devices.Core",
+          "path": "packages/FMS.Devices.Core",
+          "role": "Provider registry/factory, message router, health monitor, tenant-scoped provider repositories, and AddDeviceCore().",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Devices.Tracking",
+          "path": "packages/FMS.Devices.Tracking",
+          "role": "Tracking provider plugin project for GpsGate and GpsWox.",
+          "status": "inProgress",
+          "phase": "Phase 2"
+        },
+        {
+          "name": "FMS.Devices.Tracking.Host",
+          "path": "services/FMS.Devices.Tracking.Host",
+          "role": "Worker host for tracking providers, RabbitMQ consumer, provider health, and tracking provider DI.",
+          "status": "inProgress",
+          "phase": "Phase 2/5"
+        },
+        {
+          "name": "FMS.Devices.Fueling",
+          "path": "packages/FMS.Devices.Fueling",
+          "role": "Fueling provider plugin project for Technotrade PTS transport, protocol, mapping, commands, and channels.",
+          "status": "inProgress",
+          "phase": "Phase 3"
+        },
+        {
+          "name": "FMS.Devices.Fueling.Host",
+          "path": "services/FMS.Devices.Fueling.Host",
+          "role": "Target Windows Service host that replaces FMS.PTS.WindowsService after cutover.",
+          "status": "notStarted",
+          "phase": "Phase 5"
+        },
+        {
+          "name": "FMS.Application - Devices features",
+          "path": "packages/FMS.Application/Features/Devices",
+          "role": "Vendor-independent business logic for provisioning, fueling notifications, tracking consumers, pump control, and reconciliation.",
+          "status": "inProgress",
+          "phase": "Phase 3/4"
+        },
+        {
+          "name": "FMS.Application - legacy PTS surfaces",
+          "path": "packages/FMS.Application/Features/PTS; packages/FMS.Application/Features/PTSDevice; packages/FMS.Application/Features/PTSService; packages/FMS.Application/PTSServices",
+          "role": "Legacy business logic to migrate into Features/Devices and then delete.",
+          "status": "blocked",
+          "phase": "Phase 4"
+        },
+        {
+          "name": "FMS.Application - legacy transport/protocol surfaces",
+          "path": "packages/FMS.Application/Communication; packages/FMS.Application/Handlers; packages/FMS.Application/Command/PTSCommand",
+          "role": "Legacy PTS transport, handler, and command-serialization surfaces to move behind provider plugins or canonical Application handlers.",
+          "status": "inProgress",
+          "phase": "Phase 3/4"
+        },
+        {
+          "name": "FMS.Infrastructure - GPS legacy surfaces",
+          "path": "packages/FMS.Infrastructure/ExternalServices/GPS/GPSGate; packages/FMS.Infrastructure/VehicleTracking",
+          "role": "Legacy GPSGate provider/API surfaces being migrated into FMS.Devices.Tracking.",
+          "status": "inProgress",
+          "phase": "Phase 2"
+        },
+        {
+          "name": "FMS.BackgroundServices",
+          "path": "services/FMS.BackgroundServices/VehicleTracking",
+          "role": "Legacy GPSGate RabbitMQ consumer source moved into the tracking provider boundary.",
+          "status": "done",
+          "phase": "Phase 2"
+        },
+        {
+          "name": "FMS.PTS.WindowsService",
+          "path": "services/FMS.PTS.WindowsService",
+          "role": "Current production PTS service; retained until FMS.Devices.Fueling.Host cutover completes.",
+          "status": "inProgress",
+          "phase": "Phase 3/5"
+        },
+        {
+          "name": "FMS.WebClient",
+          "path": "apps/FMS.WebClient",
+          "role": "Tenant-scope adapter, provider APIs, permission checks, controller wiring, and current device-provider endpoints.",
+          "status": "inProgress",
+          "phase": "Phase 1/4"
+        },
+        {
+          "name": "fms.frontend",
+          "path": "apps/fms.frontend",
+          "role": "Client-tenant /admin/device-providers page and Client-only navigation.",
+          "status": "done",
+          "phase": "Phase 4",
+          "notes": "T4.8 + T4.9 complete: DeviceProviderManagementPage with M365 design, create/edit/list/map; navigation seed; permission gating; Customer ViewMode excluded."
+        },
+        {
+          "name": "FMS.Admin",
+          "path": "apps/FMS.Admin",
+          "role": "Platform operator device-provider support page and cross-tenant admin workflow.",
+          "status": "done",
+          "phase": "Phase 4",
+          "notes": "T4.8a complete: DeviceProvidersPage backed by [AllowCrossTenant] operator controller with tenant/search/category/status filters and platform-only permissions."
+        },
+        {
+          "name": "FMS.Persistence",
+          "path": "packages/FMS.Persistence",
+          "role": "EF configuration for provider configuration/device mapping tenancy, indexes, and migrations.",
+          "status": "inProgress",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Domain",
+          "path": "packages/FMS.Domain/Entities/Devices",
+          "role": "Provider entity namespace and device mapping entity location; Domain changes require explicit approval.",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Testing",
+          "path": "tests/FMS.Testing/Devices",
+          "role": "Provider tenant-filter tests, mapper tests, and future provider conformance tests.",
+          "status": "inProgress",
+          "phase": "Phase 1/3/6"
+        },
+        {
+          "name": "Agent/dev instructions",
+          "path": ".github; .agents/skills/devices; .claude/skills/devices",
+          "role": "Architecture guardrails for all future device-provider work.",
+          "status": "inProgress",
+          "phase": "Cross-cutting"
+        }
+      ],
+      "notes": "Implementation is actively in progress across Abstractions/Core, Tracking provider boundaries, and Fueling provider migration. Remaining risk is legacy cutover and host split execution."
+    },
+    {
+      "id": "fiscal-kra-etims-integration-v1",
+      "name": "KRA eTIMS Integration (OSCU + VSCU)",
+      "domain": "Fiscal",
+      "version": "V1",
+      "type": "implementation",
+      "created": "2026-05-04",
+      "phase": "planning",
+      "preSoftware": false,
+      "owner": "Platform/Fiscal",
+      "prd": "Documentation/Features/Fiscal/kra-etims-integration/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/Fiscal/kra-etims-integration/V1/implementation/TASKS.md",
+      "percentComplete": 0,
+      "milestones": [
+        {
+          "id": "phase-0",
+          "name": "Phase 0 — Spec ingestion & architecture sign-off",
+          "status": "notStarted",
+          "notes": "T0.1–T0.6: Read KRA PDFs, confirm OSCU/VSCU endpoints, finalize pluggable IFiscalProvider seam, architecture approval."
+        },
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Foundations (FMS.Fiscal.Abstractions + Core)",
+          "status": "notStarted",
+          "notes": "T1.1–T1.14: IFiscalProvider interface, canonical DTOs, FMS.Fiscal.Core orchestration, EF entities, DB migration for fiscal_providers/fiscal_signing_queue."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — KRA provider plugin (FMS.Fiscal.Kra)",
+          "status": "notStarted",
+          "notes": "T2.1–T2.15: OSCU/VSCU HTTP client, payload mappers, certificate signing, sandbox smoke test."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Application layer + sales hook",
+          "status": "notStarted",
+          "notes": "T3.1–T3.13: CQRS commands/queries in Features/Fiscal, SaleCompletedFiscalHandler outbox wire-up, IFiscalSigningQueue."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — WebClient API + permissions",
+          "status": "notStarted",
+          "notes": "T4.1–T4.8: FiscalProvidersController, FiscalSigningController, permission claims (_Read_FiscalProvider etc.), FmsLoggingConfiguration fiscal/ category."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 — Frontend (fiscal provider + signing status UI)",
+          "status": "notStarted",
+          "notes": "T5.1–T5.9: fiscalProviderApi.js, fiscalSlice.js, FiscalProvidersMain, FiscalSigningStatusMain, receipt KRA block + QR, usePermissions gating."
+        },
+        {
+          "id": "phase-6",
+          "name": "Phase 6 — VSCU local host (optional)",
+          "status": "notStarted",
+          "notes": "T6.1–T6.5: FMS.Fiscal.Vscu.Host worker, VscuLocalAgentBridge, C:\\Logs\\FMS.Fiscal.Vscu\\ logging."
+        },
+        {
+          "id": "phase-7",
+          "name": "Phase 7 — Outbox & alerting",
+          "status": "notStarted",
+          "notes": "T7.1–T7.4: Configurable backoff schedule, outbox metrics, EventExpression FiscalOutboxAgeExceeded alert, chaos test."
+        },
+        {
+          "id": "phase-8",
+          "name": "Phase 8 — Hardening, conformance tests, docs",
+          "status": "notStarted",
+          "notes": "T8.1–T8.7: Provider conformance suite in FMS.Testing/Fiscal, capability-flag negative tests, spec-mismatch monitoring, cookbook."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Fiscal.Abstractions",
+          "path": "packages/FMS.Fiscal.Abstractions",
+          "role": "IFiscalProvider, canonical fiscal DTOs, IFiscalSigningQueue, IFiscalProviderConfigRepository, [FiscalProvider] attribute.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Fiscal.Core",
+          "path": "packages/FMS.Fiscal.Core",
+          "role": "FiscalOrchestrator, outbox service, provider registry/factory, tenant-scoped fiscal repos.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Fiscal.Kra",
+          "path": "packages/FMS.Fiscal.Kra",
+          "role": "KRA OSCU/VSCU HTTP client, payload mappers, certificate signing — provider plugin for Kenya.",
+          "status": "notStarted",
+          "phase": "Phase 2"
+        },
+        {
+          "name": "FMS.Application/Features/Fiscal",
+          "path": "packages/FMS.Application/Features/Fiscal",
+          "role": "CQRS commands/queries, SaleCompletedFiscalHandler, vendor-independent business logic consuming canonical fiscal notifications.",
+          "status": "notStarted",
+          "phase": "Phase 3"
+        },
+        {
+          "name": "FMS.Persistence",
+          "path": "packages/FMS.Persistence",
+          "role": "EF configs for fiscal_providers, fiscal_signing_queue, fiscal_receipts; DB migration.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.WebClient",
+          "path": "apps/FMS.WebClient",
+          "role": "FiscalProvidersController, FiscalSigningController, permission seeding, system config keys.",
+          "status": "notStarted",
+          "phase": "Phase 4"
+        },
+        {
+          "name": "fms.frontend",
+          "path": "apps/fms.frontend",
+          "role": "Fiscal provider management UI, signing status page, receipt KRA block + QR, usePermissions gating.",
+          "status": "notStarted",
+          "phase": "Phase 5"
+        },
+        {
+          "name": "FMS.Fiscal.Vscu.Host",
+          "path": "services/FMS.Fiscal.Vscu.Host",
+          "role": "Optional VSCU local agent worker — signs on behalf of WebClient for branch VSCU mode.",
+          "status": "notStarted",
+          "phase": "Phase 6"
+        },
+        {
+          "name": "FMS.Testing/Fiscal",
+          "path": "tests/FMS.Testing/Fiscal",
+          "role": "Provider conformance tests, capability-flag negative tests, chaos outbox test.",
+          "status": "notStarted",
+          "phase": "Phase 8"
+        }
+      ],
+      "notes": "PRD and TASKS are in place, but implementation projects and code have not started yet. Begin with Phase 0 architecture sign-off before Phase 1 foundations."
+    },
+    {
+      "id": "multitenancy-3-audience-v1",
+      "name": "3-Audience Frontend Architecture (MultiTenancy)",
+      "domain": "MultiTenancy",
+      "version": "V1",
+      "type": "implementation",
+      "created": "2026-05-10",
+      "phase": "inProgress",
+      "preSoftware": false,
+      "owner": "Platform",
+      "prd": "Documentation/Features/MultiTenancy/3-AUDIENCE-PRD.md",
+      "tasks": "Documentation/Features/MultiTenancy/3-AUDIENCE-TASKLIST.md",
+      "percentComplete": 65,
+      "milestones": [
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Foundation (tenant hierarchy + ViewMode)",
+          "status": "done",
+          "notes": "Core foundation delivered: TenantKind enum, ParentTenantId, branding columns, _platform seed, JWT tenant/view claims, and audience-aware routing."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — FMS.Admin operator portal",
+          "status": "done",
+          "notes": "Operator portal scaffold, auth flow, tenant CRUD, subscriptions, invoices, and PDF surfaces are implemented; remaining items are verification/deployment checks."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Cross-tenant reports + sub-customer management",
+          "status": "inProgress",
+          "notes": "3.1 sub-customer provisioning + invite-admin done; 3.1.7 detail page not built. Open: 3.2 branding settings, 3.3 cross-tenant reports, 3.4 audit log, 3.5 operator users module."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — Polish & white-label",
+          "status": "notStarted",
+          "notes": "4.1 logo upload, 4.2 colour picker, 4.3 live preview, 4.4 stations provisioning, 4.5 plans/pricing CRUD, 4.6 sales pipeline in FMS.Admin — all [ ] not started."
+        },
+        {
+          "id": "cross-cutting",
+          "name": "Cross-cutting — testing, security, documentation",
+          "status": "inProgress",
+          "notes": "T-5 device-provider tenancy tests [x], S-5 device-provider permission audit [x] done. Open: T-1 to T-4 integration/smoke, S-1 to S-4 pen-test + JWT review, D-1 to D-4 docs."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Domain",
+          "path": "packages/FMS.Domain",
+          "role": "TenantKind enum, ParentTenantId and branding columns on Tenant entity. Domain changes require explicit user approval.",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Persistence",
+          "path": "packages/FMS.Persistence",
+          "role": "EF config for new tenant columns, _platform seed migration.",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Application/Features/MultiTenancy",
+          "path": "packages/FMS.Application/Features/MultiTenancy",
+          "role": "SubTenantsController CQRS, cross-tenant query bypass (IBypassTenancy), operator claims injection.",
+          "status": "inProgress",
+          "phase": "Phase 1/3"
+        },
+        {
+          "name": "FMS.WebClient",
+          "path": "apps/FMS.WebClient",
+          "role": "JWT tenant_kind claim, operator auth endpoint, operator/* controller routes, OperatorOnly + AllowCrossTenant attributes.",
+          "status": "inProgress",
+          "phase": "Phase 1/2"
+        },
+        {
+          "name": "fms.frontend",
+          "path": "apps/fms.frontend",
+          "role": "ViewMode routing (Client / Customer views), SubCustomersPage, branding settings page, audience-aware navigation.",
+          "status": "inProgress",
+          "phase": "Phase 1/3"
+        },
+        {
+          "name": "FMS.Admin",
+          "path": "apps/FMS.Admin",
+          "role": "New Vite+React+TS operator portal app: login, tenants CRUD, subscriptions, invoices, cross-tenant reports, audit log.",
+          "status": "inProgress",
+          "phase": "Phase 2/3/4"
+        },
+        {
+          "name": "FMS.Sales",
+          "path": "services/FMS.Sales",
+          "role": "OperatorSubscriptionsController, OperatorInvoicesController, InvoicePdfRenderer, CORS AllowedOrigins for FMS.Admin.",
+          "status": "inProgress",
+          "phase": "Phase 2"
+        }
+      ],
+      "notes": "Introduces TenantKind (System|Client|Customer), ParentTenantId, branding columns, and _platform system tenant. FMS.Admin and cross-audience routing are active; remaining work is Phase 3.2+ and Phase 4 polish/white-label."
+    },
+    {
+      "id": "notification-event-expression-engine-v1",
+      "name": "Event Expression Engine",
+      "domain": "NotificationAndAlarm",
+      "created": "2026-02-11",
+      "phase": "notStarted",
+      "preSoftware": false,
+      "owner": "Backend",
+      "prd": "Documentation/Features/NotificationAndAlarm/EventExpressionEngine/PRD.md",
+      "tasks": "Documentation/Features/NotificationAndAlarm/EventExpressionEngine/TASKLIST.md",
+      "percentComplete": 0,
+      "milestones": [
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Foundation (41 tasks)",
+          "status": "notStarted",
+          "notes": "Entity models, EF config, CQRS commands/queries, service, controller, SignalR integration."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — Integration (12 tasks)",
+          "status": "notStarted",
+          "notes": "Wire EventExpressionEngine into GPS, TankStock, and FuelRefill processing pipelines."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Frontend (16 tasks)",
+          "status": "notStarted",
+          "notes": "EventExpressions page, ActiveEvents live dashboard."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — Cleanup (18 tasks)",
+          "status": "notStarted",
+          "notes": "Remove all legacy AlarmHandler / ActiveAlarm / Alarm code."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Domain/Entities",
+          "path": "packages/FMS.Domain/Entities",
+          "role": "EventExpression, EventExpressionExecution, ActiveEvent entities — ⚠️ Domain layer change required, needs user approval.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Application/Features/EventExpressionEngine",
+          "path": "packages/FMS.Application/Features/EventExpressionEngine",
+          "role": "CQRS commands, queries, DTOs, IEventExpressionEngine service.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Persistence",
+          "path": "packages/FMS.Persistence",
+          "role": "EF config for event_expressions, event_expression_executions, active_events tables.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.WebClient/Controllers",
+          "path": "apps/FMS.WebClient/Controllers",
+          "role": "EventExpressionsController + ActiveEventsController.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "fms.frontend — eventExpressions",
+          "path": "apps/fms.frontend/src/pages/eventExpressions",
+          "role": "EventExpressionsList, EventExpressionForm, ExecutionHistory, ActiveEventsDashboard.",
+          "status": "notStarted",
+          "phase": "Phase 3"
+        }
+      ],
+      "notes": "Replaces the deleted AlarmHandler/ActiveAlarm/Alarm pipeline. New tables: event_expressions, event_expression_executions, active_events. Entry point: IEventExpressionEngine.ProcessAsync(FMSEvent). ⚠️ Phase 1 requires Domain layer changes — stop and get user approval before touching FMS.Domain."
+    },
+    {
+      "id": "notification-alert-configuration-v1",
+      "name": "Alert Configuration",
+      "domain": "NotificationAndAlarm",
+      "created": "2026-02-07",
+      "phase": "released",
+      "preSoftware": false,
+      "owner": "Backend",
+      "prd": "Documentation/Features/NotificationAndAlarm/AlertConfiguration/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/NotificationAndAlarm/AlertConfiguration/V1/implementation/TASKLIST.md",
+      "percentComplete": 100,
+      "milestones": [
+        {
+          "id": "all-tasks",
+          "name": "All 31 tasks complete",
+          "status": "done",
+          "notes": "All phases verified [x] in TASKLIST.md."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Application/Features/AlertConfiguration",
+          "path": "packages/FMS.Application/Features/AlertConfiguration",
+          "role": "CQRS commands, queries, DTOs.",
+          "status": "done",
+          "phase": "All"
+        },
+        {
+          "name": "FMS.WebClient/Controllers",
+          "path": "apps/FMS.WebClient/Controllers",
+          "role": "AlertConfigurationController.",
+          "status": "done",
+          "phase": "All"
+        },
+        {
+          "name": "fms.frontend — alert configuration",
+          "path": "apps/fms.frontend/src/pages/alertConfiguration",
+          "role": "Alert configuration UI.",
+          "status": "done",
+          "phase": "All"
+        }
+      ],
+      "notes": "Feature is 100% complete. All 31 tasks checked off in TASKLIST.md."
+    },
+    {
+      "id": "security-permission-standardization-v1",
+      "name": "Permission Standardization",
+      "domain": "Security",
+      "created": "2026-02-06",
+      "phase": "inProgress",
+      "preSoftware": false,
+      "owner": "Security",
+      "prd": "Documentation/Features/Security/PermissionStandardization/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/Security/PermissionStandardization/V1/implementation/TASKLIST.md",
+      "percentComplete": 60,
+      "milestones": [
+        {
+          "id": "phase-0",
+          "name": "Phase 0 — DB audit scripts",
+          "status": "done",
+          "notes": "⚠️ Scripts CREATED but NOT EXECUTED against live DB. Must be run before Phase 4."
+        },
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Backend constants (PermissionConstants.cs)",
+          "status": "done",
+          "notes": "PermissionConstants.cs created (709 lines). All permission names centralised."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — Inline checks → attributes (6 controllers)",
+          "status": "done",
+          "notes": "6 controllers converted to attribute-based permission checks."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Protect unprotected controllers (65 controllers)",
+          "status": "done",
+          "notes": "65 controllers now have permission attributes."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — DB permission renaming",
+          "status": "blocked",
+          "notes": "⚠️ HIGH RISK — must rename DB permission values atomically with code deployment. Coordinate DB + code deploy carefully."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 — Add missing permissions",
+          "status": "done",
+          "notes": "T5.1–T5.3 scripts are prepared; execution on live DB is still pending deployment scheduling."
+        },
+        {
+          "id": "phase-6",
+          "name": "Phase 6 — Frontend sync (permissionConstants.js)",
+          "status": "notStarted",
+          "notes": "permissionConstants.js not yet created. Frontend still uses raw string literals."
+        },
+        {
+          "id": "phase-7",
+          "name": "Phase 7 — Testing (7 tasks)",
+          "status": "notStarted",
+          "notes": "No permission-boundary tests written yet."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Application/Common/Permissions",
+          "path": "packages/FMS.Application/Common/Permissions",
+          "role": "PermissionConstants.cs (709 lines) — centralised permission name constants.",
+          "status": "done",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.WebClient/Controllers (all 65)",
+          "path": "apps/FMS.WebClient/Controllers",
+          "role": "All controllers protected with User.HasClaim attributes.",
+          "status": "done",
+          "phase": "Phase 2/3"
+        },
+        {
+          "name": "fms.frontend — permissionConstants.js",
+          "path": "apps/fms.frontend/src",
+          "role": "Frontend permission constants to mirror backend — NOT YET CREATED.",
+          "status": "notStarted",
+          "phase": "Phase 6"
+        },
+        {
+          "name": "Database — permissions table",
+          "path": "database/migrations",
+          "role": "Rename permission values in DB to match standardised names — HIGH RISK, not yet executed.",
+          "status": "notStarted",
+          "phase": "Phase 4"
+        }
+      ],
+      "notes": "⚠️ Phases 0 and 5 have SQL scripts prepared but not executed against live DB. Phase 4 DB renaming is HIGH RISK and currently blocked — must be deployed atomically with code changes or login can break."
+    },
+    {
+      "id": "usermanagement-v2",
+      "name": "User Management V2",
+      "domain": "UserManagement",
+      "created": "2026-02-25",
+      "phase": "notStarted",
+      "preSoftware": false,
+      "owner": "Frontend",
+      "prd": "Documentation/Features/UserManagement/V2/implementation/PRD.md",
+      "tasks": "Documentation/Features/UserManagement/V2/implementation/TASKS.md",
+      "percentComplete": 0,
+      "milestones": [
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Backend (7 tasks)",
+          "status": "notStarted",
+          "notes": "⚠️ Task 1.1 requires Domain layer change: add FirstName/LastName to User entity. Stop and get user approval before implementing."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — Foundation (4 tasks)",
+          "status": "notStarted",
+          "notes": "Global styles, avatar utility, role/status badges, useUserManagement hook."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Main Page (4 tasks)",
+          "status": "notStarted",
+          "notes": "Page shell, filter bar, list view, card view."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — Panels & Popups (7 tasks)",
+          "status": "notStarted",
+          "notes": "Edit panel, change-password popup, create-user popup, assign-sites popup, department filter."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 — Integration (3 tasks)",
+          "status": "notStarted",
+          "notes": "Redux wiring, page cleanup, integration testing."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Domain/Entities/User",
+          "path": "packages/FMS.Domain/Entities",
+          "role": "Add FirstName, LastName to User entity — ⚠️ Domain layer change, needs user approval.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.Application/Features/UserManagement",
+          "path": "packages/FMS.Application/Features/UserManagement",
+          "role": "CQRS commands/queries for user list, update, create, password reset.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "FMS.WebClient/Controllers",
+          "path": "apps/FMS.WebClient/Controllers",
+          "role": "UserManagementController V2 endpoints.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        },
+        {
+          "name": "fms.frontend — UserManagement",
+          "path": "apps/fms.frontend/src/pages/UserManagement",
+          "role": "Full redesigned user management page (list, card, edit panel, popups).",
+          "status": "notStarted",
+          "phase": "Phase 2/3/4"
+        }
+      ],
+      "notes": "⚠️ Phase 1 Task 1.1 requires adding FirstName/LastName to the FMS.Domain User entity — this is a Domain layer change and must be approved by user before proceeding. All 25 tasks are [ ] not started."
+    },
+    {
+      "id": "frontend-layout-shell-design-language-v1",
+      "name": "Frontend Layout & Design Language",
+      "domain": "frontend-layout",
+      "version": "V1",
+      "type": "implementation",
+      "created": "2026-05-16",
+      "phase": "prd",
+      "preSoftware": true,
+      "owner": "Frontend Architecture",
+      "prd": "Documentation/Features/frontend-layout/shell-and-design-language/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/frontend-layout/shell-and-design-language/V1/implementation/TASKS.md",
+      "percentComplete": 0,
+      "milestones": [
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Design Token Foundation",
+          "status": "notStarted",
+          "notes": "Extract Inspinia + M365 tokens into shared SCSS token files for both apps."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — Layout Shell Unification",
+          "status": "notStarted",
+          "notes": "Align SideNavOuterToolbar and OperatorLayout to identical header/sidebar/footer rules."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Error Handling Stack",
+          "status": "notStarted",
+          "notes": "RouteErrorBoundary, AdminErrorBoundary, useApiError, EmptyState, ForbiddenState, PageSkeleton."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — Design Language Enforcement",
+          "status": "notStarted",
+          "notes": "Lint rules banning .css, Inspinia teal outside sidebar, and missing tw- prefix."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 — 3-Audience Validation",
+          "status": "notStarted",
+          "notes": "Verify Customer ViewMode allowlist and Operator role gating end-to-end."
+        },
+        {
+          "id": "phase-6",
+          "name": "Phase 6 — Validation & Outcomes",
+          "status": "notStarted",
+          "notes": "Visual regression snapshots, Storybook, baseline metrics, post-release outcome record."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "fms.frontend",
+          "path": "apps/fms.frontend",
+          "role": "Inspinia tenant shell; consumes shared SCSS tokens and error-handling components.",
+          "status": "notStarted",
+          "phase": "Phase 1/2/3"
+        },
+        {
+          "name": "FMS.Admin",
+          "path": "apps/FMS.Admin",
+          "role": "Platform Operator portal; consumes the same tokens and error-handling components via TS mirrors.",
+          "status": "notStarted",
+          "phase": "Phase 1/2/3"
+        }
+      ],
+      "notes": "Unifies layout shell, design language, and error UX across fms.frontend and FMS.Admin. Light mode only. No mobile app changes. preSoftware = true (created after cutoff 2026-04-29)."
+    }
+  ],
+  "crossCuttingInitiatives": [
+    {
+      "id": "multi-tenancy",
+      "name": "Multi-Tenancy Enforcement",
+      "status": "inProgress",
+      "owner": "Platform",
+      "notes": "Tenant-scoping is active in major surfaces, with ongoing rollout to remaining features via ITenantContext.",
+      "links": [
+        "Documentation/Features/MultiTenancy/"
+      ]
+    },
+    {
+      "id": "permission-standardization",
+      "name": "Permission Standardization",
+      "status": "inProgress",
+      "owner": "Security",
+      "notes": "Controller coverage is largely complete; DB rename/cutover and frontend constant sync remain pending.",
+      "links": [
+        "Documentation/Features/Security/PermissionStandardization/V1/implementation/PRD.md"
+      ]
+    },
+    {
+      "id": "fms-application-decomposition",
+      "name": "FMS.Application Decomposition",
+      "status": "notStarted",
+      "owner": "Architecture",
+      "notes": "Break up the FMS.Application god-package.",
+      "links": [
+        "Documentation/Features/Architecture/fms-application-decomposition/V1/implementation/PRD.md"
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+(async function () {
+  const STATUS_ICONS = { done: "🟢", inProgress: "🟡", blocked: "🔴", preSoftware: "⚪", notStarted: "⏸" };
+  let DATA = null;
+  let sortKey = "name";
+  let sortDir = 1;
+
+  async function loadData() {
+    try {
+      const res = await fetch("./super-tasklist.json", { cache: "no-store" });
+      if (!res.ok) throw new Error(res.statusText);
+      return await res.json();
+    } catch (e) {
+      console.warn("Fetch failed, using embedded fallback:", e.message);
+      const fb = document.getElementById("fallback-data").textContent;
+      return JSON.parse(fb);
+    }
+  }
+
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function docLink(path) {
+    if (!path) return "";
+    if (/^(https?:|file:|mailto:)/i.test(path)) return path;
+    if (path.startsWith("Documentation/")) return `../../${path.slice("Documentation/".length)}`;
+    return path;
+  }
+
+  function phaseBadge(phase) {
+    return `<span class="badge phase-${esc(phase)}">${esc(phase || "—")}</span>`;
+  }
+
+  function progressBar(pct, preSoft) {
+    pct = Math.max(0, Math.min(100, Number(pct) || 0));
+    const cls = preSoft ? "muted" : pct >= 100 ? "success" : "";
+    return `
+      <div class="pb ${cls}"><span style="width:${pct}%"></span></div>
+      <div class="pct">${pct}%</div>
+    `;
+  }
+
+  function renderSummary() {
+    const f = DATA.features || [];
+    const active = f.filter(x => !x.preSoftware);
+    const pre = f.filter(x => x.preSoftware);
+    const done = active.filter(x => (x.percentComplete || 0) >= 100).length;
+    const inP = active.filter(x => x.phase === "inProgress").length;
+
+    const cards = [
+      { cls: "primary", label: "Active features", value: active.length },
+      { cls: "success", label: "Completed", value: done },
+      { cls: "warning", label: "In progress", value: inP },
+      { cls: "muted",   label: "Pre-software", value: pre.length }
+    ];
+    document.getElementById("summary").innerHTML = cards.map(c =>
+      `<div class="card ${c.cls}"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`
+    ).join("");
+  }
+
+  function renderPhaseFilter() {
+    const sel = document.getElementById("filter-phase");
+    const phases = [...new Set((DATA.features || []).filter(f => !f.preSoftware).map(f => f.phase).filter(Boolean))];
+    phases.sort().forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  }
+
+  function sortFeatures(list) {
+    return [...list].sort((a, b) => {
+      const av = a[sortKey] ?? "";
+      const bv = b[sortKey] ?? "";
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * sortDir;
+      return String(av).localeCompare(String(bv)) * sortDir;
+    });
+  }
+
+  function renderFeatures() {
+    const all = DATA.features || [];
+    const active = all.filter(f => !f.preSoftware);
+    const pre = all.filter(f => f.preSoftware);
+
+    const txt = document.getElementById("filter-text").value.toLowerCase().trim();
+    const ph = document.getElementById("filter-phase").value;
+    let view = active.filter(f => {
+      if (ph && f.phase !== ph) return false;
+      if (txt) {
+        const blob = `${f.name} ${f.domain} ${f.owner || ""} ${f.notes || ""}`.toLowerCase();
+        if (!blob.includes(txt)) return false;
+      }
+      return true;
+    });
+    view = sortFeatures(view);
+
+    document.getElementById("active-count").textContent = `(${view.length} of ${active.length})`;
+    document.getElementById("presoft-count").textContent = `(${pre.length})`;
+
+    const body = document.getElementById("features-body");
+    if (!view.length) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="6">No features match the current filter.</td></tr>`;
+    } else {
+      body.innerHTML = view.map(f => rowHtml(f)).join("");
+    }
+
+    const pBody = document.getElementById("presoft-body");
+    if (!pre.length) {
+      pBody.innerHTML = `<tr class="empty-row"><td colspan="5">No pre-software features.</td></tr>`;
+    } else {
+      pBody.innerHTML = pre.map(f => `
+        <tr class="pre-software">
+          <td>${esc(f.name)}</td>
+          <td class="hide-mobile">${esc(f.domain)}</td>
+          <td class="hide-mobile">${esc(f.created || "—")}</td>
+          <td class="hide-mobile">${esc(f.owner || "—")}</td>
+          <td>${f.prd ? `<a href="${esc(docLink(f.prd))}" target="_blank">PRD →</a>` : "—"}</td>
+        </tr>
+      `).join("");
+    }
+
+    // wire row expansion
+    body.querySelectorAll("tr[data-id]").forEach(tr => {
+      tr.addEventListener("click", () => toggleDetail(tr));
+    });
+  }
+
+  function rowHtml(f) {
+    return `
+      <tr data-id="${esc(f.id)}">
+        <td><strong>${esc(f.name)}</strong></td>
+        <td class="hide-mobile">${esc(f.domain)}</td>
+        <td>${phaseBadge(f.phase)}</td>
+        <td style="min-width: 140px;">${progressBar(f.percentComplete, f.preSoftware)}</td>
+        <td class="hide-mobile">${esc(f.created || "—")}</td>
+        <td class="hide-mobile">${esc(f.owner || "—")}</td>
+      </tr>
+    `;
+  }
+
+  function toggleDetail(tr) {
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains("detail-row")) {
+      next.remove();
+      return;
+    }
+    const id = tr.dataset.id;
+    const f = (DATA.features || []).find(x => x.id === id);
+    if (!f) return;
+
+    const milestones = (f.milestones || []).map(m => `
+      <div class="m">
+        <span class="status-icon" title="${esc(m.status)}">${STATUS_ICONS[m.status] || "⏸"}</span>
+        <div>
+          <div class="m-name">${esc(m.name)}</div>
+          ${m.notes ? `<div class="m-notes">${esc(m.notes)}</div>` : ""}
+        </div>
+        <span class="badge phase-${esc(m.status)}">${esc(m.status)}</span>
+      </div>
+    `).join("");
+
+    const projects = (f.affectedProjects || []).map(p => `
+      <div class="p">
+        <div>
+          <div class="p-name">${esc(p.name)}</div>
+          <div class="p-path">${esc(p.path || "—")}</div>
+        </div>
+        <div>${esc(p.phase || "—")}</div>
+        <span class="badge phase-${esc(p.status || "notStarted")}">${esc(p.status || "notStarted")}</span>
+        ${p.role ? `<div class="p-role">${esc(p.role)}</div>` : ""}
+      </div>
+    `).join("");
+
+    const detail = document.createElement("tr");
+    detail.className = "detail-row";
+    detail.innerHTML = `
+      <td colspan="6">
+        <div style="display:flex; flex-wrap:wrap; gap: 24px; align-items: flex-start;">
+          <div style="flex: 2; min-width: 280px;">
+            <div style="font-size: 12px; color: var(--text-2); margin-bottom: 6px;">Milestones</div>
+            ${milestones || `<div class="m-notes">No milestones recorded yet.</div>`}
+            <div style="font-size: 12px; color: var(--text-2); margin: 14px 0 6px;">Affected Projects</div>
+            <div class="projects">${projects || `<div class="m-notes">No affected projects recorded yet.</div>`}</div>
+          </div>
+          <div style="flex: 1; min-width: 220px;">
+            <div style="font-size: 12px; color: var(--text-2); margin-bottom: 6px;">Links</div>
+            <div>${f.prd ? `<a href="${esc(docLink(f.prd))}" target="_blank">📄 PRD →</a>` : "—"}</div>
+            <div style="margin-top: 4px;">${f.tasks ? `<a href="${esc(docLink(f.tasks))}" target="_blank">✅ TASKS →</a>` : ""}</div>
+            ${f.notes ? `<div style="margin-top: 12px; font-size: 12px; color: var(--text-2);"><strong>Notes:</strong> ${esc(f.notes)}</div>` : ""}
+          </div>
+        </div>
+      </td>
+    `;
+    tr.parentNode.insertBefore(detail, tr.nextSibling);
+  }
+
+  function renderProjectMap() {
+    const rows = [];
+    (DATA.features || []).forEach(f => {
+      (f.affectedProjects || []).forEach(p => rows.push({ feature: f, project: p }));
+    });
+
+    document.getElementById("project-map-count").textContent = `(${rows.length})`;
+    const body = document.getElementById("project-map-body");
+    if (!rows.length) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="5">No affected projects recorded yet.</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map(({ feature, project }) => `
+      <tr>
+        <td><strong>${esc(feature.name)}</strong></td>
+        <td>
+          <div class="p-name">${esc(project.name)}</div>
+          <div class="p-path">${esc(project.path || "—")}</div>
+        </td>
+        <td class="hide-mobile">${esc(project.phase || "—")}</td>
+        <td><span class="status-icon">${STATUS_ICONS[project.status] || "⏸"}</span> ${esc(project.status || "notStarted")}</td>
+        <td class="hide-mobile">${esc(project.role || "")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function renderDomainMap() {
+    const list = (DATA.domains || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    document.getElementById("domain-count").textContent = `(${list.length})`;
+    const grid = document.getElementById("domain-grid");
+    if (!list.length) {
+      grid.innerHTML = `<div class="m-notes" style="padding:8px;">No domains defined.</div>`;
+      return;
+    }
+    const byId = Object.fromEntries(list.map(d => [d.id, d]));
+    grid.innerHTML = list.map(d => {
+      const subs = (d.subdomains || []).map(s => `<span class="sub">${esc(s)}</span>`).join("");
+      const deps = (d.dependsOn || []).map(id => {
+        const dep = byId[id];
+        return `<span class="dep-pill">${esc(dep ? dep.name : id)}</span>`;
+      }).join("");
+      return `
+        <div class="domain">
+          <h3><span class="order">${esc(d.order || "·")}</span>${esc(d.name)}</h3>
+          <div class="subdomains">${subs || `<span class="m-notes">No subdomains</span>`}</div>
+          <div class="deps">
+            <strong>Depends on:</strong>
+            ${deps || `<span class="m-notes">— (foundation)</span>`}
+          </div>
+          ${d.notes ? `<div class="notes">${esc(d.notes)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderCrossCutting() {
+    const list = DATA.crossCuttingInitiatives || [];
+    document.getElementById("cc-count").textContent = `(${list.length})`;
+    const body = document.getElementById("cc-body");
+    if (!list.length) {
+      body.innerHTML = `<tr class="empty-row"><td colspan="4">No cross-cutting initiatives.</td></tr>`;
+      return;
+    }
+    body.innerHTML = list.map(c => `
+      <tr>
+        <td><strong>${esc(c.name)}</strong></td>
+        <td><span class="status-icon">${STATUS_ICONS[c.status] || "⏸"}</span> ${esc(c.status)}</td>
+        <td class="hide-mobile">${esc(c.owner || "—")}</td>
+        <td>${esc(c.notes || "")}</td>
+      </tr>
+    `).join("");
+  }
+
+  function wireSorting() {
+    document.querySelectorAll("#features-table th[data-sort]").forEach(th => {
+      th.addEventListener("click", () => {
+        const k = th.dataset.sort;
+        if (sortKey === k) sortDir *= -1;
+        else { sortKey = k; sortDir = 1; }
+        renderFeatures();
+      });
+    });
+  }
+
+  function wireFilters() {
+    document.getElementById("filter-text").addEventListener("input", renderFeatures);
+    document.getElementById("filter-phase").addEventListener("change", renderFeatures);
+  }
+
+  // ─── boot ───
+  DATA = await loadData();
+  document.getElementById("last-updated").textContent = DATA.lastUpdated || "—";
+  document.getElementById("cutoff-date").textContent  = DATA.cutoffDate  || "—";
+
+  renderSummary();
+  renderDomainMap();
+  renderPhaseFilter();
+  renderFeatures();
+  renderProjectMap();
+  renderCrossCutting();
+  wireSorting();
+  wireFilters();
+})();
+</script>
+
+</body>
+</html>

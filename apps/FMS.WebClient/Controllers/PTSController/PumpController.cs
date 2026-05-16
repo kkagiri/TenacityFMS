@@ -16,8 +16,8 @@ using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.PTS.Queries;
-using FMS.Application.Features.PTSDevice.Queries;
-using FMS.Application.Features.PTSDevice.DTOs;
+using FMS.Application.Features.Devices.Provisioning.Queries;
+using FMS.Application.Features.Devices.Provisioning.DTOs;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
@@ -36,6 +36,7 @@ namespace FMS.WebClient.Controllers.PTSController
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RejectCustomerTenant]
     public class PumpController : ControllerBase
     {
         private readonly IMediator _mediator;

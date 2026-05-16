@@ -16,8 +16,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Common.Constants;
 using FMS.Domain.Entities.Features.MultiTenancy;
 using FMS.Persistence.DataAccess;
+using FMS.WebClient.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +28,7 @@ namespace FMS.WebClient.Controllers.Operator;
 
 [ApiController]
 [Authorize]
+[AllowCrossTenant]
 [Route("api/v1/operator/tenants")]
 public class OperatorTenantsController : ControllerBase
 {
@@ -37,6 +40,7 @@ public class OperatorTenantsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.Platform.ReadTenant)]
     public async Task<ActionResult<FMSResponse<OperatorTenantListPayload>>> GetTenants(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 25,
@@ -108,6 +112,7 @@ public class OperatorTenantsController : ControllerBase
     }
 
     [HttpGet("{tenantId:guid}")]
+    [RequirePermission(Permissions.Platform.ReadTenant)]
     public async Task<ActionResult<FMSResponse<OperatorTenantDetailDto>>> GetTenant(
         Guid tenantId,
         CancellationToken cancellationToken = default)
@@ -150,6 +155,7 @@ public class OperatorTenantsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(Permissions.Platform.ManageTenant)]
     public async Task<ActionResult<FMSResponse<OperatorTenantDetailDto>>> CreateTenant(
         [FromBody] CreateOperatorTenantRequest request,
         CancellationToken cancellationToken = default)

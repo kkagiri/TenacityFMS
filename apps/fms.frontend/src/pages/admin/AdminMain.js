@@ -2,7 +2,7 @@
  * File: AdminMain.js
  * Purpose: Admin module routing with shared admin layout
  * Dependencies: react-router-dom, AdminLayout
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-05-16
  *
  * Key Functions/Components:
  * - AdminMain(): Admin route definitions under /admin
@@ -14,6 +14,7 @@ import AdminLayout from "./layout/AdminLayout";
 import AdminDashboard from "./AdminDashboard";
 import { usePermissions } from "../../hooks/usePermissions";
 import { WEB_APP_PERMISSIONS } from "../../constants/webAppPermissions";
+import withPermissionProtection from "../../utils/withPermissionProtection";
 
 // Import the existing component pages to be used in admin routes
 import UserPage from "../user/userPage";
@@ -40,6 +41,35 @@ import CheckupTemplateManagementPage from "./checkupTemplates/CheckupTemplateMan
 import EmployeePositionManagementPage from "./employeePositions/EmployeePositionManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
+import SubCustomersPage from "./subCustomers/SubCustomersPage";
+import SubCustomerDetailPage from "./subCustomers/SubCustomerDetailPage";
+import DeviceProviderManagementPage from "./deviceProviders/DeviceProviderManagementPage";
+import BrandingSettingsPage from "./branding/BrandingSettingsPage";
+
+const ProtectedDeviceProviderManagementPage = withPermissionProtection(
+  DeviceProviderManagementPage,
+  ["_Read_DeviceProvider", "_Manage_DeviceProvider"]
+);
+
+const SUB_CUSTOMER_ACCESS_PERMISSIONS = [
+  "_Manage_Subtenants",
+  "_Read_SubtenantData",
+];
+
+const ProtectedSubCustomersPage = withPermissionProtection(
+  SubCustomersPage,
+  SUB_CUSTOMER_ACCESS_PERMISSIONS
+);
+
+const ProtectedSubCustomerDetailPage = withPermissionProtection(
+  SubCustomerDetailPage,
+  SUB_CUSTOMER_ACCESS_PERMISSIONS
+);
+
+const ProtectedBrandingSettingsPage = withPermissionProtection(
+  BrandingSettingsPage,
+  ["_Manage_Branding"]
+);
 
 const LEGACY_ADMIN_ACCESS_PERMISSIONS = [
   "_Manage_Users",
@@ -50,7 +80,11 @@ const LEGACY_ADMIN_ACCESS_PERMISSIONS = [
   "_Manage_NotificationGroups",
   "_Manage_NotificationEmailConfig",
   "_Manage_NotificationPreferences",
-  "_Manage_LocationValidation"
+  "_Manage_LocationValidation",
+  "_Read_DeviceProvider",
+  "_Manage_DeviceProvider",
+  "_Manage_Branding",
+  ...SUB_CUSTOMER_ACCESS_PERMISSIONS
 ];
 
 const AdminMain = () => {
@@ -92,6 +126,8 @@ const AdminMain = () => {
         {/* Provider Management */}
         <Route path="providers" element={<ProviderManagementMain />} />
         <Route path="providers/*" element={<ProviderManagementMain />} />
+        <Route path="device-providers" element={<ProtectedDeviceProviderManagementPage />} />
+        <Route path="device-providers/*" element={<ProtectedDeviceProviderManagementPage />} />
 
         {/* System Configuration Routes */}
         <Route path="tags" element={<Tagpage />} />
@@ -161,6 +197,14 @@ const AdminMain = () => {
           path="location-validation/*"
           element={<LocationValidationLogPage />}
         />
+
+        {/* Tenant Branding Settings */}
+        <Route path="branding" element={<ProtectedBrandingSettingsPage />} />
+
+        {/* Sub-Customer management */}
+        <Route path="sub-customers" element={<ProtectedSubCustomersPage />} />
+        <Route path="sub-customers/:subCustomerId" element={<ProtectedSubCustomerDetailPage />} />
+        <Route path="sub-customers/*" element={<Navigate to="/admin/sub-customers" replace />} />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

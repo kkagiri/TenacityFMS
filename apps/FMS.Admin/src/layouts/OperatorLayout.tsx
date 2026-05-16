@@ -17,10 +17,17 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: "fa-light fa-gauge-high", end: true },
   { to: "/tenants", label: "Tenants", icon: "fa-light fa-building" },
   {
+    to: "/device-providers",
+    label: "Device Providers",
+    icon: "fa-light fa-plug-circle-bolt",
+  },
+  {
     to: "/subscriptions",
     label: "Subscriptions",
     icon: "fa-light fa-file-invoice-dollar",
   },
+  { to: "/invoices", label: "Invoices", icon: "fa-light fa-file-invoice" },
+  { to: "/operator-users", label: "Operators", icon: "fa-light fa-user-shield" },
   { to: "/reports", label: "Reports", icon: "fa-light fa-chart-line" },
   { to: "/audit", label: "Audit Log", icon: "fa-light fa-shield-check" },
 ];

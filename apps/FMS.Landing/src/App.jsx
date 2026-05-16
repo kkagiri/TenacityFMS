@@ -128,7 +128,7 @@ export default function App() {
   }
 
   // TweaksPanel is dev-only (excluded from production builds entirely)
-  const showTweaks = import.meta.env.DEV;
+  const showTweaks = import.meta.env.DEV && baseRoute !== "onboarding";
 
   return (
     <>

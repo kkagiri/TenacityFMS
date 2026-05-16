@@ -2,7 +2,7 @@
  * File: navigationHelper.js
  * Purpose: Central route constants and active-route matching helpers for admin navigation.
  * Dependencies: None
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-05-16
  *
  * Key Functions:
  * - adminRoutes: Canonical admin route map.
@@ -34,6 +34,7 @@ export const adminRoutes = {
   notificationCategories: "/admin/notification/categories",
   notificationAlertThresholds: "/admin/notification/alert-configuration",
   providers: "/admin/providers",
+  deviceProviders: "/admin/device-providers",
   logs: "/admin/logs",
   errorReports: "/admin/error-reports",
   expectedAverages: "/admin/expected-averages",
@@ -45,6 +46,8 @@ export const adminRoutes = {
   fuelingRulesLocationGeofence: "/admin/fueling-rules/location-geofence",
   fuelingRulesSimulator: "/admin/fueling-rules/simulator",
   locationValidation: "/admin/location-validation",
+  subCustomers: "/admin/sub-customers",
+  branding: "/admin/branding",
 };
 
 export const getAdminRoute = (subPath = "") => {

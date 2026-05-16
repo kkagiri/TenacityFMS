@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tenacity FMS - Architecture Monitor</title>
+  <style>
+    :root {
+      --primary: #0078d4;
+      --success: #107c10;
+      --warning: #ca5010;
+      --error: #d13438;
+      --text: #201f1e;
+      --text-2: #605e5c;
+      --text-3: #a19f9d;
+      --border: #c8c6c4;
+      --border-light: #edebe9;
+      --surface: #faf9f8;
+      --hover: #f3f2f1;
+      --white: #ffffff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--surface);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border-light);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+    .header .meta { color: var(--text-2); font-size: 12px; }
+    .header a { color: var(--primary); text-decoration: none; margin-left: 10px; }
+    .header a:hover { text-decoration: underline; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px 24px 44px; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .card, .section {
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+    }
+    .card { padding: 14px; border-left: 3px solid var(--primary); }
+    .card .label { color: var(--text-2); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .card .value { margin-top: 5px; font-size: 22px; font-weight: 600; }
+    .card.warning { border-left-color: var(--warning); }
+    .card.success { border-left-color: var(--success); }
+    .section { margin-bottom: 16px; overflow: hidden; }
+    .section-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .section-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+    .section-body { padding: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .mini-card { border: 1px solid var(--border-light); border-radius: 4px; padding: 12px; background: var(--white); }
+    .mini-card h3 { margin: 0 0 8px; font-size: 13px; }
+    .mini-card p { margin: 0; color: var(--text-2); font-size: 12px; }
+    .badge { display: inline-block; border-radius: 10px; padding: 1px 8px; font-size: 10px; border: 1px solid var(--border-light); background: var(--hover); color: var(--text-2); }
+    .diagram { overflow: auto; min-height: 360px; border: 1px solid var(--border-light); border-radius: 4px; padding: 12px; background: #fff; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+    th { background: var(--surface); color: var(--text-2); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+    td { font-size: 12px; }
+    code { background: var(--hover); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    .error { color: var(--error); }
+    @media (max-width: 768px) { .container { padding: 14px; } .header { padding: 12px 14px; } }
+  </style>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
+
+    const files = [
+      { id: 'tenancy', label: 'Tenancy and roles', path: './design/tenancy-roles-model.md' },
+      { id: 'dfd', label: 'High-level DFD', path: './design/high-level-dfd.mmd' },
+      { id: 'super', label: 'Super tasklist', path: './ProjectManagemerPrograms/super-tasklist.json' },
+      { id: 'goals', label: 'Business goals', path: './ProjectManagemerPrograms/business-goals.json' }
+    ];
+
+    async function fetchText(path) {
+      const response = await fetch(`${path}?v=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return response.text();
+    }
+
+    function renderMarkdownTables(markdown) {
+      return markdown
+        .replace(/^# (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^## (.*)$/gm, '<h3>$1</h3>')
+        .replace(/^\|(.+)\|$/gm, '<div><code>|$1|</code></div>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br />');
+    }
+
+    function setStatus(id, status, text) {
+      const element = document.getElementById(id);
+      element.textContent = text;
+      element.className = `badge ${status}`;
+    }
+
+    async function load() {
+      document.getElementById('checked-at').textContent = new Date().toLocaleString();
+      const results = await Promise.allSettled(files.map(async file => ({ ...file, text: await fetchText(file.path) })));
+      const loaded = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+      const failed = results.filter(r => r.status === 'rejected');
+      document.getElementById('artifact-count').textContent = loaded.length;
+      document.getElementById('issue-count').textContent = failed.length;
+
+      const tasklist = loaded.find(x => x.id === 'super');
+      if (tasklist) {
+        const data = JSON.parse(tasklist.text);
+        document.getElementById('feature-count').textContent = (data.features || []).length;
+        document.getElementById('last-updated').textContent = data.lastUpdated || '-';
+      }
+
+      const dfd = loaded.find(x => x.id === 'dfd');
+      if (dfd) {
+        const { svg } = await mermaid.render('architecture-dfd-svg', dfd.text);
+        document.getElementById('diagram').innerHTML = svg;
+      }
+
+      const tenancy = loaded.find(x => x.id === 'tenancy');
+      if (tenancy) document.getElementById('tenancy-content').innerHTML = renderMarkdownTables(tenancy.text);
+
+      document.getElementById('file-status').innerHTML = results.map((result, index) => {
+        const file = files[index];
+        const ok = result.status === 'fulfilled';
+        return `<tr><td>${file.label}</td><td><code>${file.path}</code></td><td>${ok ? '<span class="badge success">loaded</span>' : '<span class="badge error">missing</span>'}</td></tr>`;
+      }).join('');
+    }
+
+    window.addEventListener('DOMContentLoaded', load);
+  </script>
+</head>
+<body>
+  <header class="header">
+    <h1>Tenacity FMS - Architecture Monitor</h1>
+    <div class="meta">
+      Checked: <strong id="checked-at">-</strong>
+      Last program update: <strong id="last-updated">-</strong>
+      <a href="./ProjectManagemerPrograms/project-tracker.html">Project Tracker</a>
+      <a href="./ProjectManagemerPrograms/business-goals.html">Business Goals</a>
+      <a href="./ProjectManagemerPrograms/SUPER_PRD.md">Super PRD</a>
+    </div>
+  </header>
+  <main class="container">
+    <section class="summary">
+      <div class="card"><div class="label">Architecture Artifacts</div><div class="value" id="artifact-count">0</div></div>
+      <div class="card success"><div class="label">Tracked Features</div><div class="value" id="feature-count">0</div></div>
+      <div class="card warning"><div class="label">Load Issues</div><div class="value" id="issue-count">0</div></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><h2>High-Level DFD</h2><span class="badge">Mermaid source: design/high-level-dfd.mmd</span></div>
+      <div class="section-body"><div class="diagram" id="diagram">Loading diagram...</div></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><h2>Tenancy And Role Definitions</h2><span class="badge">Source: design/tenancy-roles-model.md</span></div>
+      <div class="section-body" id="tenancy-content">Loading tenancy model...</div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><h2>Monitored Files</h2><span class="badge">No-store fetch on page load</span></div>
+      <table>
+        <thead><tr><th>Artifact</th><th>Path</th><th>Status</th></tr></thead>
+        <tbody id="file-status"></tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

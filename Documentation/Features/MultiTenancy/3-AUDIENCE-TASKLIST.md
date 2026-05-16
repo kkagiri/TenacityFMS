@@ -3,7 +3,7 @@
 > **Companion to:** [`3-AUDIENCE-PRD.md`](./3-AUDIENCE-PRD.md)
 > **Architecture plan:** `.claude/plans/in-our-multitenant-application-eager-rocket.md`
 > **Owner:** Platform team
-> **Last updated:** 2026-05-10
+> **Last updated:** 2026-05-16
 
 Each task is sized for one engineer-day or less unless flagged `[L]` (multi-day). Tasks are grouped by phase. Within a phase, follow the order — many backend tasks gate frontend tasks.
 
@@ -97,17 +97,17 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ### 2.4 Subscriptions & Billing Module
 
-- [ ] **2.4.1** Backend: confirm or add `GET /api/v1/operator/subscriptions` cross-tenant in `FMS.Sales`
-- [ ] **2.4.2** Backend: `GET /api/v1/operator/subscriptions/{tenantId}` detail
-- [ ] **2.4.3** Backend: `GET /api/v1/operator/invoices?tenantId=…`
-- [ ] **2.4.4** `FMS.Admin`: Subscriptions list (group by tenant)
-- [ ] **2.4.5** `FMS.Admin`: Invoice list with PDF download
+- [x] **2.4.1** Backend: confirm or add `GET /api/v1/operator/subscriptions` cross-tenant in `FMS.Sales` — `OperatorSubscriptionsController` with list + per-tenant detail; gated by `[OperatorOnly]`
+- [x] **2.4.2** Backend: `GET /api/v1/operator/subscriptions/{tenantId}` detail — implemented in `OperatorSubscriptionsController`
+- [x] **2.4.3** Backend: `GET /api/v1/operator/invoices?tenantId=…` — `OperatorInvoicesController` with list + `/{id}/pdf`; `InvoicePdfRenderer` (Puppeteer pool, lazy Chromium init)
+- [x] **2.4.4** `FMS.Admin`: Subscriptions list (group by tenant) — `SubscriptionsPage.tsx` with status filter + tenant name hydration from main API; `salesApiClient.ts` + Vite proxy `/sales-api → :7010`
+- [x] **2.4.5** `FMS.Admin`: Invoice list with PDF download — `InvoicesPage.tsx` with tenant/status/date filters and per-row PDF blob download; nav entry added to `OperatorLayout.tsx`
 
 ### 2.5 Phase 2 — Verification
 
-- [ ] **2.5.1** Operator login → see all tenants. Client JWT → 403.
+- [ ] **2.5.1** Operator login → see all tenants. Client JWT → **404** (revised from 403; `[AllowCrossTenant]` / `[OperatorOnly]` return 404 to avoid endpoint-existence leak per S-1).
 - [ ] **2.5.2** Create new client tenant via `FMS.Admin`; verify it appears in DB and in fms.frontend (after assigning admin user)
-- [ ] **2.5.3** `FMS.Admin` build deployable to a separate origin
+- [ ] **2.5.3** `FMS.Admin` build deployable to a separate origin. CORS plumbing in place (`FMS.Sales.Api` reads `Cors:AllowedOrigins`; Vite dev proxies `/sales-api` → `:7010`); production deploy still TODO.
 
 ---
 
@@ -115,13 +115,15 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ### 3.1 fms.frontend — Sub-Customer Management (Client side)
 
-- [ ] **3.1.1** Backend: `POST /api/v1/tenants/sub` (Client admin creates sub-Customer tenant; auto-stamps `ParentTenantId`, `TenantKind = Customer`)
-- [ ] **3.1.2** Backend: `GET /api/v1/tenants/sub` (list child tenants of current tenant)
-- [ ] **3.1.3** Backend: `PATCH /api/v1/tenants/sub/{id}` (deactivate / reactivate)
-- [ ] **3.1.4** Backend: `POST /api/v1/tenants/sub/{id}/invite-admin` (sends invite email; creates initial admin user)
-- [ ] **3.1.5** `fms.frontend`: Sub-Customers list page (Client view only, gated by `manage_subtenants`)
-- [ ] **3.1.6** `fms.frontend`: Create-sub-customer dialog (code, name, initial admin email)
-- [ ] **3.1.7** `fms.frontend`: Sub-customer detail (usage summary, active devices, deactivate button)
+- [x] **3.1.1** Backend: `POST /api/v1/tenants/sub` — `SubTenantsController.Create`. Auto-stamps `ParentTenantId = ITenantContext.TenantId`, `TenantKind = Customer`. Gated by `Permissions.MultiTenancy.ManageSubtenants`.
+- [x] **3.1.2** Backend: `GET /api/v1/tenants/sub` — `SubTenantsController.List`. Filters to `ParentTenantId == currentTenant && TenantKind == Customer`.
+- [x] **3.1.3** Backend: `PATCH /api/v1/tenants/sub/{id}` — toggle `IsActive` and/or rename. Verifies the row's `ParentTenantId` matches the caller's tenant.
+- [x] **3.1.4** Backend: `POST /api/v1/tenants/sub/{id}/invite-admin` — re-uses existing `UserCreateCommand` (validation, temp-password gen, onboarding email via `IEmailService`); then patches `user.TenantId = subTenantId` so the new admin lands in the sub-customer tenant.
+- [x] **3.1.5** `fms.frontend`: `SubCustomersPage.js` under `/admin/sub-customers`. DevExtreme `DataGrid` + `Popup`. Gated by `_Manage_Subtenants` / `_Read_SubtenantData`. Sidebar entry added in `AdminLayout.js`.
+- [x] **3.1.6** `fms.frontend`: Create-sub-customer dialog (code + name). Admin invite is a separate row action with its own dialog (email, username, role, first/last name).
+- [x] **3.1.7** `fms.frontend`: Sub-customer detail page route built at `/admin/sub-customers/:subCustomerId`. Uses `GET /api/v1/tenants/sub/{id}` for tenant metadata and `users / activeUsers / sites / vehicles` counts; supports rename, activate/deactivate, refresh, and invite-admin actions through the existing sub-tenant API helpers.
+
+> **Side-effect of 3.1:** `LoginCommandHandler.ResolveTenantClaimsAsync` now reads `user.TenantId` (the `ITenantOwned` partial). Non-operator users now get `tenant_id` + `tenant_kind=client` in their JWT, so `ITenantContext` is populated for client-scoped endpoints — fixes a previously broken assumption.
 
 ### 3.2 fms.frontend — Branding Settings (Client side)
 
@@ -146,8 +148,10 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ### 3.5 FMS.Admin — Operator Users Module
 
-- [ ] **3.5.1** Backend: `GET / POST / PATCH /api/v1/operator/users` (manage `_platform` tenant users)
-- [ ] **3.5.2** `FMS.Admin`: Operator Users page; assign `platform.*` permissions
+- [x] **3.5.1** Backend: `OperatorUsersController` (`GET`, `GET /{id}`, `POST`, `PATCH /{id}`). `[AllowCrossTenant]` + per-method `[RequirePermission(Permissions.Platform.ReadOperators / ManageOperators)]`. Scopes all reads/writes to `_platform` tenant id; reuses `UserCreateCommand` then patches `user.TenantId = _platform.Id`. PATCH supports role swap via `UserManager.AddToRolesAsync / RemoveFromRolesAsync` + `IPermissionAuthorizationService.InvalidateUserPermissions`.
+- [x] **3.5.2** `FMS.Admin`: `OperatorUsersPage.tsx` at `/operator-users` mirrors the Tenants pattern. Inline create form (username, email, first/last, role default `PlatformOperator`). Row Enable/Disable action. Roles displayed as comma-separated list — role-based perm model per existing architecture, so raw permission grants are intentionally not exposed. Sidebar entry "Operators" added in `OperatorLayout.tsx`.
+
+> **Permissions added in this work:** `_Platform_Read_Operators`, `_Platform_Manage_Operators` (C# constants in `Permissions.Platform.*`; DB seed in `Documentation/Database/Migrations/2026-05-16-platform-operator-permissions.sql`, granted to the `PlatformOperator` role). Rollback alongside.
 
 ### 3.6 Phase 3 — Verification
 
@@ -178,7 +182,8 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - [ ] **T-2** Backend tests for `[AllowCrossTenant]` filter (positive + negative)
 - [ ] **T-3** Frontend smoke test for ViewMode routing
 - [ ] **T-4** Regression suite green on `fms.frontend` for both Client and Customer view modes
-- [ ] **T-5** Device-provider tenancy tests: Client users see only own provider configs/mappings; Customer users cannot access provider config, mapping, or command endpoints; `_platform` operators can use cross-tenant device-provider APIs only through `[AllowCrossTenant]`
+- [x] **T-5** Device-provider tenancy tests: Client users see only own provider configs/mappings; Customer users cannot access provider config, mapping, or command endpoints; `_platform` operators can use cross-tenant device-provider APIs only through `[AllowCrossTenant]` — covered by provider/mapping tenant-filter tests and controller conformance tests for `RejectCustomerTenantAttribute`, operator `[AllowCrossTenant]`, and platform permission usage.
+- [ ] **T-6** Backfill `TenantId` on legacy `User` rows + add EF query filter on `User` for `TenantId == _tenantContext.TenantId`. Today `GetUserListQuery` returns users across all tenants (only the `IsDeleted` filter applies). Out of scope for 3.5 because retroactive filtering can break deployments with `TenantId = Guid.Empty` rows; needs a data-state audit first. Tracked by Phase 3.5 plan.
 
 ### Security review
 
@@ -186,7 +191,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - [ ] **S-2** Confirm `FMS.Admin` is unreachable from client/customer-facing origin in production
 - [ ] **S-3** JWT review: ensure new claims do not leak parent-tenant info to unrelated tenants
 - [ ] **S-4** Permission audit: every new endpoint has `[Authorize(Permission)]` attribute
-- [ ] **S-5** Device-provider permission audit: `_Read_DeviceProvider` / `_Manage_DeviceProvider` are client-scoped, `_Platform_Read_DeviceProvider` / `_Platform_Manage_DeviceProvider` are operator-only, and no Customer route exposes provider credentials or device commands
+- [x] **S-5** Device-provider permission audit: `_Read_DeviceProvider` / `_Manage_DeviceProvider` are client-scoped, `_Platform_Read_DeviceProvider` / `_Platform_Manage_DeviceProvider` are operator-only, and no Customer route exposes provider credentials or device commands — `/api/v1/providers` uses client permissions, `/api/v1/operator/device-providers` uses platform permissions only, Customer ViewMode is blocked from `/admin`, and Customer requests to provider/config/command controllers return 403.
 
 ### Documentation
 

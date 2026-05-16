@@ -74,6 +74,42 @@ Examples:
 
 ---
 
+### 1.2.1 Program Registration Protocol — Register Every New PRD + TASKS
+
+> 🚨 **Hard Rule** — A new `PRD.md` / `TASKS.md` is **NOT considered created** until it is registered in the program artifacts. The HTML dashboards render from these JSON files; an unregistered PRD is invisible to the rest of the team.
+
+Whenever you (or any agent) create a new `PRD.md` and/or `TASKS.md` under `Documentation/Features/{domain}/{feature}/{version}/{type}/`, you **MUST** in the same turn:
+
+1. **Register in `Documentation/super-tasklist.json`** — append an entry to `features[]` with:
+   - `id` (kebab-case, e.g. `frontend-layout-shell-design-language-v1`)
+   - `name`, `domain`, `version`, `type`, `created` (today's date)
+   - `phase` (`prd` for a new PRD; `planning` once TASKS exists)
+   - `preSoftware: true` if `created > cutoffDate`, otherwise `false`
+   - `owner`, `prd` path, `tasks` path
+   - `percentComplete: 0`
+   - `milestones[]` derived from the TASKS phases
+   - `affectedProjects[]` derived from paths cited in the PRD
+   - bump root `lastUpdated` to today
+2. **Register in `Documentation/SUPER_PRD.md` §3 Feature Catalog** — add one row to the markdown table linking to the new PRD. Do not duplicate scope; one row only.
+3. **Register in `Documentation/business-goals.json`** when the feature has user-facing value:
+   - Add a roadmap entry under `roadmap.now|next|later` (horizon must match the tasklist phase per ProductManager rules).
+   - Mirror the PRD's user stories into `userStories[]` with full acceptance criteria, `status: "draft"`.
+   - Bump root `lastUpdated` to today.
+4. **Do NOT touch the HTML files** — `project-tracker.html` and `business-goals.html` auto-render from the JSON sources.
+5. **Confirm registration in your reply** — list the four artifacts you updated.
+
+Failure to register a new PRD is a process bug. If you create a PRD without registering it, your next action MUST be to register it.
+
+**Ownership:**
+
+| Artifact | Owner | When |
+|---|---|---|
+| `super-tasklist.json` features[] / SUPER_PRD §3 row | ProjectManager agent | Always, when a new PRD/TASKS file is created |
+| `business-goals.json` roadmap[] + userStories[] | ProductManager agent | When the feature has user-facing value |
+| Per-feature `PRD.md` / `TASKS.md` | Feature author | Drafted first; registration follows |
+
+---
+
 ### 1.3 Build & Run Policy
 
 - **DO NOT build or run the application automatically**

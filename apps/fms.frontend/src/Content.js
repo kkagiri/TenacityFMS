@@ -2,7 +2,7 @@
  * File: Content.js
  * Purpose: Defines application routing and global layout wrappers
  * Dependencies: react-router-dom, react-redux, SideNavOuterToolbar, AdminLayout
- * Last Modified: 2026-05-10
+ * Last Modified: 2026-05-16
  *
  * Key Functions/Components:
  * - Content(): Root route configuration and layout composition
@@ -22,7 +22,7 @@
  *   the route-level guard that prevents UI surface leak.
  */
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import React from "react";
+import React, { useEffect } from "react";
 import appInfo from "./app-info";
 import { SideNavOuterToolbar } from "./layouts";
 import { Footer } from "./components";
@@ -37,13 +37,15 @@ import ForcePasswordChangePage from "./pages/auth/ForcePasswordChangePage";
 import CustomerRoutes from "./components/CustomerRoutes/CustomerRoutes";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
 import useDocumentTitle from "./hooks/useDocumentTitle";
-import { getSafeInternalRedirect } from "./utils/authRedirect";
+import { getOperatorPortalUrl, getSafeInternalRedirect } from "./utils/authRedirect";
 
 export default function Content() {
   const { user } = useSelector((state) => state.auth);
   const tenantKind = useSelector((state) => state.tenantContext?.tenantKind ?? "client");
+  const isPlatformOperator = useSelector((state) => state.tenantContext?.isPlatformOperator ?? false);
   const isCustomerView = tenantKind === "customer";
   const location = useLocation();
+  const operatorPortalUrl = getOperatorPortalUrl();
 
   // Initialize route-based SignalR management
   const signalRState = useSignalRRouting({
@@ -61,6 +63,16 @@ export default function Content() {
   const requestedRedirect = getSafeInternalRedirect(
     new URLSearchParams(location.search).get("redirect")
   );
+
+  useEffect(() => {
+    if (isPlatformOperator && operatorPortalUrl) {
+      window.location.replace(operatorPortalUrl);
+    }
+  }, [isPlatformOperator, operatorPortalUrl]);
+
+  if (isPlatformOperator && operatorPortalUrl) {
+    return null;
+  }
 
   if (requiresPasswordChange && location.pathname !== "/change-password-required") {
     const returnUrl = `${location.pathname}${location.search}${location.hash}`;
@@ -93,13 +105,13 @@ export default function Content() {
         <Route
           path="/admin"
           element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
           )}
         />
         <Route
           path="/admin/*"
           element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
           )}
         />
         <Route path="*" element={<Navigate to="/admin" replace />} />

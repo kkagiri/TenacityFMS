@@ -8,6 +8,20 @@ import { useScreenSize } from "../../utils/media-query";
 import { Template } from "devextreme-react/core/template";
 import { useMenuPatch } from "../../utils/patches";
 
+const getDrawerRootElement = (drawerRef) => {
+  const drawerInstance = drawerRef?.current?.instance;
+
+  if (drawerInstance?.element) {
+    return drawerInstance.element();
+  }
+
+  if (typeof drawerRef?.current?.element === "function") {
+    return drawerRef.current.element();
+  }
+
+  return drawerRef?.current ?? null;
+};
+
 export default function SideNavOuterToolbar({ title, children }) {
   const scrollViewRef = useRef(null);
   const drawerRef = useRef(null);
@@ -56,8 +70,10 @@ export default function SideNavOuterToolbar({ title, children }) {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuStatus !== MenuStatus.Closed && drawerRef.current) {
-        const drawerElement = drawerRef.current;
-        const menuElement = drawerElement.querySelector('.dx-drawer-panel-content');
+        const drawerElement = getDrawerRootElement(drawerRef);
+        const menuElement = typeof drawerElement?.querySelector === "function"
+          ? drawerElement.querySelector('.dx-drawer-panel-content')
+          : null;
 
         // If click is outside the menu panel, close the drawer
         if (menuElement && !menuElement.contains(event.target)) {

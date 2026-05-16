@@ -10,6 +10,21 @@ description: M365 Admin Center Fluent Design system for FMS. Use when building U
 > All design should include dark mode support, but dark mode styles are not included in this document for brevity. Use M365 Admin as the reference for dark mode tokens and styles.
 
 ---
+### 1.8 File Documentation Header
+
+Every file **MUST** have a documentation header at the top:
+
+```javascript
+/**
+ * File:          [FileName].js
+ * Purpose:       [Brief description]
+ * Dependencies:  [Key dependencies]
+ * Last Modified: [Date]
+ *
+ * Key Functions:
+ * - functionName(): what it does
+ */
+```
 
 ## 1. Design Principles
 

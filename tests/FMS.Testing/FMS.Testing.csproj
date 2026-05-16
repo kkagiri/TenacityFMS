@@ -52,6 +52,7 @@
     <ProjectReference Include="..\..\packages\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Devices.Core\FMS.Devices.Core.csproj" />
     <ProjectReference Include="..\..\packages\FMS.Devices.Fueling\FMS.Devices.Fueling.csproj" />
+    <ProjectReference Include="..\..\apps\FMS.WebClient\FMS.WebClient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

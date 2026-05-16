@@ -13,6 +13,11 @@ export default defineConfig({
         target: "http://localhost:2008",
         changeOrigin: true,
       },
+      "/sales-api": {
+        target: "http://localhost:7010",
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/sales-api/, ""),
+      },
     },
     fs: {
       allow: [

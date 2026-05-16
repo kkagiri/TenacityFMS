@@ -29,7 +29,10 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using FMS.WebClient.Attributes;
+using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.MultiTenancy.Services;
+using FMS.Domain.Entities.Devices;
 
 
 namespace FMS.WebClient.Controllers.VehicleManagement
@@ -41,12 +44,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [ApiController]
     [Route("api/v1/providers")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Device)]
+    [RejectCustomerTenant]
     public class ProviderManagementController(
         IMediator mediator,
         IVehicleTrackingService trackingService,
         IProviderConfigurationService configService,
         IProviderFactory providerFactory,
+        GpsdataContext context,
+        ITenantContext tenantContext,
         ILogger<ProviderManagementController> logger,
         IServiceScopeFactory serviceScopeFactory,
         IHubContext<FrontEndHub> hubContext) : ControllerBase
@@ -55,6 +60,8 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         private readonly IVehicleTrackingService _trackingService = trackingService;
         private readonly IProviderConfigurationService _configService = configService;
         private readonly IProviderFactory _providerFactory = providerFactory;
+        private readonly GpsdataContext _context = context;
+        private readonly ITenantContext _tenantContext = tenantContext;
         private readonly ILogger<ProviderManagementController> _logger = logger;
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
         private readonly IHubContext<FrontEndHub> _hubContext = hubContext;
@@ -68,11 +75,52 @@ namespace FMS.WebClient.Controllers.VehicleManagement
             return Guid.TryParse(userId, out _);
         }
 
+        private IQueryable<ProviderConfigurationEntity> ProviderQuery() =>
+            _context.ProviderConfigurations.Where(p => !_tenantContext.HasTenant || _tenantContext.IsCrossTenant || p.TenantId == _tenantContext.TenantId);
+
+        private static object MapProviderResponse(ProviderConfigurationEntity provider) => new
+        {
+            ProviderId = provider.Id,
+            ProviderName = provider.Name,
+            provider.DisplayName,
+            provider.Description,
+            provider.DeviceCategory,
+            provider.IsEnabled,
+            provider.IsDefault,
+            PriorityOrder = provider.Priority,
+            ConfigurationData = provider.Settings,
+            provider.CreatedAt,
+            provider.UpdatedAt
+        };
+
+        private static List<string> ValidateProviderRequest(string? providerName, string? displayName, string? deviceCategory)
+        {
+            var errors = new List<string>();
+
+            if (string.IsNullOrWhiteSpace(providerName))
+            {
+                errors.Add("Provider name is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                errors.Add("Display name is required.");
+            }
+
+            if (string.IsNullOrWhiteSpace(deviceCategory))
+            {
+                errors.Add("Device category is required.");
+            }
+
+            return errors;
+        }
+
         /// <summary>
         /// Get health status of all providers
         /// </summary>
         /// <returns>Dictionary of provider names to health status</returns>
         [HttpGet("health")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetProvidersHealth()
         {
             try
@@ -112,6 +160,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// </summary>
         /// <returns>Provider usage statistics</returns>
         [HttpGet("statistics")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetProviderStatistics()
         {
             try
@@ -159,31 +208,23 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// </summary>
         /// <returns>List of provider configurations</returns>
         [HttpGet("list")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetAllProviders()
         {
             try
             {
                 _logger.LogInformation("Getting all provider configurations");
 
-                // Use service contract method
-                List<ProviderConfiguration> providers = await _configService.GetAllAsync(includeDisabled: true);
+                var providers = await ProviderQuery()
+                    .AsNoTracking()
+                    .OrderBy(p => p.Priority)
+                    .ThenBy(p => p.Name)
+                    .ToListAsync();
 
                 return Ok(new
                 {
                     Success = true,
-                    Data = providers.Select(p => new
-                    {
-                        ProviderId = p.Id,
-                        ProviderName = p.Name,
-                        p.DisplayName,
-                        p.Description,
-                        p.IsEnabled,
-                        p.IsDefault,
-                        PriorityOrder = p.Priority,
-                        ConfigurationData = p.Settings,
-                        p.CreatedAt,
-                        p.UpdatedAt
-                    }).ToList(),
+                    Data = providers.Select(MapProviderResponse).ToList(),
                     providers.Count,
                     Timestamp = DateTime.UtcNow
                 });
@@ -201,13 +242,16 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="providerId">Provider ID</param>
         /// <returns>Provider configuration</returns>
         [HttpGet("{providerId}")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetProvider(int providerId)
         {
             try
             {
                 _logger.LogInformation("Getting provider configuration for ID {ProviderId}", providerId);
 
-                ProviderConfiguration? provider = await _configService.GetByIdAsync(providerId);
+                var provider = await ProviderQuery()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == providerId);
 
                 if (provider == null)
                 {
@@ -217,25 +261,95 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 return Ok(new
                 {
                     Success = true,
-                    Data = new
-                    {
-                        ProviderId = provider.Id,
-                        ProviderName = provider.Name,
-                        provider.DisplayName,
-                        provider.Description,
-                        provider.IsEnabled,
-                        provider.IsDefault,
-                        PriorityOrder = provider.Priority,
-                        ConfigurationData = provider.Settings,
-                        provider.CreatedAt,
-                        provider.UpdatedAt
-                    }
+                    Data = MapProviderResponse(provider)
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting provider {ProviderId}", providerId);
                 return StatusCode(500, new { Success = false, Message = "Failed to get provider", Error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
+        public async Task<IActionResult> CreateProvider([FromBody] CreateProviderRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(FMSResponse.ValidationFailed(new List<string> { "Provider request is required." }));
+                }
+
+                var errors = ValidateProviderRequest(request.ProviderName, request.DisplayName, request.DeviceCategory);
+                if (errors.Count > 0)
+                {
+                    return BadRequest(FMSResponse.ValidationFailed(errors));
+                }
+
+                if (!_tenantContext.HasTenant)
+                {
+                    return BadRequest(FMSResponse.FailedResponse("Tenant context is required.", "TENANT_REQUIRED"));
+                }
+
+                var normalizedName = request.ProviderName.Trim();
+                var duplicate = await ProviderQuery()
+                    .AnyAsync(p => p.Name == normalizedName);
+
+                if (duplicate)
+                {
+                    return Conflict(FMSResponse.Conflict("DEVICE_PROVIDER_EXISTS", "A provider with this name already exists for this tenant."));
+                }
+
+                if (request.IsDefault == true)
+                {
+                    var existingDefaults = await ProviderQuery()
+                        .Where(p => p.DeviceCategory == request.DeviceCategory.Trim() && p.IsDefault)
+                        .ToListAsync();
+
+                    foreach (var existingDefault in existingDefaults)
+                    {
+                        existingDefault.IsDefault = false;
+                        existingDefault.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                var provider = new ProviderConfigurationEntity
+                {
+                    TenantId = _tenantContext.TenantId,
+                    Name = normalizedName,
+                    DisplayName = request.DisplayName.Trim(),
+                    Description = request.Description,
+                    DeviceCategory = request.DeviceCategory.Trim(),
+                    Settings = string.IsNullOrWhiteSpace(request.ConfigurationData) ? "{}" : request.ConfigurationData,
+                    IsEnabled = request.IsEnabled ?? true,
+                    IsDefault = request.IsDefault ?? false,
+                    Priority = request.PriorityOrder ?? 999,
+                    Version = string.IsNullOrWhiteSpace(request.Version) ? "1.0.0" : request.Version.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")
+                };
+
+                _context.ProviderConfigurations.Add(provider);
+                await _context.SaveChangesAsync();
+                await _trackingService.ReloadProvidersAsync();
+
+                return CreatedAtAction(
+                    nameof(GetProvider),
+                    new { providerId = provider.Id },
+                    new
+                    {
+                        Success = true,
+                        Message = "Provider created successfully",
+                        Data = MapProviderResponse(provider)
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating provider {ProviderName}", request?.ProviderName);
+                return StatusCode(500, new { Success = false, Message = "Failed to create provider", Error = ex.Message });
             }
         }
 
@@ -246,13 +360,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Update request</param>
         /// <returns>Updated configuration</returns>
         [HttpPut("{providerId}")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> UpdateProvider(int providerId, [FromBody] UpdateProviderRequest request)
         {
             try
             {
                 _logger.LogInformation("Updating provider {ProviderId}", providerId);
 
-                ProviderConfiguration? provider = await _configService.GetByIdAsync(providerId);
+                var provider = await ProviderQuery().FirstOrDefaultAsync(p => p.Id == providerId);
                 if (provider == null)
                 {
                     return NotFound(new { Success = false, Message = $"Provider {providerId} not found" });
@@ -271,6 +386,16 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 {
                     provider.Settings = request.ConfigurationData;
                 }
+                if (request.DeviceCategory != null)
+                {
+                    var category = request.DeviceCategory.Trim();
+                    if (string.IsNullOrWhiteSpace(category))
+                    {
+                        return BadRequest(FMSResponse.ValidationFailed(new List<string> { "Device category is required." }));
+                    }
+
+                    provider.DeviceCategory = category;
+                }
                 if (request.IsEnabled.HasValue)
                 {
                     provider.IsEnabled = request.IsEnabled.Value;
@@ -284,8 +409,23 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                     provider.Priority = request.PriorityOrder.Value;
                 }
 
-                // Persist via service contract
-                await _configService.UpdateAsync(provider);
+                if (provider.IsDefault)
+                {
+                    var existingDefaults = await ProviderQuery()
+                        .Where(p => p.Id != provider.Id && p.DeviceCategory == provider.DeviceCategory && p.IsDefault)
+                        .ToListAsync();
+
+                    foreach (var existingDefault in existingDefaults)
+                    {
+                        existingDefault.IsDefault = false;
+                        existingDefault.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                provider.UpdatedAt = DateTime.UtcNow;
+                provider.UpdatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+
+                await _context.SaveChangesAsync();
 
                 // Reload providers to apply changes
                 await _trackingService.ReloadProvidersAsync();
@@ -294,7 +434,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 {
                     Success = true,
                     Message = "Provider updated successfully",
-                    Data = provider
+                    Data = MapProviderResponse(provider)
                 });
             }
             catch (Exception ex)
@@ -310,6 +450,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="providerName">Provider name</param>
         /// <returns>Connection test result</returns>
         [HttpPost("{providerName}/test")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> TestProviderConnection(string providerName)
         {
             try
@@ -357,6 +498,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="providerName">Provider name</param>
         /// <returns>Detailed diagnostic information</returns>
         [HttpGet("{providerName}/diagnose")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> DiagnoseProvider(string providerName)
         {
             var diagnostics = new Dictionary<string, object>
@@ -553,6 +695,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// </summary>
         /// <returns>Reload result</returns>
         [HttpPost("reload")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> ReloadProviders()
         {
             try
@@ -581,6 +724,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="vehicleId">Optional vehicle ID filter</param>
         /// <returns>List of mappings with device details</returns>
         [HttpGet("mappings")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetVehicleProviderMappings([FromQuery] int? vehicleId = null)
         {
             try
@@ -617,6 +761,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Bulk assignment request</param>
         /// <returns>Job initiation result with job ID</returns>
         [HttpPost("mappings/bulk")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> BulkAssignVehiclesToProvider([FromBody] BulkAssignmentRequestDTO request)
         {
             try
@@ -668,6 +813,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Bulk unassignment request</param>
         /// <returns>Job initiation result with job ID</returns>
         [HttpPost("mappings/bulk/unassign")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> BulkUnassignVehiclesFromProvider([FromBody] BulkVehicleUnassignmentRequest request)
         {
             try
@@ -717,6 +863,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Device mapping request</param>
         /// <returns>Assignment result</returns>
         [HttpPost("mappings/device")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> MapVehicleToDevice([FromBody] DeviceMappingRequest request)
         {
             try
@@ -776,6 +923,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="request">Assignment request</param>
         /// <returns>Assignment result</returns>
         [HttpPost("mappings")]
+        [RequirePermission(Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> AssignVehicleToProvider([FromBody] VehicleProviderAssignmentRequest request)
         {
             try
@@ -825,6 +973,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         /// <param name="providerName">Provider name (optional, defaults to active provider)</param>
         /// <returns>List of GPS devices with mapping status</returns>
         [HttpGet("devices")]
+        [RequirePermission(Permissions.DeviceProvider.Read, Permissions.DeviceProvider.Manage)]
         public async Task<IActionResult> GetAllProviderDevices([FromQuery] string? providerName = null)
         {
             try
@@ -910,12 +1059,29 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     }
 
     /// <summary>
+    /// Request model for creating provider configuration
+    /// </summary>
+    public class CreateProviderRequest
+    {
+        public string ProviderName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string DeviceCategory { get; set; } = "Tracking";
+        public string? Version { get; set; }
+        public string? ConfigurationData { get; set; }
+        public bool? IsEnabled { get; set; }
+        public bool? IsDefault { get; set; }
+        public int? PriorityOrder { get; set; }
+    }
+
+    /// <summary>
     /// Request model for updating provider configuration
     /// </summary>
     public class UpdateProviderRequest
     {
         public string? DisplayName { get; set; }
         public string? Description { get; set; }
+        public string? DeviceCategory { get; set; }
         public string? ConfigurationData { get; set; }
         public bool? IsEnabled { get; set; }
         public bool? IsDefault { get; set; }

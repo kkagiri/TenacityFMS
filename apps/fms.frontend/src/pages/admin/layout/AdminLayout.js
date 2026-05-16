@@ -2,7 +2,7 @@
  * File: AdminLayout.js
  * Purpose: Shared admin shell layout with sidebar navigation and contextual page titles.
  * Dependencies: react-router-dom, admin navigation helper
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-05-16
  *
  * Key Components:
  * - AdminLayout: Renders admin sidebar groups and hosts routed admin content.
@@ -10,11 +10,13 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { adminRoutes, isActiveRoute } from "../utils/navigationHelper";
+import { usePermissions } from "../../../hooks/usePermissions";
 import "./AdminLayout.scss";
 
 const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasAnyPermission } = usePermissions();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationExpanded, setNotificationExpanded] = useState(() => {
     // Auto-expand if currently on a notification route
@@ -77,6 +79,21 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       return {
         title: "Notification System",
         subtitle: "Manage notifications, policies, and categories",
+      };
+    } else if (pathname.includes("/device-providers")) {
+      return {
+        title: "Device Provider Management",
+        subtitle: "Manage tenant device providers and mappings",
+      };
+    } else if (pathname.includes("/sub-customers")) {
+      return {
+        title: "Sub-Customer Management",
+        subtitle: "Manage customer tenants under this client",
+      };
+    } else if (pathname.includes("/branding")) {
+      return {
+        title: "Branding Settings",
+        subtitle: "Manage tenant logo and accent colours",
       };
     } else if (pathname.includes("/providers")) {
       return {
@@ -185,6 +202,22 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Providers",
       icon: "fa-light fa-network-wired",
       path: adminRoutes.providers,
+      badge: null,
+    },
+    {
+      id: "device-providers",
+      title: "Device Providers",
+      icon: "fa-light fa-plug-circle-bolt",
+      path: adminRoutes.deviceProviders,
+      permissionAny: ["_Read_DeviceProvider", "_Manage_DeviceProvider"],
+      badge: null,
+    },
+    {
+      id: "sub-customers",
+      title: "Sub-Customers",
+      icon: "fa-light fa-sitemap",
+      path: adminRoutes.subCustomers,
+      permissionAny: ["_Manage_Subtenants", "_Read_SubtenantData"],
       badge: null,
     },
   ];
@@ -328,6 +361,13 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       path: adminRoutes.systemconfig,
     },
     {
+      id: "branding",
+      title: "Branding",
+      icon: "fa-light fa-palette",
+      path: adminRoutes.branding,
+      permissionAny: ["_Manage_Branding"],
+    },
+    {
       id: "logs",
       title: "Log Management",
       icon: "fa-light fa-file-lines",
@@ -419,7 +459,7 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
               <div className="group-label">Access Control</div>
             )}
             <nav className="nav-menu">
-              {navigationItems.map((item) => {
+              {navigationItems.filter((item) => !item.permissionAny || hasAnyPermission(item.permissionAny)).map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
                 return (
                   <div
@@ -574,7 +614,7 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
               <div className="group-label">System Configuration</div>
             )}
             <nav className="nav-menu">
-              {systemItems.map((item) => {
+              {systemItems.filter((item) => !item.permissionAny || hasAnyPermission(item.permissionAny)).map((item) => {
                 const isActive = isActiveRoute(currentPath, item.path);
                 return (
                   <div

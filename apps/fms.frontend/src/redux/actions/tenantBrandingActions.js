@@ -10,22 +10,35 @@
  *
  * Last Modified: 2026-05-10
  */
-import axiosInstance from '../../api/axiosInstance';
 import { SET_TENANT_BRANDING } from './types';
 import { applyBrandingToCssVars } from '../../utils/applyBranding';
+import axiosInstance from '../../api/axiosInstance';
+
+const normalizeBranding = (data = {}) => ({
+    logoUrl: data.logoUrl || data.LogoUrl || null,
+    primaryColor: data.primaryColor || data.PrimaryColor || null,
+    secondaryColor: data.secondaryColor || data.SecondaryColor || null,
+});
 
 export const fetchTenantBranding = () => async (dispatch) => {
     try {
         const response = await axiosInstance.get('/v1/tenant/branding');
-        // Backend returns FMSResponse-like envelope OR direct DTO depending on
-        // the controller. TenantBrandingController returns the DTO directly.
-        const data = response?.data?.data || response?.data || {};
+        const payload = response?.data || {};
+        const isEnvelope = payload && typeof payload === 'object' && (
+            'success' in payload ||
+            'Success' in payload ||
+            'isSuccess' in payload ||
+            'IsSuccess' in payload
+        );
 
-        const branding = {
-            logoUrl: data.logoUrl || data.LogoUrl || null,
-            primaryColor: data.primaryColor || data.PrimaryColor || null,
-            secondaryColor: data.secondaryColor || data.SecondaryColor || null,
-        };
+        if (isEnvelope) {
+            const isSuccess = payload.isSuccess ?? payload.IsSuccess ?? payload.success ?? payload.Success ?? false;
+            if (!isSuccess) {
+                throw new Error(payload.message || payload.Message || 'Tenant branding request failed');
+            }
+        }
+
+        const branding = normalizeBranding(payload.data || payload.Data || payload);
 
         dispatch({ type: SET_TENANT_BRANDING, payload: branding });
 

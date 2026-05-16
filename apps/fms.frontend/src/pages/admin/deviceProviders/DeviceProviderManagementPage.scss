@@ -1,0 +1,188 @@
+/**
+ * File:          DeviceProviderManagementPage.scss
+ * Purpose:       M365 admin styles for the tenant device-provider page.
+ * Dependencies:  Admin M365 shared classes
+ * Last Modified: 2026-05-15
+ *
+ * Key Functions:
+ * - Defines page grid, compact tables, mapping form, and responsive states.
+ */
+
+.device-provider-page {
+  padding: 12px 24px 24px;
+  color: var(--m365-text, #201f1e);
+
+  &__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  &__table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--m365-border-light, #edebe9);
+    border-radius: 6px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+
+    th,
+    td {
+      padding: 9px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--m365-border-light, #edebe9);
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--m365-text-secondary, #605e5c);
+      background: var(--m365-bg-surface, #faf9f8);
+    }
+
+    td strong,
+    td span {
+      display: block;
+    }
+
+    td span {
+      margin-top: 2px;
+      color: var(--m365-text-secondary, #605e5c);
+      font-size: 12px;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  &__empty {
+    padding: 18px;
+    color: var(--m365-text-secondary, #605e5c);
+    border: 1px dashed var(--m365-border, #c8c6c4);
+    border-radius: 6px;
+    background: var(--m365-bg-surface, #faf9f8);
+  }
+
+  &__checks,
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  &__mapping-form {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+}
+
+.m365-textarea {
+  min-height: 92px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--m365-text, #201f1e);
+  background: #fff;
+  border: 1px solid var(--m365-border, #c8c6c4);
+  border-radius: 4px;
+  outline: none;
+  resize: vertical;
+
+  &:focus {
+    border-color: var(--m365-primary, #0078d4);
+    box-shadow: 0 0 0 1px var(--m365-primary, #0078d4);
+  }
+}
+
+.m365-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--m365-text, #201f1e);
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--m365-primary, #0078d4);
+  }
+}
+
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: 4px;
+
+  &--neutral {
+    background: #f3f2f1;
+    color: #605e5c;
+  }
+
+  &--primary {
+    background: #deecf9;
+    color: #0078d4;
+  }
+
+  &--success {
+    background: #dff6dd;
+    color: #107c10;
+  }
+}
+
+.m365-icon-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--m365-text-secondary, #605e5c);
+  background: transparent;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--m365-primary, #0078d4);
+    background: #deecf9;
+    border-color: var(--m365-primary, #0078d4);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 1180px) {
+  .device-provider-page {
+    &__grid,
+    &__mapping-form {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .device-provider-page {
+    padding: 8px 16px 18px;
+  }
+}

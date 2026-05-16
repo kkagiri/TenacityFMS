@@ -1,27 +1,26 @@
 /*
  * File:          TenantResolutionMiddleware.cs
  * Purpose:       Resolves the current tenant from JWT claims
- *                (claim name: "tenant_id") and stores it on the scoped
- *                ITenantContext. Must run AFTER authentication.
- * Dependencies:  ASP.NET Core, FMS.Application
- * Last Modified: 2026-04-26
+ *                (tenant_id, tenant_kind, is_platform_operator) and
+ *                stores them on the scoped ITenantContext. Must run
+ *                AFTER authentication.
+ * Dependencies:  ASP.NET Core, FMS.Application, FMS.Domain
+ * Last Modified: 2026-05-14
  */
 using System;
 using System.Threading.Tasks;
 using FMS.Application.Features.MultiTenancy.Services;
+using FMS.Domain.Entities.Features.MultiTenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
 namespace FMS.WebClient.Middleware
 {
-    /// <summary>
-    /// Resolves the tenant for the current request from the
-    /// <c>tenant_id</c> JWT claim and stores it on the scoped
-    /// <see cref="ITenantContext"/>.
-    /// </summary>
     public sealed class TenantResolutionMiddleware
     {
-        private const string TenantClaimType = "tenant_id";
+        private const string TenantIdClaim = "tenant_id";
+        private const string TenantKindClaim = "tenant_kind";
+        private const string IsPlatformOperatorClaim = "is_platform_operator";
 
         private readonly RequestDelegate _next;
 
@@ -34,25 +33,40 @@ namespace FMS.WebClient.Middleware
         {
             if (context.User?.Identity?.IsAuthenticated == true)
             {
-                var raw = context.User.FindFirst(TenantClaimType)?.Value;
+                var raw = context.User.FindFirst(TenantIdClaim)?.Value;
                 if (!string.IsNullOrWhiteSpace(raw) &&
                     Guid.TryParse(raw, out var tenantId))
                 {
-                    tenantContext.SetTenant(tenantId);
+                    var kindRaw = context.User.FindFirst(TenantKindClaim)?.Value;
+                    var kind = ParseTenantKind(kindRaw);
+                    var operatorRaw = context.User.FindFirst(IsPlatformOperatorClaim)?.Value;
+                    bool isOperator = string.Equals(operatorRaw, "true", StringComparison.OrdinalIgnoreCase);
+
+                    tenantContext.SetTenant(tenantId, kind, isOperator);
                 }
             }
 
             await _next(context);
         }
+
+        private static TenantKind ParseTenantKind(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return TenantKind.Client;
+            }
+
+            return value.ToLowerInvariant() switch
+            {
+                "system" => TenantKind.System,
+                "customer" => TenantKind.Customer,
+                _ => TenantKind.Client,
+            };
+        }
     }
 
     public static class TenantResolutionMiddlewareExtensions
     {
-        /// <summary>
-        /// Registers <see cref="TenantResolutionMiddleware"/> in the
-        /// pipeline. Call AFTER <c>UseAuthentication()</c> and BEFORE
-        /// <c>UseAuthorization()</c>.
-        /// </summary>
         public static IApplicationBuilder UseTenantResolution(this IApplicationBuilder builder)
             => builder.UseMiddleware<TenantResolutionMiddleware>();
     }

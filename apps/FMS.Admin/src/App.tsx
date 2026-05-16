@@ -12,9 +12,13 @@ import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import OperatorLayout from "./layouts/OperatorLayout";
 import DashboardPage from "./pages/DashboardPage";
+import DeviceProvidersPage from "./pages/DeviceProvidersPage";
+import InvoicesPage from "./pages/InvoicesPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import OperatorUsersPage from "./pages/OperatorUsersPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import SubscriptionsPage from "./pages/SubscriptionsPage";
 import TenantDetailPage from "./pages/TenantDetailPage";
 import TenantsPage from "./pages/TenantsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -37,15 +41,10 @@ export default function App() {
           <Route path="dashboard" element={<Navigate to="/" replace />} />
           <Route path="tenants" element={<TenantsPage />} />
           <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
-          <Route
-            path="subscriptions"
-            element={
-              <PlaceholderPage
-                title="Subscriptions"
-                icon="fa-light fa-file-invoice-dollar"
-              />
-            }
-          />
+          <Route path="device-providers" element={<DeviceProvidersPage />} />
+          <Route path="subscriptions" element={<SubscriptionsPage />} />
+          <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="operator-users" element={<OperatorUsersPage />} />
           <Route
             path="reports"
             element={

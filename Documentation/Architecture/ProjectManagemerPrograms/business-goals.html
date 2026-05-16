@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tenacity FMS — Business Goals</title>
+<style>
+  :root {
+    --primary: #0078d4;
+    --primary-dark: #106ebe;
+    --success: #107c10;
+    --warning: #ca5010;
+    --error: #d13438;
+    --text: #201f1e;
+    --text-2: #605e5c;
+    --text-3: #a19f9d;
+    --border: #c8c6c4;
+    --border-light: #edebe9;
+    --surface: #faf9f8;
+    --hover: #f3f2f1;
+    --white: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px; line-height: 1.4;
+  }
+  .header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border-light);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+  .header .meta { font-size: 12px; color: var(--text-2); }
+  .header .meta a { color: var(--primary); text-decoration: none; margin-left: 8px; }
+  .header .meta a:hover { text-decoration: underline; }
+
+  .container { padding: 20px 24px 40px; max-width: 1400px; margin: 0 auto; }
+
+  .section {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-header h2 {
+    margin: 0; font-size: 14px; font-weight: 600;
+  }
+  .section-header .count { color: var(--text-2); font-weight: 400; margin-left: 6px; }
+
+  /* KPI cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+  .kpi {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--primary);
+    border-radius: 4px;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .kpi .name { font-size: 12px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .kpi .value { font-size: 22px; font-weight: 600; color: var(--text); }
+  .kpi .target { font-size: 11px; color: var(--text-2); }
+  .kpi .desc { font-size: 11px; color: var(--text-2); line-height: 1.4; margin-top: 4px; }
+  .kpi .period {
+    display: inline-block; font-size: 10px; text-transform: uppercase;
+    background: var(--hover); color: var(--text-2);
+    border-radius: 10px; padding: 1px 8px; align-self: flex-start;
+  }
+  .kpi.notMeasured { border-left-color: var(--text-3); }
+  .kpi.notMeasured .value { color: var(--text-3); }
+
+  /* Strategic goals */
+  .goal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    padding: 16px;
+  }
+  .goal {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--success);
+    border-radius: 4px;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .goal .gid { font-size: 10px; color: var(--text-3); font-weight: 600; letter-spacing: 0.4px; }
+  .goal .title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .goal .desc { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+  .goal .links { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .chip {
+    display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 10px;
+    border: 1px solid var(--border-light);
+  }
+  .chip-kpi { background: #fff4ce; color: #8a6d00; border-color: #f5d878; }
+  .chip-feat { background: #deecf9; color: #004578; border-color: #bfdbff; }
+
+  /* Roadmap */
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 16px;
+  }
+  @media (max-width: 800px) { .roadmap-grid { grid-template-columns: 1fr; } }
+  .horizon h3 {
+    margin: 0 0 8px;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--primary);
+  }
+  .horizon .items {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 120px;
+  }
+  .horizon .item {
+    background: var(--white);
+    border: 1px solid var(--border-light);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .horizon .item strong { display: block; margin-bottom: 2px; }
+  .horizon .item .domain-chip {
+    display: inline-block;
+    background: #deecf9; color: #004578;
+    border: 1px solid #bfdbff;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    margin-right: 4px;
+  }
+  .horizon .empty { color: var(--text-3); font-size: 11px; font-style: italic; }
+  .ac-list { margin: 4px 0 0 16px; padding: 0; }
+  .ac-list li { margin-bottom: 2px; font-size: 11px; color: var(--text-2); }
+  details.ac-details summary { cursor: pointer; color: var(--primary); font-size: 11px; }
+  details.ac-details summary:hover { text-decoration: underline; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left; padding: 8px 12px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-2);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-light);
+  }
+  tbody td {
+    padding: 10px 12px; font-size: 12px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+  tbody tr:hover { background: var(--hover); }
+  .status-pill {
+    display: inline-block;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .status-draft      { background: #f3f2f1; color: #605e5c; }
+  .status-ready      { background: #deecf9; color: #004578; }
+  .status-inProgress { background: #fff4ce; color: #8a6d00; }
+  .status-shipped    { background: #dff6dd; color: #107c10; }
+  .status-validated  { background: #d1f5e0; color: #094c08; font-weight: 600; }
+
+  .empty-row td {
+    padding: 24px; text-align: center;
+    color: var(--text-2); font-style: italic;
+  }
+  code { background: var(--hover); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .footer { padding: 16px 24px; text-align: center; font-size: 11px; color: var(--text-2); }
+</style>
+</head>
+<body>
+<header class="header">
+  <h1>📈 Tenacity FMS — Business Goals</h1>
+  <div class="meta">
+    Last updated: <strong id="last-updated">—</strong>
+    · <a href="../architecture-monitor.html">Architecture Monitor</a>
+    · <a href="./project-tracker.html">Project Tracker</a>
+    · <a href="./SUPER_PRD.md">Super PRD</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Strategic Goals -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Strategic Goals <span class="count" id="goal-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Derived from Super PRD §1 Vision · linked to KPIs &amp; features</div>
+    </div>
+    <div class="goal-grid" id="goal-grid"></div>
+  </section>
+
+  <!-- KPIs -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Headline KPIs <span class="count" id="kpi-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Owned by ProductManager agent · never invent values</div>
+    </div>
+    <div class="kpi-grid" id="kpi-grid"></div>
+  </section>
+
+  <!-- Roadmap -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Product Roadmap</h2>
+      <div class="meta" style="color: var(--text-2);">Now / Next / Later horizons</div>
+    </div>
+    <div class="roadmap-grid">
+      <div class="horizon">
+        <h3>Now (0–3 mo)</h3>
+        <div class="items" id="roadmap-now"></div>
+      </div>
+      <div class="horizon">
+        <h3>Next (3–6 mo)</h3>
+        <div class="items" id="roadmap-next"></div>
+      </div>
+      <div class="horizon">
+        <h3>Later (6–12 mo)</h3>
+        <div class="items" id="roadmap-later"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- User stories -->
+  <section class="section">
+    <div class="section-header">
+      <h2>User Stories Backlog <span class="count" id="story-count"></span></h2>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Story</th>
+          <th>Acceptance</th>
+          <th>Feature</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="story-body"></tbody>
+    </table>
+  </section>
+
+  <!-- Validated outcomes -->
+  <section class="section">
+    <div class="section-header">
+      <h2>Validated Outcomes <span class="count" id="outcome-count"></span></h2>
+      <div class="meta" style="color: var(--text-2);">Post-release evidence that features solved real user problems</div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>KPI</th>
+          <th>Evidence</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="outcome-body"></tbody>
+    </table>
+  </section>
+
+</div>
+
+<div class="footer">
+  Tenacity FMS · Business Goals dashboard · Owned by ProductManager agent
+</div>
+
+<script id="fallback-data" type="application/json">
+{
+    "lastUpdated": "2026-05-16",
+    "owner": "ProductManager agent",
+    "notes": "Source of truth for product outcomes. Numeric KPIs are placeholders until validated against real telemetry / billing data. The ProductManager agent is forbidden from inventing values.",
+    "legend": {
+        "storyStatus": {
+            "draft": "Captured, not refined",
+            "ready": "Refined, acceptance criteria agreed",
+            "inProgress": "Being built",
+            "shipped": "Released to production",
+            "validated": "Outcome confirmed against KPI"
+        },
+        "roadmapHorizons": {
+            "now": "0–3 months (active)",
+            "next": "3–6 months (planned)",
+            "later": "6–12 months (vision)"
+        }
+    },
+    "goals": [
+        {
+            "id": "G-01",
+            "title": "Become a true multi-tenant platform",
+            "description": "Serve three audiences — Platform Operator, Client, and Customer (sub-tenant) — with strict tenant isolation and branded portals.",
+            "kpiIds": [
+                "adoption",
+                "retention"
+            ],
+            "featureIds": [
+                "multitenancy-3-audience-v1"
+            ]
+        },
+        {
+            "id": "G-02",
+            "title": "Plugin-driven multi-device platform",
+            "description": "Decouple business logic from vendor transport so new GPS and fueling devices can be onboarded as plugins under FMS.Devices.*.",
+            "kpiIds": [
+                "adoption",
+                "mau"
+            ],
+            "featureIds": [
+                "devices-multi-device-platform-v1"
+            ]
+        },
+        {
+            "id": "G-03",
+            "title": "Kenya fiscal compliance, region-ready architecture",
+            "description": "Achieve full KRA eTIMS (OSCU + VSCU) compliance with a provider model ready for additional fiscal regions.",
+            "kpiIds": [
+                "mrr",
+                "arr"
+            ],
+            "featureIds": [
+                "fiscal-kra-etims-integration-v1"
+            ]
+        },
+        {
+            "id": "G-04",
+            "title": "Unified M365 Fluent UX and permission model",
+            "description": "Standardize Microsoft 365 Admin Center design language and a single permission model across every frontend and every API.",
+            "kpiIds": [
+                "nps",
+                "csat"
+            ],
+            "featureIds": [
+                "security-permission-standardization-v1"
+            ]
+        }
+    ],
+    "kpis": [
+        {
+            "id": "mau",
+            "name": "Monthly Active Users",
+            "description": "Distinct users with at least one authenticated session in the calendar month.",
+            "current": 0,
+            "target": 0,
+            "unit": "users",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "adoption",
+            "name": "Feature Adoption Rate",
+            "description": "Percentage of active tenants using at least one of: Vehicle Tracking, Fueling, Tank Stock, Task & Trip Management.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "retention",
+            "name": "Customer Retention",
+            "description": "Percentage of paying tenants retained quarter-over-quarter.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "quarterly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "mrr",
+            "name": "Monthly Recurring Revenue",
+            "description": "Subscription revenue normalised to monthly basis (KES).",
+            "current": 0,
+            "target": 0,
+            "unit": "KES",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "arr",
+            "name": "Annual Recurring Revenue",
+            "description": "MRR × 12.",
+            "current": 0,
+            "target": 0,
+            "unit": "KES",
+            "period": "annual",
+            "status": "notMeasured"
+        },
+        {
+            "id": "nps",
+            "name": "Net Promoter Score",
+            "description": "Quarterly NPS survey of fleet managers and operators.",
+            "current": 0,
+            "target": 0,
+            "unit": "score",
+            "period": "quarterly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "csat",
+            "name": "Customer Satisfaction (CSAT)",
+            "description": "Average post-ticket support satisfaction score.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "monthly",
+            "status": "notMeasured"
+        }
+    ],
+    "roadmap": {
+        "now": [
+            {
+                "featureId": "devices-multi-device-platform-v1",
+                "title": "Multi-Device Platform",
+                "description": "Unify GPS tracking and PTS/ATG fueling providers behind one provider abstraction.",
+                "domain": "vehicle-tracking, fueling"
+            },
+            {
+                "featureId": "multitenancy-3-audience-v1",
+                "title": "Multi-Tenancy (3-Audience)",
+                "description": "Platform Operator / Client / Customer tenancy model across all domains.",
+                "domain": "administration"
+            },
+            {
+                "featureId": "security-permission-standardization-v1",
+                "title": "Permission Standardization",
+                "description": "Normalize permission keys across controllers, frontend, and rolepermissions table.",
+                "domain": "administration"
+            },
+            {
+                "featureId": "frontend-layout-shell-design-language-v1",
+                "title": "Frontend Layout & Design Language",
+                "description": "Unified Inspinia + M365 shell across fms.frontend and FMS.Admin with shared error-handling stack.",
+                "domain": "frontend-platform"
+            }
+        ],
+        "next": [
+            {
+                "featureId": "fiscal-kra-etims-integration-v1",
+                "title": "KRA eTIMS Integration",
+                "description": "Kenya fiscal compliance — invoice signing and submission to KRA eTIMS.",
+                "domain": "fiscal-compliance"
+            },
+            {
+                "featureId": "notification-event-expression-engine-v1",
+                "title": "Event Expression Engine",
+                "description": "Replace legacy AlarmHandler with expression-based event processing.",
+                "domain": "notifications-alarms"
+            },
+            {
+                "featureId": "usermanagement-v2",
+                "title": "User Management V2",
+                "description": "Refresh of user administration UI/UX and APIs.",
+                "domain": "administration"
+            }
+        ],
+        "later": []
+    },
+    "userStories": [
+        {
+            "id": "US-001",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "fleet operator",
+            "iWant": "to add a new GPS tracking provider to my tenant without code changes",
+            "soThat": "I can switch vendors or onboard new hardware as the business grows",
+            "acceptanceCriteria": [
+                "Given a platform operator with a valid vendor licence, when they add a provider config in the Admin UI, then the new provider becomes selectable per vehicle.",
+                "Given a vehicle bound to the new provider, when a position is received, then it is persisted and visible on the live map within 5 seconds."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-002",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "platform operator",
+            "iWant": "to onboard a new fueling device vendor as a plugin",
+            "soThat": "we can support new pumps or ATGs without redeploying core services",
+            "acceptanceCriteria": [
+                "Given a new vendor plugin DLL under FMS.Devices.Fueling/Providers/<Vendor>/, when the host restarts, then the provider auto-registers via [Provider] attribute scanning.",
+                "Given a tenant with the new provider configured, when a fueling transaction is received, then it persists with TenantId set and triggers the canonical MediatR notification."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-003",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "fleet manager",
+            "iWant": "vehicle positions to keep flowing if one tracking provider fails",
+            "soThat": "operations are not interrupted by upstream vendor outages",
+            "acceptanceCriteria": [
+                "Given two providers are configured for a tenant, when one provider's health check fails, then the ProviderHealthMonitor logs a warning and the other provider continues normally.",
+                "Given a provider returns errors for 3 consecutive minutes, when status is queried, then it is shown as 'degraded' in the admin dashboard."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-004",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "platform operator",
+            "iWant": "to provision a new client tenant in a single screen",
+            "soThat": "onboarding takes minutes instead of days",
+            "acceptanceCriteria": [
+                "Given valid tenant details, when I submit the provisioning form, then a Tenant row, default admin user, and audience-scoped branding are created in one transaction.",
+                "Given the tenant is created, when the new admin opens the welcome email link, then they log in to a working portal with no further setup."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-005",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "client admin",
+            "iWant": "to create sub-customer tenants under my account",
+            "soThat": "I can resell FMS to my own customers",
+            "acceptanceCriteria": [
+                "Given I am a Client tenant admin, when I create a sub-customer, then ParentTenantId is set to my tenant and the customer cannot see sibling customers' data.",
+                "Given I open cross-tenant reports, when I select 'All customers', then I see aggregated metrics across my customers only."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-006",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "customer user",
+            "iWant": "to log in to a branded portal showing only my fleet",
+            "soThat": "I trust the experience belongs to my provider, not a generic platform",
+            "acceptanceCriteria": [
+                "Given my client has uploaded a logo and chosen brand colours, when I log in, then the portal shows those brand assets in the header and login page.",
+                "Given I open any list (vehicles, sites, reports), when results render, then only my tenant's data appears (verified by tenant isolation tests)."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-007",
+            "featureId": "security-permission-standardization-v1",
+            "asA": "tenant admin",
+            "iWant": "every API and UI action gated by a single permission key",
+            "soThat": "role assignments behave predictably across backend, frontend, and DB",
+            "acceptanceCriteria": [
+                "Given a permission key exists in the permissions table, when it is used in a [Authorize] attribute or usePermissions hook, then both reference the exact same string (no casing or prefix drift).",
+                "Given a role is missing a permission, when the user calls the protected endpoint, then they receive 403 Forbidden and the UI hides the corresponding control."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-008",
+            "featureId": "security-permission-standardization-v1",
+            "asA": "compliance auditor",
+            "iWant": "a single source of truth for permission names that matches code, DB, and frontend",
+            "soThat": "compliance reviews complete in hours instead of days",
+            "acceptanceCriteria": [
+                "Given the PermissionAudit agent runs, when it scans controllers, frontend hooks, and the rolepermissions table, then it reports zero drift items.",
+                "Given a new controller action is added without a permission check, when CI runs, then the build fails with a clear error."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-009",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "platform operator",
+            "iWant": "the operator portal to look and feel like the tenant app",
+            "soThat": "I can move between them without re-learning the UI",
+            "acceptanceCriteria": [
+                "Given a user has access to both portals, when they switch between fms.frontend and FMS.Admin, then header height, sidebar width, font, and primary color are pixel-identical."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-010",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "client tenant admin",
+            "iWant": "a single consistent shell across every module",
+            "soThat": "vehicles, fueling, and tank stock pages all share the same chrome",
+            "acceptanceCriteria": [
+                "Given any feature page, when it loads, then it renders inside SideNavOuterToolbar with the standard header, side nav, and footer — no custom chrome."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-011",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "customer (sub-tenant) user",
+            "iWant": "the portal to show only the pages I'm allowed to see",
+            "soThat": "admin and operations routes don't clutter my navigation",
+            "acceptanceCriteria": [
+                "Given tenant_kind=customer in JWT, when I log in, then the side nav renders only the customer allowlist (Dashboard, Vehicles, Reports, Notifications, Profile)."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-012",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "any user when an error occurs",
+            "iWant": "a friendly recovery screen instead of a blank page",
+            "soThat": "I can navigate away and report the issue",
+            "acceptanceCriteria": [
+                "Given a render or runtime error, when the page crashes, then GlobalErrorBoundary shows the standard error card with Go Home + Report Issue actions and the error is auto-reported (throttled) to the backend."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-013",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "any user on a slow or failing API",
+            "iWant": "a clear inline message and a retry option",
+            "soThat": "I am not stuck on a spinner",
+            "acceptanceCriteria": [
+                "Given an Axios error surfaced via the shared error-toast/empty-state helpers, when displayed, then the user sees a message with status code, friendly text, and a retry/reload action."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-014",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "frontend engineer",
+            "iWant": "a documented layout contract and design tokens",
+            "soThat": "new pages match the system without re-inventing chrome",
+            "acceptanceCriteria": [
+                "Given a new page component, when I follow the m365-page-header plus content-card pattern documented in the PRD, then no design review changes are required."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-015",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "designer",
+            "iWant": "one document that says which Inspinia tokens we keep vs. which M365 tokens override them",
+            "soThat": "I can spec new screens without ambiguity",
+            "acceptanceCriteria": [
+                "Given the Inspinia Inheritance Matrix in PRD §6, when a designer specs a new screen, then every token (color, spacing, font, control height) maps to a row in the matrix."
+            ],
+            "status": "draft"
+        }
+    ],
+    "outcomes": []
+}
+</script>
+
+<script>
+(async function () {
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
+
+  let DATA;
+  try {
+    const r = await fetch("./business-goals.json", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    DATA = await r.json();
+  } catch (e) {
+    DATA = JSON.parse(document.getElementById("fallback-data").textContent);
+    console.warn("Using fallback business-goals data:", e);
+  }
+
+  document.getElementById("last-updated").textContent = DATA.lastUpdated || "—";
+
+  // Strategic Goals
+  const goals = DATA.goals || [];
+  document.getElementById("goal-count").textContent = `(${goals.length})`;
+  document.getElementById("goal-grid").innerHTML = goals.length
+    ? goals.map(g => {
+        const kpiChips = (g.kpiIds || []).map(k => `<span class="chip chip-kpi">${esc(k)}</span>`).join("");
+        const featChips = (g.featureIds || []).map(f => `<span class="chip chip-feat">${esc(f)}</span>`).join("");
+        return `
+          <div class="goal">
+            <div class="gid">${esc(g.id || "")}</div>
+            <div class="title">${esc(g.title || "")}</div>
+            <div class="desc">${esc(g.description || "")}</div>
+            <div class="links">${kpiChips}${featChips}</div>
+          </div>
+        `;
+      }).join("")
+    : `<div class="empty" style="padding:12px;color:var(--text-3);">No strategic goals defined.</div>`;
+
+  // KPIs
+  const kpis = DATA.kpis || [];
+  document.getElementById("kpi-count").textContent = `(${kpis.length})`;
+  document.getElementById("kpi-grid").innerHTML = kpis.length
+    ? kpis.map(k => {
+        const cls = k.status === "notMeasured" ? "notMeasured" : "";
+        const fmtVal = k.unit === "KES"
+          ? new Intl.NumberFormat("en-KE").format(k.current || 0)
+          : (k.current != null ? k.current : "—");
+        const fmtTgt = k.unit === "KES"
+          ? new Intl.NumberFormat("en-KE").format(k.target || 0)
+          : (k.target != null ? k.target : "—");
+        return `
+          <div class="kpi ${cls}">
+            <div class="name">${esc(k.name)}</div>
+            <div class="value">${esc(fmtVal)} <span style="font-size:12px;color:var(--text-2);">${esc(k.unit || "")}</span></div>
+            <div class="target">Target: ${esc(fmtTgt)} ${esc(k.unit || "")}</div>
+            <span class="period">${esc(k.period || "")}</span>
+            ${k.description ? `<div class="desc">${esc(k.description)}</div>` : ""}
+          </div>
+        `;
+      }).join("")
+    : `<div class="empty" style="padding:12px;color:var(--text-3);">No KPIs defined.</div>`;
+
+  // Roadmap
+  function renderHorizon(id, items) {
+    const el = document.getElementById(id);
+    if (!items || !items.length) {
+      el.innerHTML = `<div class="empty">No items.</div>`;
+      return;
+    }
+    el.innerHTML = items.map(i => {
+      const domains = i.domain
+        ? i.domain.split(",").map(d => `<span class="domain-chip">${esc(d.trim())}</span>`).join("")
+        : "";
+      return `
+      <div class="item">
+        <strong>${esc(i.title || i.name || i.id || "")}</strong>
+        ${domains}
+        <div style="margin-top:4px;">${i.description ? esc(i.description) : ""}</div>
+        ${i.featureId ? `<div style="margin-top:4px;"><code>${esc(i.featureId)}</code></div>` : ""}
+      </div>
+    `;
+    }).join("");
+  }
+  const r = DATA.roadmap || {};
+  renderHorizon("roadmap-now", r.now);
+  renderHorizon("roadmap-next", r.next);
+  renderHorizon("roadmap-later", r.later);
+
+  // User stories
+  const stories = DATA.userStories || [];
+  document.getElementById("story-count").textContent = `(${stories.length})`;
+  const sBody = document.getElementById("story-body");
+  sBody.innerHTML = stories.length
+    ? stories.map(s => {
+        const acs = s.acceptanceCriteria || [];
+        const acHtml = acs.length
+          ? `<details class="ac-details"><summary>${acs.length} criteria</summary><ul class="ac-list">${acs.map(c => `<li>${esc(c)}</li>`).join("")}</ul></details>`
+          : `<span style="color:var(--text-3);font-size:11px;">none</span>`;
+        return `
+        <tr>
+          <td><code>${esc(s.id || "")}</code></td>
+          <td>
+            <strong>As a</strong> ${esc(s.asA || "—")},
+            <strong>I want</strong> ${esc(s.iWant || "—")}
+            <strong>so that</strong> ${esc(s.soThat || "—")}.
+          </td>
+          <td>${acHtml}</td>
+          <td>${s.featureId ? `<code>${esc(s.featureId)}</code>` : "—"}</td>
+          <td><span class="status-pill status-${esc(s.status || "draft")}">${esc(s.status || "draft")}</span></td>
+        </tr>
+      `;
+      }).join("")
+    : `<tr class="empty-row"><td colspan="5">No user stories captured yet.</td></tr>`;
+
+  // Outcomes
+  const outcomes = DATA.outcomes || [];
+  document.getElementById("outcome-count").textContent = `(${outcomes.length})`;
+  const oBody = document.getElementById("outcome-body");
+  oBody.innerHTML = outcomes.length
+    ? outcomes.map(o => `
+        <tr>
+          <td>${o.featureId ? `<code>${esc(o.featureId)}</code>` : "—"}</td>
+          <td>${esc(o.kpiId || "—")}</td>
+          <td>${esc(o.evidence || "—")}</td>
+          <td>${esc(o.date || "—")}</td>
+        </tr>
+      `).join("")
+    : `<tr class="empty-row"><td colspan="4">No validated outcomes yet.</td></tr>`;
+})();
+</script>
+</body>
+</html>

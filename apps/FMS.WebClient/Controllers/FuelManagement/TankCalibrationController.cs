@@ -39,6 +39,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
     [Route("api/v1/tanks/{tankId:int}/calibration")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [RequirePermission(Permissions.Tank.Read)]
+    [RejectCustomerTenant]
     public class TankCalibrationController : ControllerBase
     {
         private readonly GpsdataContext _context;

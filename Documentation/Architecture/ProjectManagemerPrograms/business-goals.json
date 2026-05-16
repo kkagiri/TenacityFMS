@@ -1,0 +1,366 @@
+{
+    "lastUpdated": "2026-05-16",
+    "owner": "ProductManager agent",
+    "notes": "Source of truth for product outcomes. Numeric KPIs are placeholders until validated against real telemetry / billing data. The ProductManager agent is forbidden from inventing values.",
+    "legend": {
+        "storyStatus": {
+            "draft": "Captured, not refined",
+            "ready": "Refined, acceptance criteria agreed",
+            "inProgress": "Being built",
+            "shipped": "Released to production",
+            "validated": "Outcome confirmed against KPI"
+        },
+        "roadmapHorizons": {
+            "now": "0–3 months (active)",
+            "next": "3–6 months (planned)",
+            "later": "6–12 months (vision)"
+        }
+    },
+    "goals": [
+        {
+            "id": "G-01",
+            "title": "Become a true multi-tenant platform",
+            "description": "Serve three audiences — Platform Operator, Client, and Customer (sub-tenant) — with strict tenant isolation and branded portals.",
+            "kpiIds": [
+                "adoption",
+                "retention"
+            ],
+            "featureIds": [
+                "multitenancy-3-audience-v1"
+            ]
+        },
+        {
+            "id": "G-02",
+            "title": "Plugin-driven multi-device platform",
+            "description": "Decouple business logic from vendor transport so new GPS and fueling devices can be onboarded as plugins under FMS.Devices.*.",
+            "kpiIds": [
+                "adoption",
+                "mau"
+            ],
+            "featureIds": [
+                "devices-multi-device-platform-v1"
+            ]
+        },
+        {
+            "id": "G-03",
+            "title": "Kenya fiscal compliance, region-ready architecture",
+            "description": "Achieve full KRA eTIMS (OSCU + VSCU) compliance with a provider model ready for additional fiscal regions.",
+            "kpiIds": [
+                "mrr",
+                "arr"
+            ],
+            "featureIds": [
+                "fiscal-kra-etims-integration-v1"
+            ]
+        },
+        {
+            "id": "G-04",
+            "title": "Unified M365 Fluent UX and permission model",
+            "description": "Standardize Microsoft 365 Admin Center design language and a single permission model across every frontend and every API.",
+            "kpiIds": [
+                "nps",
+                "csat"
+            ],
+            "featureIds": [
+                "security-permission-standardization-v1"
+            ]
+        }
+    ],
+    "kpis": [
+        {
+            "id": "mau",
+            "name": "Monthly Active Users",
+            "description": "Distinct users with at least one authenticated session in the calendar month.",
+            "current": 0,
+            "target": 0,
+            "unit": "users",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "adoption",
+            "name": "Feature Adoption Rate",
+            "description": "Percentage of active tenants using at least one of: Vehicle Tracking, Fueling, Tank Stock, Task & Trip Management.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "retention",
+            "name": "Customer Retention",
+            "description": "Percentage of paying tenants retained quarter-over-quarter.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "quarterly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "mrr",
+            "name": "Monthly Recurring Revenue",
+            "description": "Subscription revenue normalised to monthly basis (KES).",
+            "current": 0,
+            "target": 0,
+            "unit": "KES",
+            "period": "monthly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "arr",
+            "name": "Annual Recurring Revenue",
+            "description": "MRR × 12.",
+            "current": 0,
+            "target": 0,
+            "unit": "KES",
+            "period": "annual",
+            "status": "notMeasured"
+        },
+        {
+            "id": "nps",
+            "name": "Net Promoter Score",
+            "description": "Quarterly NPS survey of fleet managers and operators.",
+            "current": 0,
+            "target": 0,
+            "unit": "score",
+            "period": "quarterly",
+            "status": "notMeasured"
+        },
+        {
+            "id": "csat",
+            "name": "Customer Satisfaction (CSAT)",
+            "description": "Average post-ticket support satisfaction score.",
+            "current": 0,
+            "target": 0,
+            "unit": "%",
+            "period": "monthly",
+            "status": "notMeasured"
+        }
+    ],
+    "roadmap": {
+        "now": [
+            {
+                "featureId": "devices-multi-device-platform-v1",
+                "title": "Multi-Device Platform",
+                "description": "Unify GPS tracking and PTS/ATG fueling providers behind one provider abstraction.",
+                "domain": "vehicle-tracking, fueling"
+            },
+            {
+                "featureId": "multitenancy-3-audience-v1",
+                "title": "Multi-Tenancy (3-Audience)",
+                "description": "Platform Operator / Client / Customer tenancy model across all domains.",
+                "domain": "administration"
+            },
+            {
+                "featureId": "security-permission-standardization-v1",
+                "title": "Permission Standardization",
+                "description": "Normalize permission keys across controllers, frontend, and rolepermissions table.",
+                "domain": "administration"
+            },
+            {
+                "featureId": "frontend-layout-shell-design-language-v1",
+                "title": "Frontend Layout & Design Language",
+                "description": "Unified Inspinia + M365 shell across fms.frontend and FMS.Admin with shared error-handling stack.",
+                "domain": "frontend-platform"
+            }
+        ],
+        "next": [
+            {
+                "featureId": "fiscal-kra-etims-integration-v1",
+                "title": "KRA eTIMS Integration",
+                "description": "Kenya fiscal compliance — invoice signing and submission to KRA eTIMS.",
+                "domain": "fiscal-compliance"
+            },
+            {
+                "featureId": "notification-event-expression-engine-v1",
+                "title": "Event Expression Engine",
+                "description": "Replace legacy AlarmHandler with expression-based event processing.",
+                "domain": "notifications-alarms"
+            },
+            {
+                "featureId": "usermanagement-v2",
+                "title": "User Management V2",
+                "description": "Refresh of user administration UI/UX and APIs.",
+                "domain": "administration"
+            }
+        ],
+        "later": []
+    },
+    "userStories": [
+        {
+            "id": "US-001",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "fleet operator",
+            "iWant": "to add a new GPS tracking provider to my tenant without code changes",
+            "soThat": "I can switch vendors or onboard new hardware as the business grows",
+            "acceptanceCriteria": [
+                "Given a platform operator with a valid vendor licence, when they add a provider config in the Admin UI, then the new provider becomes selectable per vehicle.",
+                "Given a vehicle bound to the new provider, when a position is received, then it is persisted and visible on the live map within 5 seconds."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-002",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "platform operator",
+            "iWant": "to onboard a new fueling device vendor as a plugin",
+            "soThat": "we can support new pumps or ATGs without redeploying core services",
+            "acceptanceCriteria": [
+                "Given a new vendor plugin DLL under FMS.Devices.Fueling/Providers/<Vendor>/, when the host restarts, then the provider auto-registers via [Provider] attribute scanning.",
+                "Given a tenant with the new provider configured, when a fueling transaction is received, then it persists with TenantId set and triggers the canonical MediatR notification."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-003",
+            "featureId": "devices-multi-device-platform-v1",
+            "asA": "fleet manager",
+            "iWant": "vehicle positions to keep flowing if one tracking provider fails",
+            "soThat": "operations are not interrupted by upstream vendor outages",
+            "acceptanceCriteria": [
+                "Given two providers are configured for a tenant, when one provider's health check fails, then the ProviderHealthMonitor logs a warning and the other provider continues normally.",
+                "Given a provider returns errors for 3 consecutive minutes, when status is queried, then it is shown as 'degraded' in the admin dashboard."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-004",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "platform operator",
+            "iWant": "to provision a new client tenant in a single screen",
+            "soThat": "onboarding takes minutes instead of days",
+            "acceptanceCriteria": [
+                "Given valid tenant details, when I submit the provisioning form, then a Tenant row, default admin user, and audience-scoped branding are created in one transaction.",
+                "Given the tenant is created, when the new admin opens the welcome email link, then they log in to a working portal with no further setup."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-005",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "client admin",
+            "iWant": "to create sub-customer tenants under my account",
+            "soThat": "I can resell FMS to my own customers",
+            "acceptanceCriteria": [
+                "Given I am a Client tenant admin, when I create a sub-customer, then ParentTenantId is set to my tenant and the customer cannot see sibling customers' data.",
+                "Given I open cross-tenant reports, when I select 'All customers', then I see aggregated metrics across my customers only."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-006",
+            "featureId": "multitenancy-3-audience-v1",
+            "asA": "customer user",
+            "iWant": "to log in to a branded portal showing only my fleet",
+            "soThat": "I trust the experience belongs to my provider, not a generic platform",
+            "acceptanceCriteria": [
+                "Given my client has uploaded a logo and chosen brand colours, when I log in, then the portal shows those brand assets in the header and login page.",
+                "Given I open any list (vehicles, sites, reports), when results render, then only my tenant's data appears (verified by tenant isolation tests)."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-007",
+            "featureId": "security-permission-standardization-v1",
+            "asA": "tenant admin",
+            "iWant": "every API and UI action gated by a single permission key",
+            "soThat": "role assignments behave predictably across backend, frontend, and DB",
+            "acceptanceCriteria": [
+                "Given a permission key exists in the permissions table, when it is used in a [Authorize] attribute or usePermissions hook, then both reference the exact same string (no casing or prefix drift).",
+                "Given a role is missing a permission, when the user calls the protected endpoint, then they receive 403 Forbidden and the UI hides the corresponding control."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-008",
+            "featureId": "security-permission-standardization-v1",
+            "asA": "compliance auditor",
+            "iWant": "a single source of truth for permission names that matches code, DB, and frontend",
+            "soThat": "compliance reviews complete in hours instead of days",
+            "acceptanceCriteria": [
+                "Given the PermissionAudit agent runs, when it scans controllers, frontend hooks, and the rolepermissions table, then it reports zero drift items.",
+                "Given a new controller action is added without a permission check, when CI runs, then the build fails with a clear error."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-009",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "platform operator",
+            "iWant": "the operator portal to look and feel like the tenant app",
+            "soThat": "I can move between them without re-learning the UI",
+            "acceptanceCriteria": [
+                "Given a user has access to both portals, when they switch between fms.frontend and FMS.Admin, then header height, sidebar width, font, and primary color are pixel-identical."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-010",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "client tenant admin",
+            "iWant": "a single consistent shell across every module",
+            "soThat": "vehicles, fueling, and tank stock pages all share the same chrome",
+            "acceptanceCriteria": [
+                "Given any feature page, when it loads, then it renders inside SideNavOuterToolbar with the standard header, side nav, and footer — no custom chrome."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-011",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "customer (sub-tenant) user",
+            "iWant": "the portal to show only the pages I'm allowed to see",
+            "soThat": "admin and operations routes don't clutter my navigation",
+            "acceptanceCriteria": [
+                "Given tenant_kind=customer in JWT, when I log in, then the side nav renders only the customer allowlist (Dashboard, Vehicles, Reports, Notifications, Profile)."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-012",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "any user when an error occurs",
+            "iWant": "a friendly recovery screen instead of a blank page",
+            "soThat": "I can navigate away and report the issue",
+            "acceptanceCriteria": [
+                "Given a render or runtime error, when the page crashes, then GlobalErrorBoundary shows the standard error card with Go Home + Report Issue actions and the error is auto-reported (throttled) to the backend."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-013",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "any user on a slow or failing API",
+            "iWant": "a clear inline message and a retry option",
+            "soThat": "I am not stuck on a spinner",
+            "acceptanceCriteria": [
+                "Given an Axios error surfaced via the shared error-toast/empty-state helpers, when displayed, then the user sees a message with status code, friendly text, and a retry/reload action."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-014",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "frontend engineer",
+            "iWant": "a documented layout contract and design tokens",
+            "soThat": "new pages match the system without re-inventing chrome",
+            "acceptanceCriteria": [
+                "Given a new page component, when I follow the m365-page-header plus content-card pattern documented in the PRD, then no design review changes are required."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-015",
+            "featureId": "frontend-layout-shell-design-language-v1",
+            "asA": "designer",
+            "iWant": "one document that says which Inspinia tokens we keep vs. which M365 tokens override them",
+            "soThat": "I can spec new screens without ambiguity",
+            "acceptanceCriteria": [
+                "Given the Inspinia Inheritance Matrix in PRD §6, when a designer specs a new screen, then every token (color, spacing, font, control height) maps to a row in the matrix."
+            ],
+            "status": "draft"
+        }
+    ],
+    "outcomes": []
+}
