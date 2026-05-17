@@ -45,7 +45,6 @@ export default function SideNavigationMenu(props) {
     compactMode,
     onMenuReady,
     layoutType = "outer", // "outer" or "inner"
-    menuStatus
   } = props;
 
   const location = useLocation();
@@ -196,6 +195,7 @@ export default function SideNavigationMenu(props) {
         <div className="side-navigation-menu__brand-mark">F</div>
         <span className="side-navigation-menu__brand-title">FMS</span>
       </div>
+      <div className="side-navigation-menu__nav-label">Menu</div>
       <div className={'menu-container'}>
         <TreeView
           ref={treeViewRef}

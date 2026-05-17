@@ -161,7 +161,7 @@
 }
 
 .admin-shell__topbar-left,
-.admin-shell__user {
+.admin-shell__topbar-actions {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -197,8 +197,156 @@
   font-weight: 600;
 }
 
-.admin-shell__user {
+.admin-shell__topbar-brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shell__topbar-mark {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--m365-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-shell__search {
+  position: relative;
+  width: min(36vw, 460px);
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+}
+
+.admin-shell__search-icon {
+  position: absolute;
+  left: 12px;
+  z-index: 1;
+  color: var(--m365-text-tertiary);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.admin-shell__search-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 36px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 999px;
+  outline: none;
+  background: var(--m365-bg-card);
+  color: var(--m365-text);
+  font-family: var(--m365-font);
+  font-size: 13px;
+  transition:
+    border-color var(--m365-transition-fast),
+    box-shadow var(--m365-transition-fast),
+    background var(--m365-transition-fast);
+
+  &::placeholder {
+    color: var(--m365-text-tertiary);
+  }
+
+  &:hover {
+    border-color: var(--m365-border);
+    background: #ffffff;
+  }
+
+  &:focus {
+    border-color: var(--m365-primary);
+    box-shadow: var(--m365-control-focus-ring);
+  }
+}
+
+.admin-shell__topbar-actions {
   color: var(--m365-text-secondary);
+}
+
+.admin-shell__icon-button {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--m365-text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--m365-transition-fast),
+    color var(--m365-transition-fast);
+
+  &:hover {
+    background: var(--inspinia-content-bg);
+    color: var(--m365-primary);
+  }
+
+  &:focus {
+    outline: none;
+    background: var(--m365-tint-blue-bg);
+    color: var(--m365-primary-pressed);
+  }
+}
+
+.admin-shell__notification-dot {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: var(--m365-warning);
+}
+
+.admin-shell__profile {
+  min-width: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-shell__avatar {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--m365-primary);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-shell__profile-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 16px;
+}
+
+.admin-shell__profile-name {
+  max-width: 170px;
+  overflow: hidden;
+  color: var(--m365-text);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shell__profile-role {
+  color: var(--m365-text-secondary);
+  font-size: 11px;
 }
 
 .admin-shell__content {
@@ -291,7 +439,10 @@ html[data-footer-position="fixed"] .admin-shell__content {
     padding: 0 14px;
   }
 
-  .admin-shell__user span {
+  .admin-shell__search,
+  .admin-shell__profile-meta,
+  .admin-shell__topbar-title,
+  .admin-shell__topbar-actions .m365-btn span {
     display: none;
   }
 

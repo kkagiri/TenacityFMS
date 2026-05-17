@@ -81,6 +81,8 @@ export default function OperatorLayout() {
     navigate("/login", { replace: true });
   };
 
+  const userLabel = user?.email || user?.userName || "Operator";
+  const userInitial = userLabel.charAt(0).toUpperCase();
   const showMobileOpenClass = !isLarge && isSidebarOpen;
 
   return (
@@ -136,17 +138,46 @@ export default function OperatorLayout() {
             >
               <i className="fa-light fa-bars" />
             </button>
-            <div className="admin-shell__topbar-title">Platform Operations</div>
+            <div className="admin-shell__topbar-brand">
+              <div className="admin-shell__topbar-mark">F</div>
+              <div className="admin-shell__topbar-title">Platform Operations</div>
+            </div>
           </div>
-          <div className="admin-shell__user">
-            <span>{user?.email || user?.userName || "Operator"}</span>
+          <form className="admin-shell__search" role="search">
+            <i
+              className="fa-light fa-magnifying-glass admin-shell__search-icon"
+              aria-hidden="true"
+            />
+            <input
+              className="admin-shell__search-input"
+              type="search"
+              placeholder="Quick search..."
+              aria-label="Quick search"
+            />
+          </form>
+          <div className="admin-shell__topbar-actions">
+            <button
+              type="button"
+              className="admin-shell__icon-button"
+              aria-label="Notifications"
+            >
+              <i className="fa-light fa-bell" />
+              <span className="admin-shell__notification-dot" />
+            </button>
+            <div className="admin-shell__profile" aria-label="User profile">
+              <div className="admin-shell__avatar">{userInitial}</div>
+              <div className="admin-shell__profile-meta">
+                <span className="admin-shell__profile-name">{userLabel}</span>
+                <span className="admin-shell__profile-role">Profile</span>
+              </div>
+            </div>
             <button
               type="button"
               className="m365-btn m365-btn--ghost"
               onClick={handleLogout}
             >
               <i className="fa-light fa-arrow-right-from-bracket" />
-              Sign out
+              <span>Sign out</span>
             </button>
           </div>
         </header>

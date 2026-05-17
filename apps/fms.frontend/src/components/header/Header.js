@@ -81,6 +81,21 @@ export default function Header({ menuToggleEnabled, toggleMenu, title }) {
           </div>
         </Item>
 
+        <Item
+          location={"center"}
+          locateInMenu={"never"}
+          cssClass={"topbar-search-item"}
+        >
+          <form className="topbar-search" role="search">
+            <i className="fa-light fa-magnifying-glass topbar-search__icon" aria-hidden="true" />
+            <input
+              className="topbar-search__input"
+              type="search"
+              placeholder="Quick search..."
+              aria-label="Quick search"
+            />
+          </form>
+        </Item>
 
         {/* Theme selector — Light / Dark / System */}
         <Item
@@ -107,8 +122,16 @@ export default function Header({ menuToggleEnabled, toggleMenu, title }) {
           location={"after"}
           cssClass={"user-panel-item"}
         >
-          <div className="user-button authorization user-avatar-circle">
-            {getUserInitial()}
+          <div className="topbar-profile" aria-label="User profile">
+            <div className="user-button authorization user-avatar-circle">
+              {getUserInitial()}
+            </div>
+            <div className="topbar-profile__meta">
+              <span className="topbar-profile__name">
+                {user?.userName || user?.email || "User"}
+              </span>
+              <span className="topbar-profile__role">Profile</span>
+            </div>
           </div>
           <UserPanel menuMode={"context"} />
         </Item>
