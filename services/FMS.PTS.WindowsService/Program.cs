@@ -14,9 +14,9 @@ using FMS.Application.Handlers.Common;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Abstractions.DistCacheTracker;
 using FMS.BackgroundServices.FMS;
-// using FMS.Application.PTSServices.Configuration; // Cursor - Commented out missing namespace
+// using FMS.Application.Features.Devices.Fueling.Services.Configuration; // Cursor - Commented out missing namespace
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
-using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Services;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.Configuration;
@@ -33,7 +33,7 @@ using FMS.Devices.Fueling.Providers.TechnotradePts.Commands;
 using FMS.Devices.Fueling.Providers.TechnotradePts.Transport;
 using FMS.Reporting.DependencyInjection;
 using FMS.PTS.WindowsService.Infrastructure.Logging;
-using FMS.PTS.WindowsService.Services.Pump;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -55,13 +55,13 @@ using FMS.Application.Features.Notification.Services.Channels;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.Reporting.Services;
 using FMS.Infrastructure.VehicleTracking.Extensions;
-using FMS.Application.Features.PTSService.Services;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Abstractions.Communication.SignalR;
 using FMS.Application.Abstractions.Identity;
 using FMS.Infrastructure.Identity;
-using FMS.Application.PTSServices.PTSConfigService;
+using FMS.Application.Features.Devices.Fueling.Services;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.WidgetFactories;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
@@ -465,11 +465,11 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IAuthorizationStateTracker, FMS.Infrastructure.DistCacheTracker.AuthorizationStateTracker>();
             services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService>();
             services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); // Required by UploadStatusCommandHandler
-            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusRedisService, FMS.Application.Features.PTS.Services.UploadStatusRedisService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusBroadcastService, FMS.Application.Features.PTS.Services.UploadStatusBroadcastService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusForcedCompletionService, FMS.Application.Features.PTS.Services.UploadStatusForcedCompletionService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusEndOfTransactionService, FMS.Application.Features.PTS.Services.UploadStatusEndOfTransactionService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusPumpStatusProcessingService, FMS.Application.Features.PTS.Services.UploadStatusPumpStatusProcessingService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IUploadStatusRedisService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.UploadStatusRedisService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IUploadStatusBroadcastService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.UploadStatusBroadcastService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IUploadStatusForcedCompletionService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.UploadStatusForcedCompletionService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IUploadStatusEndOfTransactionService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.UploadStatusEndOfTransactionService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IUploadStatusPumpStatusProcessingService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.UploadStatusPumpStatusProcessingService>();
             services.AddScoped<IAuthorizationHandler, PermissionHandler>();
             services.AddScoped<IPumpService, PumpService>();
             services.AddScoped<IPTSConfigService, PTSConfigService>();
@@ -582,11 +582,11 @@ namespace FMS.PTS.WindowsService
 
             // Register PTS Pump Authorization Services
             services.AddScoped<FMS.Application.Validation.PTSValidators.PumpAuthorization.IPumpAuthorizationValidator, FMS.Application.Validation.PTSValidators.PumpAuthorization.PumpAuthorizationValidator>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationPreCheckService, FMS.Application.Features.PTS.Services.PumpAuthorizationPreCheckService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.ITransactionContextService, FMS.Application.Features.PTS.Services.TransactionContextService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IFuelPriceService, FMS.Application.Features.PTS.Services.FuelPriceService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IPumpAuthorizationLoggingService, FMS.Application.Features.PTS.Services.PumpAuthorizationLoggingService>();
-            services.AddScoped<FMS.Application.Features.PTS.Services.IDeviceConnectionTypeService, FMS.Application.Features.PTS.Services.DeviceConnectionTypeService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IPumpAuthorizationPreCheckService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.PumpAuthorizationPreCheckService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.ITransactionContextService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.TransactionContextService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IFuelPriceService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.FuelPriceService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IPumpAuthorizationLoggingService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.PumpAuthorizationLoggingService>();
+            services.AddScoped<FMS.Application.Features.Devices.Fueling.UploadStatus.Services.IDeviceConnectionTypeService, FMS.Application.Features.Devices.Fueling.UploadStatus.Services.DeviceConnectionTypeService>();
 
             // Removed legacy Dashboard Services (migrated to IDataSourceManager)
             // services.AddScoped<FMS.Application.Services.Dashboard.IDashboardMetricsService, FMS.Application.Services.Dashboard.DashboardMetricsService> ();

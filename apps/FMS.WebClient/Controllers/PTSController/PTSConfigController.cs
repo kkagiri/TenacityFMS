@@ -12,8 +12,8 @@
 using System;
 using System.Threading.Tasks;
 using FMS.Application.Common;
-using FMS.Application.Features.PTS.DTOs;
-using FMS.Application.PTSServices.PTSConfigService;
+using FMS.Application.Features.Devices.Fueling.UploadStatus.DTOs;
+using FMS.Application.Features.Devices.Fueling.Services;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon.Responses;
 using MediatR;

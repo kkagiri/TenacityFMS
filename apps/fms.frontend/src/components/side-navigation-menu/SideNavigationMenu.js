@@ -1,3 +1,13 @@
+/**
+ * File:          SideNavigationMenu.js
+ * Purpose:       Backend-driven Inspinia side navigation for feature routes.
+ * Dependencies:  React Router, DevExtreme TreeView, Redux navigation state
+ * Last Modified: 2026-05-17
+ *
+ * Key Functions:
+ * - SideNavigationMenu(): Renders tenant/customer navigation items in the shell sidebar.
+ */
+
 import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import TreeView from 'devextreme-react/tree-view';
@@ -7,6 +17,98 @@ import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import { CUSTOMER_NAVIGATION_ITEMS } from '../../constants/customerNavigation';
 import './SideNavigationMenu.scss';
 import * as events from 'devextreme/events';
+
+const SHELL_PLACEHOLDER_ITEMS = [
+  {
+    id: 'placeholder-vehicles',
+    text: 'Vehicles',
+    path: '/vehicles',
+    icon: 'fa-light fa-cars',
+    parentId: null,
+    items: [],
+  },
+  {
+    id: 'placeholder-tankstock',
+    text: 'Tankstock',
+    path: '/tankstock',
+    icon: 'fa-light fa-gas-pump',
+    parentId: null,
+    items: [],
+  },
+];
+
+const MENU_ICON_BY_PATH = Object.freeze({
+  '/home': 'fa-light fa-gauge-high',
+  '/dashboard': 'fa-light fa-gauge-high',
+  '/vehicles': 'fa-light fa-cars',
+  '/tankstock': 'fa-light fa-gas-pump',
+  '/reports': 'fa-light fa-chart-line',
+  '/users': 'fa-light fa-users',
+  '/sites': 'fa-light fa-location-dot',
+  '/tanks': 'fa-light fa-oil-can-drip',
+  '/notifications': 'fa-light fa-bell',
+  '/settings': 'fa-light fa-gear',
+  '/finance': 'fa-light fa-wallet',
+  '/fuel': 'fa-light fa-fuel-pump',
+});
+
+const normalizeIconClass = (iconValue) => {
+  if (typeof iconValue !== 'string') {
+    return null;
+  }
+
+  const normalizedValue = iconValue.trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (normalizedValue.includes('fa-') && normalizedValue.includes(' ')) {
+    return normalizedValue;
+  }
+
+  if (normalizedValue.startsWith('fa-')) {
+    return `fa-light ${normalizedValue}`;
+  }
+
+  return normalizedValue;
+};
+
+const getFallbackIcon = (item) => {
+  const normalizedPath = String(item.path || '').toLowerCase();
+  const matchedPath = Object.keys(MENU_ICON_BY_PATH).find(
+    (path) => normalizedPath === path || normalizedPath.startsWith(`${path}/`)
+  );
+
+  if (matchedPath) {
+    return MENU_ICON_BY_PATH[matchedPath];
+  }
+
+  const normalizedText = String(item.text || '').toLowerCase();
+
+  if (normalizedText.includes('vehicle')) return 'fa-light fa-cars';
+  if (normalizedText.includes('tank')) return 'fa-light fa-gas-pump';
+  if (normalizedText.includes('report')) return 'fa-light fa-chart-line';
+  if (normalizedText.includes('user')) return 'fa-light fa-users';
+  if (normalizedText.includes('site')) return 'fa-light fa-location-dot';
+  if (normalizedText.includes('setting')) return 'fa-light fa-gear';
+  if (normalizedText.includes('notification')) return 'fa-light fa-bell';
+  if (normalizedText.includes('fuel')) return 'fa-light fa-fuel-pump';
+
+  return 'fa-light fa-grid-2';
+};
+
+const resolveNavigationIcon = (item) => {
+  const explicitIcon = normalizeIconClass(item.icon);
+  if (explicitIcon) {
+    return explicitIcon;
+  }
+
+  if (item.parentId) {
+    return null;
+  }
+
+  return getFallbackIcon(item);
+};
 
 const normalizeNavigationTree = (navigationItems) => {
   if (!Array.isArray(navigationItems) || navigationItems.length === 0) {
@@ -35,6 +137,17 @@ const normalizeNavigationTree = (navigationItems) => {
   });
 
   return roots;
+};
+
+const ensurePlaceholderItems = (navigationItems) => {
+  const hasPath = (path) =>
+    navigationItems.some((item) => item.path?.toLowerCase() === path.toLowerCase());
+
+  const placeholdersToAdd = SHELL_PLACEHOLDER_ITEMS.filter(
+    (item) => !hasPath(item.path)
+  );
+
+  return [...navigationItems, ...placeholdersToAdd];
 };
 
 export default function SideNavigationMenu(props) {
@@ -84,7 +197,7 @@ export default function SideNavigationMenu(props) {
     }
 
     const tree = normalizeNavigationTree(navigationItems);
-    return tree;
+    return ensurePlaceholderItems(tree);
   }, [navigationItems, isCustomerView]);
 
   const selectedPath = useMemo(() => {
@@ -184,6 +297,23 @@ export default function SideNavigationMenu(props) {
     selectedItemChanged(e);
   }, [selectedItemChanged]);
 
+  const renderNavigationItem = useCallback((item) => {
+    const iconClass = resolveNavigationIcon(item);
+
+    return (
+      <div className={`side-navigation-menu__item-body${item.parentId ? ' side-navigation-menu__item-body--nested' : ''}`}>
+        {iconClass ? (
+          <span className="menu-icon" aria-hidden="true">
+            <i className={iconClass} />
+          </span>
+        ) : (
+          <span className="menu-icon menu-icon--spacer" aria-hidden="true" />
+        )}
+        <span className="menu-text">{item.text}</span>
+      </div>
+    );
+  }, []);
+
   return (
     <div
       id="app-menu"
@@ -192,8 +322,8 @@ export default function SideNavigationMenu(props) {
     >
       {children}
       <div className="side-navigation-menu__brand">
-        <div className="side-navigation-menu__brand-mark">F</div>
-        <span className="side-navigation-menu__brand-title">FMS</span>
+        <div className="side-navigation-menu__brand-mark">T</div>
+        <span className="side-navigation-menu__brand-title">Tenacy FMS</span>
       </div>
       <div className="side-navigation-menu__nav-label">Menu</div>
       <div className={'menu-container'}>
@@ -201,6 +331,7 @@ export default function SideNavigationMenu(props) {
           ref={treeViewRef}
           items={transformedNavigationItems}
           keyExpr={'path'}
+          itemRender={renderNavigationItem}
           selectionMode={'single'}
           focusStateEnabled={false}
           expandEvent={'click'}

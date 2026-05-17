@@ -13,7 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Common; // FMSResponse
-using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.Abstractions.Identity;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 using FMS.Application.Features.UserManagement.User.Queries;
 using FMS.Application.Features.UserManagement.User.Commands;

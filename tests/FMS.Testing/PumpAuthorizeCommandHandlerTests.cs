@@ -19,7 +19,7 @@ using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
-using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Queries.Database.FMSQuery.TagQueries;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;

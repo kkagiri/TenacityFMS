@@ -1,6 +1,6 @@
 using FMS.Application.Common;
-using FMS.Application.Features.PTSService.Commands;
-using FMS.Application.Features.PTSService.DTOs;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Commands;
+using FMS.Application.Features.Devices.Fueling.PumpControl.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;

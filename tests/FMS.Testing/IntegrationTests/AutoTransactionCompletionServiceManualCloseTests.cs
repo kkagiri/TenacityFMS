@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Communication;
 using FMS.Application.Communication.SignalR;
-using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Services;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;

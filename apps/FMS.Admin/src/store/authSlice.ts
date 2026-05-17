@@ -40,10 +40,45 @@ const defaultClaims: JwtTenantClaims = {
 const readStoredUser = (): OperatorUser | null => {
   try {
     const raw = localStorage.getItem(userStorageKey);
-    return raw ? (JSON.parse(raw) as OperatorUser) : null;
+    return raw ? normalizeUser(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
+};
+
+const normalizeUser = (user: unknown): OperatorUser | null => {
+  if (!user || typeof user !== "object") {
+    return null;
+  }
+
+  const typedUser = user as {
+    id?: string;
+    Id?: string;
+    userName?: string;
+    UserName?: string;
+    email?: string | null;
+    Email?: string | null;
+    roles?: string[];
+    Roles?: string[];
+  };
+
+  const id = typedUser.id || typedUser.Id;
+  const userName = typedUser.userName || typedUser.UserName;
+
+  if (!id || !userName) {
+    return null;
+  }
+
+  return {
+    id,
+    userName,
+    email: typedUser.email ?? typedUser.Email ?? null,
+    roles: Array.isArray(typedUser.roles)
+      ? typedUser.roles
+      : Array.isArray(typedUser.Roles)
+        ? typedUser.Roles
+        : [],
+  };
 };
 
 const storedToken = localStorage.getItem(tokenStorageKey);
@@ -64,8 +99,21 @@ export const loginOperator = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const response = await apiClient.post("/v1/User/Login", credentials);
-      return unwrapResponse<OperatorLoginResponse>(response.data);
+      const response = await apiClient.post("/v1/User/Login", {
+        ...credentials,
+        requirePlatformOperator: true,
+      });
+      const payload = unwrapResponse<OperatorLoginResponse>(response.data);
+      const user = normalizeUser(payload?.user);
+
+      if (!payload?.token || !user) {
+        throw new Error("Invalid login payload received from server.");
+      }
+
+      return {
+        ...payload,
+        user,
+      };
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "response" in error
