@@ -1043,99 +1043,109 @@ const NotificationCenter = () => {
               document.body
             )
           ) : ReactDOM.createPortal(
-            // Desktop: render popover via portal – above all panels
-            <div className="notification-popover notification-popover--portal" ref={popoverRef} style={{ top: `${popoverPosition.top}px`, right: `${popoverPosition.right}px` }}>
-              {/* Header */}
-              <div className="m365-panel-header">
-                <h4>Notifications</h4>
-                <div className="m365-header-actions">
-                  {unreadBackendNotificationDbIds.length > 0 && (
-                    <button type="button" className="m365-header-btn" onClick={handleMarkAllAsRead} disabled={isMarkingAllRead}>
-                      <i className="fa-light fa-envelope-open"></i>
-                      {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
+            // Desktop: render the same notification surface as a right-side panel.
+            <>
+              <div className="notification-sidepanel-backdrop" onClick={() => setIsOpen(false)} />
+              <div
+                className="notification-popover notification-popover--portal notification-popover--sidepanel"
+                ref={popoverRef}
+                style={{ top: `${popoverPosition.top}px`, right: `${popoverPosition.right}px` }}
+              >
+                {/* Header */}
+                <div className="m365-panel-header">
+                  <h4>Notifications</h4>
+                  <div className="m365-header-actions">
+                    {unreadBackendNotificationDbIds.length > 0 && (
+                      <button type="button" className="m365-header-btn" onClick={handleMarkAllAsRead} disabled={isMarkingAllRead}>
+                        <i className="fa-light fa-envelope-open"></i>
+                        {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
+                      </button>
+                    )}
+                    <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={handlePreferences} title="Settings">
+                      <i className="fa-light fa-gear"></i>
+                    </button>
+                    <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={() => setIsOpen(false)} aria-label="Close notifications">
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="m365-tabs">
+                  <button type="button" className={`m365-tab${activeTab === 'all' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('all')}>
+                    All
+                    <span className={`m365-tab-badge${activeTab === 'all' ? ' m365-tab-badge--active' : ''}`}>{totalNotifications}</span>
+                  </button>
+                  <button type="button" className={`m365-tab${activeTab === 'unread' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('unread')}>
+                    Unread
+                    {unreadBackendCount > 0 && <span className="m365-tab-badge m365-tab-badge--alert">{unreadBackendCount}</span>}
+                  </button>
+                  {importProgress && (
+                    <button type="button" className={`m365-tab${activeTab === 'import' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('import')}>
+                      Import
+                      <span className="m365-tab-badge m365-tab-badge--active">{importProgress.percentage || 0}%</span>
                     </button>
                   )}
-                  <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={handlePreferences} title="Settings">
-                    <i className="fa-light fa-gear"></i>
+                  {(reportProgress || completedReports?.length > 0) && (
+                    <button type="button" className={`m365-tab${activeTab === 'report' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('report')}>
+                      Reports
+                      {reportProgress
+                        ? <span className="m365-tab-badge m365-tab-badge--alert">{reportProgress.percentage || 0}%</span>
+                        : <span className="m365-tab-badge m365-tab-badge--active">{completedReports.length}</span>
+                      }
+                    </button>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="m365-panel-content">
+                  {activeTab === 'import' && importProgress ? (
+                    renderImportProgress()
+                  ) : activeTab === 'report' ? (
+                    <div>
+                      {renderReportProgress()}
+                      {renderCompletedReports()}
+                      {!reportProgress && !completedReports?.length && (
+                        <div className="m365-empty">
+                          <i className="fa-light fa-file-chart-column"></i>
+                          <p>No reports yet</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (visibleNotifications.filter(n => activeTab === 'unread' ? !n.isRead : true).length === 0) ? (
+                    <div className="m365-empty">
+                      <i className="fa-light fa-bell-slash"></i>
+                      <p>{activeTab === 'unread' ? 'All caught up!' : 'No notifications'}</p>
+                    </div>
+                  ) : (
+                    visibleNotifications
+                      .filter(n => activeTab === 'unread' ? !n.isRead : true)
+                      .map((notification) => (
+                        <div key={notification.id}>{renderNotificationItem(notification)}</div>
+                      ))
+                  )}
+
+                  {/* Show More/Less */}
+                  {activeTab !== 'import' && activeTab !== 'report' && hasMoreNotifications && (
+                    <div className="m365-show-more">
+                      <button onClick={toggleShowAllNotifications}>
+                        {showAllNotifications ? 'Show Less' : 'Show More'}
+                        <i className={`fa-light fa-chevron-${showAllNotifications ? 'up' : 'down'}`}></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="m365-panel-footer">
+                  <button type="button" onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}>
+                    <i className="fa-light fa-bell"></i>
+                    View All Notifications
+                    <i className="fa-light fa-arrow-right"></i>
                   </button>
                 </div>
               </div>
-
-              {/* Tabs */}
-              <div className="m365-tabs">
-                <button type="button" className={`m365-tab${activeTab === 'all' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('all')}>
-                  All
-                  <span className={`m365-tab-badge${activeTab === 'all' ? ' m365-tab-badge--active' : ''}`}>{totalNotifications}</span>
-                </button>
-                <button type="button" className={`m365-tab${activeTab === 'unread' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('unread')}>
-                  Unread
-                  {unreadBackendCount > 0 && <span className="m365-tab-badge m365-tab-badge--alert">{unreadBackendCount}</span>}
-                </button>
-                {importProgress && (
-                  <button type="button" className={`m365-tab${activeTab === 'import' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('import')}>
-                    Import
-                    <span className="m365-tab-badge m365-tab-badge--active">{importProgress.percentage || 0}%</span>
-                  </button>
-                )}
-                {(reportProgress || completedReports?.length > 0) && (
-                  <button type="button" className={`m365-tab${activeTab === 'report' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('report')}>
-                    Reports
-                    {reportProgress
-                      ? <span className="m365-tab-badge m365-tab-badge--alert">{reportProgress.percentage || 0}%</span>
-                      : <span className="m365-tab-badge m365-tab-badge--active">{completedReports.length}</span>
-                    }
-                  </button>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="m365-panel-content">
-                {activeTab === 'import' && importProgress ? (
-                  renderImportProgress()
-                ) : activeTab === 'report' ? (
-                  <div>
-                    {renderReportProgress()}
-                    {renderCompletedReports()}
-                    {!reportProgress && !completedReports?.length && (
-                      <div className="m365-empty">
-                        <i className="fa-light fa-file-chart-column"></i>
-                        <p>No reports yet</p>
-                      </div>
-                    )}
-                  </div>
-                ) : (visibleNotifications.filter(n => activeTab === 'unread' ? !n.isRead : true).length === 0) ? (
-                  <div className="m365-empty">
-                    <i className="fa-light fa-bell-slash"></i>
-                    <p>{activeTab === 'unread' ? 'All caught up!' : 'No notifications'}</p>
-                  </div>
-                ) : (
-                  visibleNotifications
-                    .filter(n => activeTab === 'unread' ? !n.isRead : true)
-                    .map((notification) => (
-                      <div key={notification.id}>{renderNotificationItem(notification)}</div>
-                    ))
-                )}
-
-                {/* Show More/Less */}
-                {activeTab !== 'import' && activeTab !== 'report' && hasMoreNotifications && (
-                  <div className="m365-show-more">
-                    <button onClick={toggleShowAllNotifications}>
-                      {showAllNotifications ? 'Show Less' : 'Show More'}
-                      <i className={`fa-light fa-chevron-${showAllNotifications ? 'up' : 'down'}`}></i>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="m365-panel-footer">
-                <button type="button" onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}>
-                  <i className="fa-light fa-bell"></i>
-                  View All Notifications
-                  <i className="fa-light fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>,
+            </>,
             document.body
           )
         )}

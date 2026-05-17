@@ -1,8 +1,112 @@
 /**
- * File:          feedback.scss (FMS.Admin mirror)
- * Purpose:       Shared visual style for the feedback components. Re-exports
- *                the canonical SCSS from apps/fms.frontend so both shells
- *                resolve to identical visuals. PRD §7.3.
+ * File:          feedback.scss
+ * Purpose:       Shared visual style for the feedback components — error,
+ *                empty, forbidden, and skeleton states. PRD §7.3.
+ * Last Modified: 2026-05-17
  */
 
-@import "../../../../fms.frontend/src/components/feedback/feedback";
+.fms-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--m365-bg-card);
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-card-radius);
+  min-height: 240px;
+  color: var(--m365-text);
+
+  &__icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+    color: var(--m365-text-tertiary);
+  }
+
+  &--error &__icon {
+    color: var(--m365-error);
+  }
+  &--forbidden &__icon {
+    color: var(--m365-warning);
+  }
+  &--empty &__icon {
+    color: var(--m365-text-tertiary);
+  }
+
+  &__title {
+    font-size: var(--m365-font-size-h2);
+    font-weight: var(--m365-font-weight-header);
+    color: var(--m365-text);
+    margin: 0 0 8px;
+  }
+
+  &__message {
+    font-size: var(--m365-font-size-body);
+    color: var(--m365-text-secondary);
+    margin: 0 0 20px;
+    max-width: 420px;
+  }
+
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--m365-tint-neutral-bg);
+    color: var(--m365-tint-neutral-fg);
+    margin-bottom: 12px;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+.fms-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+
+  &__bar {
+    height: 14px;
+    background: linear-gradient(
+      90deg,
+      var(--m365-bg-hover) 0%,
+      var(--m365-border-light) 50%,
+      var(--m365-bg-hover) 100%
+    );
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: fms-skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  &__bar--title {
+    height: 20px;
+    width: 35%;
+  }
+  &__bar--meta {
+    height: 12px;
+    width: 25%;
+  }
+  &__bar--row {
+    height: 36px;
+  }
+}
+
+@keyframes fms-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

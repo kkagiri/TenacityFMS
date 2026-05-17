@@ -14,7 +14,7 @@ using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Features.PTS.Common;
 using FMS.Application.Features.PTS.Enum;
 using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Validation.PTSValidators;
 using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Domain.Entities.PTS;

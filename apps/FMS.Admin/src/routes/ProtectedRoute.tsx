@@ -14,12 +14,15 @@ import { useAppSelector } from "../store/hooks";
 export default function ProtectedRoute() {
   const location = useLocation();
   const { token, claims, user } = useAppSelector((state) => state.auth);
+  const hasAdminRole = user?.roles.some(
+    (role) => role.toLowerCase() === "administrator",
+  );
   const isOperator = Boolean(
     token &&
       ((claims.tenantKind === "system" && claims.isPlatformOperator) ||
         user?.id === "system-administrator" ||
         user?.userName === "system-admin" ||
-        user?.roles.includes("Administrator")),
+        hasAdminRole),
   );
 
   if (!isOperator) {

@@ -8,11 +8,8 @@
  * - Defines theme tokens, form controls, buttons, banners, and table styling.
  */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-@import "./tokens/design-tokens";
-@import "./inspinia-shell";
+@use "./tokens/design-tokens";
+@use "./inspinia-shell";
 
 // Page-level binding for the M365 font/color baseline. Token definitions live
 // in ./tokens/design-tokens.scss (mirrors apps/fms.frontend/src/styles/tokens/

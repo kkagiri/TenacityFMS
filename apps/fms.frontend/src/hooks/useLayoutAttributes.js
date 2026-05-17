@@ -14,7 +14,7 @@ import { useEffect } from "react";
 
 const BASE_ATTRIBUTES = Object.freeze({
   "data-layout": "basic-left",
-  "data-menu-color": "dark",
+  "data-menu-color": "light",
   "data-topbar-color": "light",
   "data-layout-position": "fixed",
   "data-layout-width": "fluid",

@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities.PTS;
 using FMS.Persistence.DataAccess;

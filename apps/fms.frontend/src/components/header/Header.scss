@@ -1,125 +1,98 @@
 /**
- * File: Header.scss
- * Purpose: Controls the global application header sizing, toolbar spacing, and icon hit areas
- * Dependencies: Header.js, DevExtreme toolbar, ThemeSelector, NotificationCenter, UserPanel
- * Last Modified: 2026-05-16
+ * File:          Header.scss
+ * Purpose:       Styles the Inspinia top navbar for search, profile, logo, and notification actions.
+ * Dependencies:  Header.js, ThemeSelector, NotificationCenter, UserPanel
+ * Last Modified: 2026-05-17
  *
  * Key Sections:
- * - .header-component: shell height and elevation
- * - .dx-toolbar.header-toolbar: shared toolbar rhythm
- * - .header-brand: Tenacy logo and title block
- *
- * Tokens (see src/styles/tokens/_design-tokens.scss): all chrome colors and
- * sizes resolve through --inspinia-* / --m365-* / --layout-* custom properties.
+ * - .header-component: shell topbar surface
+ * - .header-toolbar: native flex toolbar rhythm
+ * - .topbar-search: quick search control
  */
 
-@use "./../../variables.scss" as *;
-
 .header-component {
-  flex: 0 0 auto;
-  z-index: 10020;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  padding: 0;
-  background-color: var(--inspinia-topbar-bg) !important;
-  width: 100%;
-  overflow: visible;
+  flex: 0 0 var(--layout-topbar-height);
   min-height: var(--layout-topbar-height);
-  position: relative;
+  width: 100%;
+  z-index: 30;
   display: flex;
+  padding: 0;
+  overflow: visible;
+  background-color: var(--inspinia-topbar-bg);
+  border-bottom: 1px solid var(--inspinia-topbar-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   -webkit-transform: translateZ(0);
   -moz-transform: translateZ(0);
   transform: translateZ(0);
 }
 
 .header-component.app-header {
-  margin-left: var(--layout-sidenav-width);
-  width: calc(100% - var(--layout-sidenav-width));
-  transition:
-    width 0.25s ease-in-out,
-    margin 0.25s ease-in-out;
-}
-
-html[data-sidenav-size="condensed"] .header-component.app-header {
-  margin-left: var(--layout-sidenav-width-collapsed);
-  width: calc(100% - var(--layout-sidenav-width-collapsed));
-}
-
-html[data-sidenav-size="offcanvas"] .header-component.app-header,
-html[data-sidenav-size="hidden"] .header-component.app-header {
   margin-left: 0;
   width: 100%;
+  transition: none;
 }
 
-html[data-layout-position="scrollable"] .header-component.app-header {
-  position: static;
-}
-
-.theme-selector-item {
-  position: relative;
-  z-index: 10030;
-}
-
-.dx-toolbar.header-toolbar {
-  padding-left: 12px;
-  padding-right: 16px;
-  min-height: var(--layout-topbar-height);
-  background-color: var(--inspinia-topbar-bg) !important;
-  border-bottom: 1px solid var(--inspinia-topbar-border);
-  position: relative;
-  display: flex;
+.header-toolbar {
   width: 100%;
-  height: auto;
-  -moz-box-sizing: border-box;
-  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--layout-topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px 0 14px;
+  background-color: var(--inspinia-topbar-bg);
+}
 
-  .global-search-box {
-    padding-right: 11px;
-  }
+.header-toolbar__left,
+.header-toolbar__actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
-  .dx-toolbar-item.topbar-search-item {
-    flex: 1 1 420px;
-    max-width: 520px;
-    min-width: 220px;
+.header-toolbar__left {
+  flex: 0 1 320px;
+}
 
-    .dx-item-content {
-      width: 100%;
-      min-height: var(--layout-topbar-height);
-      display: flex;
-      align-items: center;
-    }
-  }
+.header-toolbar__actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
 
-  .dx-toolbar-item.header-title {
-    flex: 0 1 280px;
-    min-width: 180px;
+.header-brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
 
-    .dx-item-content {
-      display: flex;
-      align-items: center;
-      min-height: var(--layout-topbar-height);
-      white-space: nowrap;
-      overflow: visible;
-      text-overflow: unset;
-      max-width: none;
-    }
-  }
+.header-brand__logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
 
-  .dx-toolbar-item.user-panel-item,
-  .dx-toolbar-item.notification-item,
-  .dx-toolbar-item.theme-selector-item,
-  .dx-toolbar-item.app-grid-button {
-    .dx-item-content {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: var(--layout-topbar-height);
-    }
-  }
+.header-brand__title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--inspinia-heading);
+  font-family: var(--m365-font);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
 }
 
 .topbar-search {
   position: relative;
-  width: min(100%, 460px);
+  flex: 1 1 460px;
+  width: min(36vw, 460px);
+  max-width: 520px;
+  min-width: 220px;
   display: flex;
   align-items: center;
 }
@@ -164,112 +137,29 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   }
 }
 
-.header-title .dx-item-content {
-  padding: 0;
-  margin: 0;
-  margin-left: 2px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--inspinia-heading);
-  line-height: var(--layout-topbar-height);
-}
-
-.header-brand {
-  display: inline-flex;
+.theme-selector-item,
+.notification-item,
+.user-panel-item {
+  position: relative;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
+  justify-content: center;
 }
 
-.header-brand__logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  flex: 0 0 auto;
-}
-
-.header-brand__title {
-  display: inline-flex;
-  align-items: center;
-  color: var(--inspinia-heading);
-  font-weight: 600;
-  font-size: 17px;
-  font-family: var(--m365-font);
-  letter-spacing: -0.01em;
+.theme-selector-item {
+  z-index: 10030;
 }
 
 .notification-item {
   z-index: 1050;
-  margin-right: 4px;
-  position: relative;
-
-  .dx-item-content {
-    min-width: 44px;
-    padding: 0 4px;
-    position: relative;
-  }
-
-  .notification-wrapper {
-    height: 38px;
-    width: 38px;
-    padding: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-  }
-
-  .notification-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    width: 100%;
-    position: relative;
-  }
 }
 
-.user-panel-item {
-  z-index: 5;
-  margin-right: 8px;
-
-  .dx-item-content {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    min-height: 48px;
-    padding: 0 4px;
-  }
-
-  .user-button {
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &.dx-button .dx-button-content {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      .dx-icon {
-        font-size: 16px;
-        color: var(--base-text-color, var(--m365-text));
-        font-family: "Font Awesome 6 Pro";
-        font-weight: 300;
-      }
-
-      i[class*="fa-"] {
-        font-size: 16px;
-        color: var(--base-text-color, var(--m365-text));
-      }
-    }
-
-    &:hover {
-      background-color: var(--inspinia-content-bg);
-    }
-  }
+.notification-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .topbar-profile {
@@ -277,7 +167,6 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 0 4px;
 }
 
 .topbar-profile__meta {
@@ -302,67 +191,6 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   font-size: 11px;
 }
 
-.dx-theme-generic {
-  .dx-toolbar {
-    padding: 4px 0;
-    min-height: 48px;
-  }
-
-  .user-button > .dx-button-content {
-    padding: 3px;
-
-    .dx-icon {
-      display: inline-block !important;
-      visibility: visible !important;
-    }
-  }
-
-  .user-panel-item .user-button {
-    .dx-button-content {
-      width: 100%;
-      height: 100%;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-  }
-}
-
-.app-grid-button {
-  margin-right: 8px;
-
-  .dx-item-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    height: 100%;
-    min-height: 48px;
-  }
-}
-
-.app-menu-button {
-  margin-right: 8px;
-
-  .dx-item-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    height: 100%;
-    min-height: var(--layout-topbar-height);
-  }
-}
-
-.app-grid-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  width: 36px;
-  height: 36px;
-}
-
 .app-menu-icon {
   display: inline-flex;
   flex-direction: column;
@@ -381,51 +209,28 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   }
 }
 
-.grid-dots {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 3px;
-  width: 20px;
-  height: 20px;
-
-  span {
-    width: 5px;
-    height: 5px;
-    background-color: var(--m365-text-secondary);
-    border-radius: 50%;
-    display: block;
-    transition: background-color 0.2s ease;
-  }
-}
-
-.grid-icon-button.dx-button,
 .grid-icon-button.native-button {
-  min-width: 36px !important;
-  min-height: 36px !important;
-  border-radius: 8px !important;
-  padding: 0 !important;
-  visibility: visible !important;
-  display: flex !important;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto !important;
-  cursor: pointer !important;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  outline: none;
+  background: transparent;
+  color: var(--m365-text-secondary);
+  cursor: pointer;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
-  background: none;
-  border: none;
-  outline: none;
-  background-color: transparent;
 
   &:hover {
-    background-color: var(--inspinia-content-bg) !important;
-
-    .grid-dots span {
-      background-color: var(--m365-primary);
-    }
+    background-color: var(--inspinia-content-bg);
 
     .app-menu-icon span {
       background-color: var(--m365-primary);
@@ -434,64 +239,44 @@ html[data-layout-position="scrollable"] .header-component.app-header {
 
   &:active,
   &:focus {
-    background-color: var(--m365-tint-blue-bg) !important;
-    outline: none !important;
-
-    .grid-dots span {
-      background-color: var(--m365-primary-pressed);
-    }
+    background-color: var(--m365-tint-blue-bg);
 
     .app-menu-icon span {
       background-color: var(--m365-primary-pressed);
     }
   }
+
+  &::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+  }
 }
 
-.app-button-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  position: relative;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 2px;
+@media (max-width: 1024px) {
+  .topbar-search {
+    max-width: 360px;
+  }
 
-  .native-button {
-    &::-moz-focus-inner {
-      border: 0;
-      padding: 0;
-    }
+  .topbar-profile__meta {
+    display: none;
   }
 }
 
 @media (max-width: 768px) {
-  .header-component.app-header {
-    margin-left: 0;
-    width: 100%;
+  .header-toolbar {
+    padding: 0 12px;
   }
 
-  .dx-toolbar.header-toolbar {
-    padding-right: 8px;
-
-    .dx-toolbar-item.topbar-search-item {
-      display: none;
-    }
-
-    .dx-toolbar-item.header-title {
-      min-width: 140px;
-    }
+  .header-toolbar__left {
+    flex: 1 1 auto;
   }
 
-  .header-title .dx-item-content {
-    font-size: 16px;
+  .topbar-search {
+    display: none;
   }
 
-  .header-brand__title {
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .theme-selector-item {
+    display: none;
   }
 
   .header-brand {
@@ -503,13 +288,23 @@ html[data-layout-position="scrollable"] .header-component.app-header {
     height: 20px;
   }
 
-  .topbar-profile__meta {
-    display: none;
+  .header-brand__title {
+    max-width: 150px;
+    font-size: 16px;
   }
 }
 
-@media (min-width: 1200px) {
-  .dx-toolbar.header-toolbar .dx-toolbar-item.header-title {
-    min-width: 260px;
+@media (max-width: 480px) {
+  .header-toolbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .header-toolbar__actions {
+    gap: 4px;
+  }
+
+  .header-brand__title {
+    max-width: 110px;
   }
 }

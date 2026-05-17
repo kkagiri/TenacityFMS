@@ -32,11 +32,7 @@ export default function UnauthenticatedContent() {
     <Routes>
       <Route
         path='/login'
-        element={
-          <SingleCard title="Sign In">
-            <LoginForm />
-          </SingleCard>
-        }
+        element={<LoginForm />}
       />
 
       <Route

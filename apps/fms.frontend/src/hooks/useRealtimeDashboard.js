@@ -579,9 +579,18 @@ export const useRealtimeDashboard = (options = {}) => {
   // Load widget data after instances are loaded (batch hub method)
   useEffect(() => {
     if (widgetInstances.length === 0 || !autoLoad) return;
+    if (!enableRealtime) {
+      const ids = widgetInstances.map(w => w.id);
+      const loadWidgets = async () => {
+        await Promise.allSettled(ids.map(id => fetchWidgetData(id)));
+      };
+
+      loadWidgets();
+      return;
+    }
+
     // Only proceed when connected
-    if (!(enableRealtime && connectionStatus === 'connected')) {
-      // If we've hit an error state, we could consider adding a future REST fallback here.
+    if (connectionStatus !== 'connected') {
       return;
     }
 
@@ -594,7 +603,7 @@ export const useRealtimeDashboard = (options = {}) => {
     } catch (e) {
       console.error('[RealtimeDashboard] Batch initial load failed (no REST fallback):', e);
     }
-  }, [widgetInstances, autoLoad, enableRealtime, connectionStatus]);
+  }, [widgetInstances, autoLoad, enableRealtime, connectionStatus, fetchWidgetData]);
 
   // Staleness monitor (flag widgets stale if no update for >60s)
   useEffect(() => {

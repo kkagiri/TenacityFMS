@@ -1,34 +1,25 @@
-import Drawer from "devextreme-react/drawer";
+/**
+ * File:          side-nav-outer-toolbar.js
+ * Purpose:       Inspinia-style application shell with full-height sidebar and top navbar.
+ * Dependencies:  React, DevExtreme ScrollView, Header, SideNavigationMenu
+ * Last Modified: 2026-05-17
+ *
+ * Key Functions:
+ * - SideNavOuterToolbar(): Renders the main feature shell chrome and nested pages.
+ */
+
 import ScrollView from "devextreme-react/scroll-view";
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Header, SideNavigationMenu, Footer } from "../../components";
 import "./side-nav-outer-toolbar.scss";
 import { useScreenSize } from "../../utils/media-query";
-import { Template } from "devextreme-react/core/template";
-import { useMenuPatch } from "../../utils/patches";
 import useLayoutAttributes from "../../hooks/useLayoutAttributes";
-
-const getDrawerRootElement = (drawerRef) => {
-  const drawerInstance = drawerRef?.current?.instance;
-
-  if (drawerInstance?.element) {
-    return drawerInstance.element();
-  }
-
-  if (typeof drawerRef?.current?.element === "function") {
-    return drawerRef.current.element();
-  }
-
-  return drawerRef?.current ?? null;
-};
 
 export default function SideNavOuterToolbar({ title, children }) {
   const scrollViewRef = useRef(null);
-  const drawerRef = useRef(null);
   const navigate = useNavigate();
   const { isLarge } = useScreenSize();
-  const [patchCssClass, onMenuReady] = useMenuPatch();
   const [menuStatus, setMenuStatus] = useState(
     isLarge ? MenuStatus.Opened : MenuStatus.Closed
   );
@@ -44,28 +35,6 @@ export default function SideNavOuterToolbar({ title, children }) {
 
   useLayoutAttributes({ sidenavSize });
 
-  // Handle outside clicks
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuStatus !== MenuStatus.Closed && drawerRef.current) {
-        const drawerElement = getDrawerRootElement(drawerRef);
-        const menuElement = typeof drawerElement?.querySelector === "function"
-          ? drawerElement.querySelector('.dx-drawer-panel-content')
-          : null;
-
-        // If click is outside the menu panel, close the drawer
-        if (menuElement && !menuElement.contains(event.target)) {
-          setMenuStatus(MenuStatus.Closed);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuStatus]);
-
   const toggleMenu = useCallback(({ event }) => {
     setMenuStatus(
       prevMenuStatus => prevMenuStatus === MenuStatus.Closed
@@ -76,12 +45,16 @@ export default function SideNavOuterToolbar({ title, children }) {
   }, []);
 
   const temporaryOpenMenu = useCallback(() => {
+    if (isLarge) {
+      return;
+    }
+
     setMenuStatus((prevMenuStatus) =>
       prevMenuStatus === MenuStatus.Closed
         ? MenuStatus.TemporaryOpened
         : prevMenuStatus
     );
-  }, []);
+  }, [isLarge]);
 
   const onNavigationChanged = useCallback(
     ({ itemData, event, node }) => {
@@ -112,51 +85,54 @@ export default function SideNavOuterToolbar({ title, children }) {
     }
   }, [isLarge, menuStatus]);
 
+  const isSidebarOpen = menuStatus !== MenuStatus.Closed;
+  const showMobileOpenClass = !isLarge && isSidebarOpen;
+  const isCompact = isLarge && menuStatus === MenuStatus.Closed;
+
   return (
-    <div className={"side-nav-outer-toolbar inspinia-shell wrapper"}>
-      <Header
-        menuToggleEnabled={true}
-        toggleMenu={toggleMenu}
-        title={title}
-      />
-      <Drawer
-        ref={drawerRef}
-        className={["drawer", patchCssClass].join(" ")}
-        position={"before"}
-        closeOnOutsideClick={true}
-        openedStateMode={isLarge ? 'shrink' : 'overlap'}
-        revealMode={'slide'}
-        minSize={isLarge ? 75 : 0}
-        maxSize={235}
-        shading={!isLarge}
-        opened={menuStatus === MenuStatus.Closed ? false : true}
-        template={"menu"}
+    <div
+      className={`side-nav-outer-toolbar inspinia-shell wrapper${showMobileOpenClass ? " is-sidebar-open" : ""
+        }`}
+    >
+      <aside
+        className="side-nav-outer-toolbar__sidebar app-menu"
+        aria-label="Application navigation"
       >
-        <div className={"container dx-theme-background-color"} onClick={onContentClick}>
-          <ScrollView ref={scrollViewRef} className={"layout-body with-footer"}>
-            <div className={"content"}>
-              {React.Children.map(children, (item) => {
-                return item.type !== Footer && item;
-              })}
-            </div>
-            <div className={"content-block"}>
-              {React.Children.map(children, (item) => {
-                return item.type === Footer && item;
-              })}
-            </div>
-          </ScrollView>
-        </div>
-        <Template name={"menu"}>
-          <SideNavigationMenu
-            compactMode={menuStatus === MenuStatus.Closed}
-            selectedItemChanged={onNavigationChanged}
-            openMenu={temporaryOpenMenu}
-            onMenuReady={onMenuReady}
-            layoutType="outer"
-            menuStatus={menuStatus}
-          ></SideNavigationMenu>
-        </Template>
-      </Drawer>
+        <SideNavigationMenu
+          compactMode={isCompact}
+          selectedItemChanged={onNavigationChanged}
+          openMenu={temporaryOpenMenu}
+          layoutType="outer"
+        />
+      </aside>
+      <button
+        type="button"
+        className="side-nav-outer-toolbar__overlay"
+        aria-label="Close navigation menu"
+        onClick={() => setMenuStatus(MenuStatus.Closed)}
+      />
+      <div
+        className={"side-nav-outer-toolbar__main dx-theme-background-color page-content"}
+        onClick={onContentClick}
+      >
+        <Header
+          menuToggleEnabled={true}
+          toggleMenu={toggleMenu}
+          title={title}
+        />
+        <ScrollView ref={scrollViewRef} className={"layout-body with-footer"}>
+          <div className={"content"}>
+            {React.Children.map(children, (item) => {
+              return item.type !== Footer && item;
+            })}
+          </div>
+          <div className={"content-block"}>
+            {React.Children.map(children, (item) => {
+              return item.type === Footer && item;
+            })}
+          </div>
+        </ScrollView>
+      </div>
     </div>
   );
 }

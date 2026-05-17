@@ -1,34 +1,36 @@
-.logos-container {
-  margin: 20px 0 40px 0;
+﻿.home-placeholder {
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background: transparent;
+}
+
+.home-placeholder__inner {
   text-align: center;
-  svg {
-    display: inline-block;
-  }
+  max-width: 480px;
 }
 
-.devextreme-logo {
-  width: 200px;
-  height: 34px;
-  margin-bottom: 19px;
+.home-placeholder__icon {
+  font-size: 64px;
+  color: #c8c6c4;
+  margin-bottom: 16px;
+  display: block;
 }
 
-.react-logo {
-  width: 184px;
-  height: 68px;
+.home-placeholder__title {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #201f1e;
+  margin: 0 0 8px 0;
 }
 
-.plus {
-  margin: 23px 10px;
-  width: 22px;
-  height: 22px;
-}
-
-.screen-x-small .logos-container {
-  svg {
-    width: 100%;
-    display: block;
-    &.plus {
-      margin: 0;
-    }
-  }
+.home-placeholder__subtitle {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #605e5c;
+  margin: 0;
 }
