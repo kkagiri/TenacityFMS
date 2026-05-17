@@ -12,7 +12,7 @@
   display: block;
   min-height: 100vh;
   background: var(--inspinia-content-bg);
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--m365-font);
 }
 
 .admin-shell__sidebar {
@@ -44,6 +44,9 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
+// Brand mark uses M365 primary (PRD §6 — Inspinia teal deprecated outside
+// sidebar nav indicators). The white text/icon foreground is intrinsic to the
+// brand mark, not a theme color, so it stays as a literal.
 .admin-shell__brand-mark,
 .operator-login__brand-mark {
   width: 32px;
@@ -51,7 +54,7 @@
   display: grid;
   place-items: center;
   border-radius: 6px;
-  background: var(--inspinia-accent);
+  background: var(--m365-primary);
   color: #ffffff;
   font-weight: 700;
   letter-spacing: 0;
@@ -115,6 +118,8 @@
     color: var(--theme-sidenav-item-active-color);
     background: var(--theme-sidenav-item-active-bg);
 
+    // Sidebar nav active indicator — Inspinia teal kept here per PRD §6
+    // (sidebar is the one place the legacy accent is allowed).
     &::before {
       content: "";
       position: absolute;
@@ -172,17 +177,17 @@
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #676a6c;
+  color: var(--m365-text-secondary);
 
   &:hover {
-    background: #f6f7fb;
-    color: var(--inspinia-accent);
+    background: var(--inspinia-content-bg);
+    color: var(--m365-primary);
   }
 
   &:active,
   &:focus {
-    background: #eef8f5;
-    color: var(--inspinia-secondary-accent);
+    background: var(--m365-tint-blue-bg);
+    color: var(--m365-primary-pressed);
   }
 }
 

@@ -1,0 +1,49 @@
+{
+  "//": "Root stylelint config for fms.frontend + FMS.Admin. PRD §6 (Inspinia teal deprecation) and §4 (Tailwind tw- prefix). Run via `npx stylelint 'apps/**/*.scss'`; the team must install stylelint + stylelint-scss before CI wires it up.",
+  "customSyntax": "postcss-scss",
+  "plugins": ["stylelint-scss"],
+  "rules": {
+    "scss/at-rule-no-unknown": [
+      true,
+      {
+        "ignoreAtRules": ["tailwind", "use", "forward", "include", "mixin", "extend", "if", "else", "for", "each", "function", "return", "import"]
+      }
+    ],
+    "declaration-property-value-disallowed-list": {
+      "/^(color|background|background-color|border-color|fill|stroke)$/": [
+        "/^#1ab394$/i",
+        "/^#18a689$/i"
+      ]
+    },
+    "selector-class-pattern": [
+      "^(tw-[a-zA-Z0-9_-]+|[a-zA-Z][a-zA-Z0-9_-]*(__|--)?[a-zA-Z0-9_-]*|[a-z][a-zA-Z0-9-]*)$",
+      {
+        "message": "Tailwind utility classes must use the tw- prefix (PRD §5)."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*sidebar*.scss",
+        "**/side-nav*.scss",
+        "**/SideNavigationMenu/**/*.scss",
+        "**/inspinia-shell.scss"
+      ],
+      "rules": {
+        "//": "Sidebar nav indicators may still use Inspinia teal — PRD §6.",
+        "declaration-property-value-disallowed-list": null
+      }
+    },
+    {
+      "files": [
+        "apps/fms.frontend/src/styles/tokens/**/*.scss",
+        "apps/FMS.Admin/src/styles/tokens/**/*.scss"
+      ],
+      "rules": {
+        "//": "Token files declare the canonical hexes — must not lint against them.",
+        "declaration-property-value-disallowed-list": null
+      }
+    }
+  ]
+}

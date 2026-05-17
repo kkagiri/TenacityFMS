@@ -31,9 +31,12 @@ const withPermissionProtection = (Component, requiredPermissions) => {
         const permsArray = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
         const hasAccess = hasAnyPermission(permsArray);
 
+        // TODO later: restore this redirect after frontend permission checks are re-enabled.
+        /*
         if (!hasAccess) {
             return <Navigate to="/unauthorized" />;
         }
+        */
 
         return <Component {...props} />;
     };

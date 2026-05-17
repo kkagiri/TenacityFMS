@@ -1,13 +1,16 @@
-﻿/**
+/**
  * File: Header.scss
  * Purpose: Controls the global application header sizing, toolbar spacing, and icon hit areas
  * Dependencies: Header.js, DevExtreme toolbar, ThemeSelector, NotificationCenter, UserPanel
- * Last Modified: 2026-03-13
+ * Last Modified: 2026-05-16
  *
  * Key Sections:
  * - .header-component: shell height and elevation
  * - .dx-toolbar.header-toolbar: shared toolbar rhythm
  * - .header-brand: Tenacy logo and title block
+ *
+ * Tokens (see src/styles/tokens/_design-tokens.scss): all chrome colors and
+ * sizes resolve through --inspinia-* / --m365-* / --layout-* custom properties.
  */
 
 @use "./../../variables.scss" as *;
@@ -17,10 +20,10 @@
   z-index: 10020;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   padding: 0;
-  background-color: #ffffff !important;
+  background-color: var(--inspinia-topbar-bg) !important;
   width: 100%;
   overflow: visible;
-  min-height: 65px;
+  min-height: var(--layout-topbar-height);
   position: relative;
   display: flex;
   -webkit-transform: translateZ(0);
@@ -29,16 +32,16 @@
 }
 
 .header-component.app-header {
-  margin-left: 235px;
-  width: calc(100% - 235px);
+  margin-left: var(--layout-sidenav-width);
+  width: calc(100% - var(--layout-sidenav-width));
   transition:
     width 0.25s ease-in-out,
     margin 0.25s ease-in-out;
 }
 
 html[data-sidenav-size="condensed"] .header-component.app-header {
-  margin-left: 75px;
-  width: calc(100% - 75px);
+  margin-left: var(--layout-sidenav-width-collapsed);
+  width: calc(100% - var(--layout-sidenav-width-collapsed));
 }
 
 html[data-sidenav-size="offcanvas"] .header-component.app-header,
@@ -59,9 +62,9 @@ html[data-layout-position="scrollable"] .header-component.app-header {
 .dx-toolbar.header-toolbar {
   padding-left: 12px;
   padding-right: 16px;
-  min-height: 65px;
-  background-color: #ffffff !important;
-  border-bottom: 1px solid #e7e9eb;
+  min-height: var(--layout-topbar-height);
+  background-color: var(--inspinia-topbar-bg) !important;
+  border-bottom: 1px solid var(--inspinia-topbar-border);
   position: relative;
   display: flex;
   width: 100%;
@@ -80,7 +83,7 @@ html[data-layout-position="scrollable"] .header-component.app-header {
     .dx-item-content {
       display: flex;
       align-items: center;
-      min-height: 65px;
+      min-height: var(--layout-topbar-height);
       white-space: nowrap;
       overflow: visible;
       text-overflow: unset;
@@ -96,7 +99,7 @@ html[data-layout-position="scrollable"] .header-component.app-header {
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 65px;
+      min-height: var(--layout-topbar-height);
     }
   }
 }
@@ -107,8 +110,8 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   margin-left: 2px;
   font-size: 18px;
   font-weight: 600;
-  color: #313a46;
-  line-height: 65px;
+  color: var(--inspinia-heading);
+  line-height: var(--layout-topbar-height);
 }
 
 .header-brand {
@@ -128,10 +131,10 @@ html[data-layout-position="scrollable"] .header-component.app-header {
 .header-brand__title {
   display: inline-flex;
   align-items: center;
-  color: #313a46;
+  color: var(--inspinia-heading);
   font-weight: 600;
   font-size: 17px;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--m365-font);
   letter-spacing: -0.01em;
 }
 
@@ -192,19 +195,19 @@ html[data-layout-position="scrollable"] .header-component.app-header {
 
       .dx-icon {
         font-size: 16px;
-        color: var(--base-text-color, #333);
+        color: var(--base-text-color, var(--m365-text));
         font-family: "Font Awesome 6 Pro";
         font-weight: 300;
       }
 
       i[class*="fa-"] {
         font-size: 16px;
-        color: var(--base-text-color, #333);
+        color: var(--base-text-color, var(--m365-text));
       }
     }
 
     &:hover {
-      background-color: #f6f7fb;
+      background-color: var(--inspinia-content-bg);
     }
   }
 }
@@ -257,7 +260,7 @@ html[data-layout-position="scrollable"] .header-component.app-header {
     justify-content: center;
     padding: 0;
     height: 100%;
-    min-height: 65px;
+    min-height: var(--layout-topbar-height);
   }
 }
 
@@ -283,7 +286,7 @@ html[data-layout-position="scrollable"] .header-component.app-header {
     width: 18px;
     height: 2px;
     border-radius: 999px;
-    background-color: #676a6c;
+    background-color: var(--m365-text-secondary);
     transition: background-color 0.2s ease;
   }
 }
@@ -299,7 +302,7 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   span {
     width: 5px;
     height: 5px;
-    background-color: #676a6c;
+    background-color: var(--m365-text-secondary);
     border-radius: 50%;
     display: block;
     transition: background-color 0.2s ease;
@@ -328,28 +331,28 @@ html[data-layout-position="scrollable"] .header-component.app-header {
   background-color: transparent;
 
   &:hover {
-    background-color: #f6f7fb !important;
+    background-color: var(--inspinia-content-bg) !important;
 
     .grid-dots span {
-      background-color: #1ab394;
+      background-color: var(--m365-primary);
     }
 
     .app-menu-icon span {
-      background-color: #1ab394;
+      background-color: var(--m365-primary);
     }
   }
 
   &:active,
   &:focus {
-    background-color: #eef8f5 !important;
+    background-color: var(--m365-tint-blue-bg) !important;
     outline: none !important;
 
     .grid-dots span {
-      background-color: #1c84c6;
+      background-color: var(--m365-primary-pressed);
     }
 
     .app-menu-icon span {
-      background-color: #1c84c6;
+      background-color: var(--m365-primary-pressed);
     }
   }
 }

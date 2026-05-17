@@ -8,7 +8,7 @@
  * - App(): Defines public and protected operator routes.
  */
 
-import { useEffect } from "react";
+import { useEffect, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import OperatorLayout from "./layouts/OperatorLayout";
 import DashboardPage from "./pages/DashboardPage";
@@ -24,6 +24,13 @@ import TenantsPage from "./pages/TenantsPage";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { initializeAuth } from "./store/authSlice";
 import { useAppDispatch } from "./store/hooks";
+import { RouteErrorBoundary } from "./components/feedback";
+
+// Wrap a route element in a RouteErrorBoundary so one page's crash never
+// takes down the whole operator portal. PRD §7.1 L2.
+const wrap = (routeName: string, element: ReactElement): ReactElement => (
+  <RouteErrorBoundary routeName={routeName}>{element}</RouteErrorBoundary>
+);
 
 export default function App() {
   const dispatch = useAppDispatch();
@@ -37,28 +44,48 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<OperatorLayout />}>
-          <Route index element={<DashboardPage />} />
+          <Route index element={wrap("Dashboard", <DashboardPage />)} />
           <Route path="dashboard" element={<Navigate to="/" replace />} />
-          <Route path="tenants" element={<TenantsPage />} />
-          <Route path="tenants/:tenantId" element={<TenantDetailPage />} />
-          <Route path="device-providers" element={<DeviceProvidersPage />} />
-          <Route path="subscriptions" element={<SubscriptionsPage />} />
-          <Route path="invoices" element={<InvoicesPage />} />
-          <Route path="operator-users" element={<OperatorUsersPage />} />
+          <Route path="tenants" element={wrap("Tenants", <TenantsPage />)} />
+          <Route
+            path="tenants/:tenantId"
+            element={wrap("Tenant detail", <TenantDetailPage />)}
+          />
+          <Route
+            path="device-providers"
+            element={wrap("Device providers", <DeviceProvidersPage />)}
+          />
+          <Route
+            path="subscriptions"
+            element={wrap("Subscriptions", <SubscriptionsPage />)}
+          />
+          <Route
+            path="invoices"
+            element={wrap("Invoices", <InvoicesPage />)}
+          />
+          <Route
+            path="operator-users"
+            element={wrap("Operators", <OperatorUsersPage />)}
+          />
           <Route
             path="reports"
-            element={
-              <PlaceholderPage title="Reports" icon="fa-light fa-chart-line" />
-            }
+            element={wrap(
+              "Reports",
+              <PlaceholderPage
+                title="Reports"
+                icon="fa-light fa-chart-line"
+              />,
+            )}
           />
           <Route
             path="audit"
-            element={
+            element={wrap(
+              "Audit log",
               <PlaceholderPage
                 title="Audit Log"
                 icon="fa-light fa-shield-check"
-              />
-            }
+              />,
+            )}
           />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

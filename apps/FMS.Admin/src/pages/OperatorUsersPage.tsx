@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { apiClient, unwrapResponse } from "../api/apiClient";
+import { EmptyState, PageSkeleton } from "../components/feedback";
 import type {
   CreateOperatorUserPayload,
   OperatorUserListPayload,
@@ -303,9 +304,19 @@ export default function OperatorUsersPage() {
           <span>Status</span>
           <span>Actions</span>
         </div>
-        {loading && <div className="operator-table__empty">Loading operators...</div>}
+        {loading && (
+          <div className="operator-table__empty">
+            <PageSkeleton variant="table" rows={5} />
+          </div>
+        )}
         {!loading && items.length === 0 && (
-          <div className="operator-table__empty">No operator users yet</div>
+          <div className="operator-table__empty">
+            <EmptyState
+              icon="fa-light fa-user-shield"
+              title="No operator users yet"
+              message="Create the first platform operator to get started."
+            />
+          </div>
         )}
         {items.map((user) => {
           const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ") || "—";

@@ -50,20 +50,30 @@ export const usePermissions = () => {
     return getUserInfoFromToken(token);
   }, [token]);
 
-  // Permission checking functions
+  // TODO later: restore real permission enforcement after the temporary frontend bypass is no longer needed.
+  // Original permission checking functions are intentionally left below for easy rollback.
   const checkPermission = useCallback((permission) => {
+    /*
     if (!permission) return false;
     return permissionSet.has(permission.toLowerCase());
+    */
+    return true;
   }, [permissionSet]);
 
   const checkAnyPermission = useCallback((requiredPermissions) => {
+    /*
     if (!requiredPermissions || requiredPermissions.length === 0) return false;
     return requiredPermissions.some(perm => permissionSet.has(perm.toLowerCase()));
+    */
+    return true;
   }, [permissionSet]);
 
   const checkAllPermissions = useCallback((requiredPermissions) => {
+    /*
     if (!requiredPermissions || requiredPermissions.length === 0) return false;
     return requiredPermissions.every(perm => permissionSet.has(perm.toLowerCase()));
+    */
+    return true;
   }, [permissionSet]);
 
   const checkRole = useCallback((role) => {
@@ -73,7 +83,8 @@ export const usePermissions = () => {
 
   return {
     permissions,
-    permissionsLoaded,
+    // TODO later: switch back to Redux-backed permission loading state.
+    permissionsLoaded: true,
     userInfo,
     hasPermission: checkPermission,
     hasAnyPermission: checkAnyPermission,

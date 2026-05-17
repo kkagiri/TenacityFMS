@@ -20,6 +20,7 @@ import VehicleDataGrid from "./VehicleDataGrid";
 import VehicleAddForm from "./VehicleAddForm";
 import VehicleDetailPanel from "./VehicleDetailPanel";
 import { usePermissions } from "../../../hooks/usePermissions";
+import { EmptyState } from "../../../components/feedback";
 
 import "./VehicleFleetPage.scss";
 
@@ -100,7 +101,21 @@ const VehicleFleetPage = () => {
 
       {/* ── DataGrid ── */}
       <div className="vehicle-fleet-m365__grid">
-        <VehicleDataGrid onSelectVehicle={handleSelectVehicle} />
+        {Array.isArray(vehicles) && vehicles.length === 0 ? (
+          <EmptyState
+            icon="fa-light fa-truck"
+            title="No vehicles in your fleet"
+            message={
+              canCreateVehicle
+                ? "Add the first vehicle to begin tracking fuel consumption and trips."
+                : "Ask an administrator to add the first vehicle to your fleet."
+            }
+            actionLabel={canCreateVehicle ? "Add vehicle" : undefined}
+            onAction={canCreateVehicle ? handleAddVehicle : undefined}
+          />
+        ) : (
+          <VehicleDataGrid onSelectVehicle={handleSelectVehicle} />
+        )}
       </div>
 
       {/* ── Detail Panel ── */}

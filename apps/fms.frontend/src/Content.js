@@ -32,12 +32,18 @@ import resolvedComponents from "./app-routes";
 import withPermissionProtection from "./utils/withPermissionProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
-import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import ForcePasswordChangePage from "./pages/auth/ForcePasswordChangePage";
 import CustomerRoutes from "./components/CustomerRoutes/CustomerRoutes";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
 import useDocumentTitle from "./hooks/useDocumentTitle";
 import { getOperatorPortalUrl, getSafeInternalRedirect } from "./utils/authRedirect";
+import { RouteErrorBoundary } from "./components/feedback";
+
+// Wrap a route element in a RouteErrorBoundary so one module's crash never
+// takes down the whole shell. PRD §7.1 L2.
+const wrap = (routeName, element) => (
+  <RouteErrorBoundary routeName={routeName}>{element}</RouteErrorBoundary>
+);
 
 export default function Content() {
   const { user } = useSelector((state) => state.auth);
@@ -104,14 +110,20 @@ export default function Content() {
       <Routes>
         <Route
           path="/admin"
-          element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
+          element={wrap(
+            "Admin",
+            React.createElement(
+              withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
+            )
           )}
         />
         <Route
           path="/admin/*"
-          element={React.createElement(
-            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
+          element={wrap(
+            "Admin",
+            React.createElement(
+              withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device", "_Read_DeviceProvider", "_Manage_DeviceProvider", "_Manage_Subtenants", "_Read_SubtenantData", "_Manage_Branding"])
+            )
           )}
         />
         <Route path="*" element={<Navigate to="/admin" replace />} />
@@ -133,38 +145,51 @@ export default function Content() {
   return (
     <SideNavOuterToolbar title={appInfo.title}>
       <Routes>
-        <Route path="/change-password-required" element={<ForcePasswordChangePage />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route
+          path="/change-password-required"
+          element={wrap("Change password", <ForcePasswordChangePage />)}
+        />
+        <Route
+          path="/unauthorized"
+          element={wrap("Unauthorized", <Unauthorized />)}
+        />
 
-        {/* Fueling routes with proper error handling */}
+        {/* Fueling routes — RouteErrorBoundary replaces the legacy per-page
+            ErrorBoundary so one consistent recovery card is shown. PRD §3.2. */}
         <Route
           path="/fueling/:ptsId"
-          element={
-            <ErrorBoundary>
-              <FuelingProcess />
-            </ErrorBoundary>
-          }
+          element={wrap("Fueling", <FuelingProcess />)}
         />
 
         <Route
           path="/user-activities"
-          element={React.createElement(
-            resolvedComponents("activity-dashboard")
+          element={wrap(
+            "User activities",
+            React.createElement(resolvedComponents("activity-dashboard"))
           )}
         />
 
         {/* Tank routes */}
         <Route
           path="/tanks"
-          element={React.createElement(resolvedComponents("tanks"))}
+          element={wrap(
+            "Tanks",
+            React.createElement(resolvedComponents("tanks"))
+          )}
         />
         <Route
           path="/tanks/:id"
-          element={React.createElement(resolvedComponents("tank-details"))}
+          element={wrap(
+            "Tank details",
+            React.createElement(resolvedComponents("tank-details"))
+          )}
         />
         <Route
           path="/tanks/:id/edit"
-          element={React.createElement(resolvedComponents("tank-edit"))}
+          element={wrap(
+            "Tank edit",
+            React.createElement(resolvedComponents("tank-edit"))
+          )}
         />
 
         {/* Keep the old route for backward compatibility */}
@@ -179,28 +204,39 @@ export default function Content() {
 
         <Route
           path="/atg"
-          element={React.createElement(resolvedComponents("atg"))}
+          element={wrap("ATG", React.createElement(resolvedComponents("atg")))}
         />
 
         {/* Tank Stock System Routes - Handle all tankstock sub-routes internally */}
         <Route
           path="/tankstock"
-          element={React.createElement(resolvedComponents("tank stock"))}
+          element={wrap(
+            "Tank stock",
+            React.createElement(resolvedComponents("tank stock"))
+          )}
         />
         <Route
           path="/tankstock/*"
-          element={React.createElement(resolvedComponents("tank stock"))}
+          element={wrap(
+            "Tank stock",
+            React.createElement(resolvedComponents("tank stock"))
+          )}
         />
-        {/* Notification System Routes removed - now handled under /admin/notification */}
 
         {/* User Notification Center - view, read and manage personal notifications */}
         <Route
           path="/my-notifications"
-          element={React.createElement(resolvedComponents("notification-center"))}
+          element={wrap(
+            "Notifications",
+            React.createElement(resolvedComponents("notification-center"))
+          )}
         />
         <Route
           path="/my-notifications/*"
-          element={React.createElement(resolvedComponents("notification-center"))}
+          element={wrap(
+            "Notifications",
+            React.createElement(resolvedComponents("notification-center"))
+          )}
         />
 
         {/* Admin routes intentionally NOT here — admin renders OUTSIDE this shell.
@@ -209,90 +245,132 @@ export default function Content() {
         {/* PTS Terminal Test Page - ISOLATED for debugging */}
         <Route
           path="/pts-terminal-test"
-          element={React.createElement(resolvedComponents("pts-terminal-test"))}
+          element={wrap(
+            "PTS terminal test",
+            React.createElement(resolvedComponents("pts-terminal-test"))
+          )}
         />
 
-        {/* Vehicle Management System Routes - Handle all vehicle sub-routes internally */}
+        {/* Vehicle Management */}
         <Route
           path="/vehicles"
-          element={React.createElement(resolvedComponents("vehicles"))}
+          element={wrap(
+            "Vehicles",
+            React.createElement(resolvedComponents("vehicles"))
+          )}
         />
         <Route
           path="/vehicles/*"
-          element={React.createElement(resolvedComponents("vehicles"))}
+          element={wrap(
+            "Vehicles",
+            React.createElement(resolvedComponents("vehicles"))
+          )}
         />
 
-        {/* Employee Management System Routes - Handle all employee sub-routes internally */}
+        {/* Employee Management */}
         <Route
           path="/employees"
-          element={React.createElement(resolvedComponents("employees"))}
+          element={wrap(
+            "Employees",
+            React.createElement(resolvedComponents("employees"))
+          )}
         />
         <Route
           path="/employees/*"
-          element={React.createElement(resolvedComponents("employees"))}
+          element={wrap(
+            "Employees",
+            React.createElement(resolvedComponents("employees"))
+          )}
         />
 
-        {/* Reports System Routes - Handle all reports sub-routes internally */}
+        {/* Reports */}
         <Route
           path="/reports"
-          element={React.createElement(resolvedComponents("reports"))}
+          element={wrap(
+            "Reports",
+            React.createElement(resolvedComponents("reports"))
+          )}
         />
         <Route
           path="/reports/*"
-          element={React.createElement(resolvedComponents("reports"))}
+          element={wrap(
+            "Reports",
+            React.createElement(resolvedComponents("reports"))
+          )}
         />
 
-        {/* Maintenance System Routes - Handle all maintenance sub-routes internally */}
+        {/* Maintenance */}
         <Route
           path="/maintenance"
-          element={React.createElement(resolvedComponents("maintenance"))}
+          element={wrap(
+            "Maintenance",
+            React.createElement(resolvedComponents("maintenance"))
+          )}
         />
         <Route
           path="/maintenance/*"
-          element={React.createElement(resolvedComponents("maintenance"))}
+          element={wrap(
+            "Maintenance",
+            React.createElement(resolvedComponents("maintenance"))
+          )}
         />
 
-        {/* Provider Management System Routes - Handle all providermanagement sub-routes internally */}
+        {/* Provider Management */}
         <Route
           path="/providermanagement"
-          element={React.createElement(
-            resolvedComponents("provider management")
+          element={wrap(
+            "Provider management",
+            React.createElement(resolvedComponents("provider management"))
           )}
         />
         <Route
           path="/providermanagement/*"
-          element={React.createElement(
-            resolvedComponents("provider management")
+          element={wrap(
+            "Provider management",
+            React.createElement(resolvedComponents("provider management"))
           )}
         />
 
-        {/* Issue Tracker System Routes - Handle all issue-tracker sub-routes internally */}
+        {/* Issue Tracker */}
         <Route
           path="/issue-tracker"
-          element={React.createElement(resolvedComponents("issue tracker"))}
+          element={wrap(
+            "Issue tracker",
+            React.createElement(resolvedComponents("issue tracker"))
+          )}
         />
         <Route
           path="/issue-tracker/*"
-          element={React.createElement(resolvedComponents("issue tracker"))}
+          element={wrap(
+            "Issue tracker",
+            React.createElement(resolvedComponents("issue tracker"))
+          )}
         />
 
-        {/* Event Expressions Management */}
+        {/* Event Expressions */}
         <Route
           path="/event-expressions"
-          element={React.createElement(resolvedComponents("event-expressions"))}
+          element={wrap(
+            "Event expressions",
+            React.createElement(resolvedComponents("event-expressions"))
+          )}
         />
         <Route
           path="/event-expressions/*"
-          element={React.createElement(resolvedComponents("event-expressions"))}
+          element={wrap(
+            "Event expressions",
+            React.createElement(resolvedComponents("event-expressions"))
+          )}
         />
 
-        {/* Home/Dashboard route - maps to the dashboard component */}
+        {/* Home/Dashboard */}
         <Route
           path="/home"
-          element={React.createElement(resolvedComponents("dashboard"))}
+          element={wrap(
+            "Dashboard",
+            React.createElement(resolvedComponents("dashboard"))
+          )}
         />
-
-        {/* Widget Testing route - for testing dashboard widgets with mock data */}
 
         <Route path="*" element={<Navigate to="/home" />} />
       </Routes>

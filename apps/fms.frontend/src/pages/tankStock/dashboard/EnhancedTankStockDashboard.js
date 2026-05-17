@@ -15,6 +15,7 @@ import TankFormPanel from '../../tank/components/TankFormPanel';
 import PTSDeviceLinkPanel from '../../tank/components/PTSDeviceLinkPanel';
 import { LorryTanker, StationaryTank } from './TankComponents';
 import ModuleDashboard from '../../../components/dashboard/ModuleDashboard';
+import { EmptyState, PageSkeleton } from '../../../components/feedback';
 import './EnhancedTankStockDashboard.scss';
 
 /* ── Level → fill colour (Critical=red, Low=orange, Normal=blue, Full=green) */
@@ -352,9 +353,18 @@ const EnhancedTankStockDashboard = () => {
   if (tanksLoading && !Array.isArray(tanks)) {
     return (
       <div className="fms-dashboard-loading">
-        <LoadIndicator visible={true} />
-        <span>Loading tank data…</span>
+        <PageSkeleton variant="card-grid" rows={4} />
       </div>
+    );
+  }
+
+  if (!tanksLoading && Array.isArray(tanks) && tanks.length === 0) {
+    return (
+      <EmptyState
+        icon="fa-light fa-gas-pump"
+        title="No tanks configured yet"
+        message="Tanks let you monitor fuel stock, set thresholds, and link ATG devices. Ask an administrator to register the first tank."
+      />
     );
   }
 

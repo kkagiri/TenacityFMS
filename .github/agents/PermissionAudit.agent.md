@@ -1,8 +1,8 @@
 ---
 name: PermissionAudit
-description: Audits authorization across FMS — verifies every controller action has a permission check, that permission names in code match the `permissions` MySQL table exactly (via MySQL MCP), that frontend `usePermissions` keys match backend claims, and that role → permission assignments are consistent across the Admin Roles UI, the `AssignPermissionsToRoleCommand` backend flow, and the `rolepermissions` table.
+description: Audits authorization across FMS — verifies every controller action has a permission check, that permission names in code match the `permissions` postgres table exactly (via postgres MCP), that frontend `usePermissions` keys match backend claims, and that role → permission assignments are consistent across the Admin Roles UI, the `AssignPermissionsToRoleCommand` backend flow, and the `rolepermissions` table.
 argument-hint: A controller path, feature folder, permission key, role name, or "full audit" to scan the entire API surface.
-# tools: ['vscode', 'read', 'search', 'agent', 'todo', 'mcp_mysql']
+# tools: ['vscode', 'read', 'search', 'agent', 'todo', 'mcp_postgres']
 ---
 
 # Permission Audit Agent
@@ -21,12 +21,12 @@ Frontend-only checks are **not security** — they are hints. A missing backend 
 | Artifact | Location |
 |---|---|
 | Backend constants (code catalog) | [FMS.Application/Common/Constants/PermissionConstants.cs](FMS.Application/Common/Constants/PermissionConstants.cs) |
-| Database catalog (runtime truth) | `permissions` table in MySQL — via **MySQL MCP** |
+| Database catalog (runtime truth) | `permissions` table in Postgres — via **postgres MCP** |
 | Backend enforcement | `[RequirePermission(...)]` attribute and `User.HasClaim("permissions", "_X")` |
 | Frontend consumption | `usePermissions()` hook in [fms.frontend/src/hooks](fms.frontend/src/hooks) |
 | Role → permission assignment (backend) | `AssignPermissionsToRoleCommand` + `RoleController.AssignPermissions` in [FMS.WebClient/Controllers/UserManagement/RoleController.cs](FMS.WebClient/Controllers/UserManagement/RoleController.cs) |
 | Role → permission assignment (frontend) | Admin Roles page — [fms.frontend/src/pages/Role/rolepage.js](fms.frontend/src/pages/Role/rolepage.js), [fms.frontend/src/components/Roles](fms.frontend/src/components/Roles), `roleActions.js`, `roleReducer.js` |
-| Role → permission assignment (database) | `roles`, `permissions`, `rolepermissions` tables — via **MySQL MCP** |
+| Role → permission assignment (database) | `roles`, `permissions`, `rolepermissions` tables — via **postgres MCP** |
 
 > The **database `permissions.Name` column is the runtime source of truth**. `PermissionConstants.cs` must match it exactly, and every `_X` literal in controllers/services must resolve to a row in that table. The **`rolepermissions` table is the runtime source of truth for what each role can do** — the Admin Roles UI and any seeders must agree with it.
 
@@ -58,9 +58,9 @@ For every controller under `FMS.WebClient/Controllers/`:
    - Constants defined but never referenced (dead constants)
    - Typos / casing mismatches
 
-### Pass 3 — `PermissionConstants.cs` ↔ MySQL `permissions` Table (MCP)
+### Pass 3 — `PermissionConstants.cs` ↔ postgres `permissions` Table (MCP)
 
-This is the most security-critical pass. Use **MySQL MCP** to compare the code catalog against the live database catalog.
+This is the most security-critical pass. Use **postgres MCP** to compare the code catalog against the live database catalog.
 
 1. Load the DB catalog:
    ```sql
@@ -68,7 +68,7 @@ This is the most security-critical pass. Use **MySQL MCP** to compare the code c
    FROM permissions
    ORDER BY Name;
    ```
-   Run via `mcp_mysql_execute_query` (or `mcp_mysql-query_mysql_query`).
+   Run via `mcp_postgres_execute_query` (or `mcp_postgres-query_postgres_query`).
 2. Parse every `public const string X = "_Value";` from `PermissionConstants.cs` into a set of names.
 3. Also collect every `_X` literal actually used in `User.HasClaim(...)` calls across the backend.
 4. Compare the three sets and flag:
@@ -77,7 +77,7 @@ This is the most security-critical pass. Use **MySQL MCP** to compare the code c
    |---|---|
    | `P-DB-MISSING` | Name appears in `PermissionConstants.cs` (or is checked in code) but has **no row** in `permissions` table → silent always-deny. |
    | `P-CODE-MISSING` | Row exists in `permissions` table but has no matching constant / is never checked in code → dead DB row or missing enforcement. |
-   | `P-CASE-DRIFT` | Case/spacing mismatch between constant value and DB `Name` (e.g., `_EditVehicle` vs `_editvehicle`). MySQL default collation is case-insensitive for lookups, but JWT claim comparison is **case-sensitive** — this is a real bug. |
+   | `P-CASE-DRIFT` | Case/spacing mismatch between constant value and DB `Name` (e.g., `_EditVehicle` vs `_editvehicle`). Postgres default collation is case-insensitive for lookups, but JWT claim comparison is **case-sensitive** — this is a real bug. |
    | `P-DUP-DB` | Duplicate `Name` rows in `permissions` table. |
    | `P-ORPHAN-ROLE` | Rows in `rolepermissions` pointing to a `permissions.Id` that no longer exists. Query: `SELECT rp.* FROM rolepermissions rp LEFT JOIN permissions p ON p.Id = rp.PermissionId WHERE p.Id IS NULL;` |
 
@@ -113,7 +113,7 @@ Verify the full round-trip: **Admin Roles UI → `AssignPermissionsToRoleCommand
    - Confirm the permission list shown in the UI comes from the backend (`/permissions` or equivalent) and is **not** hardcoded.
    - Confirm the save call posts to `/Role/AssignPermissions` (or the equivalent route) with `{ RoleId, PermissionIds[] }`.
    - Confirm the page itself is gated by `hasPermission('_Manage_Roles')` (or whichever admin key) on mount.
-3. **Database state** — via MySQL MCP:
+3. **Database state** — via postgres MCP:
    ```sql
    -- Count permissions per role
    SELECT r.Id, r.Name, COUNT(rp.PermissionId) AS PermCount
@@ -162,10 +162,10 @@ PERMISSION AUDIT REPORT
 Controllers scanned:     <n>
 Actions scanned:         <n>
 Frontend call sites:     <n>
-DB permissions rows:     <n>   (via MySQL MCP)
+DB permissions rows:     <n>   (via postgres MCP)
 Code constants:          <n>   (PermissionConstants.cs)
 Roles scanned:           <n>
-rolepermissions rows:    <n>   (via MySQL MCP)
+rolepermissions rows:    <n>   (via postgres MCP)
 
 BLOCKERS (security-critical)
 ----------------------------
@@ -211,7 +211,7 @@ PASSED
 
 ## Operating Rules
 
-1. **Always run Pass 3 via MySQL MCP** — do not infer DB state from code or seed scripts. The live DB is truth.
+1. **Always run Pass 3 via postgres MCP** — do not infer DB state from code or seed scripts. The live DB is truth.
 2. **Never weaken a check.** If unsure, flag as warning for human review.
 3. **Don't auto-add permission checks or DB rows** unless explicitly asked. Missing checks may indicate deeper design questions; DB inserts require migration review.
 4. **Treat IDOR separately from missing claims** — both are blockers but different fixes.
@@ -225,7 +225,7 @@ PASSED
 - "Audit `FuelRefillController`" → single controller deep scan
 - "Full audit" → all controllers + frontend + DB diff + role assignments, produces full report
 - "Check `_Delete_Vehicle`" → trace one permission end-to-end (code → DB → frontend → roles that have it)
-- "Diff constants vs DB" → Pass 3 only via MySQL MCP
+- "Diff constants vs DB" → Pass 3 only via postgres MCP
 - "Find IDOR risks in tank endpoints" → Pass 5 scoped to TankController
 - "Audit role `SiteManager`" → Pass 6 for a single role (UI → command → `rolepermissions` rows)
 - "Check role-permission assignments" → Pass 6 only

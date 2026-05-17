@@ -1,22 +1,29 @@
+/**
+ * File: side-nav-outer-toolbar.scss
+ * Purpose: Layout chrome for the Inspinia-inherited tenant shell.
+ * Tokens (see src/styles/tokens/_design-tokens.scss): all sizes and colors
+ * resolve through --inspinia-* / --layout-* / --m365-* custom properties.
+ */
+
 .side-nav-outer-toolbar {
-  --sidenav-width: 235px;
-  --sidenav-width-sm: 75px;
-  --topbar-height: 65px;
+  --sidenav-width: var(--layout-sidenav-width);
+  --sidenav-width-sm: var(--layout-sidenav-width-collapsed);
+  --topbar-height: var(--layout-topbar-height);
   height: 100vh;
   width: 100%;
-  background: #f6f7fb;
+  background: var(--inspinia-content-bg);
 
   .drawer {
     height: calc(100vh - var(--topbar-height));
 
     .dx-drawer-panel-content {
-      background: #23303c;
-      border-right: 1px solid #23303c;
+      background: var(--inspinia-sidebar-bg);
+      border-right: 1px solid var(--inspinia-sidebar-border);
       box-shadow: none;
     }
 
     .dx-drawer-content {
-      background: #f6f7fb;
+      background: var(--inspinia-content-bg);
     }
   }
 
@@ -24,13 +31,13 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #f6f7fb;
+    background: var(--inspinia-content-bg);
   }
 
   .layout-body {
     flex: 1;
     height: 100%;
-    background: #f6f7fb;
+    background: var(--inspinia-content-bg);
   }
 
   .layout-body.with-footer {
@@ -39,21 +46,21 @@
 
     .content {
       flex: 1;
-      padding: 24px;
+      padding: var(--layout-content-padding);
       overflow-y: auto;
-      background: #f6f7fb;
+      background: var(--inspinia-content-bg);
     }
 
     .content-block {
       margin-top: auto;
-      padding: 10px 24px 16px;
-      background: #f6f7fb;
+      padding: 10px var(--layout-content-padding) 16px;
+      background: var(--inspinia-content-bg);
     }
   }
 
   .footer {
-    border-top: 1px solid #e7e9eb;
-    color: #6c757d;
+    border-top: 1px solid var(--inspinia-topbar-border);
+    color: var(--layout-footer-text-color);
     font-size: 12px;
     background: transparent;
     padding-top: 12px;
@@ -72,8 +79,8 @@ html[data-footer-position="fixed"] .side-nav-outer-toolbar {
       position: sticky;
       bottom: 0;
       z-index: 4;
-      border-top: 1px solid #e7e9eb;
-      background: #ffffff;
+      border-top: 1px solid var(--inspinia-topbar-border);
+      background: var(--inspinia-topbar-bg);
     }
   }
 }
@@ -90,11 +97,11 @@ html[data-footer-position="fixed"] .side-nav-outer-toolbar {
 
     .layout-body.with-footer {
       .content {
-        padding: 16px;
+        padding: var(--layout-content-padding-sm);
       }
 
       .content-block {
-        padding: 8px 16px 12px;
+        padding: 8px var(--layout-content-padding-sm) 12px;
       }
     }
   }

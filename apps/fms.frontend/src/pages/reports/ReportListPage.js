@@ -24,6 +24,7 @@ import { Button } from 'devextreme-react/button';
 import { filterReportSourcesByPermission, getAllReportSources } from './sources';
 import { usePermissions } from '../../hooks/usePermissions';
 import { reportsRoutes } from './utils/navigationHelper';
+import { EmptyState } from '../../components/feedback';
 import './ReportListPage.scss';
 
 const CATEGORY_COLORS = {
@@ -252,38 +253,47 @@ const ReportListPage = () => {
 
             {/* ── List View (DataGrid) ── */}
             {viewMode === 'list' && (
-                <DataGrid
-                    dataSource={filtered}
-                    showBorders={true}
-                    columnAutoWidth={true}
-                    rowAlternationEnabled={false}
-                    keyExpr="id"
-                    wordWrapEnabled={true}
-                    onRowDblClick={(e) => goToEngine(e.data.id)}
-                >
-                    <SearchPanel visible={false} />
-                    <FilterRow visible={true} />
-                    <GroupPanel visible={true} />
-                    <Grouping autoExpandAll={true} />
-                    <Paging defaultPageSize={20} />
-                    <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50]} showInfo={true} />
+                filtered.length === 0 ? (
+                    <EmptyState
+                        icon="fa-light fa-magnifying-glass"
+                        title="No reports match your filters"
+                        message="Try clearing a filter or switching to gallery view to browse all available reports."
+                    />
+                ) : (
+                    <DataGrid
+                        dataSource={filtered}
+                        showBorders={true}
+                        columnAutoWidth={true}
+                        rowAlternationEnabled={false}
+                        keyExpr="id"
+                        wordWrapEnabled={true}
+                        onRowDblClick={(e) => goToEngine(e.data.id)}
+                    >
+                        <SearchPanel visible={false} />
+                        <FilterRow visible={true} />
+                        <GroupPanel visible={true} />
+                        <Grouping autoExpandAll={true} />
+                        <Paging defaultPageSize={20} />
+                        <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50]} showInfo={true} />
 
-                    <Column dataField="name" caption="Report" minWidth={200} cellRender={renderIcon} />
-                    <Column dataField="category" caption="Category" width={180} groupIndex={0} />
-                    <Column dataField="description" caption="Description" minWidth={200} />
-                    <Column dataField="parameterCount" caption="Params" width={80} alignment="center" />
-                    <Column dataField="formatsStr" caption="Formats" width={180} cellRender={renderFormats} allowFiltering={false} />
-                    <Column caption="Actions" width={100} cellRender={renderActions} alignment="center" allowSorting={false} allowFiltering={false} />
-                </DataGrid>
+                        <Column dataField="name" caption="Report" minWidth={200} cellRender={renderIcon} />
+                        <Column dataField="category" caption="Category" width={180} groupIndex={0} />
+                        <Column dataField="description" caption="Description" minWidth={200} />
+                        <Column dataField="parameterCount" caption="Params" width={80} alignment="center" />
+                        <Column dataField="formatsStr" caption="Formats" width={180} cellRender={renderFormats} allowFiltering={false} />
+                        <Column caption="Actions" width={100} cellRender={renderActions} alignment="center" allowSorting={false} allowFiltering={false} />
+                    </DataGrid>
+                )
             )}
 
             {/* ── Gallery / Tile View ── */}
             {viewMode === 'gallery' && (
                 filtered.length === 0 ? (
-                    <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-20" style={{ color: 'var(--fms-text-secondary)' }}>
-                        <i className="fa-light fa-search tw-text-5xl tw-mb-4" />
-                        <p className="tw-text-base">No reports match your filters</p>
-                    </div>
+                    <EmptyState
+                        icon="fa-light fa-magnifying-glass"
+                        title="No reports match your filters"
+                        message="Try clearing a filter to see available reports."
+                    />
                 ) : (
                     <div className="tw-grid tw-gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
                         {filtered.map(renderTile)}

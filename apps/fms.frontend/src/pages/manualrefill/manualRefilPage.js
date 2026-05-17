@@ -34,6 +34,7 @@ import { formatDate } from '../../utils/dateUtils';
 //Cursor - Import new components for filtering and quick actions
 import FilterPopup from './components/FilterPopup';
 import QuickActionsMenu from './components/QuickActionsMenu';
+import { EmptyState, PageSkeleton } from '../../components/feedback';
 
 // Future records validation imports
 import { useFutureRecordsValidation } from '../../hooks/useFutureRecordsValidation';
@@ -459,8 +460,8 @@ export default function FuelRefill() {
 
     if (loading || saving) {
         return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+            <div className="content-block">
+                <PageSkeleton variant="table" rows={6} />
             </div>
         );
     }

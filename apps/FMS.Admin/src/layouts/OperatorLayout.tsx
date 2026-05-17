@@ -1,17 +1,24 @@
 /**
  * File:          OperatorLayout.tsx
  * Purpose:       Inspinia-style shell for the standalone operator portal.
- * Dependencies:  react-router-dom, Redux auth state
- * Last Modified: 2026-05-10
+ * Dependencies:  react-router-dom, Redux auth state, useLayoutAttributes hook
+ * Last Modified: 2026-05-16
  *
  * Key Functions:
  * - OperatorLayout(): Renders sidebar, topbar, and nested routes.
+ *
+ * The <html> data-* attributes are owned by useLayoutAttributes — see
+ * apps/FMS.Admin/src/utils/useLayoutAttributes.ts and the canonical JS
+ * version in apps/fms.frontend/src/hooks/. PRD §4.3.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { logout } from "../store/authSlice";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
+import useLayoutAttributes, {
+  type SidenavSize,
+} from "../utils/useLayoutAttributes";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: "fa-light fa-gauge-high", end: true },
@@ -32,43 +39,55 @@ const navItems = [
   { to: "/audit", label: "Audit Log", icon: "fa-light fa-shield-check" },
 ];
 
+const MOBILE_BREAKPOINT_PX = 768;
+
+function getIsLargeViewport(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.innerWidth > MOBILE_BREAKPOINT_PX;
+}
+
 export default function OperatorLayout() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLarge, setIsLarge] = useState<boolean>(getIsLargeViewport);
+  // Tracks the user's explicit toggle of the sidebar. On desktop, false ⇒
+  // condensed (icon-only) and true ⇒ default (full). On mobile this drives the
+  // slide-in `is-sidebar-open` class. Default state mirrors fms.frontend:
+  // open on desktop, closed on mobile.
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() =>
+    getIsLargeViewport(),
+  );
 
   useEffect(() => {
-    const root = document.documentElement;
-    const layoutAttributes = {
-      "data-layout": "basic-left",
-      "data-menu-color": "dark",
-      "data-topbar-color": "light",
-      "data-sidenav-size": "default",
-      "data-layout-position": "fixed",
-      "data-layout-width": "fluid",
-      "data-footer-position": "scrollable",
+    const handleResize = () => {
+      const large = getIsLargeViewport();
+      setIsLarge(large);
+      setIsSidebarOpen(large);
     };
-
-    Object.entries(layoutAttributes).forEach(([attribute, value]) => {
-      root.setAttribute(attribute, value);
-    });
-
-    return () => {
-      Object.keys(layoutAttributes).forEach((attribute) => {
-        root.removeAttribute(attribute);
-      });
-    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const sidenavSize: SidenavSize = useMemo(() => {
+    if (!isLarge) return "offcanvas";
+    return isSidebarOpen ? "default" : "condensed";
+  }, [isLarge, isSidebarOpen]);
+
+  useLayoutAttributes({ sidenavSize });
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login", { replace: true });
   };
 
+  const showMobileOpenClass = !isLarge && isSidebarOpen;
+
   return (
     <div
-      className={`admin-shell wrapper${isSidebarOpen ? " is-sidebar-open" : ""}`}
+      className={`admin-shell inspinia-shell wrapper${
+        showMobileOpenClass ? " is-sidebar-open" : ""
+      }`}
     >
       <aside
         id="app-menu"

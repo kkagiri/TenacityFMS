@@ -14,16 +14,19 @@ import { Provider } from "react-redux";
 import { BrowserRouter } from "react-router-dom";
 import "../../fms.frontend/assests/fontawesome/css/fontawesome.css";
 import "../../fms.frontend/assests/fontawesome/css/light.css";
+import AdminErrorBoundary from "./AdminErrorBoundary";
 import App from "./App";
 import { store } from "./store/store";
 import "./styles/admin.scss";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </Provider>
+    <AdminErrorBoundary>
+      <Provider store={store}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </Provider>
+    </AdminErrorBoundary>
   </React.StrictMode>,
 );

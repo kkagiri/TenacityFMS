@@ -1,0 +1,8 @@
+/**
+ * File:          feedback.scss (FMS.Admin mirror)
+ * Purpose:       Shared visual style for the feedback components. Re-exports
+ *                the canonical SCSS from apps/fms.frontend so both shells
+ *                resolve to identical visuals. PRD §7.3.
+ */
+
+@import "../../../../fms.frontend/src/components/feedback/feedback";

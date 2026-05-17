@@ -11,50 +11,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "./tokens/design-tokens";
 @import "./inspinia-shell";
 
+// Page-level binding for the M365 font/color baseline. Token definitions live
+// in ./tokens/design-tokens.scss (mirrors apps/fms.frontend/src/styles/tokens/
+// _design-tokens.scss). Both shells must resolve identical tokens — do not
+// re-declare them here.
 :root {
-  --theme-primary: #1ab394;
-  --theme-secondary: #1c84c6;
-  --theme-sidenav-width: 235px;
-  --theme-sidenav-width-sm: 75px;
-  --theme-topbar-height: 65px;
-  --theme-sidenav-bg: #23303c;
-  --theme-sidenav-border-color: #23303c;
-  --theme-sidenav-item-color: #8495ab;
-  --theme-sidenav-item-hover-color: #ced6df;
-  --theme-sidenav-item-hover-bg: #2f3742;
-  --theme-sidenav-item-active-color: #ced6df;
-  --theme-sidenav-item-active-bg: #1c262f;
-  --theme-sidenav-item-padding-x: 10px;
-  --theme-sidenav-item-padding-y: 10px;
-  --theme-box-shadow: none;
-  --inspinia-sidebar-text: var(--theme-sidenav-item-color);
-  --inspinia-accent: #1ab394;
-  --inspinia-accent-hover: #18a689;
-  --inspinia-secondary-accent: #1c84c6;
-  --inspinia-content-bg: #f6f7fb;
-  --inspinia-topbar-bg: #ffffff;
-  --inspinia-topbar-border: #e7e9eb;
-  --inspinia-heading: #313a46;
-  --m365-primary: #0078d4;
-  --m365-primary-hover: #106ebe;
-  --m365-primary-pressed: #005a9e;
-  --m365-success: #107c10;
-  --m365-error: #d13438;
-  --m365-warning: #ca5010;
-  --m365-info: #0078d4;
-  --m365-text: #201f1e;
-  --m365-text-secondary: #605e5c;
-  --m365-text-tertiary: #a19f9d;
-  --m365-border: #c8c6c4;
-  --m365-border-light: #edebe9;
-  --m365-bg-hover: #f3f2f1;
   --m365-bg-surface: var(--inspinia-content-bg);
-  --m365-bg-card: #ffffff;
-  --m365-selected-bg: #e5f1fb;
-  --m365-blue-bg: #deecf9;
-  --m365-font: "Segoe UI", -apple-system, system-ui, sans-serif;
+
   font-family: var(--m365-font);
   color: var(--m365-text);
   background: var(--m365-bg-surface);

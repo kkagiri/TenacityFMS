@@ -1,12 +1,13 @@
 import Drawer from "devextreme-react/drawer";
 import ScrollView from "devextreme-react/scroll-view";
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Header, SideNavigationMenu, Footer } from "../../components";
 import "./side-nav-outer-toolbar.scss";
 import { useScreenSize } from "../../utils/media-query";
 import { Template } from "devextreme-react/core/template";
 import { useMenuPatch } from "../../utils/patches";
+import useLayoutAttributes from "../../hooks/useLayoutAttributes";
 
 const getDrawerRootElement = (drawerRef) => {
   const drawerInstance = drawerRef?.current?.instance;
@@ -36,35 +37,12 @@ export default function SideNavOuterToolbar({ title, children }) {
     setMenuStatus(isLarge ? MenuStatus.Opened : MenuStatus.Closed);
   }, [isLarge]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    const layoutAttributes = {
-      "data-layout": "basic-left",
-      "data-menu-color": "dark",
-      "data-topbar-color": "light",
-      "data-layout-position": "fixed",
-      "data-layout-width": "fluid",
-      "data-footer-position": "scrollable",
-    };
-
-    Object.entries(layoutAttributes).forEach(([attribute, value]) => {
-      root.setAttribute(attribute, value);
-    });
-
-    return () => {
-      Object.keys(layoutAttributes).forEach((attribute) => {
-        root.removeAttribute(attribute);
-      });
-      root.removeAttribute("data-sidenav-size");
-    };
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.setAttribute(
-      "data-sidenav-size",
-      !isLarge ? "offcanvas" : menuStatus === MenuStatus.Closed ? "condensed" : "default"
-    );
+  const sidenavSize = useMemo(() => {
+    if (!isLarge) return "offcanvas";
+    return menuStatus === MenuStatus.Closed ? "condensed" : "default";
   }, [isLarge, menuStatus]);
+
+  useLayoutAttributes({ sidenavSize });
 
   // Handle outside clicks
   useEffect(() => {

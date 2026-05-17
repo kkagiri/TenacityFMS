@@ -1,0 +1,147 @@
+// =============================================================================
+// FMS Design Tokens — Single Source of Truth
+// -----------------------------------------------------------------------------
+// Authoritative reference: Documentation/Features/frontend-layout/shell-and-
+// design-language/V1/implementation/PRD.md (§5 Design Language, §6 Inspinia
+// Inheritance Matrix). This file is the single source of truth for both
+// apps/fms.frontend and apps/FMS.Admin. The Admin app mirrors this file at
+// apps/FMS.Admin/src/styles/tokens/_design-tokens.scss.
+// =============================================================================
+
+:root {
+  // ---------------------------------------------------------------------------
+  // M365 — Primary & Semantic
+  // ---------------------------------------------------------------------------
+  --m365-primary: #0078d4;
+  --m365-primary-hover: #106ebe;
+  --m365-primary-pressed: #005a9e;
+  --m365-success: #107c10;
+  --m365-warning: #ca5010;
+  --m365-error: #d13438;
+  --m365-info: #0078d4;
+
+  // ---------------------------------------------------------------------------
+  // M365 — Neutrals & Surfaces
+  // ---------------------------------------------------------------------------
+  --m365-text: #201f1e;
+  --m365-text-secondary: #605e5c;
+  --m365-text-tertiary: #a19f9d;
+  --m365-border: #c8c6c4;
+  --m365-border-light: #edebe9;
+  --m365-bg-hover: #f3f2f1;
+  --m365-bg-surface: #faf9f8;
+  --m365-bg-card: #ffffff;
+  --m365-selected-bg: #e5f1fb;
+  --m365-blue-bg: #deecf9;
+
+  // ---------------------------------------------------------------------------
+  // M365 — Accent tints (badges, chips, light fills)
+  // ---------------------------------------------------------------------------
+  --m365-tint-blue-bg: #deecf9;
+  --m365-tint-blue-fg: #0078d4;
+  --m365-tint-red-bg: #fde7e9;
+  --m365-tint-red-fg: #d13438;
+  --m365-tint-green-bg: #dff6dd;
+  --m365-tint-green-fg: #107c10;
+  --m365-tint-orange-bg: #fff4ce;
+  --m365-tint-orange-fg: #ca5010;
+  --m365-tint-teal-bg: #e0f2f1;
+  --m365-tint-teal-fg: #00796b;
+  --m365-tint-indigo-bg: #e8eaf6;
+  --m365-tint-indigo-fg: #3949ab;
+  --m365-tint-purple-bg: #f3e8fd;
+  --m365-tint-purple-fg: #6b21a8;
+  --m365-tint-neutral-bg: #f3f2f1;
+  --m365-tint-neutral-fg: #605e5c;
+
+  // ---------------------------------------------------------------------------
+  // Inspinia — Kept tokens (sidebar chrome + content background)
+  // PRD §6 Inheritance Matrix marks these as "inherit from Inspinia".
+  // ---------------------------------------------------------------------------
+  --inspinia-content-bg: #f6f7fb;
+  --inspinia-topbar-bg: #ffffff;
+  --inspinia-topbar-border: #e7e9eb;
+  --inspinia-heading: #313a46;
+
+  --inspinia-sidebar-bg: #23303c;
+  --inspinia-sidebar-border: #23303c;
+  --inspinia-sidebar-text: #8495ab;
+  --inspinia-sidebar-item-hover-color: #ced6df;
+  --inspinia-sidebar-item-hover-bg: #2f3742;
+  --inspinia-sidebar-item-active-color: #ced6df;
+  --inspinia-sidebar-item-active-bg: #1c262f;
+
+  // Inspinia teal — DEPRECATED. Only sidebar nav indicators may use it.
+  // Anywhere else: use --m365-primary instead. See PRD §6.
+  --inspinia-accent: #1ab394;
+  --inspinia-accent-hover: #18a689;
+  --inspinia-secondary-accent: #1c84c6;
+
+  // ---------------------------------------------------------------------------
+  // Layout — shared shell dimensions (PRD §4.3)
+  // ---------------------------------------------------------------------------
+  --layout-topbar-height: 65px;
+  --layout-sidenav-width: 235px;
+  --layout-sidenav-width-collapsed: 75px;
+  --layout-content-padding: 24px;
+  --layout-content-padding-sm: 16px;
+  --layout-footer-text-color: #6c757d;
+
+  // ---------------------------------------------------------------------------
+  // Typography
+  // ---------------------------------------------------------------------------
+  --m365-font: "Segoe UI", -apple-system, system-ui, sans-serif;
+  --m365-font-size-body: 13px;
+  --m365-font-size-h2: 16px;
+  --m365-font-size-h1: 18px;
+  --m365-font-weight-header: 600;
+  --m365-font-weight-medium: 500;
+  --m365-font-weight-normal: 400;
+
+  // ---------------------------------------------------------------------------
+  // Controls — sizing (PRD §5)
+  // ---------------------------------------------------------------------------
+  --m365-control-height: 34px;
+  --m365-control-height-compact: 28px;
+  --m365-control-radius: 4px;
+  --m365-card-radius: 8px;
+  --m365-panel-radius: 12px;
+  --m365-control-padding-x: 10px;
+  --m365-control-focus-ring: 0 0 0 1px var(--m365-primary);
+
+  // ---------------------------------------------------------------------------
+  // Spacing scale
+  // ---------------------------------------------------------------------------
+  --m365-space-xs: 4px;
+  --m365-space-sm: 8px;
+  --m365-space-md: 12px;
+  --m365-space-lg: 16px;
+  --m365-space-xl: 24px;
+
+  // ---------------------------------------------------------------------------
+  // Motion
+  // ---------------------------------------------------------------------------
+  --m365-transition-fast: 0.15s ease;
+  --m365-transition-base: 0.2s ease;
+
+  // ---------------------------------------------------------------------------
+  // Legacy aliases (kept for backward compatibility — DO NOT use in new code)
+  // The --theme-* names predate the unified token system; map them to current
+  // tokens so existing FMS.Admin styles continue to render unchanged.
+  // ---------------------------------------------------------------------------
+  --theme-primary: var(--inspinia-accent);
+  --theme-secondary: var(--inspinia-secondary-accent);
+  --theme-sidenav-width: var(--layout-sidenav-width);
+  --theme-sidenav-width-sm: var(--layout-sidenav-width-collapsed);
+  --theme-topbar-height: var(--layout-topbar-height);
+  --theme-sidenav-bg: var(--inspinia-sidebar-bg);
+  --theme-sidenav-border-color: var(--inspinia-sidebar-border);
+  --theme-sidenav-item-color: var(--inspinia-sidebar-text);
+  --theme-sidenav-item-hover-color: var(--inspinia-sidebar-item-hover-color);
+  --theme-sidenav-item-hover-bg: var(--inspinia-sidebar-item-hover-bg);
+  --theme-sidenav-item-active-color: var(--inspinia-sidebar-item-active-color);
+  --theme-sidenav-item-active-bg: var(--inspinia-sidebar-item-active-bg);
+  --theme-sidenav-item-padding-x: 10px;
+  --theme-sidenav-item-padding-y: 10px;
+  --theme-box-shadow: none;
+}
