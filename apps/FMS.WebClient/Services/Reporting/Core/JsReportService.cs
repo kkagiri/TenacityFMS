@@ -533,30 +533,6 @@ namespace FMS.WebClient.Services.Reporting
                     return ms.ToArray();
                 }
 
-                if (root.TryGetProperty("records", out var warningLetterCandidateRows) &&
-                    warningLetterCandidateRows.ValueKind == JsonValueKind.Array &&
-                    warningLetterCandidateRows.GetArrayLength() > 0 &&
-                    warningLetterCandidateRows[0].TryGetProperty("letterTypeName", out _) &&
-                    warningLetterCandidateRows[0].TryGetProperty("metricDate", out _))
-                {
-                    BuildWarningLetterCandidatesSheet(wb, root, warningLetterCandidateRows);
-                    using var ms = new MemoryStream();
-                    wb.SaveAs(ms);
-                    return ms.ToArray();
-                }
-
-                if (root.TryGetProperty("records", out var warningLetterAnalyticsRows) &&
-                    warningLetterAnalyticsRows.ValueKind == JsonValueKind.Array &&
-                    warningLetterAnalyticsRows.GetArrayLength() > 0 &&
-                    root.TryGetProperty("analytics", out _) &&
-                    warningLetterAnalyticsRows[0].TryGetProperty("workflowStageName", out _))
-                {
-                    BuildWarningLetterAnalyticsSheet(wb, root, warningLetterAnalyticsRows);
-                    using var ms = new MemoryStream();
-                    wb.SaveAs(ms);
-                    return ms.ToArray();
-                }
-
                 // ── Flat transactions array ───────────────────────────────────────
                 if (root.TryGetProperty("transactions", out var flatTxns) &&
                     flatTxns.ValueKind == JsonValueKind.Array)
@@ -817,88 +793,6 @@ namespace FMS.WebClient.Services.Reporting
                 }
                 row++;
             }
-            ws.Columns().AdjustToContents();
-        }
-
-        private static void BuildWarningLetterCandidatesSheet(XLWorkbook wb, JsonElement root, JsonElement rows)
-        {
-            var ws = wb.Worksheets.Add("Candidates");
-            int row = 1;
-
-            ws.Cell(row, 1).Value = GetStr(root, "reportTitle");
-            ws.Cell(row, 1).Style.Font.Bold = true;
-            ws.Cell(row, 1).Style.Font.FontSize = 14;
-            ws.Range(row, 1, row, 11).Merge();
-            row++;
-
-            ws.Cell(row, 1).Value = $"Generated: {GetStr(root, "generatedAt")}";
-            ws.Range(row, 1, row, 11).Merge();
-            row += 2;
-
-            ApplyHeaderRow(ws, row, new[]
-            {
-                "#", "Date", "Type", "Employee Name (Work No)", "Vehicle", "Vehicle Type", "Site",
-                "Expected", "Actual", "Excess"
-            });
-            row++;
-
-            foreach (var candidate in rows.EnumerateArray())
-            {
-                ws.Cell(row, 1).Value = GetStr(candidate, "rowNum");
-                ws.Cell(row, 2).Value = GetStr(candidate, "metricDate");
-                ws.Cell(row, 3).Value = GetStr(candidate, "letterTypeName");
-                ws.Cell(row, 4).Value = GetStr(candidate, "employeeName");
-                ws.Cell(row, 5).Value = GetStr(candidate, "vehicleCode");
-                ws.Cell(row, 6).Value = GetStr(candidate, "vehicleTypeName");
-                ws.Cell(row, 7).Value = GetStr(candidate, "siteName");
-                ws.Cell(row, 8).Value = GetStr(candidate, "expectedFormatted");
-                ws.Cell(row, 9).Value = GetStr(candidate, "actualFormatted");
-                ws.Cell(row, 10).Value = GetStr(candidate, "excessFormatted");
-                row++;
-            }
-
-            ws.Columns().AdjustToContents();
-        }
-
-        private static void BuildWarningLetterAnalyticsSheet(XLWorkbook wb, JsonElement root, JsonElement rows)
-        {
-            var ws = wb.Worksheets.Add("Analytics Data");
-            int row = 1;
-
-            ws.Cell(row, 1).Value = GetStr(root, "reportTitle");
-            ws.Cell(row, 1).Style.Font.Bold = true;
-            ws.Cell(row, 1).Style.Font.FontSize = 14;
-            ws.Range(row, 1, row, 12).Merge();
-            row++;
-
-            ws.Cell(row, 1).Value = $"Generated: {GetStr(root, "generatedAt")}";
-            ws.Range(row, 1, row, 12).Merge();
-            row += 2;
-
-            ApplyHeaderRow(ws, row, new[]
-            {
-                "#", "Date", "Employee", "Vehicle", "Vehicle Type", "Site", "Warning Type", "Workflow Stage",
-                "Expected", "Actual", "Exceeded By / Excess", "Violation Summary"
-            });
-            row++;
-
-            foreach (var record in rows.EnumerateArray())
-            {
-                ws.Cell(row, 1).Value = GetStr(record, "rowNumber");
-                ws.Cell(row, 2).Value = GetStr(record, "letterDateFormatted");
-                ws.Cell(row, 3).Value = GetStr(record, "employeeName");
-                ws.Cell(row, 4).Value = GetStr(record, "vehicleCode");
-                ws.Cell(row, 5).Value = GetStr(record, "vehicleTypeName");
-                ws.Cell(row, 6).Value = GetStr(record, "siteName");
-                ws.Cell(row, 7).Value = GetStr(record, "letterTypeName");
-                ws.Cell(row, 8).Value = GetStr(record, "workflowStageName");
-                ws.Cell(row, 9).Value = GetStr(record, "expectedMetricDisplay");
-                ws.Cell(row, 10).Value = GetStr(record, "actualMetricDisplay");
-                ws.Cell(row, 11).Value = GetStr(record, "excessMetricDisplay");
-                ws.Cell(row, 12).Value = GetStr(record, "violationSummary");
-                row++;
-            }
-
             ws.Columns().AdjustToContents();
         }
 

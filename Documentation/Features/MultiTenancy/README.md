@@ -1,9 +1,84 @@
 # Multi-Tenancy — Rollout Playbook
 
-> **Status:** Phase 3 scaffold complete. Per-entity rollout pending.
+> **Status:** 3-audience architecture implemented through Phase 4 scaffold. Per-entity rollout and final verification pending.
 > **Owner:** Platform team
 
 This document is the operating manual for converting **TenacityFMS** from a single-tenant deployment (the original `Tenacity.FMS`) into a multi-tenant SaaS. The infrastructure is already wired; rolling each business entity onto the tenancy fabric is now an additive, low-risk task that can be staged across releases.
+
+---
+
+## 0. 3-audience architecture
+
+TenacityFMS now separates users into three audiences with distinct applications, claims, and data scopes.
+
+```
+                                                 +----------------------+
+                                                 |      FMS.Landing     |
+                                                 | public marketing app |
+                                                 +----------+-----------+
+                                                                        |
+                                                                        v
+ +------------------+     +----------------------+     +----------------------+
+ | My Company       | --> | FMS.Admin            | --> | FMS.Sales API        |
+ | SaaS operators   |     | operator portal      |     | plans, billing,      |
+ | tenant_kind=     |     | stations, plans,     |     | pipeline, reports    |
+ | system           |     | pipeline, reports    |     +----------+-----------+
+ +------------------+     +----------+-----------+                |
+                                                                        |                            |
+                                                                        v                            |
+                                                 +----------------------+                |
+ +------------------+    | FMS.WebClient API   | <--------------+
+ | Client tenant    | -> | JWT, SignalR,       |
+ | tenant_kind=     |    | tenant filters,     |
+ | client           |    | operator endpoints  |
+ +--------+---------+    +----------+-----------+
+                    |                         ^
+                    v                         |
+ +------------------+    +----------------------+
+ | Customer tenant  | -> | fms.frontend         |
+ | tenant_kind=     |    | Client ViewMode or   |
+ | customer         |    | Customer ViewMode    |
+ +------------------+    +----------------------+
+
+Tenant hierarchy:
+    System tenant: _platform
+    Client tenant: customer-facing organisation
+        Customer tenant: child tenant owned by a client
+```
+
+### Audience responsibilities
+
+| Audience | App | Scope | Primary capabilities |
+| --- | --- | --- | --- |
+| My Company / Operator | `FMS.Admin` | Cross-tenant via platform identity | Tenant onboarding, station provisioning, plans/pricing, subscriptions, invoices, sales pipeline, reports, audit log |
+| Client / Tenant | `fms.frontend` Client ViewMode | Own tenant and explicitly permitted child-tenant views | Existing fleet/fuel operations, sub-customer management, branding settings |
+| Customer-of-Client | `fms.frontend` Customer ViewMode | Own tenant only | Restricted dashboards, vehicles, transactions, reports, users, profile |
+
+### JWT claims reference
+
+| Claim | Values | Purpose |
+| --- | --- | --- |
+| `tenant_id` | Tenant GUID | Populates `ITenantContext.TenantId` for query filters and save stamping |
+| `tenant_kind` | `system`, `client`, `customer` | Selects operator, client, or customer behavior |
+| `parent_tenant_id` | Parent tenant GUID or omitted | Connects Customer tenants to their Client parent |
+| `is_platform_operator` | `true` only for `_platform` operators | Enables `[AllowCrossTenant]` operator APIs and `FMS.Admin` access |
+| `permissions` | Permission names | Drives backend `[RequirePermission]` and frontend UX gating |
+
+### Permissions reference
+
+| Permission | Audience | Use |
+| --- | --- | --- |
+| `_Manage_Subtenants` | Client | Create, update, and invite admins for child Customer tenants |
+| `_Read_SubtenantData` | Client | Read permitted aggregate data across descendant Customer tenants |
+| `_Manage_Branding` | Client | Update logo URL/upload and primary/secondary theme colours |
+| `_Platform_Read_Tenant` | Operator | Read tenants and station provisioning data across tenants |
+| `_Platform_Manage_Tenant` | Operator | Create/update tenants and provision/update stations |
+| `_Platform_Read_Billing` | Operator | Read subscriptions, invoices, and plans |
+| `_Platform_Manage_Billing` | Operator | Create and update plans, prices, quotas, feature flags |
+| `_Platform_Read_Sales` | Operator | Read pipeline deals and onboarding opportunities |
+| `_Platform_Manage_Sales` | Operator | Create deals, update deal status, record follow-ups |
+| `_Platform_Read_Reports` | Operator | Read cross-tenant usage/revenue reports |
+| `_Platform_Read_Audit` | Operator | Read platform audit trail |
 
 ---
 

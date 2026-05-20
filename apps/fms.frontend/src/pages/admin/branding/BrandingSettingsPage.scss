@@ -208,6 +208,56 @@
     gap: 12px;
   }
 
+  &__upload-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  &__upload-note {
+    color: var(--m365-text-secondary, #605e5c);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &__palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 2px 0 14px;
+  }
+
+  &__palette-button {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--m365-border, #c8c6c4);
+    border-radius: 4px;
+    color: var(--m365-text, #201f1e);
+    background: #fff;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--m365-bg-hover, #f3f2f1);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__palette-swatch {
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 50%;
+  }
+
   &__colour-control {
     display: grid;
     grid-template-columns: 42px minmax(0, 1fr);
@@ -227,6 +277,44 @@
     &:disabled {
       cursor: not-allowed;
       opacity: 0.45;
+    }
+  }
+
+  &__contrast-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  &__contrast-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 54px;
+    padding: 8px 10px;
+    border: 1px solid #c6e0bd;
+    border-radius: 4px;
+    background: #f8fff6;
+
+    span {
+      color: var(--m365-text-secondary, #605e5c);
+      font-size: 12px;
+    }
+
+    strong {
+      color: #107c10;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    &.is-warning {
+      border-color: #f5d77e;
+      background: #fff8e1;
+
+      strong {
+        color: #ca5010;
+      }
     }
   }
 
@@ -309,7 +397,8 @@
 @media (max-width: 980px) {
   .branding-settings-page {
     &__layout,
-    &__colour-grid {
+    &__colour-grid,
+    &__contrast-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -322,6 +411,14 @@
     .m365-page-header {
       align-items: flex-start;
       flex-direction: column;
+    }
+
+    &__upload-row {
+      grid-template-columns: 1fr;
+    }
+
+    &__upload-note {
+      white-space: normal;
     }
   }
 }

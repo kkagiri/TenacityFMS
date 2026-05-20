@@ -19,6 +19,15 @@ import "./BrandingSettingsPage.scss";
 const MANAGE_BRANDING = "_Manage_Branding";
 const DEFAULT_PRIMARY = "#0078d4";
 const DEFAULT_SECONDARY = "#605e5c";
+const MIN_TEXT_CONTRAST = 4.5;
+
+const PALETTE_PRESETS = [
+  { name: "Microsoft", primaryColor: "#0078d4", secondaryColor: "#605e5c" },
+  { name: "Field", primaryColor: "#107c10", secondaryColor: "#00796b" },
+  { name: "Signal", primaryColor: "#004e8c", secondaryColor: "#ca5010" },
+  { name: "Fleet", primaryColor: "#005a9e", secondaryColor: "#3949ab" },
+  { name: "Service", primaryColor: "#00796b", secondaryColor: "#605e5c" },
+];
 
 const emptyBranding = {
   logoUrl: "",
@@ -54,6 +63,36 @@ const toSixDigitHex = (value, fallback) => {
   }
   return fallback;
 };
+
+const hexToRgb = (value) => {
+  const hex = toSixDigitHex(value, DEFAULT_PRIMARY).replace("#", "");
+  return {
+    r: parseInt(hex.slice(0, 2), 16),
+    g: parseInt(hex.slice(2, 4), 16),
+    b: parseInt(hex.slice(4, 6), 16),
+  };
+};
+
+const getRelativeLuminance = ({ r, g, b }) => {
+  const channel = (value) => {
+    const normalized = value / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  };
+
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+};
+
+const getContrastRatio = (foreground, background) => {
+  const foregroundLum = getRelativeLuminance(hexToRgb(foreground));
+  const backgroundLum = getRelativeLuminance(hexToRgb(background));
+  const lighter = Math.max(foregroundLum, backgroundLum);
+  const darker = Math.min(foregroundLum, backgroundLum);
+  return (lighter + 0.05) / (darker + 0.05);
+};
+
+const formatContrast = (ratio) => `${ratio.toFixed(1)}:1`;
 
 const getErrorMessage = (error, fallback) => {
   const data = error?.response?.data;
@@ -94,11 +133,23 @@ const updateTenantBranding = async (branding) => {
   return { ...response, data: normalizeBranding(response.data) };
 };
 
+const uploadTenantLogo = async (file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = normalizeResponse(
+    await axiosInstance.post("/v1/tenant/branding/logo", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+  );
+  return { ...response, data: normalizeBranding(response.data) };
+};
+
 const BrandingSettingsPage = () => {
   const dispatch = useDispatch();
   const { hasPermission } = usePermissions();
   const canManage = hasPermission(MANAGE_BRANDING);
   const currentBranding = useSelector((state) => state.tenantContext?.branding) || emptyBranding;
+  const logoInputRef = useRef(null);
   const savedBrandingRef = useRef({
     logoUrl: currentBranding.logoUrl || null,
     primaryColor: currentBranding.primaryColor || null,
@@ -112,6 +163,7 @@ const BrandingSettingsPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoPreviewFailed, setLogoPreviewFailed] = useState(false);
 
   const previewBranding = useMemo(
@@ -139,6 +191,27 @@ const BrandingSettingsPage = () => {
     }
     return errors;
   }, [form]);
+
+  const contrastChecks = useMemo(() => {
+    const primary = toSixDigitHex(form.primaryColor, DEFAULT_PRIMARY);
+    const secondary = toSixDigitHex(form.secondaryColor, DEFAULT_SECONDARY);
+    return [
+      {
+        label: "White text on primary",
+        ratio: getContrastRatio("#ffffff", primary),
+      },
+      {
+        label: "White text on secondary",
+        ratio: getContrastRatio("#ffffff", secondary),
+      },
+      {
+        label: "Primary text on page",
+        ratio: getContrastRatio(primary, "#ffffff"),
+      },
+    ];
+  }, [form.primaryColor, form.secondaryColor]);
+
+  const hasContrastWarning = contrastChecks.some((check) => check.ratio < MIN_TEXT_CONTRAST);
 
   const applyLoadedBranding = (branding) => {
     const normalized = {
@@ -209,6 +282,38 @@ const BrandingSettingsPage = () => {
     applyBrandingToCssVars(saved);
   };
 
+  const applyPreset = (preset) => {
+    setForm((current) => ({
+      ...current,
+      primaryColor: preset.primaryColor,
+      secondaryColor: preset.secondaryColor,
+    }));
+  };
+
+  const uploadLogo = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !canManage) return;
+
+    setUploadingLogo(true);
+    try {
+      const response = await uploadTenantLogo(file);
+      if (!response.isSuccess) {
+        notify(response.message || "Failed to upload logo.", "error", 3000);
+        return;
+      }
+
+      applyLoadedBranding(response.data);
+      notify("Logo uploaded.", "success", 2500);
+    } catch (error) {
+      notify(getErrorMessage(error, "Failed to upload logo."), "error", 3000);
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = "";
+      }
+    }
+  };
+
   const save = async (event) => {
     event.preventDefault();
     if (!canManage || validationErrors.length > 0) return;
@@ -238,7 +343,7 @@ const BrandingSettingsPage = () => {
           <h2 className="m365-page-header__title">Branding settings</h2>
         </div>
         <div className="m365-page-header__actions">
-          <button className="m365-btn m365-btn--ghost" type="button" onClick={resetForm} disabled={loading || saving}>
+          <button className="m365-btn m365-btn--ghost" type="button" onClick={resetForm} disabled={loading || saving || uploadingLogo}>
             <i className="fa-light fa-arrow-rotate-left" />
             Reset
           </button>
@@ -246,7 +351,7 @@ const BrandingSettingsPage = () => {
             className="m365-btn m365-btn--primary"
             type="submit"
             form="branding-settings-form"
-            disabled={!canManage || loading || saving || validationErrors.length > 0}
+            disabled={!canManage || loading || saving || uploadingLogo || validationErrors.length > 0}
           >
             <i className="fa-light fa-floppy-disk" />
             {saving ? "Saving..." : "Save"}
@@ -268,6 +373,13 @@ const BrandingSettingsPage = () => {
         </div>
       )}
 
+      {hasContrastWarning && (
+        <div className="m365-info-banner m365-info-banner--warning">
+          <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+          <span className="m365-info-banner__text">One or more colour combinations are below WCAG AA contrast.</span>
+        </div>
+      )}
+
       <div className="branding-settings-page__layout">
         <section className="m365-section-group">
           <div className="m365-section-group__header">
@@ -282,9 +394,43 @@ const BrandingSettingsPage = () => {
                 value={form.logoUrl}
                 onChange={(event) => updateForm("logoUrl", event.target.value)}
                 placeholder="https://cdn.example.com/logo.png"
-                disabled={!canManage || loading || saving}
+                disabled={!canManage || loading || saving || uploadingLogo}
               />
             </label>
+
+            <label className="m365-field">
+              Upload logo
+              <span className="branding-settings-page__upload-row">
+                <input
+                  ref={logoInputRef}
+                  className="m365-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={uploadLogo}
+                  disabled={!canManage || loading || saving || uploadingLogo}
+                />
+                <span className="branding-settings-page__upload-note">
+                  {uploadingLogo ? "Uploading..." : "PNG, JPG, WEBP, or SVG up to 2 MB"}
+                </span>
+              </span>
+            </label>
+
+            <div className="branding-settings-page__palette" aria-label="Palette presets">
+              {PALETTE_PRESETS.map((preset) => (
+                <button
+                  key={preset.name}
+                  className="branding-settings-page__palette-button"
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  disabled={!canManage || loading || saving || uploadingLogo}
+                  title={`${preset.name} palette`}
+                >
+                  <span className="branding-settings-page__palette-swatch" style={{ background: preset.primaryColor }} />
+                  <span className="branding-settings-page__palette-swatch" style={{ background: preset.secondaryColor }} />
+                  <span>{preset.name}</span>
+                </button>
+              ))}
+            </div>
 
             <div className="branding-settings-page__colour-grid">
               <label className="m365-field">
@@ -295,7 +441,7 @@ const BrandingSettingsPage = () => {
                     type="color"
                     value={toSixDigitHex(form.primaryColor, DEFAULT_PRIMARY)}
                     onChange={(event) => updateForm("primaryColor", event.target.value)}
-                    disabled={!canManage || loading || saving}
+                    disabled={!canManage || loading || saving || uploadingLogo}
                     aria-label="Primary colour picker"
                   />
                   <input
@@ -303,7 +449,7 @@ const BrandingSettingsPage = () => {
                     value={form.primaryColor}
                     onChange={(event) => updateForm("primaryColor", event.target.value)}
                     placeholder={DEFAULT_PRIMARY}
-                    disabled={!canManage || loading || saving}
+                    disabled={!canManage || loading || saving || uploadingLogo}
                   />
                 </span>
               </label>
@@ -316,7 +462,7 @@ const BrandingSettingsPage = () => {
                     type="color"
                     value={toSixDigitHex(form.secondaryColor, DEFAULT_SECONDARY)}
                     onChange={(event) => updateForm("secondaryColor", event.target.value)}
-                    disabled={!canManage || loading || saving}
+                    disabled={!canManage || loading || saving || uploadingLogo}
                     aria-label="Secondary colour picker"
                   />
                   <input
@@ -324,10 +470,22 @@ const BrandingSettingsPage = () => {
                     value={form.secondaryColor}
                     onChange={(event) => updateForm("secondaryColor", event.target.value)}
                     placeholder={DEFAULT_SECONDARY}
-                    disabled={!canManage || loading || saving}
+                    disabled={!canManage || loading || saving || uploadingLogo}
                   />
                 </span>
               </label>
+            </div>
+
+            <div className="branding-settings-page__contrast-grid">
+              {contrastChecks.map((check) => (
+                <div
+                  key={check.label}
+                  className={`branding-settings-page__contrast-item${check.ratio >= MIN_TEXT_CONTRAST ? "" : " is-warning"}`}
+                >
+                  <span>{check.label}</span>
+                  <strong>{formatContrast(check.ratio)}</strong>
+                </div>
+              ))}
             </div>
           </form>
         </section>

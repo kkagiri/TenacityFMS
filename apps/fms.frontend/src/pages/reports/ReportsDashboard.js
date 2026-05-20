@@ -89,19 +89,6 @@ const ReportsDashboard = () => {
             <p className="stat-description">Track execution history & errors</p>
           </div>
         </div>
-
-        <div
-          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
-          onClick={() => navigate(reportsRoutes.warningLetters)}
-        >
-          <div className="stat-icon">
-            <i className="fa-light fa-triangle-exclamation tw-text-red-500"></i>
-          </div>
-          <div className="stat-content">
-            <h3 className="stat-title">Compliance</h3>
-            <p className="stat-description">Open warning letters and compliance follow-up</p>
-          </div>
-        </div>
       </div>
 
       {/* Standardized Widget Dashboard */}

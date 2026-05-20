@@ -146,7 +146,6 @@ const ReportsLayout = ({ children }) => {
   const canSeeTemplates = hasPermission('_Manage_ReportTemplates');
   const canSeeScheduling = hasPermission('_Manage_ReportSchedules');
   const canSeeMonitoring = hasAnyPermission(['_Read_Reporting', '_Manage_ReportTemplates']);
-  const canSeeWarningLetters = hasPermission('_Read_WarningLetter');
 
   // ── Navigation Items ──
 
@@ -189,15 +188,6 @@ const ReportsLayout = ({ children }) => {
       title: 'Execution Monitor',
       icon: 'fa-light fa-monitor-waveform',
       path: reportsRoutes.monitoring,
-    },
-  ], []);
-
-  const complianceItems = useMemo(() => [
-    {
-      id: 'warning-letters',
-      title: 'Warning Letters',
-      icon: 'fa-light fa-triangle-exclamation',
-      path: reportsRoutes.warningLetters,
     },
   ], []);
 
@@ -293,37 +283,6 @@ const ReportsLayout = ({ children }) => {
               })}
             </nav>
           </div>
-
-          {canSeeWarningLetters && (<>
-            <div className="nav-separator"></div>
-
-            <div className="nav-group">
-              {!sidebarCollapsed && <div className="group-label">Compliance</div>}
-              <nav className="nav-menu">
-                {complianceItems.map((item) => {
-                  const isActive = isActiveRoute(location.pathname, item.path);
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={(e) => handleNavigation(item.path, e)}
-                      className={`nav-item ${isActive ? 'active' : ''}`}
-                      title={sidebarCollapsed ? item.title : ''}
-                      role="button"
-                      tabIndex={0}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') handleNavigation(item.path, e);
-                      }}
-                    >
-                      <div className="nav-item-content">
-                        <i className={item.icon}></i>
-                        {!sidebarCollapsed && <span>{item.title}</span>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </nav>
-            </div>
-          </>)}
 
           {canSeeReportEngine && (<>
             <div className="nav-separator"></div>

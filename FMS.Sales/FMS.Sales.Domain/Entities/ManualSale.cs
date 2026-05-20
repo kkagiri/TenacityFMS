@@ -38,4 +38,5 @@ public class ManualSale
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? ApprovedAtUtc { get; set; }
     public string? ApprovedBy { get; set; }
+    public ICollection<SalesPipelineFollowUp> FollowUps { get; set; } = new List<SalesPipelineFollowUp>();
 }

@@ -35,10 +35,6 @@ import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 import PTSOfflineReport from "./pts/PTSOfflineReport";
 import VehicleConsumptionReport from "../vehicles/consumption/reports/VehicleConsumptionReport";
 import VehicleConsumptionReportDetails from "../vehicles/consumption/reports/VehicleConsumptionReportDetails";
-import WarningLetterListPage from "../vehicles/warningLetters/WarningLetterListPage";
-import WarningLetterFormPage from "../vehicles/warningLetters/WarningLetterFormPage";
-import WarningLetterPreviewPage from "../vehicles/warningLetters/WarningLetterPreviewPage";
-import BulkSignatureRequestPage from "../vehicles/warningLetters/BulkSignatureRequestPage";
 
 const ReportsMain = () => {
   const { hasPermission } = usePermissions();
@@ -88,12 +84,6 @@ const ReportsMain = () => {
         <Route path="consumption-refills/*" element={<ConsumptionBasedOnRefills />} />
         <Route path="vehicle-consumption" element={<VehicleConsumptionReport />} />
         <Route path="vehicle-consumption/details/:vehicleId" element={<VehicleConsumptionReportDetails />} />
-        <Route path="warning-letters" element={<WarningLetterListPage />} />
-        <Route path="warning-letters/settings" element={<Navigate to="/reports/warning-letters" replace />} />
-        <Route path="warning-letters/new" element={<WarningLetterFormPage />} />
-        <Route path="warning-letters/:id/edit" element={<WarningLetterFormPage />} />
-        <Route path="warning-letters/:id/preview" element={<WarningLetterPreviewPage />} />
-        <Route path="warning-letters/bulk-signature" element={<BulkSignatureRequestPage />} />
         <Route path="pts-offline" element={<PTSOfflineReport />} />
 
         {/* Fallback */}

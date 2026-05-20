@@ -29,4 +29,5 @@ public class OnboardingRequest
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime ExpiresAtUtc { get; set; } = DateTime.UtcNow.AddHours(24);
+    public ICollection<SalesPipelineFollowUp> FollowUps { get; set; } = new List<SalesPipelineFollowUp>();
 }

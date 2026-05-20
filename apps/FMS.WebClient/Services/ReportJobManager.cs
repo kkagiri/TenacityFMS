@@ -1,4 +1,4 @@
-﻿/**
+/**
  * File: ReportJobManager.cs
  * Purpose: In-memory manager for async report generation jobs.
  *          Orchestrates data fetching (via MediatR), PDF/Excel rendering (via JsReport),
@@ -26,10 +26,8 @@ using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Services;
-using FMS.Application.Features.WarningLetter.Queries;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
-using FMS.Domain.Entities.Features.WarningLetterManagement;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -283,9 +281,9 @@ namespace FMS.WebClient.Services
             await _progressService.SendCompleted(BuildProgressDTO(job));
         }
 
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ──────────────────────────────────────────────────────
         //  Private: job execution pipeline
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ──────────────────────────────────────────────────────
 
         private async Task ExecuteJobAsync(
             ReportJobDTO job, SubmitReportJobDTO request, CancellationToken ct)
@@ -297,7 +295,7 @@ namespace FMS.WebClient.Services
             // Brief delay to let the HTTP response reach the client and register SignalR listeners
             await Task.Delay(800, ct);
 
-            // â”€â”€ Phase 1: Fetch data â”€â”€
+            // ── Phase 1: Fetch data ──
             job.Status = ReportJobStatus.FetchingData;
             job.ProgressPercent = 10;
             job.StatusMessage = "Fetching report data...";
@@ -325,7 +323,7 @@ namespace FMS.WebClient.Services
 
             ct.ThrowIfCancellationRequested();
 
-            // â”€â”€ Phase 2: Render report â”€â”€
+            // ── Phase 2: Render report ──
             job.Status = ReportJobStatus.Rendering;
             job.ProgressPercent = 60;
             await _progressService.SendProgress(BuildProgressDTO(job));
@@ -364,10 +362,10 @@ namespace FMS.WebClient.Services
             job.StatusMessage = "Report rendered. Finalizing...";
             await _progressService.SendProgress(BuildProgressDTO(job));
 
-            // â”€â”€ Phase 3: Store result for download â”€â”€
+            // ── Phase 3: Store result for download ──
             _results[job.JobId] = (fileBytes, DateTime.UtcNow.Add(ResultTTL));
 
-            // â”€â”€ Phase 4 (optional): Email delivery â”€â”€
+            // ── Phase 4 (optional): Email delivery ──
             if (job.DeliverByEmail && !string.IsNullOrWhiteSpace(job.EmailAddress))
             {
                 job.StatusMessage = "Sending email...";
@@ -417,7 +415,7 @@ namespace FMS.WebClient.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Email delivery failed for report job {JobId}", job.JobId);
-                    // Job is still completed even if email fails â€” result available for download
+                    // Job is still completed even if email fails — result available for download
                     job.Status = ReportJobStatus.Completed;
                     job.StatusMessage = $"Report ready (email failed: {ex.Message})";
                 }
@@ -433,7 +431,7 @@ namespace FMS.WebClient.Services
             await _progressService.SendCompleted(BuildProgressDTO(job));
 
             _logger.LogInformation(
-                "Report job {JobId} completed in {Elapsed:F1}s â€” {Records} records, {Size} bytes",
+                "Report job {JobId} completed in {Elapsed:F1}s — {Records} records, {Size} bytes",
                 job.JobId, job.ElapsedSeconds, job.RecordCount, job.FileSizeBytes);
         }
 
@@ -451,7 +449,7 @@ namespace FMS.WebClient.Services
                 ? _jobs.Keys.Last() // gets the latest - fallback
                 : _jobs.Keys.Last()];
 
-            // We look up the job by matching â€” but cleaner to just use the request
+            // We look up the job by matching — but cleaner to just use the request
             var currentJob = _jobs.Values.FirstOrDefault(j =>
                 j.Status == ReportJobStatus.FetchingData &&
                 j.TemplateName == request.TemplateName);
@@ -464,12 +462,6 @@ namespace FMS.WebClient.Services
 
                 case "pump-transaction":
                     return await FetchPumpTransactionData(mediator, request, currentJob, ct);
-
-                case "warning-letter-candidates":
-                    return await FetchWarningLetterCandidatesData(mediator, request, ct);
-
-                case "warning-letter-analytics":
-                    return await FetchWarningLetterAnalyticsData(mediator, request, ct);
 
                 default:
                     if (ScheduledReportPayloadBuilder.CanHandle(request.SourceId))
@@ -527,7 +519,7 @@ namespace FMS.WebClient.Services
         private async Task<object> FetchTankVolumeHistoryData(
             IMediator mediator, SubmitReportJobDTO request, ReportJobDTO job, CancellationToken ct)
         {
-            // ── Timezone-aware date conversion ──
+            // -- Timezone-aware date conversion --
             // The frontend sends local calendar dates (yyyy-MM-dd) + a timeZone IANA ID.
             // The DB stores timestamps in UTC, so we must convert local midnight boundaries
             // to their UTC equivalents, matching ScheduledReportDeliveryService behaviour.
@@ -568,7 +560,7 @@ namespace FMS.WebClient.Services
                 EndDate = utcEnd,
                 SiteId = GetIntParam(request.Parameters, "siteId"),
                 TankId = GetIntParam(request.Parameters, "tankId"),
-                Take = null, // No limit for report â€” get all records
+                Take = null, // No limit for report — get all records
                 IncludeVehicleNames = true,
                 UseManualDispensing = false
             };
@@ -667,91 +659,10 @@ namespace FMS.WebClient.Services
         }
 
 
-        private async Task<object> FetchWarningLetterCandidatesData(
-            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
-        {
-            var letterTypeParams = GetIntListParam(request.Parameters, "letterType");
 
-            var query = new GetWarningLetterCandidatesReportQuery
-            {
-                SiteId = GetIntParam(request.Parameters, "siteId"),
-                VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
-                VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
-                EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
-                LetterTypes = letterTypeParams?
-                    .Where(id => Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), id))
-                    .Select(id => (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType)id)
-                    .Distinct()
-                    .ToList(),
-                StartDate = GetDateParam(request.Parameters, "startDate"),
-                EndDate = GetDateParam(request.Parameters, "endDate"),
-            };
-
-            var result = await mediator.Send(query, ct);
-            if (!result.IsSuccess || result.Data == null)
-            {
-                _logger.LogWarning("WarningLetterCandidates query failed for report job: {Msg}", result.Message);
-                return null;
-            }
-
-            return WarningLetterCandidatesReportDataBuilder.Build(
-                result.Data,
-                string.IsNullOrWhiteSpace(request.ReportTitle)
-                    ? BuildDefaultReportTitle(request.SourceId)
-                    : request.ReportTitle);
-        }
-
-        private async Task<object> FetchWarningLetterAnalyticsData(
-            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
-        {
-            var letterTypeParam = GetIntParam(request.Parameters, "letterType");
-            var workflowStageParam = GetIntParam(request.Parameters, "workflowStage");
-
-            FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType? letterTypeFilter = null;
-            if (letterTypeParam is int letterTypeValue
-                && Enum.IsDefined(typeof(FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType), letterTypeValue))
-            {
-                letterTypeFilter = (FMS.Domain.Entities.Features.WarningLetterManagement.WarningLetterType)letterTypeValue;
-            }
-
-            FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage? workflowStageFilter = null;
-            if (workflowStageParam is int workflowStageValue
-                && Enum.IsDefined(typeof(FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage), workflowStageValue))
-            {
-                workflowStageFilter = (FMS.Application.Features.WarningLetter.WarningLetterWorkflowStage)workflowStageValue;
-            }
-
-            var query = new GetWarningLetterReportQuery
-            {
-                SiteId = GetIntParam(request.Parameters, "siteId"),
-                VehicleTypeId = GetIntParam(request.Parameters, "vehicleTypeId"),
-                VehicleIds = GetIntListParam(request.Parameters, "vehicleId"),
-                EmployeeIds = GetIntListParam(request.Parameters, "employeeId"),
-                LetterType = letterTypeFilter,
-                WorkflowStage = workflowStageFilter,
-                StartDate = GetDateParam(request.Parameters, "startDate"),
-                EndDate = GetDateParam(request.Parameters, "endDate"),
-            };
-
-            var result = await mediator.Send(query, ct);
-            if (!result.IsSuccess || result.Data == null)
-            {
-                _logger.LogWarning("WarningLetterAnalytics query failed for report job: {Msg}", result.Message);
-                return null;
-            }
-
-            return WarningLetterAnalyticsReportDataBuilder.Build(
-                result.Data,
-                string.IsNullOrWhiteSpace(request.ReportTitle)
-                    ? BuildDefaultReportTitle(request.SourceId)
-                    : request.ReportTitle,
-                GetDateParam(request.Parameters, "startDate")?.Date ?? DateTime.Today.AddDays(-7),
-                GetDateParam(request.Parameters, "endDate")?.Date ?? DateTime.Today);
-        }
-
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ──────────────────────────────────────────────────────
         //  Helpers
-        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ──────────────────────────────────────────────────────
 
         private ReportJobProgressDTO BuildProgressDTO(ReportJobDTO job)
         {

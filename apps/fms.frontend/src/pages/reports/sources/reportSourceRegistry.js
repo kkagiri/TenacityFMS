@@ -30,8 +30,6 @@ import liveTripOperations from './liveTripOperations';
 import tankLevelDetail from './tankLevelDetail';
 import alarmReport from './alarmReport';
 import storageReceivedVsDispensed from './storageReceivedVsDispensed';
-import warningLetterAnalytics from './warningLetterAnalytics';
-import warningLetterCandidates from './warningLetterCandidates';
 import vehicleConsumptionGps from './vehicleConsumptionGps';
 
 /**
@@ -73,8 +71,6 @@ const builtInSources = [
     tankLevelDetail,
     alarmReport,
     storageReceivedVsDispensed,
-    warningLetterAnalytics,
-    warningLetterCandidates,
     vehicleConsumptionGps,
 ];
 

@@ -37,8 +37,8 @@ using Serilog;
 using FMS.Application.Features.Reporting.Services;
 using StackExchange.Redis;
 using System.Text;
-using FMS.Application.Infrastructure.Services.Authentication;
-using FMS.Application.Infrastructure.Authorization;
+using FMS.Application.Abstractions.DistCacheTracker;
+using FMS.Application.Abstractions.Identity;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
@@ -49,26 +49,31 @@ using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
 using FMS.BackgroundServices.FMS;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
+using FMS.WebClient.Services;
 using FMS.WebClient.Services.SignalR;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
-using FMS.Application.Features.PTS.Services;
-using FMS.Application.Features.PTSService.Services;
+using FMS.Application.Features.Devices.Fueling.PumpControl.Services;
+using FMS.Application.Features.Devices.Fueling.Services;
+using FMS.Application.Features.Devices.Fueling.UploadStatus.Extensions;
+using FMS.Application.Features.Devices.Fueling.UploadStatus.Services;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Communication.HttpPolling;
-using FMS.Application.Infrastructure.DistCacheTracker;
-using FMS.Application.Features.WarningLetter.Services;
 using FMS.Infrastructure.Services; // For PermissionAuthorizationService implementation
+using FMS.Infrastructure.Services.PTSService;
+using FMS.Infrastructure.Authorization;
+using FMS.Infrastructure.Communication.SignalR;
+using FMS.Infrastructure.DistCacheTracker;
+using FMS.Infrastructure.Identity;
+using FMS.Infrastructure.Notification;
 using FMS.Devices.Core.DependencyInjection; // AddDeviceCore() for multi-device provider platform
 
 using FMS.Application.Command.PTSCommand.Common;
 // Removed incorrect Tracker namespace import; DeviceConnectionTracker lives directly under FMS.Application.Communication
 using FMS.Application.Communication.Connection;
-using FMS.Application.PTSServices.PumpService;
-using FMS.PTS.WindowsService.Services.Pump;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 using FMS.Application.Communication;
@@ -79,16 +84,10 @@ using FMS.Application.Services.Logging;
 using FMS.Devices.Fueling.DependencyInjection;
 using FMS.Devices.Fueling.Providers.TechnotradePts.Commands;
 using FMS.Application.Features.LocationValidation.Extensions;
-using FMS.Application.Features.PTS.Extensions;
-using FMS.Application.PTSServices.PTSConfigService;
 using FMS.BackgroundServices.IssueTracker;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
-// DevExpress Reporting
-using DevExpress.AspNetCore;
-using DevExpress.AspNetCore.Reporting;
-using DevExpress.XtraReports.Web.Extensions;
 using FMS.WebClient.Services.Reporting;
 
 namespace FMS.WebClient.Extensions;
@@ -172,9 +171,6 @@ public static class FmsServiceCollectionExtensions
         {
             options.AssemblyNames = new[] { "FMS.Devices.Tracking" };
         });
-
-        // Register DevExpress Reporting services
-        RegisterDevExpressReporting(services);
 
         return services;
     }
@@ -323,7 +319,7 @@ public static class FmsServiceCollectionExtensions
 
     private static void RegisterAutoMapper(IServiceCollection services)
     {
-        services.AddAutoMapper(typeof(MainMappingProfile).Assembly);
+        services.AddAutoMapper(_ => { }, typeof(MainMappingProfile).Assembly);
     }
 
     private static void RegisterCors(IServiceCollection services)
@@ -463,6 +459,7 @@ public static class FmsServiceCollectionExtensions
             services.AddSingleton<IRedisPublisher, RedisPublisher>();
             services.AddSingleton<IRedisSubscriber, RedisSubscriber>();
             services.AddSingleton<RedisCommandService>();
+            services.AddSingleton<IRedisCommandService>(sp => sp.GetRequiredService<RedisCommandService>());
 
             // Policy Trigger Service for event-driven reconciliation
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService>();
@@ -475,6 +472,7 @@ public static class FmsServiceCollectionExtensions
 
             // Register a null/no-op implementation when Redis is not available
             services.AddScoped<IPolicyTriggerService, NullPolicyTriggerService>();
+            services.AddSingleton<IRedisCommandService, UnavailableRedisCommandService>();
         }
         services.AddSingleton<FMS.Application.Communication.Tracker.DeviceStatusHelper>();
     }
@@ -548,8 +546,6 @@ public static class FmsServiceCollectionExtensions
 
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
-        services.AddScoped<IWarningLetterPdfRenderer, WarningLetterPdfRenderer>();
-        services.AddScoped<IWarningLetterService, WarningLetterService>();
         services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
         services.AddScoped<FMS.Application.Features.Reporting.Services.OperationalReportPayloadBuilder>();
         services.AddScoped<FMS.Application.Features.Reporting.Services.FleetExecutiveReportPayloadBuilder>();
@@ -678,9 +674,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueAttachmentStorageService, FMS.Application.Features.IssueTracker.Services.IssueAttachmentStorageService>();
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IWorkflowBackfillService, FMS.Application.Features.IssueTracker.Services.WorkflowBackfillService>();
         // Push notification service for mobile/web push
-        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
+        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, PushNotificationService>();
         // Real-time notification abstraction
-        services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
+        services.AddScoped<FMS.Application.Abstractions.Communication.SignalR.ISignalRNotificationService, SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
         services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
@@ -694,6 +690,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
         services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
+        services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAssignmentResolver, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAssignmentResolver>();
+        services.AddSingleton<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedAverageSyncQueue, FMS.Application.Features.ExpectedFuelAverage.Services.InMemoryExpectedAverageSyncQueue>();
         // Alert Configuration Service â€” cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()
@@ -845,53 +843,4 @@ public static class FmsServiceCollectionExtensions
         return string.Join(';', normalizedSegments);
     }
 
-    /// <summary>
-    /// Registers DevExpress Reporting services for Report Viewer and Report Designer.
-    /// </summary>
-    private static void RegisterDevExpressReporting(IServiceCollection services)
-    {
-        // Get connection string for DevExpress Report Designer data sources
-        var fmsConnectionString = NormalizePostgresConnectionString(
-            GetEnvRequired("ConnectionStrings__FMSConnection"));
-
-        // Add DevExpress controls support - this registers all required services including:
-        // - IWebDocumentViewerMvcControllerService
-        // - IReportDesignerMvcControllerService
-        // - IQueryBuilderMvcControllerService
-        services.AddDevExpressControls();
-
-        // Configure DevExpress Reporting services with custom routes
-        services.ConfigureReportingServices(configurator =>
-        {
-            // Enable development mode for troubleshooting and verbose error messages
-            configurator.UseDevelopmentMode();
-
-            // Configure the Report Designer route
-            configurator.ConfigureReportDesigner(designerConfigurator =>
-            {
-                // Intentionally rely on DefaultConnectionStringProvider (single FMSConnection)
-            });
-
-            // Configure the Web Document Viewer route
-            configurator.ConfigureWebDocumentViewer(viewerConfigurator =>
-            {
-                viewerConfigurator.UseCachedReportSourceBuilder();
-            });
-        });
-
-        // Register default connection string provider for DevExpress Report Designer
-        // This provides connection strings for the Query Builder and data source wizard
-        DevExpress.DataAccess.DefaultConnectionStringProvider.AssignConnectionStrings(() =>
-            new Dictionary<string, string>
-            {
-                { "FMSConnection", fmsConnectionString }
-            });
-
-
-        // Add MVC with Views for DevExpress Reporting controllers
-        // DevExpress controllers inherit from Controller (not ControllerBase) and need full MVC
-        services.AddControllersWithViews();
-
-        Log.Information("DevExpress Reporting services registered with FMS data connection");
-    }
 }

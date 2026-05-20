@@ -33,6 +33,7 @@ public class SalesDbContext : DbContext
     public DbSet<Coupon> Coupons => Set<Coupon>();
     public DbSet<ManualSale> ManualSales => Set<ManualSale>();
     public DbSet<OnboardingRequest> OnboardingRequests => Set<OnboardingRequest>();
+    public DbSet<SalesPipelineFollowUp> PipelineFollowUps => Set<SalesPipelineFollowUp>();
     public DbSet<SalesAuditLog> AuditLogs => Set<SalesAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

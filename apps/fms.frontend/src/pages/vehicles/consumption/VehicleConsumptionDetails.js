@@ -10,7 +10,6 @@ import LoadIndicator from "devextreme-react/load-indicator";
 import { useNavigate, useParams } from "react-router-dom";
 import { usePermissions } from "../../../hooks/usePermissions";
 import VehicleConsumptionEmptyState from "./components/VehicleConsumptionEmptyState";
-import VehicleConsumptionWarningLettersWorkspace from "./components/VehicleConsumptionWarningLettersWorkspace";
 import {
   formatDisplayDate,
   getGoogleMapsApiKey,
@@ -26,7 +25,6 @@ const TAB_ITEMS = [
   { id: "history", label: "History", icon: "fa-light fa-timeline" },
   { id: "gps", label: "GPS Details", icon: "fa-light fa-satellite-dish" },
   { id: "map", label: "Map", icon: "fa-light fa-route" },
-  { id: "warning-letters", label: "Warning Letters", icon: "fa-light fa-file-signature" },
 ];
 
 const formatDateTime = (value) => {
@@ -819,12 +817,6 @@ const VehicleConsumptionDetails = () => {
               {activeTab === "map" ? (
                 <div className="vehicle-consumption-module__tab-content">
                   <VehicleTrackMap mapApiKey={mapApiKey} points={trackPoints} />
-                </div>
-              ) : null}
-
-              {activeTab === "warning-letters" ? (
-                <div className="vehicle-consumption-module__tab-content">
-                  <VehicleConsumptionWarningLettersWorkspace detail={detail} />
                 </div>
               ) : null}
             </div>

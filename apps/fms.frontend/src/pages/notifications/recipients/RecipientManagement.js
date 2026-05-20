@@ -67,8 +67,7 @@ const mapGroupToViewModel = (group) => ({
 });
 
 const TABS = [
-  { key: 'groups', label: 'Groups', icon: 'fa-light fa-layer-group' },
-  { key: 'warning-letter', label: 'Warning Letter Groups', icon: 'fa-light fa-triangle-exclamation' }
+  { key: 'groups', label: 'Groups', icon: 'fa-light fa-layer-group' }
 ];
 
 const RecipientManagement = () => {

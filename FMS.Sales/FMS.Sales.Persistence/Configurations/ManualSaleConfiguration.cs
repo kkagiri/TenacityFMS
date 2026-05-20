@@ -31,6 +31,7 @@ public class ManualSaleConfiguration : IEntityTypeConfiguration<ManualSale>
         b.Property(x => x.ApprovedBy).HasMaxLength(128);
         b.HasOne(x => x.Plan).WithMany().HasForeignKey(x => x.PlanId);
         b.HasOne(x => x.Currency).WithMany().HasForeignKey(x => x.CurrencyCode);
+        b.HasMany(x => x.FollowUps).WithOne(x => x.ManualSale).HasForeignKey(x => x.ManualSaleId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -48,7 +49,22 @@ public class OnboardingRequestConfiguration : IEntityTypeConfiguration<Onboardin
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
         b.Property(x => x.StripeCheckoutSessionId).HasMaxLength(128);
         b.HasOne(x => x.Plan).WithMany().HasForeignKey(x => x.PlanId);
+        b.HasMany(x => x.FollowUps).WithOne(x => x.OnboardingRequest).HasForeignKey(x => x.OnboardingRequestId).OnDelete(DeleteBehavior.Cascade);
         b.HasIndex(x => x.Email);
+    }
+}
+
+public class SalesPipelineFollowUpConfiguration : IEntityTypeConfiguration<SalesPipelineFollowUp>
+{
+    public void Configure(EntityTypeBuilder<SalesPipelineFollowUp> b)
+    {
+        b.ToTable("pipeline_follow_up");
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Note).HasMaxLength(1024).IsRequired();
+        b.Property(x => x.CreatedBy).HasMaxLength(128);
+        b.HasIndex(x => x.ManualSaleId);
+        b.HasIndex(x => x.OnboardingRequestId);
+        b.HasIndex(x => x.CreatedAtUtc);
     }
 }
 

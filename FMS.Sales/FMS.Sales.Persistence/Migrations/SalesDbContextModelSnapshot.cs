@@ -519,6 +519,59 @@ namespace FMS.Sales.Persistence.Migrations
                     b.ToTable("sales_onboarding_request", (string)null);
                 });
 
+            modelBuilder.Entity("FMS.Sales.Domain.Entities.SalesPipelineFollowUp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at_utc");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("created_by");
+
+                    b.Property<DateTime?>("DueAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at_utc");
+
+                    b.Property<Guid?>("ManualSaleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("manual_sale_id");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("note");
+
+                    b.Property<Guid?>("OnboardingRequestId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("onboarding_request_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sales_pipeline_follow_up");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("ix_sales_pipeline_follow_up_created_at_utc");
+
+                    b.HasIndex("ManualSaleId")
+                        .HasDatabaseName("ix_sales_pipeline_follow_up_manual_sale_id");
+
+                    b.HasIndex("OnboardingRequestId")
+                        .HasDatabaseName("ix_sales_pipeline_follow_up_onboarding_request_id");
+
+                    b.ToTable("sales_pipeline_follow_up", (string)null);
+                });
+
             modelBuilder.Entity("FMS.Sales.Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1079,6 +1132,25 @@ namespace FMS.Sales.Persistence.Migrations
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("FMS.Sales.Domain.Entities.SalesPipelineFollowUp", b =>
+                {
+                    b.HasOne("FMS.Sales.Domain.Entities.ManualSale", "ManualSale")
+                        .WithMany("FollowUps")
+                        .HasForeignKey("ManualSaleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sales_pipeline_follow_up_sales_manual_sale_manual_sale_id");
+
+                    b.HasOne("FMS.Sales.Domain.Entities.OnboardingRequest", "OnboardingRequest")
+                        .WithMany("FollowUps")
+                        .HasForeignKey("OnboardingRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_sales_pipeline_follow_up_sales_onboarding_request_onboard");
+
+                    b.Navigation("ManualSale");
+
+                    b.Navigation("OnboardingRequest");
+                });
+
             modelBuilder.Entity("FMS.Sales.Domain.Entities.Payment", b =>
                 {
                     b.HasOne("FMS.Sales.Domain.Entities.Invoice", "Invoice")
@@ -1182,6 +1254,16 @@ namespace FMS.Sales.Persistence.Migrations
                     b.Navigation("Lines");
 
                     b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("FMS.Sales.Domain.Entities.ManualSale", b =>
+                {
+                    b.Navigation("FollowUps");
+                });
+
+            modelBuilder.Entity("FMS.Sales.Domain.Entities.OnboardingRequest", b =>
+                {
+                    b.Navigation("FollowUps");
                 });
 
             modelBuilder.Entity("FMS.Sales.Domain.Entities.Plan", b =>

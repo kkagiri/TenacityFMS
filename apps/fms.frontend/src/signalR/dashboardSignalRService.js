@@ -100,9 +100,9 @@ class DashboardSignalRService {
    * Prevents endless reconnect loops when user navigates to non-dashboard modules.
    */
   isDashboardRouteActive() {
-    if (typeof window === "undefined" || !window.location) return true;
+    if (typeof window === "undefined" || !window.location) return false;
     const path = (window.location.pathname || "").toLowerCase();
-    return path === "/" || path === "/home" || path.startsWith("/dashboard");
+    return false;
   }
 
   setDashboardOverviewWidgetId(widgetInstanceId) {
@@ -190,6 +190,14 @@ class DashboardSignalRService {
    * @returns {Promise<void>}
    */
   async start(hubUrl = null) {
+    if (!this.isDashboardRouteActive()) {
+      this.state = ConnectionState.DISCONNECTED;
+      console.log(
+        "[Dashboard SignalR] Skipping connection start: dashboard hub disabled for current route"
+      );
+      return;
+    }
+
     const connectionId = Math.random().toString(36).substring(2, 15);
     console.log(
       `[Dashboard SignalR] Starting connection attempt (ID: ${connectionId})...`
@@ -1342,6 +1350,10 @@ class DashboardSignalRService {
    * @returns {Promise<boolean>} Whether reconnection was successful
    */
   async ensureConnection() {
+    if (!this.isDashboardRouteActive()) {
+      return false;
+    }
+
     if (this.isConnected && this.connection) {
       return true;
     }

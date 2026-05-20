@@ -13,12 +13,12 @@
 using System.Linq;
 using System.Security.Claims;
 using FMS.Application.Command.PTSCommand.PumpCommands;
+using FMS.Application.Abstractions.DistCacheTracker;
 using FMS.Application.Common;
 using FMS.Application.Communication.Redis;
-using FMS.Application.Features.PTS.Queries;
 using FMS.Application.Features.Devices.Provisioning.Queries;
 using FMS.Application.Features.Devices.Provisioning.DTOs;
-using FMS.Application.Infrastructure.DistCacheTracker;
+using FMS.Application.Features.Devices.Fueling.UploadStatus.Queries;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using MediatR;
@@ -248,13 +248,13 @@ namespace FMS.WebClient.Controllers.PTSController
         /// </summary>
         [HttpGet("{deviceId}/{pumpId}/nozzle-state")]
         [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
-        public async Task<ActionResult<FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>>> GetNozzleState(
+        public async Task<ActionResult<FMSResponse<PumpNozzleStateDto>>> GetNozzleState(
             string deviceId,
             int pumpId)
         {
             try
             {
-                var query = new FMS.Application.Features.PTS.Queries.GetPumpNozzleStateQuery(deviceId, pumpId);
+                var query = new GetPumpNozzleStateQuery(deviceId, pumpId);
                 var result = await _mediator.Send(query);
 
                 if (!result.IsSuccess)
@@ -267,7 +267,7 @@ namespace FMS.WebClient.Controllers.PTSController
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting nozzle state for device {DeviceId}, pump {PumpId}", deviceId, pumpId);
-                return StatusCode(500, FMS.Application.Common.FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>
+                return StatusCode(500, FMSResponse<PumpNozzleStateDto>
                     .SystemError("Error getting nozzle state"));
             }
         }

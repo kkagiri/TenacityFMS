@@ -12,12 +12,16 @@ import { useEffect, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import OperatorLayout from "./layouts/OperatorLayout";
 import DashboardPage from "./pages/DashboardPage";
+import AuditLogPage from "./pages/AuditLogPage";
 import DeviceProvidersPage from "./pages/DeviceProvidersPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import OperatorUsersPage from "./pages/OperatorUsersPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import ReportsPage from "./pages/ReportsPage";
+import PlansPage from "./pages/PlansPage";
+import SalesPipelinePage from "./pages/SalesPipelinePage";
+import StationsPage from "./pages/StationsPage";
 import SubscriptionsPage from "./pages/SubscriptionsPage";
 import TenantDetailPage from "./pages/TenantDetailPage";
 import TenantsPage from "./pages/TenantsPage";
@@ -55,6 +59,12 @@ export default function App() {
             path="device-providers"
             element={wrap("Device providers", <DeviceProvidersPage />)}
           />
+          <Route path="stations" element={wrap("Stations", <StationsPage />)} />
+          <Route path="plans" element={wrap("Plans", <PlansPage />)} />
+          <Route
+            path="sales-pipeline"
+            element={wrap("Sales pipeline", <SalesPipelinePage />)}
+          />
           <Route
             path="subscriptions"
             element={wrap("Subscriptions", <SubscriptionsPage />)}
@@ -67,26 +77,8 @@ export default function App() {
             path="operator-users"
             element={wrap("Operators", <OperatorUsersPage />)}
           />
-          <Route
-            path="reports"
-            element={wrap(
-              "Reports",
-              <PlaceholderPage
-                title="Reports"
-                icon="fa-light fa-chart-line"
-              />,
-            )}
-          />
-          <Route
-            path="audit"
-            element={wrap(
-              "Audit log",
-              <PlaceholderPage
-                title="Audit Log"
-                icon="fa-light fa-shield-check"
-              />,
-            )}
-          />
+          <Route path="reports" element={wrap("Reports", <ReportsPage />)} />
+          <Route path="audit" element={wrap("Audit log", <AuditLogPage />)} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>

@@ -24,21 +24,17 @@
 
 <ItemGroup>
     <RestoreSources Include="https://api.nuget.org/v3/index.json" />
-    <!-- DevExpress 23.2 packages - local folder (repacked from network share) -->
   <RestoreSources Include="$(MSBuildThisFileDirectory)..\..\packages" />
 <!--Production link -->
     <!-- <RestoreSources Include="E:\Dependancy\Components\System\Components\packages" /> -->
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="AutoMapper" Version="15.1.1" />
     <PackageReference Include="ClosedXML" Version="0.102.3" />
-    <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="23.2.3" />
     <!-- JsReport for PDF/Excel report generation -->
     <PackageReference Include="jsreport.Local" Version="3.8.2" />
     <PackageReference Include="jsreport.Binary" Version="4.4.0" />
     <PackageReference Include="jsreport.Types" Version="3.9.4" />
-    <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="22.2.5" /> -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -103,6 +99,7 @@
   <ItemGroup>
    <ProjectReference Include="..\..\packages\FMS.Application\FMS.Application.csproj" />
    <ProjectReference Include="..\..\packages\FMS.Infrastructure\FMS.Infrastructure.csproj" />
+   <ProjectReference Include="..\..\packages\FMS.Reporting\FMS.Reporting.csproj" />
    <ProjectReference Include="..\..\services\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
    <ProjectReference Include="..\..\packages\FMS.Devices.Abstractions\FMS.Devices.Abstractions.csproj" />
    <ProjectReference Include="..\..\packages\FMS.Devices.Core\FMS.Devices.Core.csproj" />

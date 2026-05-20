@@ -82,6 +82,22 @@
     th { background: var(--surface); color: var(--text-2); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
     td { font-size: 12px; }
     code { background: var(--hover); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+    .markdown-doc h3 { margin: 18px 0 8px; font-size: 15px; }
+    .markdown-doc h4 { margin: 16px 0 8px; font-size: 13px; }
+    .markdown-doc h3:first-child { margin-top: 0; }
+    .markdown-doc p { margin: 0 0 10px; color: var(--text-2); }
+    .markdown-doc table { margin: 10px 0 18px; }
+    .markdown-doc pre {
+      margin: 10px 0 18px;
+      padding: 10px;
+      overflow: auto;
+      background: var(--hover);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .markdown-doc ol { margin: 8px 0 18px 22px; padding: 0; color: var(--text-2); }
+    .markdown-doc li { margin: 4px 0; }
     .error { color: var(--error); }
     @media (max-width: 768px) { .container { padding: 14px; } .header { padding: 12px 14px; } }
   </style>
@@ -102,13 +118,127 @@
       return response.text();
     }
 
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[char]));
+    }
+
+    function renderInline(value) {
+      return escapeHtml(value).replace(/`([^`]+)`/g, '<code>$1</code>');
+    }
+
+    function isTableRow(line) {
+      return /^\s*\|.*\|\s*$/.test(line);
+    }
+
+    function isTableSeparator(line) {
+      if (!isTableRow(line)) return false;
+      return splitTableRow(line).every(cell => /^:?-{3,}:?$/.test(cell));
+    }
+
+    function splitTableRow(line) {
+      return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+    }
+
+    function renderTable(lines, startIndex) {
+      const headers = splitTableRow(lines[startIndex]);
+      const rows = [];
+      let index = startIndex + 2;
+      while (index < lines.length && isTableRow(lines[index]) && !isTableSeparator(lines[index])) {
+        rows.push(splitTableRow(lines[index]));
+        index += 1;
+      }
+      const headerHtml = headers.map(header => `<th>${renderInline(header)}</th>`).join('');
+      const rowHtml = rows.map(row => {
+        const cells = headers.map((_, cellIndex) => `<td>${renderInline(row[cellIndex] || '')}</td>`).join('');
+        return `<tr>${cells}</tr>`;
+      }).join('');
+      return {
+        html: `<table><thead><tr>${headerHtml}</tr></thead><tbody>${rowHtml}</tbody></table>`,
+        nextIndex: index
+      };
+    }
+
     function renderMarkdownTables(markdown) {
-      return markdown
-        .replace(/^# (.*)$/gm, '<h3>$1</h3>')
-        .replace(/^## (.*)$/gm, '<h3>$1</h3>')
-        .replace(/^\|(.+)\|$/gm, '<div><code>|$1|</code></div>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
-        .replace(/\n/g, '<br />');
+      const lines = markdown.split(/\r?\n/);
+      const html = [];
+      let inOrderedList = false;
+
+      function closeList() {
+        if (inOrderedList) {
+          html.push('</ol>');
+          inOrderedList = false;
+        }
+      }
+
+      for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index];
+        const trimmed = line.trim();
+
+        if (trimmed === '') {
+          closeList();
+          continue;
+        }
+
+        if (trimmed.startsWith('```')) {
+          closeList();
+          const codeLines = [];
+          index += 1;
+          while (index < lines.length && !lines[index].trim().startsWith('```')) {
+            codeLines.push(lines[index]);
+            index += 1;
+          }
+          html.push(`<pre>${escapeHtml(codeLines.join('\n'))}</pre>`);
+          continue;
+        }
+
+        if (isTableRow(line) && index + 1 < lines.length && isTableSeparator(lines[index + 1])) {
+          closeList();
+          const table = renderTable(lines, index);
+          html.push(table.html);
+          index = table.nextIndex - 1;
+          continue;
+        }
+
+        if (/^#\s+/.test(trimmed)) {
+          closeList();
+          html.push(`<h3>${renderInline(trimmed.replace(/^#\s+/, ''))}</h3>`);
+          continue;
+        }
+
+        if (/^##\s+/.test(trimmed)) {
+          closeList();
+          html.push(`<h3>${renderInline(trimmed.replace(/^##\s+/, ''))}</h3>`);
+          continue;
+        }
+
+        if (/^###\s+/.test(trimmed)) {
+          closeList();
+          html.push(`<h4>${renderInline(trimmed.replace(/^###\s+/, ''))}</h4>`);
+          continue;
+        }
+
+        const orderedMatch = trimmed.match(/^\d+\.\s+(.*)$/);
+        if (orderedMatch) {
+          if (!inOrderedList) {
+            html.push('<ol>');
+            inOrderedList = true;
+          }
+          html.push(`<li>${renderInline(orderedMatch[1])}</li>`);
+          continue;
+        }
+
+        closeList();
+        html.push(`<p>${renderInline(trimmed)}</p>`);
+      }
+
+      closeList();
+      return `<div class="markdown-doc">${html.join('')}</div>`;
     }
 
     function setStatus(id, status, text) {

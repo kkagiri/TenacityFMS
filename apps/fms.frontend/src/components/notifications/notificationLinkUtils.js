@@ -16,7 +16,6 @@ const ALLOWED_PREFIXES = [
     '/reports/',
     '/tanks/',
     '/tanks',
-    '/warning-letters/',
     '/vehicles/',
     '/issues/',
     '/active-events/',

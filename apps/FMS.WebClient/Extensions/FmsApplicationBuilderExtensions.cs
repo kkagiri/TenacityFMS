@@ -1,7 +1,7 @@
 /**
  * File: FmsApplicationBuilderExtensions.cs
  * Purpose: Configures the ASP.NET Core middleware pipeline and endpoint mappings for FMS WebClient.
- * Dependencies: ASP.NET Core hosting pipeline, SignalR hubs, DevExpress, Serilog
+ * Dependencies: ASP.NET Core hosting pipeline, SignalR hubs, Serilog
  * Last Modified: 2026-03-09
  *
  * Key Functions:
@@ -22,9 +22,6 @@ using Microsoft.AspNetCore.Http;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Configuration;
 using FMS.WebClient.Util;
-using DevExpress.AspNetCore;
-using DevExpress.XtraReports.Web.Extensions;
-using FMS.WebClient.Diagnostics;
 using FMS.WebClient.Middleware;
 
 namespace FMS.WebClient.Extensions;
@@ -149,15 +146,6 @@ public static class FmsApplicationBuilderExtensions
 
         app.UseRouting();
 
-        // DevExpress Web Reporting diagnostics (Development only)
-        if (env.IsDevelopment())
-        {
-            app.UseMiddleware<DevExpressReportingDiagnosticsMiddleware>();
-        }
-
-        // DevExpress Reporting
-        app.UseDevExpressControls();
-
         // CORS must be AFTER UseRouting() but BEFORE UseEndpoints() for SignalR hubs
         if (env.IsDevelopment())
         {
@@ -216,12 +204,6 @@ public static class FmsApplicationBuilderExtensions
         {
             // Map API controllers (attribute-routed)
             endpoints.MapControllers();
-
-            // Map default MVC controller route for DevExpress Reporting controllers
-            // DevExpress controllers use conventional MVC routing pattern
-            endpoints.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
 
             // Map SignalR hubs with CORS enabled
             var corsPolicy = env.IsDevelopment() ? "DevelopmentCorsPolicy" : "ProductionCorsPolicy";

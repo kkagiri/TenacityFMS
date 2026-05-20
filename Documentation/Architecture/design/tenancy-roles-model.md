@@ -13,6 +13,42 @@ This document defines the people and security boundaries used by Tenacity FMS so
 | Role | Named bundle of permission claims assigned to users. | No data by itself; grants actions through permission keys. | Admin / user management surfaces |
 | Permission | Atomic action claim checked by API and UI. | Enables one command, query, page, or control. | Backend and frontend |
 
+## System User Definitions
+
+System users are the people who sign in to Tenacity FMS. Each user has one tenant context, one or more role assignments, and a business purpose. The user type below describes the person's operating context; it is not a permission by itself.
+
+| User Type | Definition | Primary Outcomes | Default Tenant Scope | Primary Surfaces |
+|---|---|---|---|---|
+| Platform Admin | Tenacity internal administrator responsible for configuring and governing the SaaS platform. | Create platform settings, manage client tenants, configure global features, review platform health. | System scope; cross-tenant only through explicit platform permission. | `apps/FMS.Admin` |
+| Support Operator | Tenacity internal support user who helps tenants resolve operational or configuration issues. | Inspect tenant setup, troubleshoot user access, verify device/provider status, assist onboarding. | System scope with time-bound or permission-gated tenant access. | `apps/FMS.Admin` |
+| Compliance Auditor | Internal or approved audit user who reviews permissions, tenant isolation, fiscal activity, and privileged actions. | Confirm that permissions, audit logs, fiscal records, and cross-tenant actions are traceable. | Read-focused access to approved audit views; no normal operational changes. | `apps/FMS.Admin`, reports |
+| Client Tenant Admin | Administrator for a paying client tenant or reseller. | Manage users, roles, sites, vehicles, tanks, devices, branding, and customer tenants. | Client tenant; may include child customer tenants through explicit workflows. | `apps/fms.frontend` admin pages |
+| Fleet Manager | Client-side operations leader responsible for vehicles, tracking, trips, and fleet availability. | Monitor fleet status, assign or review trips, manage vehicle records, act on tracking exceptions. | Client tenant vehicles and permitted customer fleets. | `apps/fms.frontend`, dashboards, reports |
+| Fuel Manager | Client-side user responsible for fueling workflows, pumps, dispensing, and fuel controls. | Monitor dispensing activity, review fuel transactions, manage fuel-related exceptions and controls. | Client tenant fueling sites, pumps, tanks, and permitted customer fuel data. | `apps/fms.frontend`, fueling modules |
+| Tank Stock Manager | Client-side user responsible for stock movements, reconciliation, refills, and tank measurements. | Maintain accurate tank balances, review ATG readings, reconcile opening/closing stock, approve adjustments. | Client tenant tanks, sites, stock records, and permitted customer stock data. | `apps/fms.frontend`, tank stock modules |
+| Maintenance User | Operations user who reviews asset condition, service needs, and maintenance-related vehicle activity. | Track vehicles needing attention, support uptime decisions, review maintenance-related reports. | Client tenant assets assigned by role permissions. | `apps/fms.frontend` |
+| Dispatch or Trip Coordinator | Operations user who plans and monitors trips, tasks, and driver assignments. | Assign drivers, follow trip lifecycle, monitor task completion, escalate operational delays. | Client tenant trips, drivers, tasks, and permitted customer trips. | `apps/fms.frontend`, mobile-linked workflows |
+| Driver Supervisor | User who manages drivers or field staff but is not necessarily a vehicle driver. | Review driver assignments, trip compliance, exceptions, and performance signals. | Client tenant drivers and assigned operational records. | `apps/fms.frontend` |
+| Fuel Station Operator | Front-line user at a fueling site or depot who executes or monitors fueling activity. | Operate allowed fueling workflows, verify transactions, respond to pump or ATG alerts. | Assigned sites, pumps, tanks, and shift-level operational data. | `apps/fms.frontend` |
+| Reports Manager | User responsible for operational, financial, compliance, or cross-tenant reports. | Build and review reports, compare tenants or customer groups when permitted, export approved data. | Tenant reports; cross-customer aggregation only through explicit reporting permission. | `apps/fms.frontend`, reporting |
+| Viewer | Read-only user who needs visibility without command authority. | Monitor dashboards, lists, and reports without changing operational data. | Tenant-scoped read access only. | `apps/fms.frontend` |
+| Customer Admin | Administrator for a customer tenant under a parent client. | Manage customer-scoped users and reports when enabled by the parent client. | Customer tenant only. | `apps/fms.frontend` |
+| Customer Operator | Customer-side operational user who works with the fleet, reports, tasks, or sites assigned to that customer tenant. | Perform permitted day-to-day customer workflows without seeing parent or sibling data. | Customer tenant only. | `apps/fms.frontend`, `apps/fms.mobile` when applicable |
+| Customer Viewer | Customer-side read-only user. | View branded dashboards, vehicles, notifications, and reports for their own customer tenant. | Customer tenant read access only. | `apps/fms.frontend` |
+| Mobile Field User | Driver or field staff member using mobile workflows for trips, tasks, confirmations, or field updates. | Complete assigned work, submit status updates, and view only assigned operational context. | Assigned records inside the user's tenant. | `apps/fms.mobile` |
+| Sales and Onboarding Operator | Tenacity internal user responsible for leads, subscriptions, plans, invoices, and customer provisioning. | Move prospects through onboarding, provision tenants, and manage subscription lifecycle. | Sales bounded context plus approved tenant-provisioning workflows. | `apps/FMS.Admin`, `FMS.Sales.Api` surfaces |
+
+## User Type, Role, And Permission Relationship
+
+| Concept | Answers | Example |
+|---|---|---|
+| User type | Who is this person in the business workflow? | Fuel Manager, Customer Viewer, Platform Admin |
+| Tenant scope | Which organization's data can this person act on? | Client tenant, customer tenant, system scope |
+| Role | What named access bundle did an admin assign? | Tenant Admin, Reports Manager, Viewer |
+| Permission | Which exact action is allowed by code? | `_readVehicle`, `_createUser`, `_exportReport` |
+
+User type should guide navigation, onboarding, documentation, and default role templates. Permissions remain the source of truth for enforcement.
+
 ## Tenant Hierarchy
 
 ```text

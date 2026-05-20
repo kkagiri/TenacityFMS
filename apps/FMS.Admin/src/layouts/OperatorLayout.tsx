@@ -28,6 +28,13 @@ const navItems = [
     label: "Device Providers",
     icon: "fa-light fa-plug-circle-bolt",
   },
+  { to: "/stations", label: "Stations", icon: "fa-light fa-location-dot" },
+  { to: "/plans", label: "Plans", icon: "fa-light fa-tags" },
+  {
+    to: "/sales-pipeline",
+    label: "Sales Pipeline",
+    icon: "fa-light fa-handshake",
+  },
   {
     to: "/subscriptions",
     label: "Subscriptions",

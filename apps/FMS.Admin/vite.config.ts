@@ -14,7 +14,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/sales-api": {
-        target: "http://localhost:7010",
+        target: "http://localhost:5099",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/sales-api/, ""),
       },

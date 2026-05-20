@@ -34,9 +34,7 @@ import SlidePanel from "../../../components/ui/SlidePanel";
 import EmployeeFormPanel from "../components/EmployeeFormPanel";
 import EmployeeDocumentsWorkspace from "./components/EmployeeDocumentsWorkspace";
 import EmployeeOverviewWorkspace from "./components/EmployeeOverviewWorkspace";
-import EmployeeWarningLettersWorkspace from "./components/EmployeeWarningLettersWorkspace";
 import { getVehicleConsumptionHistory } from "../../vehicles/consumption/vehicleConsumptionService";
-import { getWarningLetters } from "../../vehicles/warningLetters/warningLetterService";
 import "./EmployeeDetailsPage.scss";
 
 const baseTabItems = [
@@ -45,13 +43,9 @@ const baseTabItems = [
   { key: "refill", label: "Fuel Refills", icon: "fa-light fa-gas-pump" },
   { key: "vehicle-change", label: "Vehicles", icon: "fa-light fa-truck" },
   { key: "documents", label: "Documents", icon: "fa-light fa-folder-open" },
-  { key: "warning-letters", label: "Warning Letters", icon: "fa-light fa-triangle-exclamation" },
 ];
 
-const getAvailableTabItems = (canReadWarningLetters) =>
-  baseTabItems.filter(
-    (tab) => tab.key !== "warning-letters" || canReadWarningLetters
-  );
+const getAvailableTabItems = () => baseTabItems;
 
 const toDateInputValue = (date) => date.toISOString().split("T")[0];
 
@@ -100,14 +94,12 @@ const EmployeeDetailsPage = () => {
   const sites = useSelector((state) => state.site?.sites || []);
   const permissions = useSelector((state) => state.permission?.permissions || []);
   const user = useSelector((state) => state.auth?.user);
-  const canReadWarningLetters = permissions.includes("_Read_WarningLetter");
 
   const [employee, setEmployee] = useState(null);
   const [allTransactions, setAllTransactions] = useState([]);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [vehicleConsumptionRows, setVehicleConsumptionRows] = useState([]);
-  const [warningLetterCount, setWarningLetterCount] = useState(0);
   const [selectedTab, setSelectedTab] = useState(() => {
     if (tabParam && TAB_KEYS.includes(tabParam)) return tabParam;
     const queryTab = new URLSearchParams(window.location.search).get("tab");
@@ -202,9 +194,7 @@ const EmployeeDetailsPage = () => {
   // URL â†’ state: react to slug changes from router only.
   // No reverse activeTabâ†’URL effect (Firefox replaceState SecurityError lesson).
   useEffect(() => {
-    const availableTabs = getAvailableTabItems(
-      permissions.includes("_Read_WarningLetter")
-    );
+    const availableTabs = getAvailableTabItems();
     if (tabParam && availableTabs.some((tab) => tab.key === tabParam)) {
       setSelectedTab(tabParam);
       return;
@@ -345,30 +335,6 @@ const EmployeeDetailsPage = () => {
     };
   }, [employee?.fullName, employeeVehicleIds, fromDate, toDate]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadWarningLetterCount = async () => {
-      if (!employeeId || !canReadWarningLetters) {
-        setWarningLetterCount(0);
-        return;
-      }
-
-      try {
-        const letters = await getWarningLetters({ employeeId: String(employeeId) });
-        if (isMounted) setWarningLetterCount(Array.isArray(letters) ? letters.length : 0);
-      } catch (error) {
-        if (isMounted) setWarningLetterCount(0);
-      }
-    };
-
-    loadWarningLetterCount();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [canReadWarningLetters, employeeId]);
-
   const consumptionRows = useMemo(() => {
     const grouped = employeeTransactions.reduce((accumulator, transaction) => {
       const dateKey = parseDate(transaction.dateTime)
@@ -504,8 +470,8 @@ const EmployeeDetailsPage = () => {
   const canEditEmployee = permissions.includes("_Edit_Employee");
   const canDeleteEmployee = permissions.includes("_Delete_Employee");
   const tabItems = useMemo(
-    () => getAvailableTabItems(canReadWarningLetters),
-    [canReadWarningLetters]
+    () => getAvailableTabItems(),
+    []
   );
 
   const handleEditEmployee = useCallback(() => {
@@ -613,7 +579,6 @@ const EmployeeDetailsPage = () => {
   const showTabLoader =
     selectedTab !== "overview" &&
     selectedTab !== "documents" &&
-    selectedTab !== "warning-letters" &&
     loadingTransactions;
 
   // Derive initials from full name (max 2 chars).
@@ -716,8 +681,6 @@ const EmployeeDetailsPage = () => {
           let badge = null;
           if (tab.key === "vehicle-change" && assignedVehicleRows.length > 0) {
             badge = assignedVehicleRows.length;
-          } else if (tab.key === "warning-letters" && warningLetterCount > 0) {
-            badge = warningLetterCount;
           }
           return (
             <button
@@ -739,8 +702,7 @@ const EmployeeDetailsPage = () => {
 
       {/* Date range filter (data tabs only) */}
       {selectedTab !== "overview" &&
-        selectedTab !== "documents" &&
-        selectedTab !== "warning-letters" && (
+        selectedTab !== "documents" && (
           <div className="employee-details-module__filter-bar">
             <span className="employee-details-module__filter-label">
               <i className="fa-light fa-calendar-range" /> Date range
@@ -882,14 +844,6 @@ const EmployeeDetailsPage = () => {
 
             {selectedTab === "documents" && (
               <EmployeeDocumentsWorkspace employeeId={employeeId} employee={employee} />
-            )}
-
-            {selectedTab === "warning-letters" && canReadWarningLetters && (
-              <EmployeeWarningLettersWorkspace
-                employeeId={employeeId}
-                employee={employee}
-                onCountChange={setWarningLetterCount}
-              />
             )}
           </>
         )}

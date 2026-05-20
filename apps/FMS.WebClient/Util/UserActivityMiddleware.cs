@@ -133,7 +133,10 @@ namespace FMS.WebClient.Util
                         ActionName = actionName,
                         Parameters = parameters,
                         IpAddress = ipAddress,
-                        Timestamp = DateTime.UtcNow
+                        Timestamp = DateTime.UtcNow,
+                        OperatorTenantId = TryGetGuidClaim(user, "tenant_id"),
+                        TargetTenantId = TryResolveTargetTenantId(context),
+                        IsCrossTenantAction = IsCrossTenantOperatorRequest(user, path)
                     };
 
                     // Create a scope to access scoped services like GpsdataContext
@@ -152,6 +155,45 @@ namespace FMS.WebClient.Util
                     _logger.LogError(ex, "Error logging user activity: {Message}", ex.Message);
                 }
             }
+        }
+
+        private static bool IsCrossTenantOperatorRequest(ClaimsPrincipal user, string path)
+        {
+            var isOperator = string.Equals(
+                user.FindFirst("is_platform_operator")?.Value,
+                "true",
+                StringComparison.OrdinalIgnoreCase);
+
+            return isOperator && path.StartsWith("/api/v1/operator", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static Guid? TryGetGuidClaim(ClaimsPrincipal user, string claimType)
+        {
+            var raw = user.FindFirst(claimType)?.Value;
+            return Guid.TryParse(raw, out var value) ? value : null;
+        }
+
+        private static Guid? TryResolveTargetTenantId(HttpContext context)
+        {
+            foreach (var key in new[] { "tenantId", "id" })
+            {
+                var rawRouteValue = context.Request.RouteValues[key]?.ToString();
+                if (Guid.TryParse(rawRouteValue, out var routeGuid))
+                {
+                    return routeGuid;
+                }
+            }
+
+            foreach (var key in new[] { "tenantId", "targetTenantId" })
+            {
+                var rawQueryValue = context.Request.Query[key].FirstOrDefault();
+                if (Guid.TryParse(rawQueryValue, out var queryGuid))
+                {
+                    return queryGuid;
+                }
+            }
+
+            return null;
         }
     }
 
