@@ -24,6 +24,11 @@
   to   { opacity: 1; transform: translateX(0) scale(1); }
 }
 
+@keyframes sidepanel-slide-in {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -506,6 +511,31 @@
 }
 
 // ── Mobile Full-Screen ──────────────────────────────────────────────────────
+
+.notification-sidepanel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.notification-popover.notification-popover--sidepanel {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: min(440px, 100vw) !important;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  box-shadow: -18px 0 36px rgba(0, 0, 0, 0.18);
+  animation: sidepanel-slide-in 0.2s ease-out forwards;
+
+  .m365-panel-content {
+    max-height: none;
+    flex: 1 1 0;
+  }
+}
 
 .notification-mobile-backdrop {
   position: fixed;

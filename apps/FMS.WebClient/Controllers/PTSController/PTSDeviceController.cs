@@ -10,12 +10,12 @@
 
 using System;
 using System.Reflection;
-using FMS.Application.Features.Devices.Provisioning.Commands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.Tracker.Common;
 using FMS.Application.Common;
+using FMS.Application.Features.Devices.Provisioning.Commands;
 using FMS.Application.Features.Devices.Provisioning.DTOs;
 using FMS.Application.Features.Devices.Provisioning.Queries;
 using FMS.Domain.Entities;

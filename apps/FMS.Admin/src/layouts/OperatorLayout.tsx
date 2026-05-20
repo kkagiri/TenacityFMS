@@ -2,7 +2,7 @@
  * File:          OperatorLayout.tsx
  * Purpose:       Inspinia-style shell for the standalone operator portal.
  * Dependencies:  react-router-dom, Redux auth state, useLayoutAttributes hook
- * Last Modified: 2026-05-16
+ * Last Modified: 2026-05-17
  *
  * Key Functions:
  * - OperatorLayout(): Renders sidebar, topbar, and nested routes.
@@ -46,6 +46,33 @@ const navItems = [
   { to: "/audit", label: "Audit Log", icon: "fa-light fa-shield-check" },
 ];
 
+const operatorNotifications = [
+  {
+    id: "tenant-review",
+    title: "Tenant review queue",
+    message: "3 tenant records need operator review.",
+    time: "Now",
+    icon: "fa-light fa-building-circle-check",
+    tone: "info",
+  },
+  {
+    id: "device-provider-health",
+    title: "Provider health",
+    message: "One device provider is reporting degraded sync.",
+    time: "12 min ago",
+    icon: "fa-light fa-plug-circle-exclamation",
+    tone: "warning",
+  },
+  {
+    id: "invoice-batch",
+    title: "Invoice batch completed",
+    message: "Subscription invoice generation finished successfully.",
+    time: "1 hr ago",
+    icon: "fa-light fa-file-invoice-dollar",
+    tone: "success",
+  },
+];
+
 const MOBILE_BREAKPOINT_PX = 768;
 
 function getIsLargeViewport(): boolean {
@@ -58,6 +85,8 @@ export default function OperatorLayout() {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const [isLarge, setIsLarge] = useState<boolean>(getIsLargeViewport);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] =
+    useState<boolean>(false);
   // Tracks the user's explicit toggle of the sidebar. On desktop, false ⇒
   // condensed (icon-only) and true ⇒ default (full). On mobile this drives the
   // slide-in `is-sidebar-open` class. Default state mirrors fms.frontend:
@@ -75,6 +104,19 @@ export default function OperatorLayout() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!isNotificationPanelOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsNotificationPanelOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isNotificationPanelOpen]);
 
   const sidenavSize: SidenavSize = useMemo(() => {
     if (!isLarge) return "offcanvas";
@@ -120,7 +162,11 @@ export default function OperatorLayout() {
               className={({ isActive }) =>
                 `admin-shell__nav-item${isActive ? " is-active" : ""}`
               }
-              onClick={() => setIsSidebarOpen(false)}
+              onClick={() => {
+                if (!isLarge) {
+                  setIsSidebarOpen(false);
+                }
+              }}
             >
               <i className={item.icon} />
               <span>{item.label}</span>
@@ -167,6 +213,8 @@ export default function OperatorLayout() {
               type="button"
               className="admin-shell__icon-button"
               aria-label="Notifications"
+              aria-expanded={isNotificationPanelOpen}
+              onClick={() => setIsNotificationPanelOpen((current) => !current)}
             >
               <i className="fa-light fa-bell" />
               <span className="admin-shell__notification-dot" />
@@ -192,6 +240,63 @@ export default function OperatorLayout() {
           <Outlet />
         </main>
       </div>
+      {isNotificationPanelOpen && (
+        <>
+          <button
+            type="button"
+            className="admin-notification-panel__backdrop"
+            aria-label="Close notifications"
+            onClick={() => setIsNotificationPanelOpen(false)}
+          />
+          <aside className="admin-notification-panel" aria-label="Notifications">
+            <div className="admin-notification-panel__header">
+              <div>
+                <h2>Notifications</h2>
+                <p>Platform operations</p>
+              </div>
+              <button
+                type="button"
+                className="admin-shell__icon-button"
+                aria-label="Close notifications"
+                onClick={() => setIsNotificationPanelOpen(false)}
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </div>
+            <div className="admin-notification-panel__tabs">
+              <button type="button" className="is-active">
+                All <span>{operatorNotifications.length}</span>
+              </button>
+              <button type="button">Unread <span>1</span></button>
+            </div>
+            <div className="admin-notification-panel__list">
+              {operatorNotifications.map((notification) => (
+                <article
+                  key={notification.id}
+                  className={`admin-notification-panel__item admin-notification-panel__item--${notification.tone}`}
+                >
+                  <div className="admin-notification-panel__icon">
+                    <i className={notification.icon} />
+                  </div>
+                  <div className="admin-notification-panel__body">
+                    <div className="admin-notification-panel__item-title">
+                      {notification.title}
+                    </div>
+                    <p>{notification.message}</p>
+                    <span>{notification.time}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="admin-notification-panel__footer">
+              <button type="button" className="m365-btn m365-btn--ghost">
+                <i className="fa-light fa-bell" />
+                View notification center
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
     </div>
   );
 }

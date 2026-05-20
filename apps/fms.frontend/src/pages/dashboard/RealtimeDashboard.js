@@ -64,7 +64,7 @@ const RealtimeDashboard = () => {
     handleLayoutSettingsChange,
     canViewWidget
   } = useRealtimeDashboard({
-    enableRealtime: true,
+    enableRealtime: false,
     refreshInterval: 30000,
     autoLoad: true
   });

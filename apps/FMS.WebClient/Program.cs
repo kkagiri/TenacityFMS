@@ -179,6 +179,7 @@ public class Program
             throw;
         }
 
+        await EnsureAdministratorBootstrapAsync(app.Services);
         app.UseFmsPipeline();
         await EnsureIssueTrackerWorkflowBackfillAsync(app.Services);
         await SeedWidgetTemplatesAsync(app.Services);
@@ -441,6 +442,30 @@ public class Program
         catch (Exception ex)
         {
             logger.LogError(ex, "Error backfilling issue tracker workflows during startup");
+        }
+    }
+
+    private static async Task EnsureAdministratorBootstrapAsync(IServiceProvider serviceProvider)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var systemUserService = scope.ServiceProvider.GetRequiredService<FMS.Application.Services.ISystemUserService>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        try
+        {
+            var result = await systemUserService.EnsureDefaultAdministratorSetupAsync();
+            if (result.IsSuccess)
+            {
+                logger.LogInformation("Administrator bootstrap completed: {Message}", result.Message);
+            }
+            else
+            {
+                logger.LogWarning("Administrator bootstrap returned a non-success result: {Message}", result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error ensuring administrator bootstrap during startup");
         }
     }
 

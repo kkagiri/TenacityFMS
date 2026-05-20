@@ -28,12 +28,15 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const hasAdminRole = user?.roles.some(
+    (role) => role.toLowerCase() === "administrator",
+  );
   const isOperator = Boolean(
     token &&
       ((claims.tenantKind === "system" && claims.isPlatformOperator) ||
         user?.id === "system-administrator" ||
         user?.userName === "system-admin" ||
-        user?.roles.includes("Administrator")),
+        hasAdminRole),
   );
   const returnTo =
     (location.state as LocationState | null)?.from?.pathname || "/";

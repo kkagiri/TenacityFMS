@@ -148,6 +148,7 @@ Shared backend libraries now live under `packages/`, service hosts under `servic
 3. **Install Docker Desktop** (recommended for Redis)
 4. **Run environment setup scripts**
 5. **Start development**
+   SystemAdmin@123!
 
 ### Daily Development
 

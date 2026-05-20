@@ -204,15 +204,126 @@
     }
     .milestones .m {
       display: grid;
-      grid-template-columns: 24px 1fr auto;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
       gap: 10px; align-items: center;
-      padding: 6px 10px;
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+    }
+    .milestones .m:hover {
+      border-color: var(--border);
+      background: #fcfbfa;
+    }
+    .milestones .m.is-active {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+      background: #f7fbff;
+    }
+    .milestones .m .m-name { font-weight: 500; }
+    .milestones .m .m-notes { color: var(--text-2); font-size: 12px; }
+    .milestones .m .m-main { min-width: 0; }
+    .milestone-hint {
+      margin-top: 4px;
+      color: var(--text-3);
+      font-size: 11px;
+    }
+    .milestone-detail {
+      margin-top: 10px;
+      padding: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+    }
+    .milestone-detail__header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .milestone-detail__eyebrow {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+    .milestone-detail__title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .milestone-detail__summary {
+      color: var(--text-2);
+      line-height: 1.45;
+    }
+    .milestone-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .milestone-stat {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .milestone-items {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .milestone-item {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 96px) minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 8px 10px;
       background: var(--white);
       border: 1px solid var(--border-light);
       border-radius: 4px;
     }
-    .milestones .m .m-name { font-weight: 500; }
-    .milestones .m .m-notes { color: var(--text-2); font-size: 12px; }
+    .milestone-item__label {
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.25px;
+      padding-top: 2px;
+    }
+    .milestone-item__text {
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .milestone-item__notes {
+      margin-top: 4px;
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .milestone-placeholder {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .milestone-placeholder a {
+      font-weight: 600;
+    }
 
     .projects {
       display: flex; flex-direction: column; gap: 6px;
@@ -1290,9 +1401,12 @@
 }
 </script>
 
+<script src="./project-tracker-task-details.js"></script>
+
 <script>
 (async function () {
   const STATUS_ICONS = { done: "🟢", inProgress: "🟡", blocked: "🔴", preSoftware: "⚪", notStarted: "⏸" };
+  const TASK_DETAILS = window.PROJECT_TRACKER_TASK_DETAILS || Object.create(null);
   let DATA = null;
   let sortKey = "name";
   let sortDir = 1;
@@ -1320,6 +1434,85 @@
     if (/^(https?:|file:|mailto:)/i.test(path)) return path;
     if (path.startsWith("Documentation/")) return `../../${path.slice("Documentation/".length)}`;
     return path;
+  }
+
+  function normalizeStatus(status) {
+    const value = String(status || "").trim().toLowerCase();
+    if (value === "complete" || value === "completed") return "done";
+    if (value === "inprogress" || value === "in-progress" || value === "in_progress") return "inProgress";
+    if (value === "blocked") return "blocked";
+    if (value === "presoftware" || value === "pre-software") return "preSoftware";
+    if (value === "done" || value === "notstarted" || value === "not-started") return value.replace("notstarted", "notStarted");
+    return "notStarted";
+  }
+
+  function getMilestoneDetail(featureId, milestoneId) {
+    const detail = TASK_DETAILS[featureId] && TASK_DETAILS[featureId][milestoneId];
+    if (!detail) return null;
+    return {
+      summary: detail.summary || "",
+      items: Array.isArray(detail.items)
+        ? detail.items.map(item => ({
+            status: normalizeStatus(item.status),
+            label: item.label || "",
+            text: item.text || "",
+            notes: item.notes || ""
+          }))
+        : []
+    };
+  }
+
+  function milestoneStats(items) {
+    const buckets = { done: 0, inProgress: 0, blocked: 0, notStarted: 0 };
+    items.forEach(item => {
+      const key = normalizeStatus(item.status);
+      if (buckets[key] === undefined) buckets.notStarted += 1;
+      else buckets[key] += 1;
+    });
+    return buckets;
+  }
+
+  function taskItemHtml(item) {
+    return `
+      <div class="milestone-item">
+        <span class="status-icon" title="${esc(item.status)}">${STATUS_ICONS[item.status] || "⏸"}</span>
+        <div class="milestone-item__label">${esc(item.label || "Task")}</div>
+        <div>
+          <div class="milestone-item__text">${esc(item.text || "No task description recorded.")}</div>
+          ${item.notes ? `<div class="milestone-item__notes">${esc(item.notes)}</div>` : ""}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderMilestoneItems(feature, milestoneId, host) {
+    const milestone = (feature.milestones || []).find(entry => entry.id === milestoneId);
+    const detail = getMilestoneDetail(feature.id, milestoneId);
+    const items = detail ? detail.items : [];
+    const stats = milestoneStats(items);
+    const taskLink = feature.tasks ? `<a href="${esc(docLink(feature.tasks))}" target="_blank">Open TASKS →</a>` : "";
+
+    host.innerHTML = `
+      <div class="milestone-detail__header">
+        <div>
+          <div class="milestone-detail__eyebrow">Milestone Detail</div>
+          <div class="milestone-detail__title">${esc(milestone ? milestone.name : milestoneId)}</div>
+          <div class="milestone-detail__summary">${esc((detail && detail.summary) || (milestone && milestone.notes) || "No additional milestone summary recorded.")}</div>
+        </div>
+        <span class="badge phase-${esc(normalizeStatus(milestone && milestone.status))}">${esc((milestone && milestone.status) || "notStarted")}</span>
+      </div>
+      <div class="milestone-stats">
+        <span class="milestone-stat">${STATUS_ICONS.done} ${stats.done} done</span>
+        <span class="milestone-stat">${STATUS_ICONS.inProgress} ${stats.inProgress} in progress</span>
+        <span class="milestone-stat">${STATUS_ICONS.blocked} ${stats.blocked} blocked</span>
+        <span class="milestone-stat">${STATUS_ICONS.notStarted} ${stats.notStarted} not started</span>
+      </div>
+      <div class="milestone-items">
+        ${items.length
+          ? items.map(taskItemHtml).join("")
+          : `<div class="milestone-placeholder">No item-level tasks are cached for this milestone yet. ${taskLink}</div>`}
+      </div>
+    `;
   }
 
   function phaseBadge(phase) {
@@ -1443,16 +1636,21 @@
     const f = (DATA.features || []).find(x => x.id === id);
     if (!f) return;
 
-    const milestones = (f.milestones || []).map(m => `
-      <div class="m">
+    const milestones = (f.milestones || []).map(m => {
+      const detail = getMilestoneDetail(f.id, m.id);
+      const itemCount = detail && Array.isArray(detail.items) ? detail.items.length : 0;
+      return `
+      <button type="button" class="m milestone-toggle" data-milestone-id="${esc(m.id)}">
         <span class="status-icon" title="${esc(m.status)}">${STATUS_ICONS[m.status] || "⏸"}</span>
-        <div>
+        <div class="m-main">
           <div class="m-name">${esc(m.name)}</div>
           ${m.notes ? `<div class="m-notes">${esc(m.notes)}</div>` : ""}
+          <div class="milestone-hint">${itemCount ? `${itemCount} task items` : "Click for task-level detail"}</div>
         </div>
         <span class="badge phase-${esc(m.status)}">${esc(m.status)}</span>
-      </div>
-    `).join("");
+      </button>
+    `;
+    }).join("");
 
     const projects = (f.affectedProjects || []).map(p => `
       <div class="p">
@@ -1474,6 +1672,9 @@
           <div style="flex: 2; min-width: 280px;">
             <div style="font-size: 12px; color: var(--text-2); margin-bottom: 6px;">Milestones</div>
             ${milestones || `<div class="m-notes">No milestones recorded yet.</div>`}
+            <div class="milestone-detail" data-milestone-detail>
+              <div class="milestone-placeholder">Click a milestone to see the task-level breakdown for that phase.</div>
+            </div>
             <div style="font-size: 12px; color: var(--text-2); margin: 14px 0 6px;">Affected Projects</div>
             <div class="projects">${projects || `<div class="m-notes">No affected projects recorded yet.</div>`}</div>
           </div>
@@ -1487,6 +1688,16 @@
       </td>
     `;
     tr.parentNode.insertBefore(detail, tr.nextSibling);
+
+    const detailHost = detail.querySelector("[data-milestone-detail]");
+    detail.querySelectorAll(".milestone-toggle").forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        detail.querySelectorAll(".milestone-toggle").forEach(node => node.classList.remove("is-active"));
+        button.classList.add("is-active");
+        renderMilestoneItems(f, button.dataset.milestoneId, detailHost);
+      });
+    });
   }
 
   function renderProjectMap() {

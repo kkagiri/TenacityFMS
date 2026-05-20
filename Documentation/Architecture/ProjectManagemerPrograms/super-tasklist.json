@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-16",
+  "lastUpdated": "2026-05-17",
   "cutoffDate": "2026-04-29",
   "cutoffRule": "Any feature whose 'created' date is strictly AFTER cutoffDate is preSoftware (spec only, not yet implemented).",
   "legend": {
@@ -35,7 +35,7 @@
       "owner": "Architecture",
       "prd": "Documentation/Features/devices/multi-device-platform/V1/implementation/PRD.md",
       "tasks": "Documentation/Features/devices/multi-device-platform/V1/implementation/TASKS.md",
-      "percentComplete": 60,
+      "percentComplete": 69,
       "milestones": [
         {
           "id": "phase-0",
@@ -65,7 +65,7 @@
           "id": "phase-4",
           "name": "Phase 4 - Application consolidation",
           "status": "inProgress",
-          "notes": "Devices feature skeleton and permissions exist. Legacy PTS/PTSDevice/PTSService/PTSServices migrations and UI pages remain open."
+          "notes": "Devices feature skeleton, permissions, UI pages, and T4.2-T4.6 application consolidation moves are complete. Legacy transport/protocol and final cutover verification remain open."
         },
         {
           "id": "phase-5",
@@ -140,8 +140,9 @@
           "name": "FMS.Application - legacy PTS surfaces",
           "path": "packages/FMS.Application/Features/PTS; packages/FMS.Application/Features/PTSDevice; packages/FMS.Application/Features/PTSService; packages/FMS.Application/PTSServices",
           "role": "Legacy business logic to migrate into Features/Devices and then delete.",
-          "status": "blocked",
-          "phase": "Phase 4"
+          "status": "done",
+          "phase": "Phase 4",
+          "notes": "T4.2-T4.6 complete: legacy Features/PTS, Features/PTSDevice, Features/PTSService, and PTSServices roots were migrated into Features/Devices and deleted."
         },
         {
           "name": "FMS.Application - legacy transport/protocol surfaces",

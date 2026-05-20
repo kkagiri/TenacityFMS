@@ -56,6 +56,9 @@ const ROUTE_PATTERNS = {
   ],
   // Routes that DON'T need any SignalR connection
   NO_SIGNALR: [
+    /^\/home$/,
+    /^\/dashboard(?:\/|$)/,
+    /^\/$/,
     /^\/vehicles(?!\/tracking|\/transfers)/,  // Allow vehicles/tracking and vehicles/transfers
     /^\/site/,
     /^\/user/,
