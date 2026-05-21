@@ -1,9 +1,23 @@
-# Product Requirements Document  
+# Product Requirements Document
 ## TenacyFMS — 3-Audience Frontend Architecture
 
-> **Status:** Approved for implementation  
-> **Author:** Platform team  
-> **Date:** 2026-05-10  
+> ⚠️ **SUPERSEDED — 2026-05-20.** This PRD is being replaced by the **Tenancy & Roles Model (Two-Tier Refactor)**.
+>
+> | Active source | Path |
+> |---|---|
+> | New PRD | [`tenancy-roles-model/V1/implementation/PRD.md`](./tenancy-roles-model/V1/implementation/PRD.md) |
+> | New TASKS | [`tenancy-roles-model/V1/implementation/TASKS.md`](./tenancy-roles-model/V1/implementation/TASKS.md) |
+> | Architecture spec | [`Documentation/Architecture/design/tenancy-roles-model.md`](../../Architecture/design/tenancy-roles-model.md) |
+>
+> **What changed:** the three-audience framing (System / Client / Customer-as-tenant) is collapsed to a strict **two-tier model**: `System` + `Client`. External customers are no longer tenants — they become `User` rows whose access is narrowed by `UserResourceScope`. "Site" is the canonical internal name with per-tenant `BrandingConfig.SiteTerminology` override (`Site | Branch | Station | Depot | Yard`). Permission keys move to canonical `resource.action` form.
+>
+> In-flight work continues against this PRD until the new PRD reaches Phase 3+. New scope items must go on the new PRD.
+
+---
+
+> **Status:** Approved for implementation (legacy — being superseded)
+> **Author:** Platform team
+> **Date:** 2026-05-10
 > **Related plan:** `.claude/plans/in-our-multitenant-application-eager-rocket.md`
 
 ---

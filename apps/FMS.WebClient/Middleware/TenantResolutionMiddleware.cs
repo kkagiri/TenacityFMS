@@ -8,6 +8,7 @@
  * Last Modified: 2026-05-14
  */
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Features.MultiTenancy.Services;
 using FMS.Domain.Entities.Features.MultiTenancy;
@@ -38,7 +39,18 @@ namespace FMS.WebClient.Middleware
                     Guid.TryParse(raw, out var tenantId))
                 {
                     var kindRaw = context.User.FindFirst(TenantKindClaim)?.Value;
-                    var kind = ParseTenantKind(kindRaw);
+                    if (!TryParseTenantKind(kindRaw, out var kind))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                        {
+                            message = "Token tenant_kind is no longer supported. Please sign in again.",
+                            tenantKind = kindRaw,
+                        }));
+                        return;
+                    }
+
                     var operatorRaw = context.User.FindFirst(IsPlatformOperatorClaim)?.Value;
                     bool isOperator = string.Equals(operatorRaw, "true", StringComparison.OrdinalIgnoreCase);
 
@@ -49,19 +61,26 @@ namespace FMS.WebClient.Middleware
             await _next(context);
         }
 
-        private static TenantKind ParseTenantKind(string? value)
+        private static bool TryParseTenantKind(string? value, out TenantKind tenantKind)
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                return TenantKind.Client;
+                tenantKind = TenantKind.Client;
+                return true;
             }
 
-            return value.ToLowerInvariant() switch
+            switch (value.ToLowerInvariant())
             {
-                "system" => TenantKind.System,
-                "customer" => TenantKind.Customer,
-                _ => TenantKind.Client,
-            };
+                case "system":
+                    tenantKind = TenantKind.System;
+                    return true;
+                case "client":
+                    tenantKind = TenantKind.Client;
+                    return true;
+                default:
+                    tenantKind = TenantKind.Client;
+                    return false;
+            }
         }
     }
 

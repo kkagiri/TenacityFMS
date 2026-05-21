@@ -2,7 +2,7 @@
  * File:          DeviceProviderTenantGuardTests.cs
  * Purpose:       Conformance tests for Phase 4 device-provider multitenancy guards.
  * Dependencies:  FMS.Application, FMS.WebClient, ASP.NET Core MVC test doubles
- * Last Modified: 2026-05-15
+ * Last Modified: 2026-05-20
  *
  * Key Functions:
  * - Permission_constants_match_task_contract(): Pins exact permission strings.
@@ -39,8 +39,10 @@ namespace FMS.Testing.MultiTenancy
         {
             Assert.Equal("_Read_DeviceProvider", Permissions.DeviceProvider.Read);
             Assert.Equal("_Manage_DeviceProvider", Permissions.DeviceProvider.Manage);
-            Assert.Equal("_Platform_Read_DeviceProvider", Permissions.Platform.ReadDeviceProvider);
-            Assert.Equal("_Platform_Manage_DeviceProvider", Permissions.Platform.ManageDeviceProvider);
+            Assert.Equal("platform.device-providers.read", Permissions.Platform.ReadDeviceProvider);
+            Assert.Equal("platform.device-providers.manage", Permissions.Platform.ManageDeviceProvider);
+            Assert.Contains("_Platform_Read_DeviceProvider", LegacyPermissionMap.ToLegacy(Permissions.Platform.ReadDeviceProvider));
+            Assert.Contains("_Platform_Manage_DeviceProvider", LegacyPermissionMap.ToLegacy(Permissions.Platform.ManageDeviceProvider));
         }
 
         [Fact]
@@ -104,7 +106,7 @@ namespace FMS.Testing.MultiTenancy
             Assert.All(actionPermissions, action =>
             {
                 Assert.NotEmpty(action.Permissions);
-                Assert.All(action.Permissions, permission => Assert.StartsWith("_Platform_", permission));
+                Assert.All(action.Permissions, permission => Assert.StartsWith("platform.", permission));
                 Assert.Contains(action.Permissions, permission =>
                     permission == Permissions.Platform.ReadDeviceProvider ||
                     permission == Permissions.Platform.ManageDeviceProvider);

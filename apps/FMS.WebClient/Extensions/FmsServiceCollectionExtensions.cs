@@ -114,6 +114,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.MultiTenancy.Services.ITenantContext,
                            FMS.Application.Features.MultiTenancy.Services.TenantContext>();
         services.AddScoped<FMS.Application.Features.MultiTenancy.Services.TenantSaveChangesInterceptor>();
+        services.AddScoped<FMS.Application.Features.MultiTenancy.Services.IUserResourceScopeProvider,
+                           FMS.Application.Features.MultiTenancy.Services.UserResourceScopeProvider>();
 
         // Device platform: bridge ITenantScope (FMS.Devices.Abstractions) onto ITenantContext
         // so per-tenant repository filters in FMS.Devices.Core resolve from the same request scope.

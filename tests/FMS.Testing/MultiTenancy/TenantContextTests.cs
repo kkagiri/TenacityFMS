@@ -4,11 +4,15 @@
  *                multi-tenancy ambient context). Covers the cross-tenant
  *                escape-hatch invariant: only platform operator users may
  *                enter cross-tenant scope.
- * Last Modified: 2026-05-10
+ * Last Modified: 2026-05-20
  */
 using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using FMS.Application.Features.MultiTenancy.Services;
 using FMS.Domain.Entities.Features.MultiTenancy;
+using FMS.WebClient.Middleware;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace FMS.Testing.MultiTenancy
@@ -79,10 +83,10 @@ namespace FMS.Testing.MultiTenancy
         }
 
         [Fact]
-        public void EnterCrossTenantScope_throws_for_customer_user()
+        public void EnterCrossTenantScope_throws_for_system_user_without_operator_flag()
         {
             var ctx = new TenantContext();
-            ctx.SetTenant(Guid.NewGuid(), TenantKind.Customer, isPlatformOperator: false);
+            ctx.SetTenant(Guid.NewGuid(), TenantKind.System, isPlatformOperator: false);
 
             Assert.Throws<InvalidOperationException>(() => ctx.EnterCrossTenantScope());
             Assert.False(ctx.IsCrossTenant);
@@ -110,6 +114,60 @@ namespace FMS.Testing.MultiTenancy
             Assert.Equal(ctx.TenantId, queryCtx.TenantId);
             Assert.Equal(ctx.HasTenant, queryCtx.HasTenant);
             Assert.Equal(ctx.IsCrossTenant, queryCtx.IsCrossTenant);
+        }
+
+        [Fact]
+        public async Task TenantResolutionMiddleware_rejects_customer_tenant_kind_claim()
+        {
+            var nextCalled = false;
+            var middleware = new TenantResolutionMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var httpContext = CreateAuthenticatedHttpContext("customer");
+            var tenantContext = new TenantContext();
+
+            await middleware.InvokeAsync(httpContext, tenantContext);
+
+            Assert.False(nextCalled);
+            Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
+            Assert.False(tenantContext.HasTenant);
+        }
+
+        [Fact]
+        public async Task TenantResolutionMiddleware_accepts_client_tenant_kind_claim()
+        {
+            var nextCalled = false;
+            var middleware = new TenantResolutionMiddleware(_ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            });
+            var tenantId = Guid.NewGuid();
+            var httpContext = CreateAuthenticatedHttpContext("client", tenantId);
+            var tenantContext = new TenantContext();
+
+            await middleware.InvokeAsync(httpContext, tenantContext);
+
+            Assert.True(nextCalled);
+            Assert.Equal(tenantId, tenantContext.TenantId);
+            Assert.Equal(TenantKind.Client, tenantContext.TenantKind);
+        }
+
+        private static DefaultHttpContext CreateAuthenticatedHttpContext(string tenantKind, Guid? tenantId = null)
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                new Claim("tenant_id", (tenantId ?? Guid.NewGuid()).ToString()),
+                new Claim("tenant_kind", tenantKind),
+            };
+
+            return new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"))
+            };
         }
     }
 }

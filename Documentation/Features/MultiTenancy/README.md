@@ -1,6 +1,19 @@
 # Multi-Tenancy — Rollout Playbook
 
-> **Status:** 3-audience architecture implemented through Phase 4 scaffold. Per-entity rollout and final verification pending.
+> ⚠️ **Active tenancy model: Two-Tier (System + Client).** The 3-audience framing below is **historical context only**.
+>
+> The current authoritative spec is [`Documentation/Architecture/design/tenancy-roles-model.md`](../../Architecture/design/tenancy-roles-model.md). The active feature PRD is [`tenancy-roles-model/V1/implementation/PRD.md`](./tenancy-roles-model/V1/implementation/PRD.md) with companion [`TASKS.md`](./tenancy-roles-model/V1/implementation/TASKS.md).
+>
+> **Key deltas vs. the 3-audience text below:**
+> - `TenantKind` is reduced to `System | Client` only. `Customer` is being removed.
+> - External customers are `User` rows scoped through `UserResourceScope` (per-Site, per-Customer, or per-Vehicle) — they are NEVER tenants.
+> - "Site" is the canonical internal name; per-tenant display label comes from `BrandingConfig.SiteTerminology` (`Site | Branch | Station | Depot | Yard`).
+> - Permission keys move to canonical `resource.action` form (e.g. `vehicles.read`, `sites.update`). Legacy `_Platform_*` / `_Manage_*` keys remain mapped during a deprecation window via `LegacyPermissionMap`.
+> - The Customer `tenant_kind` claim and `viewMode === 'customer'` route branch are being retired.
+>
+> The sections that follow describe the infrastructure that is already in place — most of it remains correct (tenant filters, interceptor, JWT pipeline). Treat the parts that mention three audiences, child Customer tenants, or `_Platform_*` permissions as legacy; cross-reference against the two-tier PRD before extending them.
+
+> **Status:** 3-audience architecture implemented through Phase 4 scaffold. Per-entity rollout and final verification pending. **Now being refactored to the two-tier model — see banner above.**
 > **Owner:** Platform team
 
 This document is the operating manual for converting **TenacityFMS** from a single-tenant deployment (the original `Tenacity.FMS`) into a multi-tenant SaaS. The infrastructure is already wired; rolling each business entity onto the tenancy fabric is now an additive, low-risk task that can be staged across releases.

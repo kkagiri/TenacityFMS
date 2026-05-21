@@ -126,6 +126,7 @@ Headline metrics: **Adoption**, **Monthly Active Users (MAU)**, **Customer Reten
 | Permission Standardization | Security | `inProgress` — Phases 0–3 done, Phases 4–7 pending ⚠️ | No | [PRD](../../Features/Security/PermissionStandardization/V1/implementation/PRD.md) |
 | User Management V2 | UserManagement | `notStarted` — 25 tasks across 5 phases ⚠️ Domain change needed | No | [PRD](../../Features/UserManagement/V2/implementation/PRD.md) |
 | Frontend Layout & Design Language | frontend-layout | `prd` — 6 phases (Tokens, Shell Unification, Error Handling, Lint, 3-Audience, Validation) | Yes | [PRD](../../Features/frontend-layout/shell-and-design-language/V1/implementation/PRD.md) |
+| Tenancy & Roles Model (Two-Tier Refactor) | MultiTenancy | `prd` — 9 phases (Doc Alignment, Pre-Migration Audit, Schema/Domain, AuthZ Pipeline, JWT/TenantContext, Frontend, Admin Frontend, Validation, Cleanup) — supersedes 3-Audience | Yes | [PRD](../../Features/MultiTenancy/tenancy-roles-model/V1/implementation/PRD.md) |
 
 To add a feature:
 1. Ensure its per-feature PRD and TASKS exist under `Documentation/Features/...`.

@@ -29,6 +29,8 @@ using Microsoft.EntityFrameworkCore;
 using FMS.Domain.Entities;
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
+using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Domain.Entities.Features.MultiTenancy;
 
 namespace FMS.WebClient.Controllers;
 
@@ -367,13 +369,15 @@ public class UserController : ControllerBase
             // Get user roles
             var userRoles = await _userManager.GetRolesAsync(user);
             var userName = user.UserName ?? user.Email ?? user.Id;
+            var tenantClaims = await ResolveTenantClaimsAsync(user, userRoles, cancellationToken);
 
             // Generate new access token with fresh permissions
             var newAccessToken = await _jwtTokenGenerator.GenerateTokenWithPermissions(
                 user.Id,
                 userName,
                 user.Email ?? string.Empty,
-                userRoles);
+                userRoles,
+                tenantClaims);
 
             // Generate new refresh token (token rotation for security)
             var newRefreshToken = _jwtTokenGenerator.GenerateRefreshToken();
@@ -494,6 +498,73 @@ public class UserController : ControllerBase
             return Ok(result);
 
         return BadRequest(result);
+    }
+
+    private async Task<TenantClaims?> ResolveTenantClaimsAsync(User user, IList<string> userRoles, CancellationToken cancellationToken)
+    {
+        Tenant? tenant = null;
+        if (user.TenantId != Guid.Empty)
+        {
+            tenant = await _context.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == user.TenantId, cancellationToken);
+        }
+
+        bool hasOperatorRole = userRoles.Any(role =>
+            string.Equals(role, "Administrator", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(role, "PlatformOperator", StringComparison.OrdinalIgnoreCase));
+
+        if (tenant is null)
+        {
+            tenant = hasOperatorRole
+                ? await _context.Tenants
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Code == "_platform", cancellationToken)
+                : await _context.Tenants
+                    .AsNoTracking()
+                    .Where(t => t.IsActive && t.TenantKind == TenantKind.Client)
+                    .OrderBy(t => t.CreatedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (tenant is null)
+        {
+            return null;
+        }
+
+        bool isPlatformOperator = hasOperatorRole &&
+            tenant.TenantKind == TenantKind.System &&
+            string.Equals(tenant.Code, "_platform", StringComparison.OrdinalIgnoreCase);
+
+        var userScopes = await ResolveUserScopeClaimsAsync(user.Id, cancellationToken);
+
+        return new TenantClaims(
+            TenantId: tenant.Id,
+            TenantKind: tenant.TenantKind,
+            ParentTenantId: tenant.ParentTenantId,
+            IsPlatformOperator: isPlatformOperator,
+            UserScopes: userScopes);
+    }
+
+    private async Task<IReadOnlyCollection<UserScopeClaim>> ResolveUserScopeClaimsAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var scopes = await _context.UserResourceScopes
+            .AsNoTracking()
+            .Where(scope => scope.UserId == userId)
+            .Select(scope => new { scope.ResourceKind, scope.ResourceId })
+            .ToListAsync(cancellationToken);
+
+        return scopes
+            .GroupBy(scope => scope.ResourceKind)
+            .Select(group => new UserScopeClaim(
+                group.Key,
+                group.Select(scope => scope.ResourceId)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(resourceId => resourceId)
+                    .ToArray()))
+            .ToArray();
     }
 }
 

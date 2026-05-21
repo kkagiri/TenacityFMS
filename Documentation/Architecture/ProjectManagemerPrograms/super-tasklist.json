@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-17",
+  "lastUpdated": "2026-05-20",
   "cutoffDate": "2026-04-29",
   "cutoffRule": "Any feature whose 'created' date is strictly AFTER cutoffDate is preSoftware (spec only, not yet implemented).",
   "legend": {
@@ -458,7 +458,7 @@
           "phase": "Phase 2"
         }
       ],
-      "notes": "Introduces TenantKind (System|Client|Customer), ParentTenantId, branding columns, and _platform system tenant. FMS.Admin and cross-audience routing are active; remaining work is Phase 3.2+ and Phase 4 polish/white-label."
+      "notes": "Introduces TenantKind (System|Client|Customer), ParentTenantId, branding columns, and _platform system tenant. FMS.Admin and cross-audience routing are active; remaining work is Phase 3.2+ and Phase 4 polish/white-label. SUPERSEDED IN PROGRESS by `multitenancy-tenancy-roles-model-v1` (two-tier refactor, 2026-05-20). Active work continues until the Phase 1 supersession banners are applied and Phase 3+ of the new PRD lands."
     },
     {
       "id": "notification-event-expression-engine-v1",
@@ -816,6 +816,142 @@
         }
       ],
       "notes": "Unifies layout shell, design language, and error UX across fms.frontend and FMS.Admin. Light mode only. No mobile app changes. preSoftware = true (created after cutoff 2026-04-29)."
+    },
+    {
+      "id": "multitenancy-tenancy-roles-model-v1",
+      "name": "Tenancy & Roles Model (Two-Tier Refactor)",
+      "domain": "MultiTenancy",
+      "version": "V1",
+      "type": "implementation",
+      "created": "2026-05-20",
+      "phase": "inProgress",
+      "preSoftware": true,
+      "owner": "Architecture + Platform team",
+      "prd": "Documentation/Features/MultiTenancy/tenancy-roles-model/V1/implementation/PRD.md",
+      "tasks": "Documentation/Features/MultiTenancy/tenancy-roles-model/V1/implementation/TASKS.md",
+      "percentComplete": 51,
+      "milestones": [
+        {
+          "id": "phase-1",
+          "name": "Phase 1 — Documentation Alignment",
+          "status": "done",
+          "notes": "All 6 sub-tasks complete (2026-05-20): supersession banners on 3-AUDIENCE-PRD and 3-AUDIENCE-TASKLIST, MultiTenancy README updated, feature registered in super-tasklist.json + SUPER_PRD §3, user stories mirrored to business-goals.json."
+        },
+        {
+          "id": "phase-2",
+          "name": "Phase 2 — Pre-Migration Audit",
+          "status": "inProgress",
+          "notes": "2.1 audit script written; 2.2 run 2026-05-20 on local Postgres (developer PC is the authoritative environment) — Q7 verdict GREEN (0 Customer rows), findings captured in audit-findings.md; 2.3 N/A (no Customer rows to collapse); 2.4 PermissionAudit baseline still pending."
+        },
+        {
+          "id": "phase-3",
+          "name": "Phase 3 — Schema & Domain",
+          "status": "done",
+          "notes": "Completed 2026-05-20 with explicit Domain-layer approval: Customer TenantKind marked [Obsolete] for deprecation window, UserResourceScope + ResourceKind added, Tenant branding fields extended with SiteTerminology, EF configuration/index added, AddUserResourceScopeAndBrandingExtensions migration + SQL mirror created, UserResourceScope domain tests added."
+        },
+        {
+          "id": "phase-4",
+          "name": "Phase 4 — Authorisation Pipeline",
+          "status": "inProgress",
+          "notes": "4.1 complete: IUserResourceScopeProvider added in FMS.Application and registered in WebClient DI. 4.2 started with reusable query-scope helpers and GetSitesByUserIdQuery narrowing. 4.3-4.5 complete: MultiTenancy/Platform permission constants use canonical resource.action keys, LegacyPermissionMap handles old _Platform_* / _Manage_* aliases, and JWT permission claims emit both canonical and legacy aliases during the deprecation window. Remaining: broader query pipeline rollout and 4.6 cross-tenant audit/scope-order tests."
+        },
+        {
+          "id": "phase-5",
+          "name": "Phase 5 — JWT & TenantContext",
+          "status": "done",
+          "notes": "Completed 2026-05-20: JwtTokenGenerator emits only system|client tenant_kind values, TenantResolutionMiddleware rejects customer/unsupported tenant_kind tokens with a re-login message, login and refresh token issuance include compact user_scopes JSON, and JwtTenantClaimsTests/TenantContextTests were updated."
+        },
+        {
+          "id": "phase-6",
+          "name": "Phase 6 — Frontend Refactor (fms.frontend)",
+          "status": "notStarted",
+          "notes": "Drop viewMode==='customer' branch; route filtering by (roles, userScopes); useSiteTerminology + useBranding hooks; canonical permission keys in usePermissions."
+        },
+        {
+          "id": "phase-7",
+          "name": "Phase 7 — Admin Frontend (FMS.Admin)",
+          "status": "notStarted",
+          "notes": "Tenant create restricted to System|Client; External Viewers page; BrandingEditor SiteTerminology selector; canonical permission browser."
+        },
+        {
+          "id": "phase-8",
+          "name": "Phase 8 — Validation",
+          "status": "notStarted",
+          "notes": "PermissionAudit zero drift, tenant isolation tests, terminology smoke, External Customer Viewer smoke, self-hosted CI migration gate."
+        },
+        {
+          "id": "phase-9",
+          "name": "Phase 9 — Cleanup",
+          "status": "notStarted",
+          "notes": "After deprecation window: remove LegacyPermissionMap, remove Customer TenantKind value, delete 3-AUDIENCE-PRD/TASKLIST, record ProductManager outcome."
+        }
+      ],
+      "affectedProjects": [
+        {
+          "name": "FMS.Domain",
+          "path": "packages/FMS.Domain",
+          "role": "Reduce TenantKind to System|Client (deprecate Customer); add UserResourceScope entity; extend BrandingConfig with SiteTerminology and display fields. Domain change — explicit user approval required.",
+          "status": "notStarted",
+          "phase": "Phase 3"
+        },
+        {
+          "name": "FMS.Persistence",
+          "path": "packages/FMS.Persistence",
+          "role": "EF configuration for UserResourceScope and BrandingConfig extensions; AddUserResourceScopeAndBrandingExtensions migration.",
+          "status": "notStarted",
+          "phase": "Phase 3"
+        },
+        {
+          "name": "FMS.Application",
+          "path": "packages/FMS.Application",
+          "role": "IUserResourceScopeProvider, scope narrowing in query pipeline, canonical permission enforcement, LegacyPermissionMap.",
+          "status": "inProgress",
+          "phase": "Phase 4"
+        },
+        {
+          "name": "FMS.WebClient",
+          "path": "apps/FMS.WebClient",
+          "role": "JWT claims (tenant_kind restricted, user_scopes added), TenantResolutionMiddleware update, dual-permission emission during deprecation.",
+          "status": "done",
+          "phase": "Phase 5"
+        },
+        {
+          "name": "fms.frontend",
+          "path": "apps/fms.frontend",
+          "role": "Remove customer ViewMode branch; (roles, userScopes)-driven route filtering; useSiteTerminology and useBranding hooks; canonical permission keys.",
+          "status": "notStarted",
+          "phase": "Phase 6"
+        },
+        {
+          "name": "FMS.Admin",
+          "path": "apps/FMS.Admin",
+          "role": "Tenant create (System|Client only), External Viewers page with UserResourceScope management, BrandingEditor SiteTerminology selector, canonical permission browser.",
+          "status": "notStarted",
+          "phase": "Phase 7"
+        },
+        {
+          "name": "scripts/postgres",
+          "path": "scripts/postgres",
+          "role": "audit-tenant-kinds.sql pre-migration audit script.",
+          "status": "notStarted",
+          "phase": "Phase 2"
+        },
+        {
+          "name": "Documentation/Database/Migrations",
+          "path": "Documentation/Database/Migrations",
+          "role": "SQL mirror of AddUserResourceScopeAndBrandingExtensions migration.",
+          "status": "notStarted",
+          "phase": "Phase 3"
+        },
+        {
+          "name": "Documentation/Features/MultiTenancy",
+          "path": "Documentation/Features/MultiTenancy",
+          "role": "Supersession banners on 3-AUDIENCE-PRD.md and 3-AUDIENCE-TASKLIST.md; README update to point to the two-tier model.",
+          "status": "notStarted",
+          "phase": "Phase 1"
+        }
+      ],
+      "notes": "Two-tier refactor superseding `multitenancy-3-audience-v1`. Collapses tenant hierarchy to System + Client; Customer becomes a row scoped via UserResourceScope. Adds canonical Site terminology with per-tenant BrandingConfig.SiteTerminology override. Standardises resource.action permission keys with a LegacyPermissionMap deprecation window. preSoftware = true (created 2026-05-20, after cutoff 2026-04-29). Depends on: devices-multi-device-platform-v1, security-permission-standardization-v1, frontend-layout-shell-design-language-v1."
     }
   ],
   "crossCuttingInitiatives": [

@@ -1,15 +1,16 @@
 /*
  * File:          JwtTenantClaimsTests.cs
  * Purpose:       Verifies JwtTokenGenerator emits the tenant context
- *                claims (tenant_id, tenant_kind, parent_tenant_id,
- *                is_platform_operator) that fms.frontend ViewMode logic
- *                and TenantResolutionMiddleware depend on.
- * Last Modified: 2026-05-10
+ *                claims (tenant_id, tenant_kind, user_scopes,
+ *                is_platform_operator) that TenantResolutionMiddleware
+ *                and scoped navigation depend on.
+ * Last Modified: 2026-05-20
  */
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Domain.Entities.Features.MultiTenancy;
@@ -85,7 +86,7 @@ namespace FMS.Testing.MultiTenancy
         }
 
         [Fact]
-        public async Task Token_includes_parent_tenant_id_for_customer_user()
+        public async Task Token_normalizes_customer_tenant_kind_to_client()
         {
             var gen = BuildGenerator();
             var tenantId = Guid.NewGuid();
@@ -104,8 +105,8 @@ namespace FMS.Testing.MultiTenancy
 
             var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
 
-            Assert.Equal("customer", jwt.Claims.First(c => c.Type == "tenant_kind").Value);
-            Assert.Equal(parentId.ToString(), jwt.Claims.First(c => c.Type == "parent_tenant_id").Value);
+            Assert.Equal("client", jwt.Claims.First(c => c.Type == "tenant_kind").Value);
+            Assert.Null(jwt.Claims.FirstOrDefault(c => c.Type == "parent_tenant_id"));
         }
 
         [Fact]
@@ -129,6 +130,41 @@ namespace FMS.Testing.MultiTenancy
 
             Assert.Equal("system", jwt.Claims.First(c => c.Type == "tenant_kind").Value);
             Assert.Equal("true", jwt.Claims.First(c => c.Type == "is_platform_operator").Value);
+        }
+
+        [Fact]
+        public async Task Token_includes_compact_user_scopes_claim()
+        {
+            var gen = BuildGenerator();
+            var tenantId = Guid.NewGuid();
+
+            var token = await gen.GenerateTokenWithPermissions(
+                userId: Guid.NewGuid().ToString(),
+                username: "scoped-user",
+                email: "scoped@example.com",
+                roles: new[] { "ExternalViewer" },
+                tenantClaims: new TenantClaims(
+                    TenantId: tenantId,
+                    TenantKind: TenantKind.Client,
+                    ParentTenantId: null,
+                    IsPlatformOperator: false,
+                    UserScopes: new[]
+                    {
+                        new UserScopeClaim(ResourceKind.Site, new[] { "12", "5" }),
+                        new UserScopeClaim(ResourceKind.Customer, new[] { "acme" }),
+                    }));
+
+            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            var userScopes = jwt.Claims.First(c => c.Type == "user_scopes").Value;
+            using var document = JsonDocument.Parse(userScopes);
+
+            Assert.Equal(2, document.RootElement.GetArrayLength());
+            Assert.Contains(document.RootElement.EnumerateArray(), scope =>
+                scope.GetProperty("k").GetString() == "site" &&
+                scope.GetProperty("ids").EnumerateArray().Select(id => id.GetString()).SequenceEqual(new[] { "12", "5" }.OrderBy(id => id)));
+            Assert.Contains(document.RootElement.EnumerateArray(), scope =>
+                scope.GetProperty("k").GetString() == "customer" &&
+                scope.GetProperty("ids").EnumerateArray().Single().GetString() == "acme");
         }
     }
 }

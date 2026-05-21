@@ -1,5 +1,6 @@
 {
-    "lastUpdated": "2026-05-16",
+    "lastUpdated": "2026-05-20",
+    "_changeLog": "2026-05-20: G-01 reworded to two-tier (System + Client) framing; relinked from multitenancy-3-audience-v1 to multitenancy-tenancy-roles-model-v1. Removed superseded `multitenancy-3-audience-v1` card from roadmap.now (replaced by `multitenancy-tenancy-roles-model-v1`).",
     "owner": "ProductManager agent",
     "notes": "Source of truth for product outcomes. Numeric KPIs are placeholders until validated against real telemetry / billing data. The ProductManager agent is forbidden from inventing values.",
     "legend": {
@@ -19,14 +20,14 @@
     "goals": [
         {
             "id": "G-01",
-            "title": "Become a true multi-tenant platform",
-            "description": "Serve three audiences — Platform Operator, Client, and Customer (sub-tenant) — with strict tenant isolation and branded portals.",
+            "title": "Become a true multi-tenant platform on a two-tier model",
+            "description": "Operate on a strict two-tier tenancy (System + Client). External customers are rows scoped through UserResourceScope — never tenants. Every tenant gets strict isolation, a branded portal, and per-tenant terminology (Site / Branch / Station / Depot / Yard) without code forks.",
             "kpiIds": [
                 "adoption",
                 "retention"
             ],
             "featureIds": [
-                "multitenancy-3-audience-v1"
+                "multitenancy-tenancy-roles-model-v1"
             ]
         },
         {
@@ -147,12 +148,6 @@
                 "domain": "vehicle-tracking, fueling"
             },
             {
-                "featureId": "multitenancy-3-audience-v1",
-                "title": "Multi-Tenancy (3-Audience)",
-                "description": "Platform Operator / Client / Customer tenancy model across all domains.",
-                "domain": "administration"
-            },
-            {
                 "featureId": "security-permission-standardization-v1",
                 "title": "Permission Standardization",
                 "description": "Normalize permission keys across controllers, frontend, and rolepermissions table.",
@@ -163,6 +158,12 @@
                 "title": "Frontend Layout & Design Language",
                 "description": "Unified Inspinia + M365 shell across fms.frontend and FMS.Admin with shared error-handling stack.",
                 "domain": "frontend-platform"
+            },
+            {
+                "featureId": "multitenancy-tenancy-roles-model-v1",
+                "title": "Tenancy & Roles Model (Two-Tier Refactor)",
+                "description": "Collapse tenant hierarchy to System + Client; Customer becomes a row + UserResourceScope; canonical Site terminology with per-tenant display label; canonical resource.action permission keys.",
+                "domain": "administration"
             }
         ],
         "next": [
@@ -358,6 +359,78 @@
             "soThat": "I can spec new screens without ambiguity",
             "acceptanceCriteria": [
                 "Given the Inspinia Inheritance Matrix in PRD §6, when a designer specs a new screen, then every token (color, spacing, font, control height) maps to a row in the matrix."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-016",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "platform admin",
+            "iWant": "to provision a client tenant in a strictly two-tier hierarchy",
+            "soThat": "onboarding matches the actual data model and we never create orphan Customer tenants",
+            "acceptanceCriteria": [
+                "Given the tenant create form, when I open the TenantKind selector, then only 'System' and 'Client' are offered.",
+                "Given a Client tenant is created, when I query the database, then no row is inserted with TenantKind = Customer."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-017",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "tenant admin",
+            "iWant": "to grant an external customer view-only access without creating a new tenant",
+            "soThat": "I can give Acme a self-service view without inflating my tenant tree",
+            "acceptanceCriteria": [
+                "Given I open the External Viewers page for my tenant, when I add a user for Acme with role 'External Customer Viewer' and UserResourceScope.Customer = Acme, then a single User row is created inside my tenant with no child tenant.",
+                "Given that user logs in, when they open any list page, then only rows with CustomerId = Acme are visible."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-018",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "tenant admin (Shell)",
+            "iWant": "my portal to display 'Station' or 'Branch' instead of 'Site'",
+            "soThat": "the UI matches my industry vocabulary",
+            "acceptanceCriteria": [
+                "Given BrandingConfig.SiteTerminology = 'Station' on my tenant, when any user in my tenant opens any page that previously said 'Site', then the label reads 'Station' (header, nav, table columns, dialogs).",
+                "Given the same tenant, when I query the API or audit log, then the underlying field name is still 'Site' (no schema change)."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-019",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "tenant admin",
+            "iWant": "to scope a Site Operator user to one specific site",
+            "soThat": "they see only their own tanks, pumps, and transactions",
+            "acceptanceCriteria": [
+                "Given I assign UserResourceScope.Site = Galana to a user with role 'Site Operator', when that user opens the tanks list, then only Galana's tanks appear.",
+                "Given the same user, when they try to call an API for a different site, then they receive 403 Forbidden and an audit entry is written."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-020",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "compliance auditor",
+            "iWant": "every action gated by a single canonical resource.action permission key",
+            "soThat": "audit reviews complete in hours instead of days",
+            "acceptanceCriteria": [
+                "Given the PermissionAudit subagent runs against main, when it scans controllers, frontend usePermissions hooks, and the rolepermissions table, then it reports zero drift items.",
+                "Given a legacy permission key is encountered, when it is checked, then LegacyPermissionMap translates it to the canonical key and a deprecation warning is logged."
+            ],
+            "status": "draft"
+        },
+        {
+            "id": "US-021",
+            "featureId": "multitenancy-tenancy-roles-model-v1",
+            "asA": "platform admin for a self-hosted instance",
+            "iWant": "to install with a single BrandingConfig and run the same codebase as SaaS",
+            "soThat": "there are no mode-specific build artefacts to maintain",
+            "acceptanceCriteria": [
+                "Given the self-hosted installer, when it runs, then the same migration set as SaaS staging is applied (CI gate verifies this).",
+                "Given the running instance, when any user logs in, then no Tenacity brand string or hardcoded terminology appears in headers, emails, or page titles — all resolve through BrandingConfig."
             ],
             "status": "draft"
         }

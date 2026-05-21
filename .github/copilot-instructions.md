@@ -11,17 +11,35 @@
 |---|---|
 | Backend | .NET Core — CQRS, Clean Architecture |
 | Frontend | React 18.2.0 — DevExtreme 23.2.8, Redux Toolkit, Tailwind (`tw-` prefix) |
-| Database | MySQL 5.5 / 5.6 — Entity Framework, GPSDataContext |
+| Database | PostgreSQL — Entity Framework, GPSDataContext |
 | Real-time | SignalR — live dashboards, hub events |
 | Icons | FontAwesome — `fa-light fa-icon` prefix always |
-| Styling | SCSS (not CSS) · Tailwind `tw-` prefix · Light mode only |
+| Styling | SCSS (not CSS) · Tailwind `tw-` prefix · Light and Dark mode  |
+
+### Current Workspace Environment
+
+| Item | Current Value / Rule |
+|---|---|
+| OS | Windows development PC |
+| Workspace root | `c:\Users\kkagiri\Sources\Repo\TenacityFMS` |
+| Solution files | `Tenacity.Fms.sln` |
+| Main backend host | `apps/FMS.WebClient/FMS.WebClient.csproj` |
+| Primary frontend | `apps/fms.frontend/` |
+| Main application packages | `packages/` |
+| Background/host services | `services/` |
+| Sales subsystem | `FMS.Sales/` is in scope for repository instructions |
+| Tests | `tests/FMS.Testing/` |
+| Documentation | `Documentation/Features/` and `Documentation/Architecture/` |
+| AI guidance folders | `.github/agents/`, `.github/instructions/`, `.agents/skills/`, `.claude/skills/` |
+
+Always verify the current folder before creating files. This repository no longer uses root-level `FMS.Application/`, `FMS.Domain/`, `FMS.Persistence/`, or `FMS.WebClient/` paths; use the `packages/`, `apps/`, and `services/` layout described below.
 
 ---
 
 ## Table of Contents
 
 1. [Critical Rules](#1-critical-rules)
-2. [Project Overview & Architecture](#2-project-overview--architecture)
+2. [Project Overview, Agents & Architecture](#2-project-overview-agents--architecture)
 3. [Backend Development Standards](#3-backend-development-standards)
 4. [Frontend Development Standards](#4-frontend-development-standards)
 5. [File Organisation](#5-file-organisation)
@@ -58,16 +76,15 @@
 - DO NOT auto-generate documentation at any time
 - DO NOT suggest documentation unless the user asks
 - Write documentation ONCE ONLY per request
-9Wrapped all explicit transaction blocks with _context.Database.CreateExecutionStrategy().ExecuteAsync(...)
 **Folder structure for all documentation:**
 
 ```
-documentation/features/{domain}/{feature}/{version}/{type}/
+Documentation/Features/{domain}/{feature}/{version}/{type}/
 
 Examples:
-  documentation/features/vehicle/fleet-management/V1/bug-fix/
-  documentation/features/taskmanagement/assignment/V2/implementation/
-  documentation/features/tankstock/reconciliation/V1/enhancement/
+  Documentation/Features/vehicle/fleet-management/V1/bug-fix/
+  Documentation/Features/taskmanagement/assignment/V2/implementation/
+  Documentation/Features/tankstock/reconciliation/V1/enhancement/
 ```
 
 **Document Types:** `bug-fix/` · `implementation/` · `enhancement/` · `migration/` · `api/`
@@ -127,7 +144,7 @@ Before suggesting architecture changes, follow this domain folder discovery prot
 
 | Step | Action |
 |---|---|
-| 1 | Check the domain/feature folder: `FMS.Application/Features/{Domain}/` |
+| 1 | Check the domain/feature folder: `packages/FMS.Application/Features/{Domain}/` |
 | 2 | If domain folder is **MISSING** → STOP. Ask user for approval with proposed structure. |
 | 3 | If domain exists but structure is unclear → document findings, present plan, wait for agreement. |
 | 4 | Check for anti-patterns (see below) before creating files. |
@@ -135,10 +152,10 @@ Before suggesting architecture changes, follow this domain folder discovery prot
 **Anti-Patterns — Never Do This:**
 
 ```
-❌  Files in FMS.Application/DTO/         (wrong location)
-❌  Files in FMS.Application/Services/    (wrong location)
-✅  Files should be in FMS.Application/Features/{Domain}/DTOs/
-✅  Files should be in FMS.Application/Features/{Domain}/Services/
+❌  Files in packages/FMS.Application/DTO/         (wrong location)
+❌  Files in packages/FMS.Application/Services/    (wrong location)
+✅  Files should be in packages/FMS.Application/Features/{Domain}/DTOs/
+✅  Files should be in packages/FMS.Application/Features/{Domain}/Services/
 ```
 
 **Example response when domain is missing:**
@@ -153,7 +170,7 @@ I need to create files in Features/TaskManagement/ but this domain folder doesn'
  do not put command and command handler in a seperate file. put them in the same file. same for query and query handler.
 
 Proposed structure:
-FMS.Application/Features/TaskManagement/
+packages/FMS.Application/Features/TaskManagement/
 ├── Commands/
 ├── Queries/
 ├── DTOs/
@@ -175,7 +192,7 @@ Should I proceed with creating this domain structure?
 
 ### 1.6 Domain Layer is Sacred
 
-> 🚨 **STRICTLY DO NOT modify the Domain layer (`FMS.Domain/`)**
+> 🚨 **STRICTLY DO NOT modify the Domain layer (`packages/FMS.Domain/`)**
 
 Domain entities are the source of truth. If domain changes are needed:
 1. Stop immediately
@@ -235,7 +252,7 @@ Every file **MUST** have a documentation header at the top:
 **Required folder structure for every domain:**
 
 ```
-FMS.Application/Features/Vehicle/
+packages/FMS.Application/Features/Vehicle/
 ├── Commands/
 │   ├── CreateVehicleCommand.cs
 │   └── UpdateVehicleCommand.cs
@@ -266,30 +283,85 @@ FMS.Application/Features/Vehicle/
 
 ---
 
-## 2. Project Overview & Architecture
+## 2. Project Overview, Agents & Architecture
 
-**FMS** is a full-stack Fleet Management System currently in **active production**.
+**FMS** is a full-stack Fleet Management System currently in **active development**.
 
 ```
-FMS.Application/         — Business logic, DTOs, commands, queries
-FMS.WebClient/           — Web API controllers
-FMS.Frontend/            — React frontend (src/)
-FMS.Persistence/         — Data access layer, entity configs
-FMS.Domain/              — Entities & domain models  ← DO NOT MODIFY
-FMS.BackgroundServices/  — Background jobs
-documentation/           — All feature documentation
+apps/FMS.WebClient/               — Main web/API host
+apps/fms.frontend/                — Main React frontend
+apps/FMS.Admin/                   — Admin portal frontend
+apps/FMS.Landing/                 — Public landing site
+apps/fms.mobile/                  — React Native mobile app
+apps/Themetemplate/               — Reference/template assets to keep separate from production apps
+packages/FMS.Application/         — Main business logic project; prefer `Features/` and `Common/`
+packages/FMS.Domain/              — Domain entities and events  ← DO NOT MODIFY without approval
+packages/FMS.Persistence/         — Data access and entity configurations
+packages/FMS.Infrastructure/      — Infrastructure integrations
+packages/FMS.Devices.Abstractions/ — Device provider contracts
+packages/FMS.Devices.Core/        — Device provider registry, routing, and persistence abstractions
+packages/FMS.Devices.Fueling/     — Fueling providers
+packages/FMS.Devices.Tracking/    — Tracking providers
+services/FMS.BackgroundServices/  — Background jobs
+services/FMS.Devices.Tracking.Host/ — Tracking provider host
+services/FMS.PTS.WindowsService/  — Legacy-but-kept PTS host pending replacement
+tests/FMS.Testing/                — Automated tests
+Documentation/Features/           — In-scope feature PRDs, tasks, and implementation docs
+Documentation/Architecture/       — In-scope architecture docs and design artifacts
+FMS.Sales/                        — Separate but in-scope sales subsystem
 ```
+
+### Current Package Reality
+
+`packages/FMS.Application/` still contains legacy folders that are **targets for migration**, not preferred destinations for new code.
+
+```
+Target for migration:
+  Command/
+  Queries/
+  Dtos/
+  ModelsDTOs/
+  Services/
+  Handlers/
+  PTSServices/
+  Communication/
+  CommonInterface/
+  Validation/
+
+Preferred for new work:
+  Features/
+  Common/
+  Events/
+  Extensions/
+```
+
+Do not place new code in migration-target folders unless you are explicitly working on a migration or fixing an existing feature in place.
+
+### Agent & Instruction Files
+
+These folders are in-scope and should be checked when the task matches them:
+
+| Path | Purpose |
+|---|---|
+| `.github/copilot-instructions.md` | Primary repository-wide agent rules |
+| `.github/agents/` | Project-specific specialist agents |
+| `.github/instructions/` | Narrow instruction files for APIs, tests, and system rules |
+| `.agents/skills/` | Repository skills for design, devices, PRD orchestration, product, project, and UX |
+| `.claude/skills/` | Alternate skill location referenced by some docs |
+
+Keep all AI guidance folders. When a request touches architecture, permissions, roadmap governance, security, or UX, load the matching project agent/skill before making broad changes.
 
 **Key Files to Reference:**
 
 | File | Purpose |
 |---|---|
-| `FMSResponse.cs` | Response handling patterns |
-| `package.json` | Frontend dependencies |
-| `tailwind.config.js` | Styling configuration |
-| `axiosInstance.js` | API communication setup |
-| `FmsLoggingConfiguration.cs` | WebClient Serilog logging |
-| `PTSLoggingConfiguration.cs` | PTS Windows Service Serilog logging |
+| `apps/fms.frontend/package.json` | Main frontend dependencies |
+| `apps/fms.frontend/tailwind.config.js` | Frontend Tailwind configuration |
+| `apps/fms.frontend/src/api/axiosInstance.js` | API communication setup |
+| `apps/FMS.WebClient/Extensions/FmsLoggingConfiguration.cs` | WebClient Serilog logging |
+| `services/FMS.PTS.WindowsService/Infrastructure/Logging/PTSLoggingConfiguration.cs` | PTS Windows Service Serilog logging |
+| `.github/agents/ArchitectureCompliance.agent.md` | Architecture audit agent |
+| `.github/agents/PermissionAudit.agent.md` | Permission and tenancy audit agent |
 
 ---
 
@@ -397,14 +469,33 @@ public class VehicleService : IVehicleService
 
 | Package / Tool | Version / Rule |
 |---|---|
-| React | 18.2.0 with hooks |
-| DevExtreme | 23.2.8 |
+| React | with hooks |
 | Redux | Toolkit — state management |
 | Tailwind CSS | `tw-` prefix required on **all** classes |
 | Icons | FontAwesome — `fa-light fa-icon` prefix |
 | Styling | SCSS only (not plain CSS) |
 | Theme | Light mode only — no dark mode |
 | API URLs | `/vehicles` not `/api/vehicles` (axiosInstance adds base URL) |
+
+### Frontend App Governance
+
+The repository currently has **two primary web frontends**: `apps/fms.frontend/` and `apps/FMS.Admin/`.
+
+- Shared UX rules must be defined once and mirrored in both apps.
+- `apps/fms.frontend/` is the **behavior and shell baseline** because its core shell is already working in production.
+- `apps/FMS.Admin/` is the **code-structure and engineering-quality bar**. Do not allow bad frontend practices from `fms.frontend` to propagate into admin code.
+- The long-term direction is a neutral shared frontend layer extracted from both apps where this reduces duplication without harming delivery.
+- Shell policy is **mostly identical** across both apps: same tokens, same interaction contracts, same spacing logic, same feedback states, same responsive shell behavior. Audience-specific navigation and page content may differ.
+- Enforcement is **strict everywhere**. If a touched page violates the shell rules, fix it unless the feature owner explicitly states otherwise.
+- Legacy policy is **aggressive migration**. Push toward standardization; do not preserve poor patterns only because they already exist.
+- Good structure and industry-standard code are required in both frontends. New code should favor reusable components, predictable foldering, narrow responsibilities, and shared hooks/utilities over page-local duplication.
+- When choosing between copying an old `fms.frontend` pattern and aligning with the standardized shell direction, choose the standardized shell direction.
+
+Reference implementation set for the shared shell and design language:
+
+- `Documentation/Features/frontend-layout/shell-and-design-language/V1/implementation/PRD.md`
+- `Documentation/Features/frontend-layout/shell-and-design-language/V1/implementation/TASKS.md`
+- `Documentation/Features/frontend-layout/shell-and-design-language/V1/implementation/SHELL_AUDIT.md`
 
 ### Mobile Responsiveness
 
@@ -461,7 +552,7 @@ import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
 ### Backend — Domain-Driven Structure
 
 ```
-FMS.Application/Features/
+packages/FMS.Application/Features/
 ├── Vehicle/
 │   ├── Commands/          CreateVehicleCommand.cs / Handler.cs
 │   ├── Queries/           GetVehicleQuery.cs / Handler.cs
@@ -476,7 +567,7 @@ FMS.Application/Features/
 ### Frontend Structure
 
 ```
-src/
+apps/fms.frontend/src/
 ├── api/          HTTP clients (axiosInstance)
 ├── components/   Reusable components
 ├── pages/        Page components
@@ -485,7 +576,24 @@ src/
 ├── utils/        Utility functions
 ├── contexts/     React contexts
 └── hooks/        Custom hooks (usePermissions, etc.)
+
+apps/FMS.Admin/src/
+├── components/   Reusable operator-portal components
+├── layouts/      Operator shell and layout primitives
+├── pages/        Operator-facing pages
+├── routes/       Route composition when present
+├── store/        Redux Toolkit state when present
+├── styles/       Shared SCSS tokens and admin shell styles
+├── utils/        Shared frontend utilities
+└── hooks/        Shared behavior hooks when justified
 ```
+
+For cross-app frontend work:
+
+- Define shell rules, tokens, feedback states, and interaction contracts once, then mirror them in both apps.
+- Prefer extracting shared primitives and documented patterns over duplicating page-specific fixes.
+- Do not use `apps/FMS.Admin/` as a dumping ground for quick rewrites of messy tenant-side patterns.
+- Do not introduce a new shell pattern in one frontend without either mirroring it in the other or documenting why it is intentionally audience-specific.
 
 ---
 
@@ -497,8 +605,8 @@ src/
 
 | Project | Configuration Class |
 |---|---|
-| FMS.WebClient | `FMS.WebClient/Extensions/FmsLoggingConfiguration.cs` |
-| FMS.PTS.WindowsService | `FMS.PTS.WindowsService/Infrastructure/Logging/PTSLoggingConfiguration.cs` |
+| FMS.WebClient | `apps/FMS.WebClient/Extensions/FmsLoggingConfiguration.cs` |
+| FMS.PTS.WindowsService | `services/FMS.PTS.WindowsService/Infrastructure/Logging/PTSLoggingConfiguration.cs` |
 
 ### Log Output Template
 
@@ -620,7 +728,7 @@ After creating the navigation item, assign it to appropriate roles via the Navig
 ### Backend Structure
 
 ```
-FMS.Application/Features/EventExpressionEngine/
+packages/FMS.Application/Features/EventExpressionEngine/
 ├── Commands/     CreateEventExpression, Update, Delete, ProcessEvent,
 │                 AcknowledgeActiveEvent, ResolveActiveEvent
 ├── Queries/      GetEventExpressions, GetById, GetExecutions,
@@ -655,7 +763,7 @@ Migration SQL: `Documentation/Features/NotificationAndAlarm/EventExpressionEngin
 ### Frontend
 
 ```
-fms.frontend/src/
+apps/fms.frontend/src/
 ├── pages/eventExpressions/
 │   ├── EventExpressionsMain.js
 │   └── components/
@@ -921,9 +1029,9 @@ Please build and test the application to verify these changes.
 
 ```
 Documentation Created:
-✅ documentation/features/vehicle/fleet-management/V1/bug-fix/README.md
-✅ documentation/features/vehicle/fleet-management/V1/bug-fix/requirements.md
-✅ documentation/features/vehicle/fleet-management/V1/bug-fix/design.md
+✅ Documentation/Features/vehicle/fleet-management/V1/bug-fix/README.md
+✅ Documentation/Features/vehicle/fleet-management/V1/bug-fix/requirements.md
+✅ Documentation/Features/vehicle/fleet-management/V1/bug-fix/design.md
 
 Files placed in correct folder structure.
 ```
@@ -931,10 +1039,10 @@ Files placed in correct folder structure.
 **Documentation path — CRITICAL:**
 
 ```
-✅  documentation/features/vehicle/fleet-management/V1/bug-fix/README.md
+✅  Documentation/Features/vehicle/fleet-management/V1/bug-fix/README.md
 
-❌  documentation/vehicle/fleet-management/...       (missing "features" folder)
-❌  documentation/bug-fix/vehicle/...                (wrong structure)
+❌  Documentation/vehicle/fleet-management/...       (missing "Features" folder)
+❌  Documentation/bug-fix/vehicle/...                (wrong structure)
 ❌  src/documentation/...                            (wrong location entirely)
 ```
 
@@ -957,7 +1065,7 @@ Recommendation: Consider refactoring or migrating away from deprecated code.
 I need to create files in Features/TaskManagement/ but this domain folder doesn't exist.
 
 Proposed structure:
-FMS.Application/Features/TaskManagement/
+packages/FMS.Application/Features/TaskManagement/
 ├── Commands/
 ├── Queries/
 ├── DTOs/
@@ -1016,9 +1124,9 @@ Complete this checklist before submitting any code change.
 ## 13. Devices Architecture (Multi-Provider Platform)
 
 > 🚨 **Replaces the old "PTS code lives anywhere in FMS.Application" pattern.**
-> All device transport, protocol parsing, and channel code MUST live in a provider plugin under `FMS.Devices.*`. Business logic that consumes device data lives in `FMS.Application/Features/Devices/...`.
+> All device transport, protocol parsing, and channel code MUST live in a provider plugin under `FMS.Devices.*`. Business logic that consumes device data lives in `packages/FMS.Application/Features/Devices/...`.
 >
-> **Authoritative references:** [PRD](../documentation/features/devices/multi-device-platform/V1/implementation/PRD.md) · [Tasks](../documentation/features/devices/multi-device-platform/V1/implementation/TASKS.md) · `.agents/skills/devices/SKILL.md`
+> **Authoritative references:** [PRD](../Documentation/Features/devices/multi-device-platform/V1/implementation/PRD.md) · [Tasks](../Documentation/Features/devices/multi-device-platform/V1/implementation/TASKS.md) · `.agents/skills/devices/SKILL.md`
 
 ### 13.1 Project layout — what goes where
 
@@ -1030,14 +1138,14 @@ Complete this checklist before submitting any code change.
 | `FMS.Devices.Fueling` | `Providers/<Vendor>/` per fueling vendor with `Transport/`, `Protocol/`, `Mapping/`, `Commands/`, `Channels/`. | Tracking code, business logic. |
 | `FMS.Devices.Tracking.Host` | Worker process. `AddDeviceCore().AddTrackingProviders()`. | Provider implementations. |
 | `FMS.Devices.Fueling.Host` | Windows Service. `AddDeviceCore().AddFuelingProviders()`. Replaces `FMS.PTS.WindowsService`. | Provider implementations. |
-| `FMS.Application/Features/Devices/` | Business logic consuming canonical MediatR notifications. Provisioning CRUD. | Transport, protocol parsing, vendor APIs. |
+| `packages/FMS.Application/Features/Devices/` | Business logic consuming canonical MediatR notifications. Provisioning CRUD. | Transport, protocol parsing, vendor APIs. |
 
 ### 13.2 Hard rules
 
 | ✅ DO | ❌ DON'T |
 |---|---|
-| Add new tracking vendor under `FMS.Devices.Tracking/Providers/<Vendor>/`. | Add tracking code in `FMS.Application/Communication`, `FMS.Infrastructure/ExternalServices`, or `FMS.BackgroundServices`. |
-| Add new fueling vendor under `FMS.Devices.Fueling/Providers/<Vendor>/`. | Add fueling/PTS code in `FMS.Application/{Handlers,Communication,Command/PTSCommand}` or `FMS.PTS.WindowsService`. |
+| Add new tracking vendor under `FMS.Devices.Tracking/Providers/<Vendor>/`. | Add tracking code in `packages/FMS.Application/Communication`, `packages/FMS.Infrastructure/ExternalServices`, or `services/FMS.BackgroundServices`. |
+| Add new fueling vendor under `FMS.Devices.Fueling/Providers/<Vendor>/`. | Add fueling/PTS code in `packages/FMS.Application/{Handlers,Communication,Command/PTSCommand}` or `services/FMS.PTS.WindowsService`. |
 | Decorate provider with `[Provider("Name", DeviceCategory.X, Version="1.0")]`. | Manually wire providers in `Program.cs` — DI scan handles registration. |
 | Branch on `provider.Capabilities.HasFlag(...)`. | Compare `provider.Name == "GPSGate"`. |
 | Inject `IVehicleTrackingProvider` (resolved per-vehicle via `IProviderFactory`). | Inject `IGPSGateLocationService` etc. directly. |
@@ -1048,13 +1156,13 @@ Complete this checklist before submitting any code change.
 ### 13.3 Anti-patterns — STOP if you see these
 
 ```
-❌  FMS.Application/Communication/{WebSocket,Redis,Connection,HttpPolling,Tracker}/*           → fueling provider
-❌  FMS.Application/Handlers/{PacketHandlers,UploadTransactions,PumpResponse,Common/PTSMessageProcessor}/*  → DELETED, replaced by mappers
-❌  FMS.Application/Command/PTSCommand/*                                                       → split: serializers → fueling provider; orchestration → Features/Devices/Fueling
-❌  FMS.Application/PTSServices/*                                                              → DELETED
-❌  FMS.Application/Features/PTS/, /PTSDevice/, /PTSService/                                   → CONSOLIDATED into Features/Devices/Fueling
-❌  FMS.Infrastructure/ExternalServices/GPS/GPSGate/*                                          → tracking provider
-❌  FMS.Infrastructure/VehicleTracking/Providers/*                                             → tracking provider
+❌  packages/FMS.Application/Communication/{WebSocket,Redis,Connection,HttpPolling,Tracker}/*           → fueling provider
+❌  packages/FMS.Application/Handlers/{PacketHandlers,UploadTransactions,PumpResponse,Common/PTSMessageProcessor}/*  → DELETED, replaced by mappers
+❌  packages/FMS.Application/Command/PTSCommand/*                                                       → split: serializers → fueling provider; orchestration → Features/Devices/Fueling
+❌  packages/FMS.Application/PTSServices/*                                                              → DELETED
+❌  packages/FMS.Application/Features/PTS/, /PTSDevice/, /PTSService/                                   → CONSOLIDATED into Features/Devices/Fueling
+❌  packages/FMS.Infrastructure/ExternalServices/GPS/GPSGate/*                                          → tracking provider
+❌  packages/FMS.Infrastructure/VehicleTracking/Providers/*                                             → tracking provider
 ❌  FMS.IoT.Contracts / FMS.IoT.Gateway / FMS.IoT.ProcessingEngine                             → DELETED entirely
 ❌  [PacketType("X")] reflection registry                                                     → DI-keyed mappers
 ❌  provider.Name == "GPSGate"                                                                → capability flag
@@ -1093,12 +1201,12 @@ Routing by `SourceContext` namespace match (e.g. `FMS.Devices.Tracking.Providers
 | Host | Purpose | Replaces |
 |---|---|---|
 | `FMS.Devices.Fueling.Host` | WebSocket listener + Redis command channel + fueling providers. | `FMS.PTS.WindowsService` |
-| `FMS.Devices.Tracking.Host` | RabbitMQ consumer + provider health + tracking providers. | Tracking jobs in `FMS.WebClient` / `FMS.BackgroundServices`. |
+| `FMS.Devices.Tracking.Host` | RabbitMQ consumer + provider health + tracking providers. | Tracking jobs in `apps/FMS.WebClient` / `services/FMS.BackgroundServices`. |
 
 ### 13.8 References
 
-- PRD: `documentation/features/devices/multi-device-platform/V1/implementation/PRD.md`
-- Tasks: `documentation/features/devices/multi-device-platform/V1/implementation/TASKS.md`
+- PRD: `Documentation/Features/devices/multi-device-platform/V1/implementation/PRD.md`
+- Tasks: `Documentation/Features/devices/multi-device-platform/V1/implementation/TASKS.md`
 - Skill: `.agents/skills/devices/SKILL.md` (Copilot/Cursor) · `.claude/skills/devices/SKILL.md` (Claude Code)
 - Provider cookbook: `FMS.Devices.Abstractions/README.md` (created in T6.4)
 

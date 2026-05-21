@@ -3,7 +3,7 @@
 > **Companion to:** [`3-AUDIENCE-PRD.md`](./3-AUDIENCE-PRD.md)
 > **Architecture plan:** `.claude/plans/in-our-multitenant-application-eager-rocket.md`
 > **Owner:** Platform team
-> **Last updated:** 2026-05-20
+> **Last updated:** 2026-05-16
 
 Each task is sized for one engineer-day or less unless flagged `[L]` (multi-day). Tasks are grouped by phase. Within a phase, follow the order — many backend tasks gate frontend tasks.
 
@@ -127,24 +127,24 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ### 3.2 fms.frontend — Branding Settings (Client side)
 
-- [x] **3.2.1** Backend: `PATCH /api/v1/tenant/branding` (update logo URL, colours; gated by `manage_branding`)
-- [x] **3.2.2** `fms.frontend`: Branding Settings page under Settings (Client view only)
-- [x] **3.2.3** Logo URL input + preview
-- [x] **3.2.4** Colour pickers for primary/secondary with live preview before save
+- [ ] **3.2.1** Backend: `PATCH /api/v1/tenant/branding` (update logo URL, colours; gated by `manage_branding`)
+- [ ] **3.2.2** `fms.frontend`: Branding Settings page under Settings (Client view only)
+- [ ] **3.2.3** Logo URL input + preview
+- [ ] **3.2.4** Colour pickers for primary/secondary with live preview before save
 
 ### 3.3 FMS.Admin — Cross-Tenant Reports
 
-- [x] **3.3.1** Backend: `GET /api/v1/operator/reports/usage?from=&to=` (aggregate fuel volume, transactions, active devices, by tenant)
-- [x] **3.3.2** Backend: `GET /api/v1/operator/reports/revenue?from=&to=` (invoice totals by tenant)
-- [x] **3.3.3** `FMS.Admin`: Cross-Tenant Reports page with date-range picker + tenant filter
-- [x] **3.3.4** `FMS.Admin`: Charts for consumption, revenue, and device activity
-- [x] **3.3.5** Export to CSV / PDF
+- [ ] **3.3.1** Backend: `GET /api/v1/operator/reports/usage?from=&to=` (aggregate fuel volume, transactions, active devices, by tenant)
+- [ ] **3.3.2** Backend: `GET /api/v1/operator/reports/revenue?from=&to=` (invoice totals by tenant)
+- [ ] **3.3.3** `FMS.Admin`: Cross-Tenant Reports page with date-range picker + tenant filter
+- [ ] **3.3.4** `FMS.Admin`: Charts (consumption, revenue, device activity) — match charting library used in fms.frontend
+- [ ] **3.3.5** Export to CSV / PDF
 
 ### 3.4 FMS.Admin — Audit Log
 
-- [x] **3.4.1** Backend: extend `UserActivity` (or add `PlatformAudit`) for cross-tenant operator actions
-- [x] **3.4.2** Backend: `GET /api/v1/operator/audit?…filters` — `[AllowCrossTenant]`
-- [x] **3.4.3** `FMS.Admin`: Audit log page with tenant/user/action/date filters
+- [ ] **3.4.1** Backend: extend `UserActivity` (or add `PlatformAudit`) for cross-tenant operator actions
+- [ ] **3.4.2** Backend: `GET /api/v1/operator/audit?…filters` — `[AllowCrossTenant]`
+- [ ] **3.4.3** `FMS.Admin`: Audit log page with tenant/user/action/date filters
 
 ### 3.5 FMS.Admin — Operator Users Module
 
@@ -164,13 +164,13 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 
 ## Phase 4 — Polish & White-Label
 
-- [x] **4.1** Logo file upload (binary) — backend stores in configured external file storage and returns a served URL via `/api/v1/files/...`
-- [x] **4.2** Colour picker upgrade with palette presets and accessibility contrast warnings
-- [x] **4.3** Live preview of theme on Branding Settings page (mini-mockup card)
-- [x] **4.4** Stations Provisioning module in `FMS.Admin`
-- [x] **4.5** Plans & Pricing CRUD in `FMS.Admin` (create plans, set quotas, feature flags)
-- [x] **4.6** Sales Pipeline module in `FMS.Admin` (deals, opportunities, follow-ups)
-- [x] **4.7** Documentation: update `Documentation/Features/MultiTenancy/README.md` with the 3-audience architecture diagram and new claims/permissions reference
+- [ ] **4.1** Logo file upload (binary) — backend stores in CDN/blob storage and returns URL
+- [ ] **4.2** Colour picker upgrade with palette presets and accessibility contrast warnings
+- [ ] **4.3** Live preview of theme on Branding Settings page (mini-mockup card)
+- [ ] **4.4** Stations Provisioning module in `FMS.Admin`
+- [ ] **4.5** Plans & Pricing CRUD in `FMS.Admin` (create plans, set quotas, feature flags)
+- [ ] **4.6** Sales Pipeline module in `FMS.Admin` (deals, opportunities, follow-ups)
+- [ ] **4.7** Documentation: update `Documentation/Features/MultiTenancy/README.md` with the 3-audience architecture diagram and new claims/permissions reference
 
 ---
 
