@@ -11,6 +11,7 @@
  * - UploadInTankDelivery_maps_packet_sample_to_canonical_message(): Covers in-tank deliveries.
  * - UploadStatus_maps_packet_sample_to_canonical_message(): Covers controller heartbeat status.
  * - UploadAlertRecord_maps_packet_sample_to_canonical_message(): Covers alert records.
+ * - Pump_response_mappers_map_packet_samples_to_canonical_message(): Covers pump command responses.
  */
 using System;
 using System.Threading;
@@ -229,6 +230,97 @@ public sealed class TechnotradePtsPacketMapperTests
         Assert.Contains("State=Active", message.Payload.Description);
     }
 
+    [Theory]
+    [MemberData(nameof(PumpResponseMapperSamples))]
+    public async Task Pump_response_mappers_map_packet_samples_to_canonical_message(
+        IPtsPacketMapper mapper,
+        Packet packet,
+        int? expectedPump,
+        int? expectedTransaction,
+        string? expectedStatus)
+    {
+        var router = new CapturingDeviceMessageRouter();
+        mapper = RecreatePumpResponseMapper(mapper.PacketType, router);
+
+        await mapper.MapAndPublishAsync(new TechnotradePtsPacketContext(DeviceId, TenantId, packet));
+
+        var message = Assert.NotNull(router.PumpResponse);
+        AssertEnvelope(message, mapper.PacketType, packet.Id, message.OccurredAtUtc);
+        Assert.Equal(mapper.PacketType, message.Payload.PacketType);
+        Assert.Equal(packet.Id, message.Payload.PacketId);
+        Assert.Equal(packet.Error == true, message.Payload.IsError);
+        Assert.Equal(expectedPump, message.Payload.PumpNumber);
+        Assert.Equal(expectedTransaction, message.Payload.TransactionId);
+        Assert.Equal(expectedStatus, message.Payload.StatusType ?? message.Payload.State);
+    }
+
+    public static TheoryData<IPtsPacketMapper, Packet, int?, int?, string?> PumpResponseMapperSamples() =>
+        new()
+        {
+            {
+                new PumpAuthorizeResponseMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpAuthorizeResponseMapper>.Instance),
+                CreatePacket("PumpAuthorize", 501, new { Pump = 1, Transaction = 7001 }),
+                1,
+                7001,
+                null
+            },
+            {
+                new PumpAuthorizeConfirmationMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpAuthorizeConfirmationMapper>.Instance),
+                CreatePacket("PumpAuthorizeConfirmation", 502, new { Pump = 2, Transaction = 7002 }),
+                2,
+                7002,
+                null
+            },
+            {
+                new PumpCloseTransactionMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpCloseTransactionMapper>.Instance),
+                CreatePacket("PumpCloseTransaction", 503, new { Pump = 3, Transaction = 7003 }),
+                3,
+                7003,
+                null
+            },
+            {
+                new PumpCloseTransactionResponseMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpCloseTransactionResponseMapper>.Instance),
+                CreatePacket("PumpCloseTransactionResponse", 504, new { Pump = 4, Transaction = 7004, Success = true }),
+                4,
+                7004,
+                null
+            },
+            {
+                new PumpEndOfTransactionStatusMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpEndOfTransactionStatusMapper>.Instance),
+                CreatePacket("PumpEndOfTransactionStatus", 505, new { Pump = 5, Transaction = 7005, Volume = 12.5m, Amount = 250m }),
+                5,
+                7005,
+                null
+            },
+            {
+                new PumpGetStatusResponseMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpGetStatusResponseMapper>.Instance),
+                CreatePacket("PumpGetStatusResponse", 506, new { Pump = 6, Type = "PumpFillingStatus", Transaction = 7006 }),
+                6,
+                7006,
+                "PumpFillingStatus"
+            },
+            {
+                new PumpTransactionInformationMapper(new CapturingDeviceMessageRouter(), NullLogger<PumpTransactionInformationMapper>.Instance),
+                CreatePacket("PumpTransactionInformation", 507, new { Pump = 7, Transaction = 7007, State = "Filling", Nozzle = 1 }),
+                7,
+                7007,
+                "Filling"
+            }
+        };
+
+    private static IPtsPacketMapper RecreatePumpResponseMapper(string packetType, CapturingDeviceMessageRouter router) =>
+        packetType switch
+        {
+            "PumpAuthorize" => new PumpAuthorizeResponseMapper(router, NullLogger<PumpAuthorizeResponseMapper>.Instance),
+            "PumpAuthorizeConfirmation" => new PumpAuthorizeConfirmationMapper(router, NullLogger<PumpAuthorizeConfirmationMapper>.Instance),
+            "PumpCloseTransaction" => new PumpCloseTransactionMapper(router, NullLogger<PumpCloseTransactionMapper>.Instance),
+            "PumpCloseTransactionResponse" => new PumpCloseTransactionResponseMapper(router, NullLogger<PumpCloseTransactionResponseMapper>.Instance),
+            "PumpEndOfTransactionStatus" => new PumpEndOfTransactionStatusMapper(router, NullLogger<PumpEndOfTransactionStatusMapper>.Instance),
+            "PumpGetStatusResponse" => new PumpGetStatusResponseMapper(router, NullLogger<PumpGetStatusResponseMapper>.Instance),
+            "PumpTransactionInformation" => new PumpTransactionInformationMapper(router, NullLogger<PumpTransactionInformationMapper>.Instance),
+            _ => throw new ArgumentOutOfRangeException(nameof(packetType), packetType, null)
+        };
+
     private static Packet CreatePacket(string packetType, int packetId, object data) =>
         new()
         {
@@ -260,6 +352,7 @@ public sealed class TechnotradePtsPacketMapperTests
         public DeviceMessage<InTankDeliveryMessage>? InTankDelivery { get; private set; }
         public DeviceMessage<UploadStatusMessage>? UploadStatus { get; private set; }
         public DeviceMessage<AlertRecordMessage>? AlertRecord { get; private set; }
+        public DeviceMessage<PumpResponseMessage>? PumpResponse { get; private set; }
 
         public Task PublishPumpTransactionAsync(DeviceMessage<PumpTransactionMessage> message, CancellationToken cancellationToken = default)
         {
@@ -288,6 +381,12 @@ public sealed class TechnotradePtsPacketMapperTests
         public Task PublishAlertRecordAsync(DeviceMessage<AlertRecordMessage> message, CancellationToken cancellationToken = default)
         {
             AlertRecord = message;
+            return Task.CompletedTask;
+        }
+
+        public Task PublishPumpResponseAsync(DeviceMessage<PumpResponseMessage> message, CancellationToken cancellationToken = default)
+        {
+            PumpResponse = message;
             return Task.CompletedTask;
         }
     }

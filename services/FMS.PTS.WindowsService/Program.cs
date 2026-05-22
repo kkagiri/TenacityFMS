@@ -10,8 +10,6 @@ using FMS.Application.Communication.Connection;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Handlers;
-using FMS.Application.Handlers.Common;
-using FMS.Application.Handlers.Interface;
 using FMS.Application.Abstractions.DistCacheTracker;
 using FMS.BackgroundServices.FMS;
 // using FMS.Application.Features.Devices.Fueling.Services.Configuration; // Cursor - Commented out missing namespace
@@ -445,21 +443,11 @@ namespace FMS.PTS.WindowsService
                 FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>(); services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
 
             services.AddScoped<IPolicyTriggerService, PolicyTriggerService>(); //Cursor
-            services.Scan(scan => scan
-                .FromAssemblyOf<UploadStatusHandler>()
-                .AddClasses(classes => classes.AssignableTo<IPacketHandler>())
-                .AsSelf()
-                .AsImplementedInterfaces()
-                .WithScopedLifetime());
-
             services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
                 cfg.RegisterServicesFromAssembly(typeof(UploadStatusCommand).Assembly);
             });
-            services.AddScoped<IPTSMessageProcessor, PTSMessageProcessor>();
-
-            services.AddScoped<MessageHandlerRegistry>();
 
             services.AddScoped<IPendingCommandRepository, PendingCommandsRepository>();
             services.AddScoped<IAuthorizationStateTracker, FMS.Infrastructure.DistCacheTracker.AuthorizationStateTracker>();
