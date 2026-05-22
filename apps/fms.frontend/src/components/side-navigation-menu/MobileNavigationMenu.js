@@ -6,6 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '../../contexts/navigation';
 import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import { CUSTOMER_NAVIGATION_ITEMS } from '../../constants/customerNavigation';
+import { mergeNavigationPlaceholders } from '../../constants/navigationPlaceholders';
 import './MobileNavigationMenu.scss';
 
 const normalizeNavigationTree = (navigationItems) => {
@@ -37,6 +38,12 @@ const normalizeNavigationTree = (navigationItems) => {
     return roots;
 };
 
+const normalizeMobileChildren = (items) =>
+    items.map((item) => ({
+        ...item,
+        children: normalizeMobileChildren(item.children || item.items || []),
+    }));
+
 const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
     const location = useLocation();
     const dispatch = useDispatch();
@@ -63,7 +70,9 @@ const MobileNavigationMenu = ({ selectedItemChanged, onMenuReady }) => {
 
     const navigationItems = useMemo(() => {
         if (!isCustomerView) {
-            return normalizeNavigationTree(rawNavigationItems);
+            return normalizeMobileChildren(
+                mergeNavigationPlaceholders(normalizeNavigationTree(rawNavigationItems))
+            );
         }
 
         return CUSTOMER_NAVIGATION_ITEMS.map((item) => ({ ...item, children: [] }));

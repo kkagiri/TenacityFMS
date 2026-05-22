@@ -4,6 +4,32 @@
 > **Scope:** Active production system. All new features and edits must follow the Fluent Design language conventions defined in this document.
 
 ---
+## Daily Workflow
+
+1. At the start of a work session, create or open today's daily log:
+   `Documentation/ProjectTracker/DailyChangeLog/YYYY-MM-DD.md`
+2. Whenever a meaningful code, configuration, database, documentation, or project-tracker change is completed, add one entry to the daily log.
+3. When editing a source file that already has a file header with `Last Modified`, update that date to the current work date.
+4. At end of day, generate the executive summary from:
+   - today's daily log
+   - `git status --short`
+   - `git diff --stat`
+   - relevant file headers and changed files
+   - PRD, TASKS, or project-tracker updates when present
+5. Save the final executive summary under:
+   `Documentation/ProjectTracker/DailyExecutiveSummaries/YYYY-MM-DD-executive-summary.md`
+
+## Entry Requirements
+
+Each daily log entry should include:
+
+- Module
+- Work type: bug fix, enhancement, refactor, security, data repair, UI, backend, documentation, planning, or operations
+- Percent done for that work item
+- High-level achievement or fix
+- Files changed
+- Test/build status
+- Risk, blocker, or follow-up
 
 ## Quick Reference
 

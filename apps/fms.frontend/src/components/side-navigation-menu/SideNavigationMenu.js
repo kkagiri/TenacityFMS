@@ -15,27 +15,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigation } from '../../contexts/navigation';
 import { fetchNavigationItems } from '../../redux/actions/navigationActions';
 import { CUSTOMER_NAVIGATION_ITEMS } from '../../constants/customerNavigation';
+import { mergeNavigationPlaceholders } from '../../constants/navigationPlaceholders';
 import './SideNavigationMenu.scss';
 import * as events from 'devextreme/events';
-
-const SHELL_PLACEHOLDER_ITEMS = [
-  {
-    id: 'placeholder-vehicles',
-    text: 'Vehicles',
-    path: '/vehicles',
-    icon: 'fa-light fa-cars',
-    parentId: null,
-    items: [],
-  },
-  {
-    id: 'placeholder-tankstock',
-    text: 'Tankstock',
-    path: '/tankstock',
-    icon: 'fa-light fa-gas-pump',
-    parentId: null,
-    items: [],
-  },
-];
 
 const MENU_ICON_BY_PATH = Object.freeze({
   '/home': 'fa-light fa-gauge-high',
@@ -139,17 +121,6 @@ const normalizeNavigationTree = (navigationItems) => {
   return roots;
 };
 
-const ensurePlaceholderItems = (navigationItems) => {
-  const hasPath = (path) =>
-    navigationItems.some((item) => item.path?.toLowerCase() === path.toLowerCase());
-
-  const placeholdersToAdd = SHELL_PLACEHOLDER_ITEMS.filter(
-    (item) => !hasPath(item.path)
-  );
-
-  return [...navigationItems, ...placeholdersToAdd];
-};
-
 export default function SideNavigationMenu(props) {
   const {
     children,
@@ -197,7 +168,7 @@ export default function SideNavigationMenu(props) {
     }
 
     const tree = normalizeNavigationTree(navigationItems);
-    return ensurePlaceholderItems(tree);
+    return mergeNavigationPlaceholders(tree);
   }, [navigationItems, isCustomerView]);
 
   const selectedPath = useMemo(() => {

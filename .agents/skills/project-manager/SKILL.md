@@ -7,6 +7,16 @@ description: Program delivery governance for Tenacy FMS. Use when auditing or up
 
 Use this skill as the delivery hub for documentation truth. Keep program status aligned with the repo without changing scope or inventing progress.
 
+### Daily Change Tracking Protocol
+
+When modifying repository files, the agent must:
+
+1. Update the file header `Last Modified` date when the edited file already has that metadata.
+2. Add or update today's daily change log under `Documentation/ProjectTracker/DailyChangeLog/YYYY-MM-DD.md`.
+3. Record module, work type, percent done, top-level achievement or fix, files changed, test/build status, and follow-up.
+4. At end of day, when requested, generate an executive summary under `Documentation/ProjectTracker/DailyExecutiveSummaries/YYYY-MM-DD-executive-summary.md` from the daily log and git evidence.
+5. Do not treat file header dates as the only source of truth; use them as supporting metadata alongside the daily log and git diff.
+
 ## Hub-and-spoke role
 
 - Own delivery truth: phases, milestones, percent complete, feature registration, artifact existence.

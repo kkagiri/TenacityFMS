@@ -26,6 +26,7 @@ import React, { useEffect } from "react";
 import appInfo from "./app-info";
 import { SideNavOuterToolbar } from "./layouts";
 import { Footer } from "./components";
+import { ProfilePage } from "./pages";
 
 import { useSelector } from "react-redux";
 import resolvedComponents from "./app-routes";
@@ -38,6 +39,7 @@ import { useSignalRRouting } from "./hooks/useSignalRRouting";
 import useDocumentTitle from "./hooks/useDocumentTitle";
 import { getOperatorPortalUrl, getSafeInternalRedirect } from "./utils/authRedirect";
 import { RouteErrorBoundary } from "./components/feedback";
+import PlaceholderPage from "./pages/placeholders/PlaceholderPage";
 
 // Wrap a route element in a RouteErrorBoundary so one module's crash never
 // takes down the whole shell. PRD §7.1 L2.
@@ -159,6 +161,51 @@ export default function Content() {
         <Route
           path="/fueling/:ptsId"
           element={wrap("Fueling", <FuelingProcess />)}
+        />
+
+        {/* Documentation-driven placeholder modules for rebuild navigation. */}
+        <Route
+          path="/dashboard"
+          element={wrap(
+            "Dashboard",
+            React.createElement(resolvedComponents("dashboard"))
+          )}
+        />
+        <Route
+          path="/dashboard/*"
+          element={wrap("Dashboard placeholder", <PlaceholderPage moduleKey="dashboard" />)}
+        />
+        <Route
+          path="/fuel-management"
+          element={wrap("Fueling placeholder", <PlaceholderPage moduleKey="fueling" />)}
+        />
+        <Route
+          path="/fuel-management/*"
+          element={wrap("Fueling placeholder", <PlaceholderPage moduleKey="fueling" />)}
+        />
+        <Route
+          path="/dispatch"
+          element={wrap("Dispatch placeholder", <PlaceholderPage moduleKey="dispatch" />)}
+        />
+        <Route
+          path="/dispatch/*"
+          element={wrap("Dispatch placeholder", <PlaceholderPage moduleKey="dispatch" />)}
+        />
+        <Route
+          path="/fiscal-compliance"
+          element={wrap("Fiscal compliance placeholder", <PlaceholderPage moduleKey="fiscal" />)}
+        />
+        <Route
+          path="/fiscal-compliance/*"
+          element={wrap("Fiscal compliance placeholder", <PlaceholderPage moduleKey="fiscal" />)}
+        />
+        <Route
+          path="/help"
+          element={wrap("Help placeholder", <PlaceholderPage moduleKey="help" />)}
+        />
+        <Route
+          path="/help/*"
+          element={wrap("Help placeholder", <PlaceholderPage moduleKey="help" />)}
         />
 
         <Route
@@ -298,6 +345,14 @@ export default function Content() {
             React.createElement(resolvedComponents("reports"))
           )}
         />
+        <Route
+          path="/reports/driver-performance"
+          element={wrap("Reports placeholder", <PlaceholderPage moduleKey="reports" />)}
+        />
+        <Route
+          path="/reports/cross-tenant-summary"
+          element={wrap("Reports placeholder", <PlaceholderPage moduleKey="reports" />)}
+        />
 
         {/* Maintenance */}
         <Route
@@ -361,6 +416,16 @@ export default function Content() {
             "Event expressions",
             React.createElement(resolvedComponents("event-expressions"))
           )}
+        />
+
+        {/* User profile */}
+        <Route
+          path="/profile"
+          element={wrap("Profile", <ProfilePage />)}
+        />
+        <Route
+          path="/profile/*"
+          element={wrap("Profile placeholder", <PlaceholderPage moduleKey="profile" />)}
         />
 
         {/* Home/Dashboard */}
